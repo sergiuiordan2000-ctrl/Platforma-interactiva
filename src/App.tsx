@@ -131,6 +131,18 @@ export default function App() {
     }
   };
 
+  // Zona Admin folosește un shell propriu, separat de interfața publică
+  // (fără Header/Footer/BottomNavigation publice) — Etapa 5A-2.
+  if (currentView === 'admin') {
+    return (
+      <div className="min-h-screen bg-slate-50 text-slate-800 antialiased">
+        <main className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+          {renderView()}
+        </main>
+      </div>
+    );
+  }
+
   return (
     <AppLayout currentView={currentView} onNavigate={handleNavigate}>
       {renderView()}

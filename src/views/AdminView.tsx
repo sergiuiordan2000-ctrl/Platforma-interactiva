@@ -19,12 +19,15 @@ import {
   X,
   Sparkles,
   Info,
-  LayoutDashboard
+  LayoutDashboard,
+  Megaphone
 } from 'lucide-react';
 import { AppView } from '../types/navigation';
 import { authService, AdminUser } from '../services/authService';
+import { permissionService, Permission } from '../services/permissionService';
 import { AdminLoginForm } from '../components/admin/AdminLoginForm';
 import { AdminDashboard } from '../components/admin/AdminDashboard';
+import { AdminAnnouncementsManager } from '../components/admin/announcements/AdminAnnouncementsManager';
 import { AdminInstitutionForm } from '../components/admin/directory/AdminInstitutionForm';
 import { AdminDepartmentsManager } from '../components/admin/directory/AdminDepartmentsManager';
 import { AdminServicesManager } from '../components/admin/directory/AdminServicesManager';
@@ -40,9 +43,38 @@ interface AdminViewProps {
   onNavigate: (view: AppView) => void;
 }
 
-type MainAdminTab = 'dashboard' | 'directory' | 'quickdial' | 'reports' | 'surveys';
+type MainAdminTab = 'dashboard' | 'announcements' | 'directory' | 'quickdial' | 'reports' | 'surveys';
 type DirectorySubTab = 'institution' | 'departments' | 'services' | 'schedule' | 'links';
 type QuickDialSubTab = 'contacts' | 'categories';
+
+/**
+ * Permisiunea de vizualizare (`.view`) necesară pentru accesul la fiecare tab principal
+ * din Admin (Etapa 5G). SURSĂ UNICĂ pentru gating-ul taburilor — nicio componentă nu
+ * verifică `currentUser.role` direct; totul trece prin `permissionService`.
+ */
+const TAB_VIEW_PERMISSIONS: Record<MainAdminTab, Permission> = {
+  dashboard: 'dashboard.view',
+  announcements: 'announcements.view',
+  directory: 'directory.view',
+  quickdial: 'quickDial.view',
+  reports: 'reports.view',
+  surveys: 'surveys.view',
+};
+
+/**
+ * Panou afișat dacă (teoretic) starea internă ar indica un tab pentru care utilizatorul
+ * curent nu are permisiunea de vizualizare. Reprezintă verificarea de autorizare la
+ * nivelul view-ului, nu doar ascunderea butonului de navigare (Etapa 5G, Secțiunea 8).
+ */
+const AccessDeniedPanel: React.FC<{ moduleName: string }> = ({ moduleName }) => (
+  <div className="bg-white rounded-3xl border-2 border-red-200 p-8 text-center space-y-2">
+    <Lock className="w-8 h-8 text-red-400 mx-auto" />
+    <p className="text-sm font-bold text-red-800">Acces interzis</p>
+    <p className="text-xs text-slate-500 max-w-md mx-auto">
+      Rolul curent nu are permisiunea de a accesa modulul „{moduleName}”.
+    </p>
+  </div>
+);
 
 export const AdminView: React.FC<AdminViewProps> = ({ onNavigate }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => authService.isAuthenticated());
@@ -61,6 +93,22 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigate }) => {
       setCurrentUser(authService.getCurrentUser());
     });
   }, []);
+
+  // Verificare centrală de autorizare (Etapa 5G) — sursă unică: permissionService.
+  const canAccessTab = (tab: MainAdminTab): boolean =>
+    permissionService.hasPermission(currentUser?.role, TAB_VIEW_PERMISSIONS[tab]);
+
+  // Protecție reală (nu doar vizuală): dacă starea internă ar indica vreodată un tab
+  // pentru care rolul curent nu are permisiune, comutăm automat pe primul tab accesibil.
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    if (canAccessTab(activeMainTab)) return;
+    const firstAllowed = (Object.keys(TAB_VIEW_PERMISSIONS) as MainAdminTab[]).find((t) => canAccessTab(t));
+    if (firstAllowed) {
+      setActiveMainTab(firstAllowed);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, currentUser, activeMainTab]);
 
   const showToast = (message: string) => {
     setToastMessage(message);
@@ -156,79 +204,121 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigate }) => {
 
       {/* 2. Comutator Principal de Modul: Dashboard, Ghid Primărie vs. Quick Dial */}
       <div className="p-1.5 bg-slate-100 rounded-2xl flex items-center gap-1.5 border border-slate-200 shadow-inner overflow-x-auto scrollbar-none">
-        <button
-          onClick={() => setActiveMainTab('dashboard')}
-          className={`flex-1 py-3 px-4 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all select-none whitespace-nowrap ${
-            activeMainTab === 'dashboard'
-              ? 'bg-white text-slate-900 shadow-sm'
-              : 'text-slate-600 hover:text-slate-900'
-          }`}
-        >
-          <LayoutDashboard className={`w-4 h-4 ${activeMainTab === 'dashboard' ? 'text-slate-700' : 'text-slate-400'}`} />
-          <span>Dashboard</span>
-        </button>
+        {canAccessTab('dashboard') && (
+          <button
+            onClick={() => setActiveMainTab('dashboard')}
+            className={`flex-1 py-3 px-4 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all select-none whitespace-nowrap ${
+              activeMainTab === 'dashboard'
+                ? 'bg-white text-slate-900 shadow-sm'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <LayoutDashboard className={`w-4 h-4 ${activeMainTab === 'dashboard' ? 'text-slate-700' : 'text-slate-400'}`} />
+            <span>Dashboard</span>
+          </button>
+        )}
 
-        <button
-          onClick={() => setActiveMainTab('directory')}
-          className={`flex-1 py-3 px-4 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all select-none ${
-            activeMainTab === 'directory'
-              ? 'bg-white text-cyan-900 shadow-sm'
-              : 'text-slate-600 hover:text-slate-900'
-          }`}
-        >
-          <Building2 className={`w-4 h-4 ${activeMainTab === 'directory' ? 'text-cyan-700' : 'text-slate-400'}`} />
-          <span>A. Ghidul Primăriei</span>
-        </button>
+        {canAccessTab('announcements') && (
+          <button
+            onClick={() => setActiveMainTab('announcements')}
+            className={`flex-1 py-3 px-4 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all select-none whitespace-nowrap ${
+              activeMainTab === 'announcements'
+                ? 'bg-white text-blue-900 shadow-sm'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Megaphone className={`w-4 h-4 ${activeMainTab === 'announcements' ? 'text-blue-700' : 'text-slate-400'}`} />
+            <span>Comunicate (5B)</span>
+          </button>
+        )}
 
-        <button
-          onClick={() => setActiveMainTab('quickdial')}
-          className={`flex-1 py-3 px-4 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all select-none ${
-            activeMainTab === 'quickdial'
-              ? 'bg-white text-emerald-900 shadow-sm'
-              : 'text-slate-600 hover:text-slate-900'
-          }`}
-        >
-          <PhoneCall className={`w-4 h-4 ${activeMainTab === 'quickdial' ? 'text-emerald-600' : 'text-slate-400'}`} />
-          <span>B. Numere Utile / Quick Dial</span>
-        </button>
+        {canAccessTab('directory') && (
+          <button
+            onClick={() => setActiveMainTab('directory')}
+            className={`flex-1 py-3 px-4 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all select-none ${
+              activeMainTab === 'directory'
+                ? 'bg-white text-cyan-900 shadow-sm'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Building2 className={`w-4 h-4 ${activeMainTab === 'directory' ? 'text-cyan-700' : 'text-slate-400'}`} />
+            <span>A. Ghidul Primăriei</span>
+          </button>
+        )}
 
-        <button
-          onClick={() => setActiveMainTab('reports')}
-          className={`flex-1 py-3 px-4 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all select-none ${
-            activeMainTab === 'reports'
-              ? 'bg-white text-blue-900 shadow-sm'
-              : 'text-slate-600 hover:text-slate-900'
-          }`}
-        >
-          <Layers className={`w-4 h-4 ${activeMainTab === 'reports' ? 'text-blue-700' : 'text-slate-400'}`} />
-          <span>C. Moderare Sesizări (3E)</span>
-        </button>
+        {canAccessTab('quickdial') && (
+          <button
+            onClick={() => setActiveMainTab('quickdial')}
+            className={`flex-1 py-3 px-4 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all select-none ${
+              activeMainTab === 'quickdial'
+                ? 'bg-white text-emerald-900 shadow-sm'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <PhoneCall className={`w-4 h-4 ${activeMainTab === 'quickdial' ? 'text-emerald-600' : 'text-slate-400'}`} />
+            <span>B. Numere Utile / Quick Dial</span>
+          </button>
+        )}
 
-        <button
-          onClick={() => setActiveMainTab('surveys')}
-          className={`flex-1 py-3 px-4 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all select-none ${
-            activeMainTab === 'surveys'
-              ? 'bg-white text-purple-900 shadow-sm'
-              : 'text-slate-600 hover:text-slate-900'
-          }`}
-        >
-          <Vote className={`w-4 h-4 ${activeMainTab === 'surveys' ? 'text-purple-700' : 'text-slate-400'}`} />
-          <span>D. Sondaje Civice (4B)</span>
-        </button>
+        {canAccessTab('reports') && (
+          <button
+            onClick={() => setActiveMainTab('reports')}
+            className={`flex-1 py-3 px-4 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all select-none ${
+              activeMainTab === 'reports'
+                ? 'bg-white text-blue-900 shadow-sm'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Layers className={`w-4 h-4 ${activeMainTab === 'reports' ? 'text-blue-700' : 'text-slate-400'}`} />
+            <span>C. Moderare Sesizări (3E)</span>
+          </button>
+        )}
+
+        {canAccessTab('surveys') && (
+          <button
+            onClick={() => setActiveMainTab('surveys')}
+            className={`flex-1 py-3 px-4 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all select-none ${
+              activeMainTab === 'surveys'
+                ? 'bg-white text-purple-900 shadow-sm'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Vote className={`w-4 h-4 ${activeMainTab === 'surveys' ? 'text-purple-700' : 'text-slate-400'}`} />
+            <span>D. Sondaje Civice (4B)</span>
+          </button>
+        )}
       </div>
 
       {/* 3. Sub-Navigare specifică fiecărui modul */}
 
       {/* DASHBOARD (Etapa 5A.1) */}
       {activeMainTab === 'dashboard' && (
-        <AdminDashboard
-          currentUser={currentUser}
-          onNavigateTab={(tab) => setActiveMainTab(tab)}
-        />
+        canAccessTab('dashboard') ? (
+          <AdminDashboard
+            currentUser={currentUser}
+            onNavigateTab={(tab) => setActiveMainTab(tab)}
+          />
+        ) : (
+          <AccessDeniedPanel moduleName="Dashboard" />
+        )
+      )}
+
+      {/* MODUL COMUNICATE & EVENIMENTE (Etapa 5B) */}
+      {activeMainTab === 'announcements' && (
+        canAccessTab('announcements') ? (
+          <div className="space-y-6">
+            <AdminAnnouncementsManager onSuccess={showToast} />
+          </div>
+        ) : (
+          <AccessDeniedPanel moduleName="Comunicate & Evenimente" />
+        )
       )}
 
       {/* SUB-NAVIGARE PENTRU GHID PRIMĂRIE */}
-      {activeMainTab === 'directory' && (
+      {activeMainTab === 'directory' && !canAccessTab('directory') && (
+        <AccessDeniedPanel moduleName="Ghidul Primăriei" />
+      )}
+      {activeMainTab === 'directory' && canAccessTab('directory') && (
         <div className="space-y-6">
           <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none" aria-label="Secțiuni Administrare Ghid">
             <button
@@ -314,7 +404,10 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigate }) => {
       )}
 
       {/* SUB-NAVIGARE PENTRU QUICK DIAL */}
-      {activeMainTab === 'quickdial' && (
+      {activeMainTab === 'quickdial' && !canAccessTab('quickdial') && (
+        <AccessDeniedPanel moduleName="Numere Utile / Quick Dial" />
+      )}
+      {activeMainTab === 'quickdial' && canAccessTab('quickdial') && (
         <div className="space-y-6">
           <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none" aria-label="Secțiuni Administrare Quick Dial">
             <button
@@ -356,16 +449,24 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigate }) => {
 
       {/* SUB-MODUL PENTRU MODERARE SESIZĂRI (ETAPA 3E) */}
       {activeMainTab === 'reports' && (
-        <div className="space-y-6">
-          <AdminReportsModeration onSuccess={showToast} />
-        </div>
+        canAccessTab('reports') ? (
+          <div className="space-y-6">
+            <AdminReportsModeration onSuccess={showToast} />
+          </div>
+        ) : (
+          <AccessDeniedPanel moduleName="Moderare Sesizări" />
+        )
       )}
 
       {/* SUB-MODUL PENTRU ADMINISTRARE SONDAJE (ETAPA 4B) */}
       {activeMainTab === 'surveys' && (
-        <div className="space-y-6">
-          <AdminSurveysManager onSuccess={showToast} />
-        </div>
+        canAccessTab('surveys') ? (
+          <div className="space-y-6">
+            <AdminSurveysManager onSuccess={showToast} />
+          </div>
+        ) : (
+          <AccessDeniedPanel moduleName="Sondaje Civice" />
+        )
       )}
 
       {/* 4. Notă de Subsol Metodologică */}

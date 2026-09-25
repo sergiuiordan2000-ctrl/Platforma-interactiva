@@ -5,6 +5,11 @@
 
 export type AnnouncementType = 'notification' | 'announcement' | 'news' | 'event';
 
+// Starea de publicare a comunicatului (Etapa 5B). Articolele existente/demo,
+// care nu au acest câmp definit, sunt tratate implicit ca 'published' prin
+// fallback în announcementService — nu a fost nevoie să se rescrie datele demo.
+export type AnnouncementStatus = 'published' | 'draft';
+
 export interface Announcement {
   id: string;
   type: AnnouncementType;
@@ -17,6 +22,7 @@ export interface Announcement {
   imageUrl?: string;
   isUrgent?: boolean;
   expiresAt?: string;
+  status?: AnnouncementStatus; // Etapa 5B — opțional; lipsă = 'published' (fallback)
   isDemo: boolean; // Marcat explicit ca date demonstrative pentru Etapa 1B
 
   // Câmpuri specifice pentru tipul 'event' (Eveniment)

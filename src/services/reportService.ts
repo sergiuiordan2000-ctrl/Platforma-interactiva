@@ -3,14 +3,18 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { 
-  CivicReport, 
-  ReportCategory, 
-  PublicMapReport, 
-  PublicationPreference, 
-  ModerationStatus 
+import {
+  CivicReport,
+  ReportCategory,
+  PublicMapReport,
+  PublicationPreference,
+  ModerationStatus,
+  ResolutionStatus,
+  ReportResponse
 } from '../types/report';
 import { DEMO_REPORT_CATEGORIES } from '../data/mockReportCategories';
+import { directoryService } from './directoryService';
+import { emailService } from './emailService';
 
 const STORAGE_REPORTS_KEY = 'turnu_civic_reports_store';
 const STORAGE_COUNTER_KEY = 'turnu_civic_reports_counter';
@@ -262,6 +266,20 @@ class ReportService {
     this.saveReports();
 
     this.lastSubmittedReport = report;
+
+    // 4. Declanșarea trimiterii automate a e-mailurilor (Etapa 5E) — STRICT DUPĂ
+    // salvarea cu succes a sesizării de mai sus. Este intenționat neblocant (fire-and-forget)
+    // și complet izolat: orice eroare aici NU afectează în niciun fel sesizarea deja salvată
+    // și returnată apelantului.
+    try {
+      const registryEmail = directoryService.getCityHallInfo()?.registryEmail;
+      emailService.notifyNewReport(report, registryEmail).catch((err) => {
+        console.error(`Eroare la procesarea notificărilor de e-mail pentru ${report.referenceNumber}:`, err);
+      });
+    } catch (err) {
+      console.error(`Eroare la inițierea notificărilor de e-mail pentru ${report.referenceNumber}:`, err);
+    }
+
     return report;
   }
 
@@ -351,6 +369,62 @@ class ReportService {
 
     this.saveReports();
     return true;
+  }
+
+  // ==========================================
+  // METODE DE SOLUȚIONARE (ETAPA 5C) — independente de moderare
+  // ==========================================
+
+  /**
+   * Returnează stadiul de soluționare al unei sesizări. Sesizările fără câmpul
+   * `resolutionStatus` (existente dinaintea Etapei 5C) sunt tratate ca 'new' prin fallback,
+   * fără a rescrie datele stocate.
+   */
+  public getResolutionStatus(report: CivicReport): ResolutionStatus {
+    return report.resolutionStatus ?? 'new';
+  }
+
+  /**
+   * Schimbă stadiul de soluționare al unei sesizări (Etapa 5C).
+   * Concept complet independent de `moderationStatus` — nu îl atinge și nu este atins de el.
+   */
+  public updateResolutionStatus(id: string, newStatus: ResolutionStatus): boolean {
+    const reportIndex = this.reports.findIndex((r) => r.id === id);
+    if (reportIndex === -1) return false;
+
+    this.reports[reportIndex] = {
+      ...this.reports[reportIndex],
+      resolutionStatus: newStatus,
+    };
+
+    this.saveReports();
+    return true;
+  }
+
+  /**
+   * Adaugă un răspuns administrativ nou în istoricul sesizării (Etapa 5C).
+   * Strict intern (Admin) în această etapă. Nu suprascrie răspunsurile anterioare —
+   * doar adaugă la finalul listei existente.
+   */
+  public addResponse(id: string, message: string, authorName: string): ReportResponse | null {
+    const reportIndex = this.reports.findIndex((r) => r.id === id);
+    if (reportIndex === -1) return null;
+
+    const newResponse: ReportResponse = {
+      id: `resp-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`,
+      message,
+      createdAt: new Date().toISOString(),
+      authorName,
+    };
+
+    const current = this.reports[reportIndex];
+    this.reports[reportIndex] = {
+      ...current,
+      responses: [...(current.responses || []), newResponse],
+    };
+
+    this.saveReports();
+    return newResponse;
   }
 
   /**

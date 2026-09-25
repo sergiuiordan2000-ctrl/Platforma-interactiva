@@ -10,13 +10,15 @@ import {
   PhoneCall,
   Layers,
   Vote,
+  Megaphone,
   ArrowRight,
   UserCircle2,
   ShieldCheck,
 } from 'lucide-react';
 import { AdminUser } from '../../services/authService';
+import { permissionService, Permission } from '../../services/permissionService';
 
-export type AdminDashboardTab = 'directory' | 'quickdial' | 'reports' | 'surveys';
+export type AdminDashboardTab = 'announcements' | 'directory' | 'quickdial' | 'reports' | 'surveys';
 
 interface AdminDashboardProps {
   currentUser: AdminUser | null;
@@ -29,15 +31,26 @@ interface ModuleCardConfig {
   description: string;
   icon: React.ReactNode;
   accentClasses: string;
+  /** Permisiunea de vizualizare necesară pentru ca acest card să fie afișat (Etapa 5G). */
+  viewPermission: Permission;
 }
 
 const MODULE_CARDS: ModuleCardConfig[] = [
+  {
+    tab: 'announcements',
+    title: 'Comunicate & Evenimente',
+    description: 'Creare, editare, publicare, dezactivare și evenimente locale (Etapa 5B).',
+    icon: <Megaphone className="w-5 h-5" />,
+    accentClasses: 'bg-blue-50 text-blue-700 border-blue-200',
+    viewPermission: 'announcements.view',
+  },
   {
     tab: 'directory',
     title: 'Ghidul Primăriei',
     description: 'Date instituționale, direcții, servicii, program și link-uri utile.',
     icon: <Building2 className="w-5 h-5" />,
     accentClasses: 'bg-cyan-50 text-cyan-700 border-cyan-200',
+    viewPermission: 'directory.view',
   },
   {
     tab: 'quickdial',
@@ -45,6 +58,7 @@ const MODULE_CARDS: ModuleCardConfig[] = [
     description: 'Contacte de apelare rapidă și categoriile acestora.',
     icon: <PhoneCall className="w-5 h-5" />,
     accentClasses: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    viewPermission: 'quickDial.view',
   },
   {
     tab: 'reports',
@@ -52,6 +66,7 @@ const MODULE_CARDS: ModuleCardConfig[] = [
     description: 'Evaluarea, aprobarea și respingerea sesizărilor cetățenești (Etapa 3E).',
     icon: <Layers className="w-5 h-5" />,
     accentClasses: 'bg-blue-50 text-blue-700 border-blue-200',
+    viewPermission: 'reports.view',
   },
   {
     tab: 'surveys',
@@ -59,6 +74,7 @@ const MODULE_CARDS: ModuleCardConfig[] = [
     description: 'Administrarea sondajelor și consultărilor publice (Etapa 4B).',
     icon: <Vote className="w-5 h-5" />,
     accentClasses: 'bg-purple-50 text-purple-700 border-purple-200',
+    viewPermission: 'surveys.view',
   },
 ];
 
@@ -70,6 +86,12 @@ const ROLE_LABELS: Record<AdminUser['role'], string> = {
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onNavigateTab }) => {
   const displayName = currentUser?.name || 'Administrator';
   const roleLabel = currentUser ? ROLE_LABELS[currentUser.role] : '—';
+
+  // Etapa 5G: afișăm doar modulele pentru care rolul curent are permisiune de vizualizare.
+  // Verificare centrală prin permissionService — nu se compară `role` direct aici.
+  const visibleModuleCards = MODULE_CARDS.filter((mod) =>
+    permissionService.hasPermission(currentUser?.role, mod.viewPermission)
+  );
 
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
@@ -108,7 +130,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onN
           Module disponibile
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-          {MODULE_CARDS.map((mod) => (
+          {visibleModuleCards.map((mod) => (
             <button
               key={mod.tab}
               onClick={() => onNavigateTab(mod.tab)}

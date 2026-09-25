@@ -55,6 +55,34 @@ export type PublicationPreference = 'private' | 'public' | 'public_anonymous';
 export type ModerationStatus = 'pending' | 'approved' | 'rejected';
 
 /**
+ * Stadiul soluționării sesizării de către administrator (Etapa 5C).
+ * Concept SEPARAT și INDEPENDENT de `ModerationStatus`:
+ * - `ModerationStatus` decide dacă sesizarea este eligibilă pentru harta publică.
+ * - `ResolutionStatus` urmărește progresul intern al tratării problemei semnalate.
+ * O sesizare poate fi, de exemplu, 'approved' (vizibilă pe hartă) și în același timp
+ * 'new' (netratată încă) — cele două axe nu se condiționează reciproc.
+ *
+ * - 'new': sesizare nouă, neverificată/tratată încă (implicit — inclusiv pentru
+ *   sesizările existente dinaintea Etapei 5C, prin fallback în reportService).
+ * - 'in_progress': sesizarea este în curs de analiză/soluționare.
+ * - 'resolved': problema semnalată a fost soluționată.
+ * - 'closed': cazul este închis administrativ.
+ */
+export type ResolutionStatus = 'new' | 'in_progress' | 'resolved' | 'closed';
+
+/**
+ * Răspuns/observație administrativă asociată unei sesizări (Etapa 5C).
+ * Strict intern (Admin) în această etapă — nu este afișat public.
+ * Istoricul se păstrează integral; un răspuns nou NU suprascrie răspunsurile anterioare.
+ */
+export interface ReportResponse {
+  id: string;
+  message: string;
+  createdAt: string;
+  authorName: string;
+}
+
+/**
  * Modelul de date pentru sesizări cetățenești (Etapele 3A, 3B, 3C, 3D, 3E).
  * 
  * SEPARARE ARHITECTURALĂ STRICTĂ:
@@ -78,7 +106,11 @@ export interface CivicReport {
   publicationPreference: PublicationPreference; // Preferința cetățeanului (implicit: 'private')
   moderationStatus: ModerationStatus; // Decizia moderatorului (implicit: 'pending')
   moderatedAt?: string; // Data ultimei acțiuni de moderare
-  moderationNote?: string; // Notă internă opțională a moderatorului
+  moderationNote?: string; // Notă internă opțională a moderatorului (folosită exclusiv pentru moderare)
+
+  // Câmpuri Etapa 5C — soluționare (independente de moderare)
+  resolutionStatus?: ResolutionStatus; // Lipsă = 'new' (fallback în reportService)
+  responses?: ReportResponse[]; // Istoric răspunsuri administrative interne, niciodată suprascris
 }
 
 /**

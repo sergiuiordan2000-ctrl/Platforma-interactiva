@@ -196,7 +196,7 @@ export const DirectoryView: React.FC<DirectoryViewProps> = ({
             <span>Status Modul: Etapa 2B (Ghidul Primăriei & Quick Dial sunt ACTIVE)</span>
           </div>
           <p className="leading-relaxed">
-            Informațiile instituționale ale Primăriei (Etapa 2A) și sistemul de apelare rapidă pe categorii (Etapa 2B) sunt complet funcționale. Administrarea dinamică din zona de Admin aparține <strong>Etapei 2C</strong> și nu a fost implementată.
+            Informațiile instituționale ale Primăriei (Etapa 2A) și sistemul de apelare rapidă pe categorii (Etapa 2B) sunt complet funcționale. Administrarea dinamică din zona de Admin (<strong>Etapa 2C</strong>) este de asemenea implementată și funcțională.
           </p>
         </div>
 

@@ -4,28 +4,35 @@
  */
 
 import React, { useState } from 'react';
-import { 
-  CheckCircle2, 
-  XCircle, 
-  Clock, 
-  Eye, 
-  EyeOff, 
-  UserCheck, 
-  MapPin, 
-  Camera, 
-  User, 
-  Phone, 
-  Mail, 
+import {
+  CheckCircle2,
+  XCircle,
+  Clock,
+  Eye,
+  EyeOff,
+  UserCheck,
+  MapPin,
+  Camera,
+  User,
+  Phone,
+  Mail,
   AlertTriangle,
   RotateCcw,
   Search,
   Filter,
   Layers,
   Sparkles,
-  ShieldAlert
+  ShieldAlert,
+  Wrench,
+  PlayCircle,
+  ClipboardCheck,
+  Lock,
+  MessageSquare,
+  Send
 } from 'lucide-react';
-import { CivicReport, ModerationStatus, PublicationPreference } from '../../../types/report';
+import { CivicReport, ModerationStatus, PublicationPreference, ResolutionStatus } from '../../../types/report';
 import { reportService } from '../../../services/reportService';
+import { authService } from '../../../services/authService';
 
 interface AdminReportsModerationProps {
   onSuccess: (message: string) => void;
@@ -33,10 +40,22 @@ interface AdminReportsModerationProps {
 
 type ModerationFilter = 'all' | 'pending' | 'approved' | 'rejected' | 'private';
 
+const RESOLUTION_LABELS: Record<ResolutionStatus, string> = {
+  new: 'Nouă',
+  in_progress: 'În lucru',
+  resolved: 'Rezolvată',
+  closed: 'Închisă',
+};
+
+const RESOLUTION_ORDER: ResolutionStatus[] = ['new', 'in_progress', 'resolved', 'closed'];
+
 export const AdminReportsModeration: React.FC<AdminReportsModerationProps> = ({ onSuccess }) => {
   const [reports, setReports] = useState<CivicReport[]>(() => reportService.getAllReports());
   const [activeFilter, setActiveFilter] = useState<ModerationFilter>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
+
+  // Etapa 5C — text în curs de redactare pentru un răspuns administrativ nou, per sesizare
+  const [responseDrafts, setResponseDrafts] = useState<Record<string, string>>({});
 
   const stats = reportService.getModerationStats();
 
@@ -51,6 +70,31 @@ export const AdminReportsModeration: React.FC<AdminReportsModerationProps> = ({ 
       } else {
         onSuccess(`Sesizarea ${refNumber} a fost readusă în starea de așteptare.`);
       }
+    }
+  };
+
+  // Etapa 5C — schimbarea stadiului de soluționare (independent de moderare)
+  const handleChangeResolutionStatus = (id: string, refNumber: string, newStatus: ResolutionStatus) => {
+    const success = reportService.updateResolutionStatus(id, newStatus);
+    if (success) {
+      setReports(reportService.getAllReports());
+      onSuccess(`Stadiul soluționării pentru ${refNumber} a fost actualizat: „${RESOLUTION_LABELS[newStatus]}”.`);
+    }
+  };
+
+  // Etapa 5C — adăugare răspuns administrativ nou (păstrează istoricul, nu suprascrie)
+  const handleAddResponse = (id: string, refNumber: string) => {
+    const text = (responseDrafts[id] || '').trim();
+    if (!text) return;
+
+    const currentUser = authService.getCurrentUser();
+    const authorName = currentUser?.name || 'Administrator';
+
+    const created = reportService.addResponse(id, text, authorName);
+    if (created) {
+      setReports(reportService.getAllReports());
+      setResponseDrafts((prev) => ({ ...prev, [id]: '' }));
+      onSuccess(`Răspunsul administrativ a fost adăugat la sesizarea ${refNumber}.`);
     }
   };
 
@@ -465,6 +509,108 @@ export const AdminReportsModeration: React.FC<AdminReportsModerationProps> = ({ 
                     )}
                   </div>
                 </div>
+
+                {/* 5. STADIUL SOLUȚIONĂRII (Etapa 5C) — concept independent de moderare */}
+                {(() => {
+                  const resolutionStatus = reportService.getResolutionStatus(report);
+                  const responses = report.responses || [];
+
+                  const RESOLUTION_ICONS: Record<ResolutionStatus, React.ReactNode> = {
+                    new: <Sparkles className="w-3.5 h-3.5" />,
+                    in_progress: <PlayCircle className="w-3.5 h-3.5" />,
+                    resolved: <ClipboardCheck className="w-3.5 h-3.5" />,
+                    closed: <Lock className="w-3.5 h-3.5" />,
+                  };
+
+                  const RESOLUTION_COLORS: Record<ResolutionStatus, string> = {
+                    new: 'bg-blue-100 text-blue-800 border-blue-300',
+                    in_progress: 'bg-amber-100 text-amber-800 border-amber-300',
+                    resolved: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+                    closed: 'bg-slate-200 text-slate-700 border-slate-300',
+                  };
+
+                  return (
+                    <div className="pt-4 mt-1 border-t-2 border-dashed border-slate-200 space-y-3.5">
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        <h4 className="text-xs font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                          <Wrench className="w-4 h-4 text-purple-700" />
+                          <span>Stadiul Soluționării (Intern — Etapa 5C)</span>
+                        </h4>
+                        <span
+                          className={`text-[11px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1 border ${RESOLUTION_COLORS[resolutionStatus]}`}
+                        >
+                          {RESOLUTION_ICONS[resolutionStatus]}
+                          <span>{RESOLUTION_LABELS[resolutionStatus]}</span>
+                        </span>
+                      </div>
+
+                      {/* Comutator explicit al stadiului */}
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {RESOLUTION_ORDER.map((rs) => (
+                          <button
+                            key={rs}
+                            onClick={() => handleChangeResolutionStatus(report.id, report.referenceNumber, rs)}
+                            disabled={resolutionStatus === rs}
+                            className={`px-3 py-1.5 rounded-xl text-[11px] font-bold whitespace-nowrap transition-all border ${
+                              resolutionStatus === rs
+                                ? `${RESOLUTION_COLORS[rs]} cursor-default`
+                                : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                            }`}
+                          >
+                            {RESOLUTION_LABELS[rs]}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Istoric răspunsuri administrative */}
+                      <div className="space-y-2">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                          <MessageSquare className="w-3.5 h-3.5 text-slate-400" />
+                          <span>Răspunsuri administrative interne ({responses.length})</span>
+                        </span>
+
+                        {responses.length > 0 ? (
+                          <div className="space-y-2">
+                            {responses.map((resp) => (
+                              <div key={resp.id} className="bg-purple-50/60 border border-purple-100 rounded-xl p-3 text-xs space-y-1">
+                                <div className="flex items-center justify-between text-[10px] text-purple-700 font-bold">
+                                  <span>{resp.authorName}</span>
+                                  <span className="font-normal text-purple-500">
+                                    {new Date(resp.createdAt).toLocaleString('ro-RO')}
+                                  </span>
+                                </div>
+                                <p className="text-slate-800 leading-relaxed">{resp.message}</p>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-[11px] text-slate-400 italic">Niciun răspuns administrativ adăugat încă.</p>
+                        )}
+
+                        {/* Formular adăugare răspuns nou */}
+                        <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                          <textarea
+                            value={responseDrafts[report.id] || ''}
+                            onChange={(e) =>
+                              setResponseDrafts((prev) => ({ ...prev, [report.id]: e.target.value }))
+                            }
+                            placeholder="Adaugă un răspuns/observație administrativă internă..."
+                            rows={2}
+                            className="flex-1 p-2.5 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-purple-200"
+                          />
+                          <button
+                            onClick={() => handleAddResponse(report.id, report.referenceNumber)}
+                            disabled={!(responseDrafts[report.id] || '').trim()}
+                            className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-purple-700 hover:bg-purple-800 disabled:opacity-40 disabled:pointer-events-none text-white font-bold text-xs shadow-sm transition-all shrink-0 self-start sm:self-stretch"
+                          >
+                            <Send className="w-3.5 h-3.5" />
+                            <span>Adaugă răspuns</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
 
               </div>
             );
