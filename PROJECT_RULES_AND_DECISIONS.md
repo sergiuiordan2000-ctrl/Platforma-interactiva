@@ -43,7 +43,9 @@ Reguli de lucru obligatorii pentru toate etapele viitoare, indiferent de asisten
 
 - **Nu se inventează cerințe și nu se iau decizii de produs** în numele proprietarului.
 - Când apare o decizie de produs (ce vede publicul, ce poate face un rol, o funcționalitate nouă, o alternativă de UI): **STOP, se prezintă opțiunile și se cere decizia.**
-- Deciziile deschise cunoscute: **N2, N4** (din auditul 6.5; N3 a fost clarificat tehnic în 6.5, N1 a fost închis în 6.6), **P7**, introducerea unui backend. **M7** (preluarea/asumarea sesizărilor) a fost **decis și implementat în 6.6** (secțiunea 6). Vezi `PROJECT_HANDOFF_CURRENT.md`, G.3.
+- Deciziile deschise cunoscute înainte de auditul general: N2, N4 (din auditul 6.5; N3 a fost clarificat tehnic în 6.5, N1 a fost închis în 6.6), **P7**, introducerea unui backend. **M7** (preluarea/asumarea sesizărilor) a fost **decis și implementat în 6.6** (secțiunea 6). Vezi `PROJECT_HANDOFF_CURRENT.md`, G.3.
+- **Deciziile post-audit D1–D12 au fost luate de proprietar** (26 septembrie 2026; lista lor este în raportul auditului general). Valorile transmise explicit în instrucțiunea P0: **D9 = A, D10 = A, D11 = B, D12 = A** (secțiunea 6). **Valorile D1–D8 nu au fost transmise în instrucțiunea P0 și nu se presupun**: ele acoperă, între altele, D1 (MVP demonstrativ / pilot, backend), D2 (Master Plan), D3 (= N2) și D4 (= N4). Se cer proprietarului când devin relevante.
+- **Nu există Etapa 6.7.** Etapa 6 (inclusiv 6.1–6.6) este închisă; următoarea direcție este Etapa 7 (7A–7F), conform Master Planului proprietarului.
 
 ## 5. Onestitate tehnică
 
@@ -78,6 +80,10 @@ Reguli de lucru obligatorii pentru toate etapele viitoare, indiferent de asisten
 | O asumare/preluare a unei sesizări aflate în `new` o trece în `in_progress` (indiferent de istoric); retragerea nu schimbă stadiul; `resolved`/`closed` nu sunt atinse; nu există status nou „asumat” | 6.6 |
 | Asumarea/preluarea folosește permisiunea existentă `reports.resolve` (fără permisiune nouă); rolul care acționează pentru Primărie este definit central în `permissionService`. Fiecare cont Admin are un ID unic și stabil | 6.6 |
 | Harta publică NU afișează responsabilul, preluarea sau stadiul; datele cetățeanului nu sunt publice (sunt vizibile doar în Admin, pentru `super_admin` și `primarie_operator`) | 6.6 |
+| **D9 = A:** notificările către cetățean la evenimentele relevante sunt aprobate; implementarea se face în etapa corespunzătoare din backlog, nu ad-hoc | post-audit |
+| **D10 = A:** datele demo se păstrează pentru MVP (marcajele `[DEMO]`, contul `demo@`, datele demo existente) | post-audit |
+| **D11 = B:** zona publică nu conține linkuri sau intrări către Admin; ruta `#admin` și funcționalitatea Admin rămân, accesibile prin acces direct | post-audit |
+| **D12 = A:** suitele de teste se păstrează permanent în repository (`tests/`), nu în directoare temporare | post-audit |
 
 ## 7. Comunicare
 

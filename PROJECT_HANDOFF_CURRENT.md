@@ -1,6 +1,6 @@
 # PROJECT_HANDOFF_CURRENT.md — Turnu Măgurele Civic
 
-**Stare documentată:** finalul Etapei 6.5 (26 septembrie 2026), actualizată pentru **Etapa 6.6** (implementată și testată; modificările nu erau încă salvate în Git la data actualizării, vezi B și I)
+**Stare documentată:** finalul Etapei 6.5 (26 septembrie 2026), actualizată după **Etapa 6.6** (comisă și publicată: `83b77ad`), după **auditul general** și pentru **remedierea P0 post-audit** (vezi B, G.5 și I)
 **Scop:** documentul principal de preluare pentru un chat nou. Înlocuiește, pentru starea curentă, secțiunile de stare din `PROJECT_HANDOFF.md`. Acela a fost scris la finalul Etapei 5 și este acum depășit la Git, securitate și pasul următor.
 
 > **Regula de pornire pentru noul chat:** citește acest document, apoi `PROJECT_RULES_AND_DECISIONS.md` și `ETAPA_6_STATUS_FINAL.md`. Apoi **verifică starea Git real** (Secțiunea B.4). Nu presupune nimic din memorie. **Codul și istoricul Git sunt sursa de adevăr.** Dacă documentul și codul se contrazic, codul are dreptate, iar contradicția se raportează.
@@ -23,7 +23,7 @@
 - Servicii singleton pe domenii (`src/services/*.ts`), cu persistență în **`localStorage` / `sessionStorage`** din browserul curent.
 - **Nu există backend real.** Nu există server, API, bază de date centralizată, autentificare pe server sau trimitere reală de e-mail.
   - Dependențele `express`, `@google/genai` și `dotenv` din `package.json` sunt reziduuri nefolosite ale boilerplate-ului.
-- Singura conexiune reală la rețea: tile-urile hărții OpenStreetMap.
+- Conexiuni reale la rețea: tile-urile hărții OpenStreetMap și imaginile demo ale comunicatelor, încărcate de pe Unsplash (m16).
 - E-mailul este **simulat** (`emailService`, stare `simulated`, niciodată `sent`).
 
 ### A.3 Stack tehnic
@@ -54,7 +54,7 @@ Matricea completă se află în `src/services/permissionService.ts` (`ROLE_PERMI
   - `#harta` (sesizările aprobate cu coordonate valide, fără datele autorului, cu model redus `PublicMapReport`; din 6.6 și cele cu valoarea istorică `private`);
   - `#sondaje`;
   - `#ghid` (Ghidul Primăriei + Apel rapid).
-- **Admin (`#admin`):**
+- **Admin (`#admin`):** din P0 post-audit (D11 = B) zona publică nu mai conține linkuri către Admin; ruta se accesează direct.
   - formular de autentificare, fără login DEMO din 6.4;
   - shell separat cu taburile Dashboard, Comunicate, Moderare Sesizări, Ghidul Primăriei (+ Apel rapid) și Sondaje, fiecare filtrat după permisiuni.
 
@@ -74,7 +74,7 @@ Matricea completă se află în `src/services/permissionService.ts` (`ROLE_PERMI
 | Commit de documentație peste el | `docs: finalize project handoff after stage 6.5` (adaugă doar acest document, `PROJECT_RULES_AND_DECISIONS.md` și `ETAPA_6_STATUS_FINAL.md`; fără cod). HEAD-ul branch-ului este acest commit; hash-ul lui se verifică cu `git log -1`. |
 | Branch-ul pe GitHub | identic cu HEAD-ul local; push-uri normale, fast-forward (`3c8d952..d89fd1c`, apoi commit-ul de documentație) |
 | `main` pe GitHub | `d9bc2c9f53cec27dafc846889b0457eea8495d20`, **NEATINS, nu se modifică** |
-| Working tree | curat după commit-ul de documentație. **Actualizare 6.6:** peste acesta există commit-ul `499ce12` (vezi B.2); modificările Etapei 6.6 erau necomise la data actualizării |
+| Working tree | curat după commit-ul de documentație. **Actualizare:** peste acesta există `499ce12` și `83b77ad` (Etapa 6.6), publicate pe GitHub (vezi B.2). Modificările remedierii P0 post-audit se comit doar la instrucțiunea proprietarului |
 
 ### B.2 Istoricul commit-urilor branch-ului (cronologic)
 | Commit | Mesaj | Conținut |
@@ -90,7 +90,7 @@ Matricea completă se află în `src/services/permissionService.ts` (`ROLE_PERMI
 | `d89fd1c` | Etapele 6.4-6.5: securizare autentificare si autorizare | **6.4 + 6.5** (13 fișiere); ultimul commit de cod |
 | `bb91814` | docs: finalize project handoff after stage 6.5 | cele 3 documente de handoff; fără cod |
 | `499ce12` | docs: record N1-N4 and P7 from stage 6.5 report | completarea documentației N1–N4 / P7; fără cod |
-| (necomis) | Etapa 6.6 | asumare / preluare (M7), sesizările `private` pe hartă, N1 închis; commit doar la instrucțiunea proprietarului |
+| `83b77ad` | feat(civic): finalize report takeover and assumption | **Etapa 6.6**: asumare / preluare (M7), sesizările `private` pe hartă, N1 închis, documentația vie; publicat pe GitHub |
 
 ### B.3 Continuitatea Etapei 6
 - Etapa 6.1: commit `3b8d6ca`
@@ -103,7 +103,7 @@ Matricea completă se află în `src/services/permissionService.ts` (`ROLE_PERMI
 git clone https://github.com/sergiuiordan2000-ctrl/Platforma-interactiva.git
 cd Platforma-interactiva
 git checkout recovery-etapa-5-0e2cc20
-git log --oneline -10        # primul rând: docs: finalize project handoff after stage 6.5; al doilea: d89fd1c
+git log --oneline -10        # primul rând: ultimul commit al branch-ului (la actualizare: 83b77ad, Etapa 6.6)
 git status --short           # nimic
 git ls-remote origin refs/heads/main refs/heads/recovery-etapa-5-0e2cc20
 npm install                  # dacă eșuează din conflictul esbuild/vite: npm install --legacy-peer-deps (vezi m15)
@@ -186,12 +186,12 @@ Etapa a început cu un audit read-only (probleme P1–P7, decizii N1–N4). Au f
 | P1 + P2 | **Helper-e noi** în `permissionService`: `currentUserCan(p)`, `currentUserCanAny(ps)`, `currentUserCanAll(ps)`. Se bazează pe `authService.getCurrentUser()?.role` și pe aceeași matrice; fără sesiune validă întorc `false`. **Gărzi în servicii** pe toate metodele de modificare: `reportService` (moderate / resolve / reply), `announcementService`, `directoryService` (19 metode), `quickDialService` (10), `surveyService`. La refuz nu se modifică nimic, iar metoda întoarce `false` / `null` / `{success:false}`. **Extindere de scop, semnalată:** gărzile acoperă toate metodele de modificare, nu doar cele listate inițial. Unele metode `void` întorc acum `boolean`, iar metodele `add*` întorc `T | null`. |
 | P3 | Tab-ul „Evidență Locală” a fost **eliminat** din `IssuesView` (zona publică nu mai apelează `getAllReports()`). Pagina `#sesizari` are acum doar formularul și confirmarea. |
 | P4 | **`PublicMapReport` redus:** fără `id` tehnic și fără `photo.name`. Câmpuri rămase: `referenceNumber`, `categoryId`, `categoryName`, `publicDescription`, `publicLocation`, `photo{dataUrl,size,compressionRatio}`, `createdAt`, `isAnonymous`. |
-| P5 | **`announcementService.getPublicById(id)`** întoarce comunicatul doar dacă e publicat și neexpirat. Este folosit în `AnnouncementsView`. `getById()` a rămas pentru Admin. |
+| P5 | **`announcementService.getPublicById(id)`** întoarce comunicatul doar dacă e publicat și neexpirat. Este folosit în `AnnouncementsView`. `getById()` a rămas în serviciu, dar în prezent nu are apelanți (auditul general, A-24). |
 | P6 | **Gărzi în Admin:** `AdminReportsModeration` și `AdminAnnouncementsManager` verifică permisiunea pe fiecare acțiune și rezultatul serviciului. Afișează un banner de refuz `role="alert"`, iar succesul apare doar dacă serviciul acceptă operația. |
 | — | **`submitReport` și `submitVote` rămân operații publice**, fără gardă, intenționat. |
 | — | `ROLE_PERMISSIONS` **neschimbat**. În `permissionService` s-a modificat doar importul și s-au adăugat helper-ele. |
 
-### 6.6: Asumare / preluare sesizare (C6, M7 / `6A-MOD-08`), necomisă la data actualizării
+### 6.6: Asumare / preluare sesizare (C6, M7 / `6A-MOD-08`), commit `83b77ad`
 | Element | Implementare |
 |---|---|
 | Model | `CivicReport.assigneeIds?: string[]` (responsabili individuali curenți) și `cityHallTakenOver?: boolean` (preluarea instituțională); doar starea curentă, fără istoric; câmpurile lipsă = fără responsabili / nepreluată |
@@ -230,7 +230,7 @@ Etapa a început cu un audit read-only (probleme P1–P7, decizii N1–N4). Au f
   - **PARTIAL: `6A-MOD-08`.** Nu există „preluare/asumare” (responsabil desemnat), cerința M7; neschimbat la finalul 6.5. **Actualizare 6.6: decis și implementat** (vezi D, 6.6).
   - **ERROR: `sec_delete` și `sec_demo`.** Sunt scenarii de test învechite, care apasă butoane eliminate intenționat în 6.1 și 6.4. Aspectele lor sunt acoperite de suitele 6.1 și 6.4.
   - `6D-PRV-01` și `6D-PRV-02`, FAIL în auditul Etapei 6, trec acum datorită P3.
-- **Scripturile de test Playwright (Python) NU sunt în repository.** Au existat doar în directorul temporar al sesiunii anterioare (`e6_main.py`, `e61_delete.py`, `e62_quota.py`, `e63_xss.py`, `e64_auth.py`, `e65_audit.py`, `e65_verify.py`). Un chat nou nu le poate rula și trebuie să scrie teste noi dacă vrea să repete regresia. Metoda folosită:
+- **Actualizare P0 post-audit (D12 = A):** suitele de test sunt acum în repository, în `tests/` (vezi `tests/README.md`); rulare: `python3 tests/run_all.py`. Scripturile originale ale Etapei 6 (`e6_main.py` … `e65_verify.py`) nu au fost recuperate; regresia 6.1–6.5 din `tests/regression/` este o rescriere compactă.
   - server Vite dev plus import de module reale (`await import('/src/services/x.ts')`, aceeași instanță singleton);
   - build de producție servit cu `vite preview` pentru testele UI.
 
@@ -274,19 +274,19 @@ Tot codul rulează în browserul utilizatorului. Prin urmare:
 ### G.2 Funcționale și de calitate (din auditul Etapei 6, încă deschise)
 | Cod | Problemă |
 |---|---|
-| M5 | Fără error boundary; o formă greșită în `turnu_civic_surveys_store` duce la ecran alb permanent pe `#sondaje` |
-| M6 | Footer-ul afirmă că sesizările „sunt redirecționate pe e-mail”, deși e-mailul e simulat (`Footer.tsx`) |
+| M5 | **Rezolvat în P0 post-audit (A-05):** `surveyService.getAllSurveys()` acceptă doar o listă și ignoră elementele care nu sunt obiecte; `#sondaje` nu mai rămâne albă la date corupte. Error boundary general nu există în continuare. |
+| M6 | **Rezolvat în P0 post-audit (A-06):** footer-ul spune că trimiterea automată pe e-mail nu este activă în această versiune. În același P0: nota de pe login (A-07) și textul din Admin Moderare (A-08) au fost corectate. |
 | M7 / `6A-MOD-08` | **DECIS / IMPLEMENTAT în 6.6:** asumare individuală `super_admin`, preluare instituțională a Primăriei (prioritară, fără retragere), fără afișare publică (vezi D, 6.6). Limitare: fără backend, starea nu e sincronizată între browsere |
 | m1 | Eșecul notificării e-mail nu e vizibil în interfață |
 | m4–m7 | Probleme de interfață: bannerul hărții peste butoanele de zoom, ținte tactile sub 44 px, taburile Admin pe telefon, etichete de etapă învechite vizibile public |
 | m8, m9 | Culorile categoriilor pe hartă nu corespund ID-urilor reale; `rep-seed-003` are `categoryId: 'spatii-verzi'` |
 | m10 | „Public” și „Public anonim” se afișează identic pe hartă: **intenționat din 6.6** (N1 închis: ambele publice, fără identitatea autorului) |
-| m11, m12 | Validarea e-mailului vine din browser; butonul „Trimite” rămâne activ în timpul compresiei |
+| m11, m12 | m11 depășit: formularul validează e-mailul și în cod (expresie regulată). m12 rămâne: butonul „Trimite” e activ în timpul compresiei |
 | m13 | Ștergerea unui sondaj sau „Reset Demo” lasă submisii orfane |
 | m14 | Bundle unic de aproximativ 755 KB |
 | m15 | Dependențe moarte; `npm ci` poate eșua fără `--legacy-peer-deps` |
 | m16 | Imagini demo de pe Unsplash |
-| m17 | Nu există teste automate în repository |
+| m17 | **Parțial rezolvat în P0 post-audit (D12 = A):** suitele sunt în `tests/` (servicii, UI, robustețe, suprafețe publice, regresie) și rulează cu `python3 tests/run_all.py`; vezi `tests/README.md`. Nu există încă un framework de teste integrat în `npm`. |
 
 m2 (permisiunile per acțiune în Moderare și Comunicate) a fost **rezolvat** prin P6.
 
@@ -312,6 +312,17 @@ Sursa: fragmentul final recuperat al raportului de execuție al Etapei 6.5, furn
 - **P1/P2** (helper-ele `currentUserCan*` și gărzile din servicii) sunt **protecții în frontend** și **nu înlocuiesc autorizarea server-side**.
 - **P7 rămâne nerezolvat.** Remedierea reală necesită o arhitectură cu backend. Aceasta este o **decizie de arhitectură / produs** nedecisă (vezi F.2); documentul de față nu propune o soluție.
 
+### G.5 Decizii post-audit (D1–D12)
+Auditul general a formulat deciziile D1–D12; proprietarul le-a luat pe toate. Instrucțiunea P0 transmite explicit doar valorile de mai jos.
+
+| Decizie | Valoare | Efect |
+|---|---|---|
+| D9 | **A** | notificările către cetățean la evenimentele relevante (preluare, schimbare de stadiu, rezolvare, răspuns) sunt aprobate; se implementează în etapa din backlog, nu în P0 |
+| D10 | **A** | datele demo se păstrează pentru MVP: marcajele `[DEMO]`, contul `demo@`, datele demo existente |
+| D11 | **B** | zona publică nu conține linkuri către Admin; ruta `#admin` rămâne, cu acces direct |
+| D12 | **A** | testele se păstrează permanent în repository, în `tests/` |
+| D1–D8 | luate | **valorile nu au fost transmise**; nu se presupun (inclusiv D1 = MVP demonstrativ / pilot, D2 = Master Plan, D3 = N2, D4 = N4) |
+
 ---
 
 ## H. CE NU TREBUIE MODIFICAT FĂRĂ DECIZIE EXPLICITĂ
@@ -330,7 +341,7 @@ Sursa: fragmentul final recuperat al raportului de execuție al Etapei 6.5, furn
 | Cheile `localStorage` (A.6) | schimbarea lor pierde datele existente | decizie tehnică, cu migrare |
 | Schemele de date (`src/types/*.ts`: `CivicReport`, `Announcement`, `Survey` etc.) | compatibilitate cu datele salvate | decizie tehnică + produs |
 | `SimulatedEmailTransportAdapter` | nu trebuie să raporteze niciodată `sent` | tehnică |
-| N2, N4 (G.3) | nedecise | **decizie de produs** |
+| N2, N4 (G.3) | decise post-audit ca D3 / D4; valorile nu au fost transmise (G.5) | **decizie de produs** |
 | Regulile de asumare/preluare 6.6 (M7) | decise și implementate | **decizie de produs** (nu se schimbă fără decizie nouă) |
 | P7 (`6D-SES-01`) | nerezolvat; remedierea reală cere backend (G.4) | **decizie de arhitectură / produs** |
 | `main` | nu se atinge | regulă de proiect |
@@ -339,11 +350,11 @@ Sursa: fragmentul final recuperat al raportului de execuție al Etapei 6.5, furn
 
 ## I. PUNCTUL EXACT DE CONTINUARE
 
-> **ACTUALIZARE 6.6:** Etapa 6.6 (asumare / preluare, M7) a fost implementată și testată (vezi D, 6.6). La data acestei actualizări modificările **nu erau salvate în Git**; commit-ul se face doar la instrucțiunea proprietarului. **Etapa 6.7 nu este definită** și nu trebuie presupusă.
+> **ETAPA 6 ESTE ÎNCHISĂ.** Etapele 6.1–6.6 sunt finalizate; Etapa 6.6 este comisă și publicată (`83b77ad`). **Nu există Etapa 6.7.** A urmat auditul general al proiectului, cu deciziile post-audit D1–D12 (G.5) și remedierea **P0** (A-27, A-05, A-06, A-07, A-08, D11-B, D12-A). **P1 nu este început**; următoarea direcție este Etapa 7 (7A–7F), la instrucțiunea proprietarului.
 
 Starea de pornire consemnată anterior (finalul 6.5) rămâne mai jos pentru referință. Noul chat:
 1. citește acest document, `PROJECT_RULES_AND_DECISIONS.md` și `ETAPA_6_STATUS_FINAL.md`;
 2. verifică starea Git (B.4): commit-ul de handoff ca HEAD, `d89fd1c` imediat sub el (ultimul commit de cod) și `main` la `d9bc2c9`;
 3. rulează `npx tsc --noEmit` și `npm run build`;
-4. confirmă înțelegerea stării și **așteaptă instrucțiunile** proprietarului (salvarea Etapei 6.6 dacă nu e comisă; apoi etapa următoare);
+4. confirmă înțelegerea stării și **așteaptă instrucțiunile** proprietarului (salvarea remedierii P0 dacă nu e comisă; apoi P1 / Etapa 7);
 5. ține cont că N2 și N4 așteaptă decizia proprietarului, N3 este clarificat tehnic, iar N1 este închis (G.3); P7 este descris în G.4.

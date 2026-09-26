@@ -191,7 +191,7 @@ export const AdminReportsModeration: React.FC<AdminReportsModerationProps> = ({ 
               <span>Moderare Sesizări Cetățenești (Etapa 3E)</span>
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">
-              Controlul afișării publice pe hartă. Cetățeanul alege dacă dorește publicarea, administratorul aprobă eligibilitatea.
+              Controlul afișării publice pe hartă. Administratorul aprobă sau respinge publicarea; datele cetățeanului nu sunt afișate public.
             </p>
           </div>
 

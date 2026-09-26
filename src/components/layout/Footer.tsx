@@ -1,5 +1,5 @@
 import React from 'react';
-import { Building2, ShieldAlert, Lock } from 'lucide-react';
+import { Building2, ShieldAlert } from 'lucide-react';
 import { AppView } from '../../types/navigation';
 
 interface FooterProps {
@@ -36,7 +36,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
               <span>Notă privind delimitarea oficială</span>
             </div>
             <p className="text-xs text-slate-300 leading-relaxed">
-              Această platformă este <strong>administrată independent</strong> și nu reprezintă registratura oficială a Primăriei Municipiului Turnu Măgurele. Sesizările transmise primesc un număr de evidență intern al platformei și sunt redirecționate pe e-mail către autoritatea locală.
+              Această platformă este <strong>administrată independent</strong> și nu reprezintă registratura oficială a Primăriei Municipiului Turnu Măgurele. Sesizările transmise primesc un număr de evidență intern al platformei. Trimiterea automată pe e-mail către autoritatea locală nu este activă în această versiune.
             </p>
           </div>
 
@@ -92,15 +92,6 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
                   className="hover:text-white transition-colors text-left"
                 >
                   • Ghid Primărie & Dispecerate
-                </button>
-              </li>
-              <li className="pt-1">
-                <button 
-                  onClick={() => onNavigate('admin')} 
-                  className="hover:text-white transition-colors text-left flex items-center gap-1 text-slate-400"
-                >
-                  <Lock className="w-3 h-3 text-slate-400" />
-                  <span>Panou Administrare</span>
                 </button>
               </li>
             </ul>

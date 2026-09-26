@@ -198,13 +198,13 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onOpenAnnounceme
         </section>
       )}
 
-      {/* 4. Carduri de Acces Rapid (Main Functionalities Grid - 6 Module) */}
+      {/* 4. Carduri de Acces Rapid (Main Functionalities Grid - 5 Module) */}
       <section className="space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight flex items-center gap-2">
             <span>Acces Rapid la Serviciile Civice</span>
             <span className="text-xs font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">
-              6 Module
+              5 Module
             </span>
           </h2>
           <span className="text-xs text-slate-500">Etapa 1B</span>
@@ -356,36 +356,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onOpenAnnounceme
             </div>
           </div>
 
-          {/* Card Panou Administrare (ACTIV ÎN ETAPA 2C) */}
-          <div 
-            onClick={() => onNavigate('admin')}
-            className="group p-5 rounded-2xl bg-slate-900 text-white hover:bg-slate-800 transition-all cursor-pointer flex flex-col justify-between relative overflow-hidden border border-slate-700 hover:border-blue-400"
-          >
-            <div className="absolute top-2 right-2">
-              <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-blue-500 text-white">
-                CMS Activ (2C)
-              </span>
-            </div>
-
-            <div className="space-y-3">
-              <div className="w-10 h-10 rounded-xl bg-slate-800 text-slate-200 flex items-center justify-center border border-slate-700 group-hover:scale-105 transition-transform">
-                <Building2 className="w-5 h-5 text-blue-400" />
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-white">
-                  Panou Administrare CMS
-                </h3>
-                <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-                  Modificare directă a datelor pentru Ghidul Primăriei și Quick Dial, cu reflectare imediată în interfața publică.
-                </p>
-              </div>
-            </div>
-            <div className="pt-4 flex items-center text-xs font-semibold text-blue-300 group-hover:translate-x-1 transition-transform">
-              <span>Deschide panoul</span>
-              <ArrowRight className="w-3.5 h-3.5 ml-1" />
-            </div>
-          </div>
-
+          {/* D11-B (post-audit): cardul public către Admin a fost eliminat. */}
         </div>
       </section>
 

@@ -7,8 +7,7 @@ import {
   AlertCircle, 
   Map, 
   Vote, 
-  PhoneCall, 
-  Lock 
+  PhoneCall
 } from 'lucide-react';
 import { AppView } from '../../types/navigation';
 
@@ -123,23 +122,7 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onNavigate }) => {
             </button>
           </nav>
 
-          {/* Action / Admin Button */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => onNavigate('admin')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border transition-all ${
-                currentView === 'admin'
-                  ? 'bg-slate-900 text-white border-slate-900 shadow-sm'
-                  : 'text-slate-600 border-slate-300 hover:text-slate-900 hover:border-slate-400 bg-white'
-              }`}
-              title="Panou de Administrare"
-            >
-              <Lock className="w-3.5 h-3.5 text-slate-500" />
-              <span className="hidden sm:inline">Panou</span>
-              <span>Admin</span>
-            </button>
-          </div>
-
+          {/* D11-B (post-audit): fără buton public către Admin; ruta #admin rămâne cu acces direct. */}
         </div>
       </div>
     </header>

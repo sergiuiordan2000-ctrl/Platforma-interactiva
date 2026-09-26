@@ -83,7 +83,15 @@ export class SurveyService {
     try {
       const stored = localStorage.getItem(STORAGE_SURVEYS_KEY);
       if (stored) {
-        return JSON.parse(stored) as Survey[];
+        // A-05 (post-audit): JSON valid, dar cu formă greșită (obiect, text, număr, `null`) sau cu
+        // elemente care nu sunt obiecte blocau randarea paginii #sondaje (ecran alb). Se acceptă doar
+        // o listă, iar elementele care nu sunt obiecte sunt ignorate; altfel se folosește același
+        // fallback ca la JSON invalid. Datele stocate nu sunt rescrise aici.
+        const parsed: unknown = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          return parsed.filter((s): s is Survey => typeof s === 'object' && s !== null);
+        }
+        console.warn('Formă invalidă a sondajelor din storage (se așteaptă o listă); se returnează seed-ul.');
       }
     } catch (e) {
       console.warn('Eroare la parsarea sondajelor din storage, se returnează seed-ul:', e);

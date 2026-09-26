@@ -139,7 +139,7 @@ export const AdminLoginForm: React.FC<AdminLoginFormProps> = ({ onSuccess, onCan
           <span>Notă de Transparență Arhitecturală (Etapa 2C)</span>
         </div>
         <p className="leading-relaxed text-[11px] text-amber-800">
-          Aceasta este o autentificare funcțională de sesiune de administrare (Client Session Guard). Sistemul complet de conturi de utilizator securizat pe server, cu sesiuni criptate și matrică RBAC completă, este programat conform Master Planului pentru <strong>Etapa 5</strong>.
+          Aceasta este o autentificare funcțională de sesiune de administrare (Client Session Guard), care rulează exclusiv în browser. Un sistem de conturi securizat pe server, cu sesiuni criptate, nu este implementat în această versiune.
         </p>
       </div>
 
