@@ -7,12 +7,18 @@ import React, { useState } from 'react';
 import { Clock, CalendarCheck, Save, Plus, Trash2, Check, AlertCircle } from 'lucide-react';
 import { CityHallSchedule, CityHallAudience } from '../../../types/directory';
 import { directoryService } from '../../../services/directoryService';
+import { AdminUser } from '../../../services/authService';
+import { permissionService } from '../../../services/permissionService';
 
 interface AdminScheduleManagerProps {
   onSuccess: (msg: string) => void;
+  currentUser: AdminUser | null;
 }
 
-export const AdminScheduleManager: React.FC<AdminScheduleManagerProps> = ({ onSuccess }) => {
+export const AdminScheduleManager: React.FC<AdminScheduleManagerProps> = ({ onSuccess, currentUser }) => {
+  // Etapa 5D: permisiunea `directory.schedule.manage` controlează editarea programului și audiențelor.
+  const canManage = permissionService.hasPermission(currentUser?.role, 'directory.schedule.manage');
+
   const currentInfo = directoryService.getRawCityHallInfo();
 
   const [schedules, setSchedules] = useState<CityHallSchedule[]>(() => [
@@ -30,10 +36,12 @@ export const AdminScheduleManager: React.FC<AdminScheduleManagerProps> = ({ onSu
   };
 
   const handleAddScheduleRow = () => {
+    if (!canManage) return;
     setSchedules([...schedules, { day: 'Ziua', hours: '08:00 – 16:00', note: '' }]);
   };
 
   const handleDeleteScheduleRow = (idx: number) => {
+    if (!canManage) return;
     setSchedules(schedules.filter((_, i) => i !== idx));
   };
 
@@ -44,6 +52,7 @@ export const AdminScheduleManager: React.FC<AdminScheduleManagerProps> = ({ onSu
   };
 
   const handleAddAudienceRow = () => {
+    if (!canManage) return;
     setAudiences([
       ...audiences,
       { role: 'Funcție Conducere', schedule: 'Zi: 10:00 – 12:00', registrationNote: 'Înscriere prealabilă' },
@@ -51,11 +60,13 @@ export const AdminScheduleManager: React.FC<AdminScheduleManagerProps> = ({ onSu
   };
 
   const handleDeleteAudienceRow = (idx: number) => {
+    if (!canManage) return;
     setAudiences(audiences.filter((_, i) => i !== idx));
   };
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canManage) return;
     directoryService.updateSchedule(schedules);
     directoryService.updateAudienceSchedule(audiences);
     onSuccess('Programul instituțional și calendarul audiențelor au fost salvate cu succes!');
@@ -63,7 +74,17 @@ export const AdminScheduleManager: React.FC<AdminScheduleManagerProps> = ({ onSu
 
   return (
     <form onSubmit={handleSave} className="space-y-6">
-      
+
+      {/* Etapa 5D: notificare acces doar-vizualizare pentru rolurile fără permisiunea de editare */}
+      {!canManage && (
+        <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-bold flex items-center gap-2.5">
+          <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+          <span>Rolul curent are acces doar de vizualizare la Program & Audiențe. Modificarea nu este permisă.</span>
+        </div>
+      )}
+
+      <fieldset disabled={!canManage} className="space-y-6">
+
       {/* 1. Program de Lucru General & Ghișee */}
       <div className="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 shadow-sm space-y-4">
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -75,14 +96,16 @@ export const AdminScheduleManager: React.FC<AdminScheduleManagerProps> = ({ onSu
             <p className="text-xs text-slate-500">Zilele, orele generale și intervalul de lucru la ghișee</p>
           </div>
 
-          <button
-            type="button"
-            onClick={handleAddScheduleRow}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-xs transition-colors"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Adaugă Rând</span>
-          </button>
+          {canManage && (
+            <button
+              type="button"
+              onClick={handleAddScheduleRow}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-xs transition-colors"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Adaugă Rând</span>
+            </button>
+          )}
         </div>
 
         <div className="space-y-3">
@@ -121,16 +144,18 @@ export const AdminScheduleManager: React.FC<AdminScheduleManagerProps> = ({ onSu
                 />
               </div>
 
-              <div className="sm:col-span-1 flex justify-end pt-3 sm:pt-0">
-                <button
-                  type="button"
-                  onClick={() => handleDeleteScheduleRow(idx)}
-                  className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg"
-                  title="Șterge rândul"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
+              {canManage && (
+                <div className="sm:col-span-1 flex justify-end pt-3 sm:pt-0">
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteScheduleRow(idx)}
+                    className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg"
+                    title="Șterge rândul"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -147,14 +172,16 @@ export const AdminScheduleManager: React.FC<AdminScheduleManagerProps> = ({ onSu
             <p className="text-xs text-slate-500">Zilele, intervalele orare și cerințele de înscriere pentru cetățeni</p>
           </div>
 
-          <button
-            type="button"
-            onClick={handleAddAudienceRow}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold text-xs transition-colors"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Adaugă Audiență</span>
-          </button>
+          {canManage && (
+            <button
+              type="button"
+              onClick={handleAddAudienceRow}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold text-xs transition-colors"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Adaugă Audiență</span>
+            </button>
+          )}
         </div>
 
         <div className="space-y-3">
@@ -193,31 +220,37 @@ export const AdminScheduleManager: React.FC<AdminScheduleManagerProps> = ({ onSu
                 />
               </div>
 
-              <div className="sm:col-span-1 flex justify-end pt-3 sm:pt-0">
-                <button
-                  type="button"
-                  onClick={() => handleDeleteAudienceRow(idx)}
-                  className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg"
-                  title="Șterge rândul"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
+              {canManage && (
+                <div className="sm:col-span-1 flex justify-end pt-3 sm:pt-0">
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteAudienceRow(idx)}
+                    className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg"
+                    title="Șterge rândul"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
             </div>
           ))}
         </div>
       </div>
 
       {/* Salvare */}
-      <div className="flex justify-end pt-2">
-        <button
-          type="submit"
-          className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-blue-700 hover:bg-blue-800 text-white font-bold text-xs sm:text-sm shadow-md transition-all active:scale-[0.98]"
-        >
-          <Save className="w-4 h-4" />
-          <span>Salvează Orarul și Audiențele</span>
-        </button>
-      </div>
+      {canManage && (
+        <div className="flex justify-end pt-2">
+          <button
+            type="submit"
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-blue-700 hover:bg-blue-800 text-white font-bold text-xs sm:text-sm shadow-md transition-all active:scale-[0.98]"
+          >
+            <Save className="w-4 h-4" />
+            <span>Salvează Orarul și Audiențele</span>
+          </button>
+        </div>
+      )}
+
+      </fieldset>
 
     </form>
   );

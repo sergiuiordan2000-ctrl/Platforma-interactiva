@@ -385,19 +385,19 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigate }) => {
           {/* Corp Conținut Ghid Sub-Secțiune */}
           <div className="pt-1">
             {activeDirSubTab === 'institution' && (
-              <AdminInstitutionForm onSuccess={showToast} />
+              <AdminInstitutionForm onSuccess={showToast} currentUser={currentUser} />
             )}
             {activeDirSubTab === 'departments' && (
-              <AdminDepartmentsManager onSuccess={showToast} />
+              <AdminDepartmentsManager onSuccess={showToast} currentUser={currentUser} />
             )}
             {activeDirSubTab === 'services' && (
-              <AdminServicesManager onSuccess={showToast} />
+              <AdminServicesManager onSuccess={showToast} currentUser={currentUser} />
             )}
             {activeDirSubTab === 'schedule' && (
-              <AdminScheduleManager onSuccess={showToast} />
+              <AdminScheduleManager onSuccess={showToast} currentUser={currentUser} />
             )}
             {activeDirSubTab === 'links' && (
-              <AdminUsefulLinksManager onSuccess={showToast} />
+              <AdminUsefulLinksManager onSuccess={showToast} currentUser={currentUser} />
             )}
           </div>
         </div>
@@ -438,10 +438,10 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigate }) => {
           {/* Corp Conținut Quick Dial Sub-Secțiune */}
           <div className="pt-1">
             {activeQdSubTab === 'contacts' && (
-              <AdminQuickDialManager onSuccess={showToast} />
+              <AdminQuickDialManager onSuccess={showToast} currentUser={currentUser} />
             )}
             {activeQdSubTab === 'categories' && (
-              <AdminCategoriesManager onSuccess={showToast} />
+              <AdminCategoriesManager onSuccess={showToast} currentUser={currentUser} />
             )}
           </div>
         </div>
@@ -462,7 +462,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigate }) => {
       {activeMainTab === 'surveys' && (
         canAccessTab('surveys') ? (
           <div className="space-y-6">
-            <AdminSurveysManager onSuccess={showToast} />
+            <AdminSurveysManager onSuccess={showToast} currentUser={currentUser} />
           </div>
         ) : (
           <AccessDeniedPanel moduleName="Sondaje Civice" />

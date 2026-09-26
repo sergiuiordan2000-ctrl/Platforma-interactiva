@@ -17,13 +17,19 @@ import {
 } from 'lucide-react';
 import { QuickDialCategory } from '../../../types/quickDial';
 import { quickDialService } from '../../../services/quickDialService';
+import { AdminUser } from '../../../services/authService';
+import { permissionService } from '../../../services/permissionService';
 
 interface AdminCategoriesManagerProps {
   onSuccess: (msg: string) => void;
+  currentUser: AdminUser | null;
 }
 
-export const AdminCategoriesManager: React.FC<AdminCategoriesManagerProps> = ({ onSuccess }) => {
-  const [categories, setCategories] = useState<QuickDialCategory[]>(() => 
+export const AdminCategoriesManager: React.FC<AdminCategoriesManagerProps> = ({ onSuccess, currentUser }) => {
+  // Etapa 5D: permisiunea `quickDial.categories.manage` controlează CRUD-ul categoriilor.
+  const canManage = permissionService.hasPermission(currentUser?.role, 'quickDial.categories.manage');
+
+  const [categories, setCategories] = useState<QuickDialCategory[]>(() =>
     quickDialService.getCategories(true)
   );
 
@@ -42,6 +48,7 @@ export const AdminCategoriesManager: React.FC<AdminCategoriesManagerProps> = ({ 
   };
 
   const handleStartCreate = () => {
+    if (!canManage) return;
     setFormState({ name: '', description: '' });
     setFormErrors({});
     setIsCreating(true);
@@ -49,6 +56,7 @@ export const AdminCategoriesManager: React.FC<AdminCategoriesManagerProps> = ({ 
   };
 
   const handleStartEdit = (cat: QuickDialCategory) => {
+    if (!canManage) return;
     setFormState({
       name: cat.name,
       description: cat.description,
@@ -75,6 +83,7 @@ export const AdminCategoriesManager: React.FC<AdminCategoriesManagerProps> = ({ 
 
   const handleSaveForm = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canManage) return;
     if (!validate()) return;
 
     if (isCreating) {
@@ -98,6 +107,7 @@ export const AdminCategoriesManager: React.FC<AdminCategoriesManagerProps> = ({ 
   };
 
   const handleDelete = (cat: QuickDialCategory) => {
+    if (!canManage) return;
     const res = quickDialService.deleteCategory(cat.id);
     if (!res.success) {
       alert(res.error);
@@ -109,6 +119,7 @@ export const AdminCategoriesManager: React.FC<AdminCategoriesManagerProps> = ({ 
   };
 
   const handleMove = (index: number, direction: 'up' | 'down') => {
+    if (!canManage) return;
     const targetIndex = direction === 'up' ? index - 1 : index + 1;
     if (targetIndex < 0 || targetIndex >= categories.length) return;
 
@@ -139,7 +150,7 @@ export const AdminCategoriesManager: React.FC<AdminCategoriesManagerProps> = ({ 
           </p>
         </div>
 
-        {!isCreating && !editingCat && (
+        {canManage && !isCreating && !editingCat && (
           <button
             onClick={handleStartCreate}
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs shadow-sm transition-all active:scale-95 shrink-0"
@@ -240,42 +251,44 @@ export const AdminCategoriesManager: React.FC<AdminCategoriesManagerProps> = ({ 
                 )}
               </div>
 
-              {/* Acțiuni */}
-              <div className="flex items-center gap-1.5 self-end sm:self-center shrink-0 border-t sm:border-t-0 pt-2 sm:pt-0">
-                <button
-                  onClick={() => handleMove(idx, 'up')}
-                  disabled={idx === 0}
-                  title="Mută mai sus"
-                  className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:pointer-events-none"
-                >
-                  <ArrowUp className="w-3.5 h-3.5" />
-                </button>
-                <button
-                  onClick={() => handleMove(idx, 'down')}
-                  disabled={idx === categories.length - 1}
-                  title="Mută mai jos"
-                  className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:pointer-events-none"
-                >
-                  <ArrowDown className="w-3.5 h-3.5" />
-                </button>
+              {/* Acțiuni — Etapa 5D: vizibil doar cu `quickDial.categories.manage` */}
+              {canManage && (
+                <div className="flex items-center gap-1.5 self-end sm:self-center shrink-0 border-t sm:border-t-0 pt-2 sm:pt-0">
+                  <button
+                    onClick={() => handleMove(idx, 'up')}
+                    disabled={idx === 0}
+                    title="Mută mai sus"
+                    className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:pointer-events-none"
+                  >
+                    <ArrowUp className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => handleMove(idx, 'down')}
+                    disabled={idx === categories.length - 1}
+                    title="Mută mai jos"
+                    className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:pointer-events-none"
+                  >
+                    <ArrowDown className="w-3.5 h-3.5" />
+                  </button>
 
-                <button
-                  onClick={() => handleStartEdit(cat)}
-                  title="Editează categoria"
-                  className="p-1.5 rounded-lg border border-slate-200 text-blue-700 hover:bg-blue-50 transition-colors"
-                >
-                  <Edit3 className="w-3.5 h-3.5" />
-                </button>
+                  <button
+                    onClick={() => handleStartEdit(cat)}
+                    title="Editează categoria"
+                    className="p-1.5 rounded-lg border border-slate-200 text-blue-700 hover:bg-blue-50 transition-colors"
+                  >
+                    <Edit3 className="w-3.5 h-3.5" />
+                  </button>
 
-                <button
-                  onClick={() => handleDelete(cat)}
-                  title={count > 0 ? 'Nu se poate șterge (are contacte atribuite)' : 'Șterge categoria'}
-                  disabled={count > 0}
-                  className="p-1.5 rounded-lg border border-slate-200 text-red-600 hover:bg-red-50 disabled:opacity-30 disabled:pointer-events-none transition-colors"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
-              </div>
+                  <button
+                    onClick={() => handleDelete(cat)}
+                    title={count > 0 ? 'Nu se poate șterge (are contacte atribuite)' : 'Șterge categoria'}
+                    disabled={count > 0}
+                    className="p-1.5 rounded-lg border border-slate-200 text-red-600 hover:bg-red-50 disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
             </div>
           );
         })}

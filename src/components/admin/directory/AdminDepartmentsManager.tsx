@@ -23,13 +23,20 @@ import {
 } from 'lucide-react';
 import { CityHallDepartment } from '../../../types/directory';
 import { directoryService } from '../../../services/directoryService';
+import { AdminUser } from '../../../services/authService';
+import { permissionService } from '../../../services/permissionService';
 
 interface AdminDepartmentsManagerProps {
   onSuccess: (msg: string) => void;
+  currentUser: AdminUser | null;
 }
 
-export const AdminDepartmentsManager: React.FC<AdminDepartmentsManagerProps> = ({ onSuccess }) => {
-  const [departments, setDepartments] = useState<CityHallDepartment[]>(() => 
+export const AdminDepartmentsManager: React.FC<AdminDepartmentsManagerProps> = ({ onSuccess, currentUser }) => {
+  // Etapa 5D: permisiunea `directory.departments.manage` controlează crearea, editarea,
+  // reordonarea, activarea/dezactivarea și ștergerea direcțiilor. Verificare centrală.
+  const canManage = permissionService.hasPermission(currentUser?.role, 'directory.departments.manage');
+
+  const [departments, setDepartments] = useState<CityHallDepartment[]>(() =>
     directoryService.getDepartments(true)
   );
 
@@ -54,6 +61,7 @@ export const AdminDepartmentsManager: React.FC<AdminDepartmentsManagerProps> = (
   };
 
   const handleStartCreate = () => {
+    if (!canManage) return;
     setFormState({
       name: '',
       description: '',
@@ -69,6 +77,7 @@ export const AdminDepartmentsManager: React.FC<AdminDepartmentsManagerProps> = (
   };
 
   const handleStartEdit = (dept: CityHallDepartment) => {
+    if (!canManage) return;
     setFormState({
       name: dept.name,
       description: dept.description,
@@ -108,6 +117,7 @@ export const AdminDepartmentsManager: React.FC<AdminDepartmentsManagerProps> = (
 
   const handleSaveForm = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canManage) return;
     if (!validate()) return;
 
     if (isCreating) {
@@ -140,6 +150,7 @@ export const AdminDepartmentsManager: React.FC<AdminDepartmentsManagerProps> = (
   };
 
   const handleToggleStatus = (dept: CityHallDepartment) => {
+    if (!canManage) return;
     directoryService.toggleDepartmentStatus(dept.id);
     const updatedStatus = !dept.isActive;
     onSuccess(`Direcția „${dept.name}” este acum ${updatedStatus ? 'ACTIVĂ' : 'DEZACTIVATĂ'} în zona publică.`);
@@ -147,6 +158,7 @@ export const AdminDepartmentsManager: React.FC<AdminDepartmentsManagerProps> = (
   };
 
   const handleDelete = (dept: CityHallDepartment) => {
+    if (!canManage) return;
     if (window.confirm(`Sigur doriți să ștergeți direcția „${dept.name}”?`)) {
       directoryService.deleteDepartment(dept.id);
       onSuccess(`Direcția „${dept.name}” a fost ștearsă.`);
@@ -155,6 +167,7 @@ export const AdminDepartmentsManager: React.FC<AdminDepartmentsManagerProps> = (
   };
 
   const handleMove = (index: number, direction: 'up' | 'down') => {
+    if (!canManage) return;
     const targetIndex = direction === 'up' ? index - 1 : index + 1;
     if (targetIndex < 0 || targetIndex >= departments.length) return;
 
@@ -183,7 +196,7 @@ export const AdminDepartmentsManager: React.FC<AdminDepartmentsManagerProps> = (
           </p>
         </div>
 
-        {!isCreating && !editingDept && (
+        {canManage && !isCreating && !editingDept && (
           <button
             onClick={handleStartCreate}
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-cyan-700 hover:bg-cyan-800 text-white font-bold text-xs shadow-sm transition-all active:scale-95 shrink-0"
@@ -373,59 +386,61 @@ export const AdminDepartmentsManager: React.FC<AdminDepartmentsManagerProps> = (
                 </div>
               </div>
 
-              {/* Panou de Acțiuni (Reorder, Status Toggle, Edit, Delete) */}
-              <div className="flex items-center gap-1.5 self-end sm:self-center shrink-0 border-t sm:border-t-0 pt-2 sm:pt-0">
-                
-                {/* Reordonare */}
-                <button
-                  onClick={() => handleMove(idx, 'up')}
-                  disabled={idx === 0}
-                  title="Mută mai sus"
-                  className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:pointer-events-none"
-                >
-                  <ArrowUp className="w-3.5 h-3.5" />
-                </button>
-                <button
-                  onClick={() => handleMove(idx, 'down')}
-                  disabled={idx === departments.length - 1}
-                  title="Mută mai jos"
-                  className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:pointer-events-none"
-                >
-                  <ArrowDown className="w-3.5 h-3.5" />
-                </button>
+              {/* Panou de Acțiuni (Reorder, Status Toggle, Edit, Delete) — Etapa 5D: vizibil doar cu `directory.departments.manage` */}
+              {canManage && (
+                <div className="flex items-center gap-1.5 self-end sm:self-center shrink-0 border-t sm:border-t-0 pt-2 sm:pt-0">
 
-                {/* Comutator Activ / Dezactivat */}
-                <button
-                  onClick={() => handleToggleStatus(dept)}
-                  title={isInactive ? 'Activează în zona publică' : 'Dezactivează din zona publică'}
-                  className={`p-1.5 rounded-lg border transition-colors ${
-                    isInactive 
-                      ? 'border-slate-300 text-slate-400 hover:text-emerald-700 hover:border-emerald-300' 
-                      : 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
-                  }`}
-                >
-                  <Power className="w-3.5 h-3.5" />
-                </button>
+                  {/* Reordonare */}
+                  <button
+                    onClick={() => handleMove(idx, 'up')}
+                    disabled={idx === 0}
+                    title="Mută mai sus"
+                    className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:pointer-events-none"
+                  >
+                    <ArrowUp className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => handleMove(idx, 'down')}
+                    disabled={idx === departments.length - 1}
+                    title="Mută mai jos"
+                    className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:pointer-events-none"
+                  >
+                    <ArrowDown className="w-3.5 h-3.5" />
+                  </button>
 
-                {/* Edit */}
-                <button
-                  onClick={() => handleStartEdit(dept)}
-                  title="Editează direcția"
-                  className="p-1.5 rounded-lg border border-slate-200 text-blue-700 hover:bg-blue-50 transition-colors"
-                >
-                  <Edit3 className="w-3.5 h-3.5" />
-                </button>
+                  {/* Comutator Activ / Dezactivat */}
+                  <button
+                    onClick={() => handleToggleStatus(dept)}
+                    title={isInactive ? 'Activează în zona publică' : 'Dezactivează din zona publică'}
+                    className={`p-1.5 rounded-lg border transition-colors ${
+                      isInactive
+                        ? 'border-slate-300 text-slate-400 hover:text-emerald-700 hover:border-emerald-300'
+                        : 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                    }`}
+                  >
+                    <Power className="w-3.5 h-3.5" />
+                  </button>
 
-                {/* Delete */}
-                <button
-                  onClick={() => handleDelete(dept)}
-                  title="Șterge definitiv direcția"
-                  className="p-1.5 rounded-lg border border-slate-200 text-red-600 hover:bg-red-50 transition-colors"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
+                  {/* Edit */}
+                  <button
+                    onClick={() => handleStartEdit(dept)}
+                    title="Editează direcția"
+                    className="p-1.5 rounded-lg border border-slate-200 text-blue-700 hover:bg-blue-50 transition-colors"
+                  >
+                    <Edit3 className="w-3.5 h-3.5" />
+                  </button>
 
-              </div>
+                  {/* Delete */}
+                  <button
+                    onClick={() => handleDelete(dept)}
+                    title="Șterge definitiv direcția"
+                    className="p-1.5 rounded-lg border border-slate-200 text-red-600 hover:bg-red-50 transition-colors"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+
+                </div>
+              )}
             </div>
           );
         })}

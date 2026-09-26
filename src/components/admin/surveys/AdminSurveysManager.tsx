@@ -35,12 +35,25 @@ import {
 import { surveyService } from '../../../services/surveyService';
 import { SurveyFormModal } from './SurveyFormModal';
 import { SurveyResultsModal } from '../../surveys/SurveyResultsModal';
+import { AdminUser } from '../../../services/authService';
+import { permissionService } from '../../../services/permissionService';
 
 interface AdminSurveysManagerProps {
   onSuccess: (message: string) => void;
+  currentUser: AdminUser | null;
 }
 
-export const AdminSurveysManager: React.FC<AdminSurveysManagerProps> = ({ onSuccess }) => {
+export const AdminSurveysManager: React.FC<AdminSurveysManagerProps> = ({ onSuccess, currentUser }) => {
+  // Etapa 5D: permisiuni granulare pentru administrarea sondajelor. Rolul `primarie_operator`
+  // are doar `surveys.view` — poate consulta, dar nu poate crea/edita/activa/închide/șterge.
+  // Ștergerea și resetarea la demo nu au o permisiune dedicată în matrice; sunt tratate ca
+  // acțiuni de modificare și gatate prin `surveys.edit` (create sau edit sunt suficiente).
+  const canCreate = permissionService.hasPermission(currentUser?.role, 'surveys.create');
+  const canEdit = permissionService.hasPermission(currentUser?.role, 'surveys.edit');
+  const canActivate = permissionService.hasPermission(currentUser?.role, 'surveys.activate');
+  const canClose = permissionService.hasPermission(currentUser?.role, 'surveys.close');
+  const canManageData = permissionService.hasAnyPermission(currentUser?.role, ['surveys.create', 'surveys.edit']);
+
   const [surveys, setSurveys] = useState<Survey[]>(() => surveyService.getAllSurveys());
   const [statusFilter, setStatusFilter] = useState<SurveyStatusFilter>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -74,12 +87,14 @@ export const AdminSurveysManager: React.FC<AdminSurveysManagerProps> = ({ onSucc
 
   // Deschidere modal creare
   const handleOpenCreate = () => {
+    if (!canCreate) return;
     setEditingSurvey(null);
     setIsFormOpen(true);
   };
 
   // Deschidere modal editare
   const handleOpenEdit = (survey: Survey) => {
+    if (!canEdit) return;
     setEditingSurvey(survey);
     setIsFormOpen(true);
   };
@@ -98,6 +113,7 @@ export const AdminSurveysManager: React.FC<AdminSurveysManagerProps> = ({ onSucc
 
   // Activare sondaj
   const handleActivate = (survey: Survey) => {
+    if (!canActivate) return;
     const result = surveyService.updateSurveyStatus(survey.id, 'active');
     if (result.success) {
       refreshSurveys();
@@ -110,6 +126,7 @@ export const AdminSurveysManager: React.FC<AdminSurveysManagerProps> = ({ onSucc
 
   // Închidere sondaj
   const handleCloseSurvey = (survey: Survey) => {
+    if (!canClose) return;
     const result = surveyService.updateSurveyStatus(survey.id, 'closed');
     if (result.success) {
       refreshSurveys();
@@ -121,6 +138,7 @@ export const AdminSurveysManager: React.FC<AdminSurveysManagerProps> = ({ onSucc
 
   // Ștergere sondaj confirmată
   const handleConfirmDelete = () => {
+    if (!canManageData) return;
     if (!surveyToDelete) return;
     const deletedId = surveyToDelete.id;
     const deletedTitle = surveyToDelete.title;
@@ -136,6 +154,7 @@ export const AdminSurveysManager: React.FC<AdminSurveysManagerProps> = ({ onSucc
 
   // Reset la date demonstrative inițiale
   const handleResetDemo = () => {
+    if (!canManageData) return;
     if (window.confirm('Sigur doriți să resetați lista de sondaje la starea inițială DEMO? Toate sondajele create manual vor fi resetate.')) {
       surveyService.resetToDemo();
       refreshSurveys();
@@ -175,23 +194,28 @@ export const AdminSurveysManager: React.FC<AdminSurveysManagerProps> = ({ onSucc
           </p>
         </div>
 
+        {/* Etapa 5D: butoane administrative vizibile doar cu permisiunile corespunzătoare */}
         <div className="flex items-center gap-2.5 shrink-0">
-          <button
-            onClick={handleResetDemo}
-            className="px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600 text-xs font-semibold inline-flex items-center gap-1.5 transition-colors"
-            title="Resetează la sondajele demonstrative implicite"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-            <span>Reset Demo</span>
-          </button>
+          {canManageData && (
+            <button
+              onClick={handleResetDemo}
+              className="px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600 text-xs font-semibold inline-flex items-center gap-1.5 transition-colors"
+              title="Resetează la sondajele demonstrative implicite"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Reset Demo</span>
+            </button>
+          )}
 
-          <button
-            onClick={handleOpenCreate}
-            className="px-4 py-2 rounded-xl bg-purple-700 hover:bg-purple-800 text-white text-xs font-bold shadow-md shadow-purple-900/10 inline-flex items-center gap-1.5 transition-all"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Sondaj Nou</span>
-          </button>
+          {canCreate && (
+            <button
+              onClick={handleOpenCreate}
+              className="px-4 py-2 rounded-xl bg-purple-700 hover:bg-purple-800 text-white text-xs font-bold shadow-md shadow-purple-900/10 inline-flex items-center gap-1.5 transition-all"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Sondaj Nou</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -389,18 +413,20 @@ export const AdminSurveysManager: React.FC<AdminSurveysManagerProps> = ({ onSucc
                     <span className="hidden sm:inline">Inspectează</span>
                   </button>
 
-                  {/* Editare */}
-                  <button
-                    onClick={() => handleOpenEdit(survey)}
-                    className="p-2 rounded-xl text-blue-700 hover:bg-blue-50 text-xs font-semibold inline-flex items-center gap-1 transition-colors"
-                    title="Editează sondajul"
-                  >
-                    <Edit3 className="w-4 h-4" />
-                    <span>Editează</span>
-                  </button>
+                  {/* Editare — Etapa 5D: doar cu `surveys.edit` */}
+                  {canEdit && (
+                    <button
+                      onClick={() => handleOpenEdit(survey)}
+                      className="p-2 rounded-xl text-blue-700 hover:bg-blue-50 text-xs font-semibold inline-flex items-center gap-1 transition-colors"
+                      title="Editează sondajul"
+                    >
+                      <Edit3 className="w-4 h-4" />
+                      <span>Editează</span>
+                    </button>
+                  )}
 
-                  {/* Activare (pentru draft sau closed) */}
-                  {survey.status !== 'active' && (
+                  {/* Activare (pentru draft sau closed) — Etapa 5D: doar cu `surveys.activate` */}
+                  {canActivate && survey.status !== 'active' && (
                     <button
                       onClick={() => handleActivate(survey)}
                       className="p-2 rounded-xl text-emerald-700 hover:bg-emerald-50 text-xs font-semibold inline-flex items-center gap-1 transition-colors"
@@ -411,8 +437,8 @@ export const AdminSurveysManager: React.FC<AdminSurveysManagerProps> = ({ onSucc
                     </button>
                   )}
 
-                  {/* Închidere (pentru active) */}
-                  {survey.status === 'active' && (
+                  {/* Închidere (pentru active) — Etapa 5D: doar cu `surveys.close` */}
+                  {canClose && survey.status === 'active' && (
                     <button
                       onClick={() => handleCloseSurvey(survey)}
                       className="p-2 rounded-xl text-amber-700 hover:bg-amber-50 text-xs font-semibold inline-flex items-center gap-1 transition-colors"
@@ -423,14 +449,16 @@ export const AdminSurveysManager: React.FC<AdminSurveysManagerProps> = ({ onSucc
                     </button>
                   )}
 
-                  {/* Ștergere */}
-                  <button
-                    onClick={() => setSurveyToDelete(survey)}
-                    className="p-2 rounded-xl text-red-600 hover:bg-red-50 text-xs font-semibold inline-flex items-center gap-1 transition-colors"
-                    title="Șterge sondajul"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  {/* Ștergere — Etapa 5D: doar cu permisiune de creare/editare */}
+                  {canManageData && (
+                    <button
+                      onClick={() => setSurveyToDelete(survey)}
+                      className="p-2 rounded-xl text-red-600 hover:bg-red-50 text-xs font-semibold inline-flex items-center gap-1 transition-colors"
+                      title="Șterge sondajul"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
               </div>
             );

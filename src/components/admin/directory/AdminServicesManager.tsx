@@ -21,13 +21,19 @@ import {
 } from 'lucide-react';
 import { CityHallService } from '../../../types/directory';
 import { directoryService } from '../../../services/directoryService';
+import { AdminUser } from '../../../services/authService';
+import { permissionService } from '../../../services/permissionService';
 
 interface AdminServicesManagerProps {
   onSuccess: (msg: string) => void;
+  currentUser: AdminUser | null;
 }
 
-export const AdminServicesManager: React.FC<AdminServicesManagerProps> = ({ onSuccess }) => {
-  const [services, setServices] = useState<CityHallService[]>(() => 
+export const AdminServicesManager: React.FC<AdminServicesManagerProps> = ({ onSuccess, currentUser }) => {
+  // Etapa 5D: permisiunea `directory.services.manage` controlează CRUD-ul serviciilor.
+  const canManage = permissionService.hasPermission(currentUser?.role, 'directory.services.manage');
+
+  const [services, setServices] = useState<CityHallService[]>(() =>
     directoryService.getServices(true)
   );
   const departments = directoryService.getDepartments(false);
@@ -53,6 +59,7 @@ export const AdminServicesManager: React.FC<AdminServicesManagerProps> = ({ onSu
   };
 
   const handleStartCreate = () => {
+    if (!canManage) return;
     setFormState({
       title: '',
       departmentId: departments[0]?.id || '',
@@ -69,6 +76,7 @@ export const AdminServicesManager: React.FC<AdminServicesManagerProps> = ({ onSu
   };
 
   const handleStartEdit = (srv: CityHallService) => {
+    if (!canManage) return;
     setFormState({
       title: srv.title,
       departmentId: srv.departmentId,
@@ -120,6 +128,7 @@ export const AdminServicesManager: React.FC<AdminServicesManagerProps> = ({ onSu
 
   const handleSaveForm = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canManage) return;
     if (!validate()) return;
 
     const docs = formState.documentsText
@@ -159,6 +168,7 @@ export const AdminServicesManager: React.FC<AdminServicesManagerProps> = ({ onSu
   };
 
   const handleToggleStatus = (srv: CityHallService) => {
+    if (!canManage) return;
     directoryService.toggleServiceStatus(srv.id);
     const updatedStatus = !srv.isActive;
     onSuccess(`Serviciul „${srv.title}” este acum ${updatedStatus ? 'ACTIV' : 'DEZACTIVAT'} în zona publică.`);
@@ -166,6 +176,7 @@ export const AdminServicesManager: React.FC<AdminServicesManagerProps> = ({ onSu
   };
 
   const handleDelete = (srv: CityHallService) => {
+    if (!canManage) return;
     if (window.confirm(`Sigur doriți să ștergeți serviciul „${srv.title}”?`)) {
       directoryService.deleteService(srv.id);
       onSuccess(`Serviciul „${srv.title}” a fost șters.`);
@@ -174,6 +185,7 @@ export const AdminServicesManager: React.FC<AdminServicesManagerProps> = ({ onSu
   };
 
   const handleMove = (index: number, direction: 'up' | 'down') => {
+    if (!canManage) return;
     const targetIndex = direction === 'up' ? index - 1 : index + 1;
     if (targetIndex < 0 || targetIndex >= services.length) return;
 
@@ -202,7 +214,7 @@ export const AdminServicesManager: React.FC<AdminServicesManagerProps> = ({ onSu
           </p>
         </div>
 
-        {!isCreating && !editingService && (
+        {canManage && !isCreating && !editingService && (
           <button
             onClick={handleStartCreate}
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-700 hover:bg-blue-800 text-white font-bold text-xs shadow-sm transition-all active:scale-95 shrink-0"
@@ -407,53 +419,55 @@ export const AdminServicesManager: React.FC<AdminServicesManagerProps> = ({ onSu
                 </div>
               </div>
 
-              {/* Acțiuni */}
-              <div className="flex items-center gap-1.5 self-end sm:self-center shrink-0 border-t sm:border-t-0 pt-2 sm:pt-0">
-                <button
-                  onClick={() => handleMove(idx, 'up')}
-                  disabled={idx === 0}
-                  title="Mută mai sus"
-                  className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:pointer-events-none"
-                >
-                  <ArrowUp className="w-3.5 h-3.5" />
-                </button>
-                <button
-                  onClick={() => handleMove(idx, 'down')}
-                  disabled={idx === services.length - 1}
-                  title="Mută mai jos"
-                  className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:pointer-events-none"
-                >
-                  <ArrowDown className="w-3.5 h-3.5" />
-                </button>
+              {/* Acțiuni — Etapa 5D: vizibil doar cu `directory.services.manage` */}
+              {canManage && (
+                <div className="flex items-center gap-1.5 self-end sm:self-center shrink-0 border-t sm:border-t-0 pt-2 sm:pt-0">
+                  <button
+                    onClick={() => handleMove(idx, 'up')}
+                    disabled={idx === 0}
+                    title="Mută mai sus"
+                    className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:pointer-events-none"
+                  >
+                    <ArrowUp className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => handleMove(idx, 'down')}
+                    disabled={idx === services.length - 1}
+                    title="Mută mai jos"
+                    className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:pointer-events-none"
+                  >
+                    <ArrowDown className="w-3.5 h-3.5" />
+                  </button>
 
-                <button
-                  onClick={() => handleToggleStatus(srv)}
-                  title={isInactive ? 'Activează în zona publică' : 'Dezactivează din zona publică'}
-                  className={`p-1.5 rounded-lg border transition-colors ${
-                    isInactive 
-                      ? 'border-slate-300 text-slate-400 hover:text-emerald-700 hover:border-emerald-300' 
-                      : 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
-                  }`}
-                >
-                  <Power className="w-3.5 h-3.5" />
-                </button>
+                  <button
+                    onClick={() => handleToggleStatus(srv)}
+                    title={isInactive ? 'Activează în zona publică' : 'Dezactivează din zona publică'}
+                    className={`p-1.5 rounded-lg border transition-colors ${
+                      isInactive
+                        ? 'border-slate-300 text-slate-400 hover:text-emerald-700 hover:border-emerald-300'
+                        : 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                    }`}
+                  >
+                    <Power className="w-3.5 h-3.5" />
+                  </button>
 
-                <button
-                  onClick={() => handleStartEdit(srv)}
-                  title="Editează serviciul"
-                  className="p-1.5 rounded-lg border border-slate-200 text-blue-700 hover:bg-blue-50 transition-colors"
-                >
-                  <Edit3 className="w-3.5 h-3.5" />
-                </button>
+                  <button
+                    onClick={() => handleStartEdit(srv)}
+                    title="Editează serviciul"
+                    className="p-1.5 rounded-lg border border-slate-200 text-blue-700 hover:bg-blue-50 transition-colors"
+                  >
+                    <Edit3 className="w-3.5 h-3.5" />
+                  </button>
 
-                <button
-                  onClick={() => handleDelete(srv)}
-                  title="Șterge definitiv serviciul"
-                  className="p-1.5 rounded-lg border border-slate-200 text-red-600 hover:bg-red-50 transition-colors"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
-              </div>
+                  <button
+                    onClick={() => handleDelete(srv)}
+                    title="Șterge definitiv serviciul"
+                    className="p-1.5 rounded-lg border border-slate-200 text-red-600 hover:bg-red-50 transition-colors"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
             </div>
           );
         })}

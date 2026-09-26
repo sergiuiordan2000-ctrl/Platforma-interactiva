@@ -81,15 +81,45 @@ const ALL_PERMISSIONS: Permission[] = [
 ];
 
 /**
- * DECIZIE DE PRODUS (Etapa 5G-2, confirmată explicit):
- * `super_admin` și `primarie_operator` primesc, la acest moment, ACELEAȘI
- * permisiuni — toate cele existente. Diferențierea reală a rolurilor rămâne
- * pentru o etapă viitoare și se va face STRICT prin modificarea acestei mape,
- * într-un singur loc, fără a umbla prin componentele Admin.
+ * Permisiunile efective ale rolului `primarie_operator` (Etapa 5D — finalizare,
+ * conform matricei de produs confirmate):
+ * - Dashboard: doar vizualizare.
+ * - Comunicate: acces complet (view/create/edit/publish/disable) — fără diferență
+ *   față de `super_admin`, deoarece nu există o permisiune de ștergere fizică.
+ * - Sesizări: acces complet (view/moderate/resolve/reply) — identic cu `super_admin`.
+ * - Ghidul Primăriei: doar vizualizare — fără nicio permisiune de modificare
+ *   (instituție, direcții, servicii, program, link-uri utile).
+ * - Quick Dial: doar vizualizare — fără administrarea contactelor sau categoriilor.
+ * - Sondaje: doar vizualizare — fără creare, editare, activare sau închidere.
+ *
+ * Modificare STRICT în acest singur loc — nicio componentă Admin nu conține
+ * verificări de forma `if (role === 'primarie_operator')`.
+ */
+const PRIMARIE_OPERATOR_PERMISSIONS: Permission[] = [
+  'dashboard.view',
+  'announcements.view',
+  'announcements.create',
+  'announcements.edit',
+  'announcements.publish',
+  'announcements.disable',
+  'reports.view',
+  'reports.moderate',
+  'reports.resolve',
+  'reports.reply',
+  'directory.view',
+  'quickDial.view',
+  'surveys.view',
+];
+
+/**
+ * `super_admin` = acces complet la toate modulele și toate acțiunile administrative
+ * (neschimbat față de etapele anterioare).
+ * `primarie_operator` = acces limitat și configurabil, conform matricei de mai sus
+ * (Etapa 5D — finalizarea sistemului de roluri).
  */
 const ROLE_PERMISSIONS: Record<AdminRole, Permission[]> = {
   super_admin: ALL_PERMISSIONS,
-  primarie_operator: ALL_PERMISSIONS,
+  primarie_operator: PRIMARIE_OPERATOR_PERMISSIONS,
 };
 
 class PermissionService {

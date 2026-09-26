@@ -17,13 +17,20 @@ import {
 } from 'lucide-react';
 import { CityHallInfo } from '../../../types/directory';
 import { directoryService } from '../../../services/directoryService';
+import { AdminUser } from '../../../services/authService';
+import { permissionService } from '../../../services/permissionService';
 
 interface AdminInstitutionFormProps {
   onSuccess: (msg: string) => void;
+  currentUser: AdminUser | null;
 }
 
-export const AdminInstitutionForm: React.FC<AdminInstitutionFormProps> = ({ onSuccess }) => {
+export const AdminInstitutionForm: React.FC<AdminInstitutionFormProps> = ({ onSuccess, currentUser }) => {
   const currentInfo = directoryService.getRawCityHallInfo();
+
+  // Etapa 5D: doar utilizatorii cu permisiunea `directory.institution.edit` pot
+  // modifica datele instituționale. Verificare centrală prin permissionService.
+  const canEdit = permissionService.hasPermission(currentUser?.role, 'directory.institution.edit');
 
   const [formData, setFormData] = useState({
     institutionName: currentInfo.institutionName || '',
@@ -80,6 +87,7 @@ export const AdminInstitutionForm: React.FC<AdminInstitutionFormProps> = ({ onSu
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canEdit) return;
     if (!validate()) return;
 
     directoryService.updateInstitutionInfo(formData);
@@ -89,6 +97,7 @@ export const AdminInstitutionForm: React.FC<AdminInstitutionFormProps> = ({ onSu
   };
 
   const handleReset = () => {
+    if (!canEdit) return;
     if (window.confirm('Sigur doriți să resetați toate datele Ghidului Primăriei la setul demonstrativ inițial?')) {
       directoryService.resetToDemo();
       const fresh = directoryService.getRawCityHallInfo();
@@ -111,7 +120,17 @@ export const AdminInstitutionForm: React.FC<AdminInstitutionFormProps> = ({ onSu
 
   return (
     <form onSubmit={handleSave} className="space-y-6">
-      
+
+      {/* Etapa 5D: notificare acces doar-vizualizare pentru rolurile fără permisiunea de editare */}
+      {!canEdit && (
+        <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-bold flex items-center gap-2.5">
+          <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+          <span>Rolul curent are acces doar de vizualizare la Datele Instituționale. Modificarea nu este permisă.</span>
+        </div>
+      )}
+
+      <fieldset disabled={!canEdit} className="space-y-6">
+
       {/* Notificare de succes recent */}
       {savedRecently && (
         <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2.5 animate-in fade-in duration-150">
@@ -289,25 +308,29 @@ export const AdminInstitutionForm: React.FC<AdminInstitutionFormProps> = ({ onSu
         </div>
       </div>
 
-      {/* Butoane de Acțiune */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
-        <button
-          type="button"
-          onClick={handleReset}
-          className="text-xs font-semibold text-slate-500 hover:text-red-700 flex items-center gap-1.5 transition-colors"
-        >
-          <RotateCcw className="w-3.5 h-3.5" />
-          <span>Resetează la valorile demonstrative inițiale</span>
-        </button>
+      {/* Butoane de Acțiune — Etapa 5D: vizibile doar cu `directory.institution.edit` */}
+      {canEdit && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
+          <button
+            type="button"
+            onClick={handleReset}
+            className="text-xs font-semibold text-slate-500 hover:text-red-700 flex items-center gap-1.5 transition-colors"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>Resetează la valorile demonstrative inițiale</span>
+          </button>
 
-        <button
-          type="submit"
-          className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-blue-700 hover:bg-blue-800 text-white font-bold text-xs sm:text-sm shadow-md transition-all active:scale-[0.98]"
-        >
-          <Save className="w-4 h-4" />
-          <span>Salvează Modificările Instituționale</span>
-        </button>
-      </div>
+          <button
+            type="submit"
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-blue-700 hover:bg-blue-800 text-white font-bold text-xs sm:text-sm shadow-md transition-all active:scale-[0.98]"
+          >
+            <Save className="w-4 h-4" />
+            <span>Salvează Modificările Instituționale</span>
+          </button>
+        </div>
+      )}
+
+      </fieldset>
 
     </form>
   );
