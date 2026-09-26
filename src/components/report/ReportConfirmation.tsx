@@ -182,14 +182,12 @@ export const ReportConfirmation: React.FC<ReportConfirmationProps> = ({
                     ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
                     : 'bg-blue-50 text-blue-800 border border-blue-200'
                 }`}>
-                  {report.publicationPreference === 'private' && 'Nu doresc afișarea publică (Privată)'}
+                  {report.publicationPreference === 'private' && 'Privată (opțiune istorică, tratată ca anonimă)'}
                   {report.publicationPreference === 'public_anonymous' && 'Publică Anonim (Fără date personale pe hartă)'}
                   {report.publicationPreference === 'public' && 'Publică (În așteptarea moderării)'}
                 </span>
                 <span className="text-[11px] text-slate-400">
-                  {report.publicationPreference === 'private' 
-                    ? '• Nu va apărea pe hartă' 
-                    : '• Necesită aprobarea administratorului'}
+                  • Necesită aprobarea administratorului
                 </span>
               </div>
             </div>

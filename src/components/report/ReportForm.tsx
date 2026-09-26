@@ -28,7 +28,6 @@ import {
   Loader2,
   Sparkles,
   Eye,
-  EyeOff,
   UserCheck
 } from 'lucide-react';
 import { CivicReport, ReportCategory, ReportPhoto, PublicationPreference } from '../../types/report';
@@ -88,8 +87,9 @@ export const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
   const [contactPhone, setContactPhone] = useState<string>('');
   const [contactEmail, setContactEmail] = useState<string>('');
 
-  // Preferință de publicare pe hartă (Etapa 3E - REGULĂ OBLIGATORIE: Implicit 'private')
-  const [publicationPreference, setPublicationPreference] = useState<PublicationPreference>('private');
+  // Preferința de afișare (Etapa 6.6: fără opțiune de ascundere de pe hartă). Implicit
+  // 'public_anonymous' — varianta cea mai protectoare dintre cele rămase (N1 rămâne deschis).
+  const [publicationPreference, setPublicationPreference] = useState<PublicationPreference>('public_anonymous');
 
   // Validare și trimitere
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -734,50 +734,23 @@ export const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
         </div>
       </div>
 
-      {/* 6. SECȚIUNEA OPȚIUNE PUBLICARE PE HARTĂ (ETAPA 3E - CETĂȚEANUL ALEGE) */}
+      {/* 6. SECȚIUNEA AFIȘARE PE HARTĂ (ETAPA 6.6: fără opțiune de ascundere; identitatea autorului nu e publică) */}
       <div className="bg-white rounded-3xl border border-slate-200 p-5 sm:p-6 shadow-sm space-y-4">
         <div>
           <div className="flex items-center gap-2">
             <label className="text-sm font-extrabold text-slate-900">
-              6. Doriți ca sesizarea să fie afișată public pe harta sesizărilor? *
+              6. Afișarea sesizării pe harta sesizărilor *
             </label>
             <span className="px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-blue-100 text-blue-800">
               Alegere Cetățean
             </span>
           </div>
           <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-            Publicarea permite celorlalți cetățeni să vadă problema semnalată pe harta orașului. Decizia finală de afișare este evaluată de administratorul platformei.
+            După aprobarea moderatorului, sesizarea poate fi afișată pe harta orașului, pentru ca ceilalți cetățeni să vadă problema semnalată. <strong>Numele, telefonul și e-mailul dumneavoastră nu sunt afișate public.</strong>
           </p>
         </div>
 
         <div className="space-y-2.5">
-          {/* Opțiunea 1: PRIVAT (VALOARE IMPLICITĂ OBLIGATORIE) */}
-          <label
-            className={`flex items-start gap-3 p-3.5 rounded-2xl border-2 cursor-pointer transition-all ${
-              publicationPreference === 'private'
-                ? 'border-blue-600 bg-blue-50/60 ring-2 ring-blue-100'
-                : 'border-slate-200 hover:border-slate-300 bg-white'
-            }`}
-          >
-            <input
-              type="radio"
-              name="publicationPreference"
-              value="private"
-              checked={publicationPreference === 'private'}
-              onChange={() => setPublicationPreference('private')}
-              className="mt-1 text-blue-600 focus:ring-blue-500"
-            />
-            <div className="space-y-0.5">
-              <div className="flex items-center gap-2 font-bold text-xs sm:text-sm text-slate-900">
-                <EyeOff className="w-4 h-4 text-slate-500 shrink-0" />
-                <span>Nu doresc afișarea publică (Implicit / Confidențial)</span>
-              </div>
-              <p className="text-[11px] text-slate-500 leading-relaxed">
-                Sesizarea rămâne înregistrată intern în platformă și <strong>nu va apărea niciodată pe harta publică</strong>.
-              </p>
-            </div>
-          </label>
-
           {/* Opțiunea 2: PUBLIC ANONIM */}
           <label
             className={`flex items-start gap-3 p-3.5 rounded-2xl border-2 cursor-pointer transition-all ${
@@ -797,7 +770,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
             <div className="space-y-0.5">
               <div className="flex items-center gap-2 font-bold text-xs sm:text-sm text-slate-900">
                 <UserCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>Da, vreau să fie afișată public anonim</span>
+                <span>Afișare publică anonimă</span>
               </div>
               <p className="text-[11px] text-slate-500 leading-relaxed">
                 După aprobarea moderatorului, problema apare pe hartă. <strong>Datele dumneavoastră personale (nume, telefon, e-mail) sunt 100% protejate și NU vor fi afișate public</strong>.
@@ -824,7 +797,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
             <div className="space-y-0.5">
               <div className="flex items-center gap-2 font-bold text-xs sm:text-sm text-slate-900">
                 <Eye className="w-4 h-4 text-blue-600 shrink-0" />
-                <span>Da, vreau să fie afișată public</span>
+                <span>Afișare publică</span>
               </div>
               <p className="text-[11px] text-slate-500 leading-relaxed">
                 Sesizarea intră în fluxul de moderare și, după aprobare, devine vizibilă pe hartă.

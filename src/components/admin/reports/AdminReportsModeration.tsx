@@ -28,7 +28,9 @@ import {
   ClipboardCheck,
   Lock,
   MessageSquare,
-  Send
+  Send,
+  Building2,
+  UserMinus
 } from 'lucide-react';
 import { CivicReport, ModerationStatus, PublicationPreference, ResolutionStatus } from '../../../types/report';
 import { reportService } from '../../../services/reportService';
@@ -67,6 +69,38 @@ export const AdminReportsModeration: React.FC<AdminReportsModerationProps> = ({ 
   // Mesaj afișat când acțiunea este refuzată (lipsă permisiune sau refuz al serviciului).
   const [actionError, setActionError] = useState<string | null>(null);
   const DENIED_MESSAGE = 'Acțiunea nu a fost efectuată: nu aveți permisiunea necesară sau operația a fost refuzată.';
+
+  // ETAPA 6.6 (C6): asumarea/preluarea folosește `reports.resolve` (schimbă automat stadiul).
+  // Tipul acțiunii (individuală vs. instituțională) este stabilit de `permissionService`.
+  const actsForCityHall = permissionService.currentUserActsForCityHall();
+  const currentUserId = authService.getCurrentUser()?.id;
+  const STORAGE_FAILURE_MESSAGE = 'Acțiunea nu a fost salvată: spațiul de stocare al browserului este plin sau indisponibil. Nu s-a modificat nimic.';
+
+  const handleAssumptionAction = (
+    action: 'assume' | 'withdraw' | 'city_hall',
+    id: string,
+    refNumber: string
+  ) => {
+    if (!canResolve) { setActionError(DENIED_MESSAGE); return; }
+    const result =
+      action === 'assume'
+        ? reportService.assumeReport(id)
+        : action === 'withdraw'
+        ? reportService.withdrawAssumption(id)
+        : reportService.takeOverByCityHall(id);
+    if (!result.success) {
+      setActionError(
+        result.reason === 'quota_exceeded' || result.reason === 'storage_error' ? STORAGE_FAILURE_MESSAGE : DENIED_MESSAGE
+      );
+      return;
+    }
+    setActionError(null);
+    setReports(reportService.getAllReports());
+    if (!result.changed) return;
+    if (action === 'assume') onSuccess(`Ați asumat sesizarea ${refNumber}.`);
+    else if (action === 'withdraw') onSuccess(`Ați renunțat la asumarea sesizării ${refNumber}.`);
+    else onSuccess(`Sesizarea ${refNumber} a fost preluată de Primărie.`);
+  };
 
   const handleUpdateStatus = (id: string, refNumber: string, newStatus: ModerationStatus) => {
     if (!canModerate) { setActionError(DENIED_MESSAGE); return; }
@@ -203,7 +237,7 @@ export const AdminReportsModeration: React.FC<AdminReportsModerationProps> = ({ 
               <EyeOff className="w-4 h-4 text-slate-500" />
             </div>
             <div className="text-2xl font-black text-slate-900 mt-1">{stats.privateCount}</div>
-            <div className="text-[10px] text-slate-500 mt-0.5">Alegere cetățean</div>
+            <div className="text-[10px] text-slate-500 mt-0.5">Valoare istorică, fără efect pe hartă</div>
           </div>
         </div>
 
@@ -211,10 +245,10 @@ export const AdminReportsModeration: React.FC<AdminReportsModerationProps> = ({ 
         <div className="p-3 rounded-2xl bg-blue-50/70 border border-blue-200 text-xs text-blue-950 space-y-1">
           <div className="font-bold flex items-center gap-1.5">
             <Sparkles className="w-4 h-4 text-blue-700" />
-            <span>Regula centrală de publicare pe hartă (Etapa 3E):</span>
+            <span>Regula centrală de publicare pe hartă (Etapa 3E, modificată în 6.6):</span>
           </div>
           <p className="text-[11px] leading-relaxed text-blue-900">
-            O sesizare devine vizibilă pe hartă dacă și numai dacă: <strong>(1)</strong> cetățeanul a bifat „Public” sau „Public Anonim” <strong>ȘI</strong> <strong>(2)</strong> administratorul a apăsat „Aprobă” <strong>ȘI</strong> <strong>(3)</strong> există coordonate GPS valide. Sesizările private nu ajung niciodată pe hartă.
+            O sesizare devine vizibilă pe hartă dacă și numai dacă: <strong>(1)</strong> administratorul a apăsat „Aprobă” <strong>ȘI</strong> <strong>(2)</strong> există coordonate GPS valide. Cetățeanul nu are o opțiune de excludere de pe hartă; sesizările marcate istoric „Private” se publică în aceleași condiții. Identitatea și datele de contact ale autorului nu sunt afișate public.
           </p>
         </div>
       </div>
@@ -389,7 +423,7 @@ export const AdminReportsModeration: React.FC<AdminReportsModerationProps> = ({ 
                           : 'bg-blue-100 text-blue-900'
                       }`}
                     >
-                      {report.publicationPreference === 'private' && 'Privat (Nu dorește afișarea)'}
+                      {report.publicationPreference === 'private' && 'Privat (valoare istorică — fără efect pe hartă)'}
                       {report.publicationPreference === 'public_anonymous' && 'Public Anonim (Protecție date)'}
                       {report.publicationPreference === 'public' && 'Public'}
                     </span>
@@ -397,7 +431,7 @@ export const AdminReportsModeration: React.FC<AdminReportsModerationProps> = ({ 
 
                   {report.publicationPreference === 'private' && (
                     <span className="text-[11px] text-slate-500 italic">
-                      (Fiind marcată privată de cetățean, nu va fi publicată pe hartă chiar dacă e aprobată)
+                      (Marcată istoric „privat”: după aprobare apare pe hartă ca anonimă, fără datele autorului)
                     </span>
                   )}
 
@@ -587,6 +621,77 @@ export const AdminReportsModeration: React.FC<AdminReportsModerationProps> = ({ 
                           </button>
                         ))}
                       </div>
+
+                      {/* ETAPA 6.6 (C6) — Asumare / Preluare (starea curentă) */}
+                      {(() => {
+                        const assumption = reportService.getAssumptionState(report);
+                        const assumedByMe = !!currentUserId && assumption.assigneeIds.includes(currentUserId);
+                        return (
+                          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 space-y-2 text-xs">
+                            <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                              <UserCheck className="w-3.5 h-3.5 text-slate-400" />
+                              <span>Asumare / Preluare</span>
+                            </span>
+
+                            <div className="flex flex-wrap items-center gap-2">
+                              {assumption.takenOverByCityHall ? (
+                                <span className="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border bg-teal-100 text-teal-800 border-teal-300 flex items-center gap-1">
+                                  <Building2 className="w-3.5 h-3.5" />
+                                  <span>Preluată de Primărie</span>
+                                </span>
+                              ) : (
+                                <span className="text-[11px] text-slate-500 italic">Primăria nu a preluat sesizarea.</span>
+                              )}
+                            </div>
+
+                            <div className="text-slate-700">
+                              <span className="font-bold">Responsabili individuali: </span>
+                              {assumption.assigneeIds.length > 0 ? (
+                                assumption.assigneeIds
+                                  .map((aid) => {
+                                    const name = authService.getDisplayNameById(aid) ?? aid;
+                                    return aid === currentUserId ? `${name} (dvs.)` : name;
+                                  })
+                                  .join(', ')
+                              ) : (
+                                <span className="text-slate-400 italic">niciunul</span>
+                              )}
+                            </div>
+
+                            {canResolve && (
+                              <div className="flex flex-wrap items-center gap-2 pt-1">
+                                {actsForCityHall && !assumption.takenOverByCityHall && (
+                                  <button
+                                    onClick={() => handleAssumptionAction('city_hall', report.id, report.referenceNumber)}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-teal-700 hover:bg-teal-800 text-white font-bold text-[11px] transition-colors"
+                                  >
+                                    <Building2 className="w-3.5 h-3.5" />
+                                    <span>Preia de către Primărie</span>
+                                  </button>
+                                )}
+                                {!actsForCityHall && !assumedByMe && (
+                                  <button
+                                    onClick={() => handleAssumptionAction('assume', report.id, report.referenceNumber)}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-700 hover:bg-indigo-800 text-white font-bold text-[11px] transition-colors"
+                                  >
+                                    <UserCheck className="w-3.5 h-3.5" />
+                                    <span>Preia / Asumă</span>
+                                  </button>
+                                )}
+                                {!actsForCityHall && assumedByMe && (
+                                  <button
+                                    onClick={() => handleAssumptionAction('withdraw', report.id, report.referenceNumber)}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 font-bold text-[11px] transition-colors"
+                                  >
+                                    <UserMinus className="w-3.5 h-3.5" />
+                                    <span>Renunță la asumare</span>
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
 
                       {/* Istoric răspunsuri administrative */}
                       <div className="space-y-2">

@@ -122,6 +122,15 @@ const ROLE_PERMISSIONS: Record<AdminRole, Permission[]> = {
   primarie_operator: PRIMARIE_OPERATOR_PERMISSIONS,
 };
 
+/**
+ * ETAPA 6.6 (C6) — Rolurile care acționează în numele INSTITUȚIEI (Primăria).
+ * Nu este o permisiune și nu modifică `ROLE_PERMISSIONS`: stabilește doar dacă o acțiune de
+ * preluare a unei sesizări este preluarea instituțională a Primăriei (`primarie_operator`)
+ * sau o asumare individuală (`super_admin`). Menținut aici pentru ca nicio componentă sau
+ * serviciu să nu conțină propriile verificări de forma `role === '...'`.
+ */
+const CITY_HALL_ROLES: ReadonlyArray<AdminRole> = ['primarie_operator'];
+
 class PermissionService {
   /**
    * Returnează lista de permisiuni pentru un rol. Un rol necunoscut sau lipsă
@@ -178,6 +187,22 @@ class PermissionService {
   public currentUserCanAll(permissions: Permission[]): boolean {
     const role = authService.getCurrentUser()?.role;
     return permissions.length > 0 && permissions.every((p) => this.hasPermission(role, p));
+  }
+
+  /**
+   * ETAPA 6.6 (C6) — Adevărat dacă rolul acționează în numele Primăriei. Rol lipsă sau
+   * necunoscut → `false` (fail-safe).
+   */
+  public actsForCityHall(role: string | null | undefined): boolean {
+    if (!role) return false;
+    return (CITY_HALL_ROLES as ReadonlyArray<string>).includes(role);
+  }
+
+  /**
+   * ETAPA 6.6 (C6) — Același test pentru utilizatorul autentificat curent; fără sesiune → `false`.
+   */
+  public currentUserActsForCityHall(): boolean {
+    return this.actsForCityHall(authService.getCurrentUser()?.role);
   }
 }
 

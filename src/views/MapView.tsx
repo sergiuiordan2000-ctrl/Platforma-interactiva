@@ -426,7 +426,7 @@ export const MapView: React.FC<MapViewProps> = ({ onNavigate }) => {
             <span>Delimitare Modul Hartă & Moderare (Etapele 3D & 3E)</span>
           </div>
           <p className="leading-relaxed">
-            Harta afișează exclusiv sesizările pentru care cetățeanul a bifat opțiunea de publicare și care au fost aprobate de moderatorul platformei (3E). Sesizările private sau respinse sunt excluse. Trimiterea automată de e-mailuri către Primărie și backend-ul centralizat aparțin etapelor ulterioare.
+            Harta afișează sesizările aprobate de moderatorul platformei, fără identitatea sau datele de contact ale autorilor. Sesizările neaprobate sau respinse sunt excluse. Trimiterea automată de e-mailuri către Primărie și backend-ul centralizat aparțin etapelor ulterioare.
           </p>
         </div>
 

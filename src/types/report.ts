@@ -39,10 +39,13 @@ export interface CitizenContact {
 }
 
 /**
- * Opțiunea de publicare aleasă explicit de cetățean în formular (Etapa 3E).
- * - 'private': Nu doresc afișarea publică (VALOARE IMPLICITĂ OBLIGATORIE).
- * - 'public': Da, vreau să fie afișată public.
- * - 'public_anonymous': Da, vreau să fie afișată public anonim (fără date personale pe hartă).
+ * Opțiunea de afișare aleasă de cetățean în formular (Etapa 3E, modificată în Etapa 6.6).
+ * - 'public_anonymous': afișare publică anonimă (valoarea implicită din Etapa 6.6).
+ * - 'public': afișare publică.
+ * - 'private': VALOARE ISTORICĂ (opțiunea „Nu doresc afișarea publică”, eliminată în Etapa 6.6).
+ *   Păstrată în tip doar pentru compatibilitatea datelor salvate; NU mai exclude sesizarea de
+ *   pe hartă și nu mai este oferită în formular. La publicare este tratată ca anonimă.
+ * În toate cazurile, datele de contact ale autorului NU sunt publice.
  */
 export type PublicationPreference = 'private' | 'public' | 'public_anonymous';
 
@@ -103,7 +106,7 @@ export interface CivicReport {
   contact?: CitizenContact;
   createdAt: string;
   status: 'transmis'; // Stare inițială simplă de transmitere
-  publicationPreference: PublicationPreference; // Preferința cetățeanului (implicit: 'private')
+  publicationPreference: PublicationPreference; // Opțiunea cetățeanului; 'private' = valoare istorică fără efect pe hartă (Etapa 6.6)
   moderationStatus: ModerationStatus; // Decizia moderatorului (implicit: 'pending')
   moderatedAt?: string; // Data ultimei acțiuni de moderare
   moderationNote?: string; // Notă internă opțională a moderatorului (folosită exclusiv pentru moderare)
@@ -111,6 +114,11 @@ export interface CivicReport {
   // Câmpuri Etapa 5C — soluționare (independente de moderare)
   resolutionStatus?: ResolutionStatus; // Lipsă = 'new' (fallback în reportService)
   responses?: ReportResponse[]; // Istoric răspunsuri administrative interne, niciodată suprascris
+
+  // Câmpuri Etapa 6.6 (C6) — asumare / preluare. Se păstrează DOAR starea curentă (fără istoric).
+  // Concepte distincte de autorul sesizării (`contact`) și de `resolutionStatus`.
+  assigneeIds?: string[]; // Responsabilii individuali curenți: ID-urile unice ale conturilor Admin. Lipsă = [].
+  cityHallTakenOver?: boolean; // Preluarea instituțională de către Primărie; odată `true`, nu se retrage. Lipsă = false.
 }
 
 /**
@@ -141,5 +149,6 @@ export interface PublicMapReport {
     compressionRatio?: number;
   };
   createdAt: string;
-  isAnonymous: boolean; // Flag dacă sesizarea a fost marcată ca publică anonimă
+  isAnonymous: boolean; // Opțiunea „anonim” (N1 închis în 6.6: identitatea autorului nu e publică în niciun caz)
+  // ETAPA 6.6: fără stadiu, asumare, preluare sau responsabili — fluxul intern nu este public.
 }

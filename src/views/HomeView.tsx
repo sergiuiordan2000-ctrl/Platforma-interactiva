@@ -397,7 +397,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onOpenAnnounceme
             Status Dezvoltare: Etapa 3E (Moderarea și Publicarea Sesizărilor Cetățenești ACTIVĂ)
           </p>
           <p className="leading-relaxed">
-            Modulele Comunicate (1B), Evenimente (1C), Ghidul Primăriei (2A), Quick Dial (2B), Panoul CMS (2C), Formularul de Sesizare (3A), Alocarea Identificatorului Intern TM-XXX (3B), Compresia/Optimizarea Fotografiilor (3C), Harta Geospațială (3D) și Moderarea/Controlul Publicării (3E) sunt complet operaționale. Cetățeanul alege explicit opțiunea de publicare (implicit privată), iar administratorul evaluează și aprobă sesizările înainte ca acestea să apară pe hartă, cu protecția strictă a datelor private.
+            Modulele Comunicate (1B), Evenimente (1C), Ghidul Primăriei (2A), Quick Dial (2B), Panoul CMS (2C), Formularul de Sesizare (3A), Alocarea Identificatorului Intern TM-XXX (3B), Compresia/Optimizarea Fotografiilor (3C), Harta Geospațială (3D) și Moderarea/Controlul Publicării (3E) sunt complet operaționale. Administratorul evaluează și aprobă sesizările înainte ca acestea să apară pe hartă, iar identitatea și datele de contact ale autorilor nu sunt afișate public.
           </p>
         </div>
       </section>

@@ -43,7 +43,7 @@ Reguli de lucru obligatorii pentru toate etapele viitoare, indiferent de asisten
 
 - **Nu se inventează cerințe și nu se iau decizii de produs** în numele proprietarului.
 - Când apare o decizie de produs (ce vede publicul, ce poate face un rol, o funcționalitate nouă, o alternativă de UI): **STOP, se prezintă opțiunile și se cere decizia.**
-- Deciziile deschise cunoscute: **N1, N2, N4** (din auditul 6.5; N3 a fost clarificat tehnic în 6.5), **P7**, **M7** (preluarea/asumarea sesizărilor), introducerea unui backend. Vezi `PROJECT_HANDOFF_CURRENT.md`, G.3.
+- Deciziile deschise cunoscute: **N2, N4** (din auditul 6.5; N3 a fost clarificat tehnic în 6.5, N1 a fost închis în 6.6), **P7**, introducerea unui backend. **M7** (preluarea/asumarea sesizărilor) a fost **decis și implementat în 6.6** (secțiunea 6). Vezi `PROJECT_HANDOFF_CURRENT.md`, G.3.
 
 ## 5. Onestitate tehnică
 
@@ -61,7 +61,7 @@ Reguli de lucru obligatorii pentru toate etapele viitoare, indiferent de asisten
 | **Sesizările nu se șterg**, de niciun rol; nu există `deleteReport` | 6.1 |
 | Contorul `TM-XXX` e secvențial și nu se refolosește niciodată | 3B, 6.1, 6.2 |
 | Confirmarea unei sesizări apare doar după salvarea efectivă | 6.2 |
-| Preferința de publicare implicită este `private`; pe hartă apar doar sesizările publice aprobate | 3E |
+| Toate sesizările aprobate pot fi afișate pe hartă conform regulilor de publicare (aprobare + coordonate valide). Identitatea și datele de contact ale autorului nu sunt afișate public. Cetățeanul nu are o opțiune de excludere a sesizării de pe hartă; valoarea istorică `private` nu mai are efect (se publică anonim). Implicit în formular: `public_anonymous` | 6.6 (înlocuiește regula 3E „implicit `private`; pe hartă doar sesizările publice aprobate”) |
 | Moderarea publicării și soluționarea internă sunt axe independente | 5C |
 | Comunicatele nu au ștergere fizică (doar publicare / dezactivare) | 5B / 5D |
 | Ștergerea și resetarea sondajelor sunt permise cu `surveys.create` SAU `surveys.edit` (fără permisiune nouă) | 5D, aplicat și în serviciu în 6.5 |
@@ -70,6 +70,14 @@ Reguli de lucru obligatorii pentru toate etapele viitoare, indiferent de asisten
 | Fără login DEMO 1-click și fără credențiale afișate public | 6.4 |
 | Zona publică nu afișează lista sesizărilor; lista completă există doar în Admin | 6.5 (P3) |
 | E-mailul rămâne simulat | Etapa 5E |
+| Harta publică afișează doar informații descriptive (număr, categorie, descriere, fotografie, poziție, dată). NU afișează fluxul intern de tratare: stadiu, asumare, preluarea Primăriei, responsabili. Acestea rămân exclusiv în Admin | 6.6 |
+| N1 închis: „Public” și „Public anonim” sunt ambele publice și nu expun identitatea autorului; identitatea și datele de contact nu sunt niciodată incluse în proiecția publică | 6.6 |
+| **M7 / `6A-MOD-08` decis și implementat.** Asumare / preluare disponibilă numai în Admin: `super_admin` poate asuma individual o sesizare și își poate retrage propria asumare; `primarie_operator` NU are asumare individuală | 6.6 |
+| Primăria (`primarie_operator`) poate prelua instituțional o sesizare. Preluarea este idempotentă (un al doilea operator nu creează o a doua preluare) și **nu poate fi retrasă** | 6.6 |
+| Pot coexista responsabili individuali și preluarea Primăriei; **preluarea Primăriei are prioritate** (în Admin). Se păstrează doar starea curentă, fără istoric de asumări | 6.6 |
+| O asumare/preluare a unei sesizări aflate în `new` o trece în `in_progress` (indiferent de istoric); retragerea nu schimbă stadiul; `resolved`/`closed` nu sunt atinse; nu există status nou „asumat” | 6.6 |
+| Asumarea/preluarea folosește permisiunea existentă `reports.resolve` (fără permisiune nouă); rolul care acționează pentru Primărie este definit central în `permissionService`. Fiecare cont Admin are un ID unic și stabil | 6.6 |
+| Harta publică NU afișează responsabilul, preluarea sau stadiul; datele cetățeanului nu sunt publice (sunt vizibile doar în Admin, pentru `super_admin` și `primarie_operator`) | 6.6 |
 
 ## 7. Comunicare
 

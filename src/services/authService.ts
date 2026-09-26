@@ -16,6 +16,24 @@ const SESSION_KEY = 'turnu_civic_admin_session';
 const VALID_ROLES: ReadonlyArray<AdminUser['role']> = ['super_admin', 'primarie_operator'];
 
 /**
+ * ETAPA 6.6 — Identificator intern UNIC și STABIL pentru fiecare cont Admin configurat.
+ * Înainte, ambele conturi `primarie_operator` primeau același ID (`usr-operator-01`), iar
+ * responsabilitatea unei sesizări nu putea fi asociată fără ambiguitate unui cont.
+ * ID-urile existente (`usr-admin-01`, `usr-operator-01`) sunt păstrate; doar al doilea cont
+ * de operator primește un ID propriu. Un ID nu se refolosește pentru alt cont.
+ */
+const ADMIN_ACCOUNT_IDS: Readonly<Record<string, string>> = {
+  'admin@turnumagurele.ro': 'usr-admin-01',
+  'operator@turnumagurele.ro': 'usr-operator-01',
+  'demo@turnumagurele.ro': 'usr-operator-02',
+};
+
+/** Numele afișat configurat pentru un cont Admin (regula existentă, neschimbată). */
+function displayNameForAccount(email: string): string {
+  return email.startsWith('admin') ? 'Administrator Platformă' : 'Operator Primărie';
+}
+
+/**
  * ETAPA 6.4 (C4) — Validarea structurii unei sesiuni citite din stocare.
  * O sesiune lipsă, coruptă sau cu formă invalidă (ex. obiect gol, fără rol, rol inexistent)
  * NU mai este tratată ca utilizator autentificat: este eliminată, iar utilizatorul vede
@@ -114,9 +132,9 @@ class AuthService {
       (trimmedEmail === 'demo@turnumagurele.ro' && password === 'demo1234')
     ) {
       const user: AdminUser = {
-        id: trimmedEmail.startsWith('admin') ? 'usr-admin-01' : 'usr-operator-01',
+        id: ADMIN_ACCOUNT_IDS[trimmedEmail],
         email: trimmedEmail,
-        name: trimmedEmail.startsWith('admin') ? 'Administrator Platformă' : 'Operator Primărie',
+        name: displayNameForAccount(trimmedEmail),
         role: trimmedEmail.startsWith('admin') ? 'super_admin' : 'primarie_operator',
         lastLogin: new Date().toISOString(),
       };
@@ -137,6 +155,16 @@ class AuthService {
     this.currentUser = null;
     this.persistSession(null);
     this.notify();
+  }
+
+  /**
+   * ETAPA 6.6 — Numele configurat al contului Admin cu ID-ul dat (același nume folosit la
+   * autentificare). Returnează `null` pentru un ID care nu aparține niciunui cont configurat.
+   * Nu expune e-mailul contului.
+   */
+  public getDisplayNameById(id: string): string | null {
+    const email = Object.keys(ADMIN_ACCOUNT_IDS).find((e) => ADMIN_ACCOUNT_IDS[e] === id);
+    return email ? displayNameForAccount(email) : null;
   }
 }
 

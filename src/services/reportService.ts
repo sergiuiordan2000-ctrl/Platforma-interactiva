@@ -16,6 +16,7 @@ import { DEMO_REPORT_CATEGORIES } from '../data/mockReportCategories';
 import { directoryService } from './directoryService';
 import { emailService } from './emailService';
 import { permissionService } from './permissionService';
+import { authService } from './authService';
 
 const STORAGE_REPORTS_KEY = 'turnu_civic_reports_store';
 const STORAGE_COUNTER_KEY = 'turnu_civic_reports_counter';
@@ -35,6 +36,25 @@ export type ReportSaveFailureReason = 'quota_exceeded' | 'storage_error';
 export type SubmitReportResult =
   | { success: true; report: CivicReport }
   | { success: false; reason: ReportSaveFailureReason };
+
+/**
+ * ETAPA 6.6 (C6) — Starea CURENTĂ a asumării unei sesizări (fără istoric).
+ */
+export interface ReportAssumptionState {
+  assigneeIds: string[]; // responsabilii individuali curenți (ID-uri unice de cont Admin)
+  takenOverByCityHall: boolean; // preluarea instituțională a Primăriei
+}
+
+/**
+ * ETAPA 6.6 (C6) — Rezultatul unei operații de asumare / preluare / retragere.
+ * - `changed: false` = operație permisă, dar starea era deja cea cerută (nu se scrie nimic).
+ * - `denied`: fără permisiune sau acțiune nepermisă rolului curent;
+ * - `not_found`: sesizare inexistentă;
+ * - `not_assumed`: retragere cerută de un utilizator care nu și-a asumat sesizarea.
+ */
+export type ReportAssumptionResult =
+  | { success: true; changed: boolean }
+  | { success: false; reason: 'denied' | 'not_found' | 'not_assumed' | ReportSaveFailureReason };
 
 /**
  * Recunoaște eroarea de depășire a cotei de stocare în toate browserele majore
@@ -64,7 +84,7 @@ export const TURNU_MAGURELE_CENTER = {
  * Sesizările demonstrative acoperă ambele cazuri:
  * - TM-001: public_anonymous + approved -> Apare pe hartă fără date personale
  * - TM-002: public + approved -> Apare pe hartă fără date personale
- * - TM-003: private + pending -> NU apare pe hartă (marcată private de cetățean)
+ * - TM-003: private (valoare istorică) + pending -> NU apare pe hartă (neaprobată încă)
  */
 const SEED_REPORTS: CivicReport[] = [
   {
@@ -142,12 +162,12 @@ const SEED_REPORTS: CivicReport[] = [
  * 3. Contorul de secvență este păstrat separat de numărul de elemente din listă.
  * 4. Generarea numărului are loc STRICT în momentul salvării unei sesizări valide.
  * 5. Separare clară: ID tehnic (`id`) vs. Identificator civic (`referenceNumber`).
- * 6. REGULA CENTRALĂ DE PUBLICARE (Etapa 3E):
+ * 6. REGULA CENTRALĂ DE PUBLICARE (Etapa 3E, modificată în Etapa 6.6):
  *    O sesizare poate apărea pe hartă dacă și numai dacă:
- *    - preferința cetățeanului permite publicarea ('public' sau 'public_anonymous')
- *    - ȘI administratorul a aprobat-o ('approved')
+ *    - administratorul a aprobat-o ('approved')
  *    - ȘI are coordonate geografice valide
- * 7. Dacă cetățeanul a ales 'private', sesizarea NU apare pe hartă indiferent de statusul de moderare.
+ * 7. ETAPA 6.6: cetățeanul nu are o opțiune de excludere a sesizării de pe hartă; valoarea
+ *    istorică 'private' nu mai influențează vizibilitatea.
  * 8. CONFIDENȚIALITATE STRICTĂ:
  *    Modelul PublicMapReport nu conține și nu expune niciodată date personale ale petiționarului.
  */
@@ -282,7 +302,7 @@ class ReportService {
    * La trimitere:
    * - Se alocă ID tehnic unic
    * - Se generează TM-XXX secvențial
-   * - Se setează `publicationPreference` conform alegerii cetățeanului (implicit 'private')
+   * - Se setează `publicationPreference` conform alegerii cetățeanului (implicit 'public_anonymous', Etapa 6.6)
    * - Se setează `moderationStatus` pe 'pending'
    *
    * ETAPA 6.2 (C1) — salvare tranzacțională:
@@ -310,8 +330,8 @@ class ReportService {
       referenceNumber: civicReferenceNumber,
       createdAt: new Date().toISOString(),
       status: 'transmis',
-      // REGULĂ IMPORTANTĂ ETAPA 3E: Implicit este 'private' dacă nu e specificat
-      publicationPreference: input.publicationPreference || 'private',
+      // ETAPA 6.6: fără valoare transmisă se folosește 'public_anonymous' (nu se mai creează 'private')
+      publicationPreference: input.publicationPreference || 'public_anonymous',
       moderationStatus: 'pending',
     };
 
@@ -406,7 +426,7 @@ class ReportService {
   /**
    * Actualizează statusul de moderare al unei sesizări.
    * Acțiuni posibile:
-   * - 'approved': Aprobă sesizarea pentru publicare (dacă preferința cetățeanului nu e 'private')
+   * - 'approved': Aprobă sesizarea pentru publicare pe hartă (Etapa 6.6: indiferent de `publicationPreference`)
    * - 'rejected': Respinge sau retrage sesizarea din publicare
    * - 'pending': Revocare în stare de așteptare
    */
@@ -495,6 +515,135 @@ class ReportService {
     return newResponse;
   }
 
+  // ==========================================
+  // ASUMARE / PRELUARE (ETAPA 6.6 — C6)
+  // ==========================================
+  //
+  // Reguli de produs (instrucțiunile Etapei 6.6):
+  // - asumare individuală: `super_admin`; fiecare își poate retrage DOAR propria asumare;
+  // - preluare instituțională: `primarie_operator` → sesizarea este „preluată de Primărie”;
+  //   nu există operație de renunțare la preluarea Primăriei;
+  // - mai mulți responsabili individuali pot coexista cu preluarea Primăriei;
+  // - se păstrează doar starea curentă (fără istoric / jurnal);
+  // - orice asumare/preluare efectivă a unei sesizări aflate în `new` o trece în `in_progress`
+  //   (indiferent de asumările anterioare); `in_progress`/`resolved`/`closed` nu se schimbă;
+  //   retragerea nu schimbă statusul.
+  // Toate operațiile cer `reports.resolve` (schimbă automat stadiul soluționării); rolul care
+  // acționează pentru Primărie este stabilit de `permissionService`, nu aici.
+  // LIMITĂ (fără backend): starea există doar în `localStorage`-ul browserului curent.
+
+  /**
+   * Starea curentă a asumării. Pentru sesizările salvate înainte de Etapa 6.6 (fără câmpuri),
+   * sau cu valori corupte, întoarce valorile implicite sigure: fără responsabili, nepreluată.
+   */
+  public getAssumptionState(report: CivicReport): ReportAssumptionState {
+    const raw = Array.isArray(report.assigneeIds) ? report.assigneeIds : [];
+    const assigneeIds = raw.filter(
+      (v, i): v is string => typeof v === 'string' && v.length > 0 && raw.indexOf(v) === i
+    );
+    return { assigneeIds, takenOverByCityHall: report.cityHallTakenOver === true };
+  }
+
+  /**
+   * Adevărat dacă utilizatorul autentificat curent este unul dintre responsabilii individuali.
+   */
+  public isAssumedByCurrentUser(report: CivicReport): boolean {
+    const userId = authService.getCurrentUser()?.id;
+    return !!userId && this.getAssumptionState(report).assigneeIds.includes(userId);
+  }
+
+  /**
+   * Asumarea individuală a sesizării de către utilizatorul curent (`super_admin`).
+   * Nu este disponibilă rolurilor care acționează pentru Primărie (acestea folosesc
+   * `takeOverByCityHall`). Idempotentă: o a doua asumare a aceluiași utilizator nu scrie nimic.
+   */
+  public assumeReport(id: string): ReportAssumptionResult {
+    if (!permissionService.currentUserCan('reports.resolve')) return { success: false, reason: 'denied' };
+    if (permissionService.currentUserActsForCityHall()) return { success: false, reason: 'denied' };
+    const userId = authService.getCurrentUser()?.id;
+    if (!userId) return { success: false, reason: 'denied' };
+
+    const index = this.reports.findIndex((r) => r.id === id);
+    if (index === -1) return { success: false, reason: 'not_found' };
+
+    const current = this.reports[index];
+    const state = this.getAssumptionState(current);
+    if (state.assigneeIds.includes(userId)) return { success: true, changed: false };
+
+    return this.commitAssumptionChange(index, {
+      ...current,
+      assigneeIds: [...state.assigneeIds, userId],
+      ...this.assumptionStatusPatch(current),
+    });
+  }
+
+  /**
+   * Retragerea PROPRIEI asumări individuale. Nu atinge asumările altor utilizatori, nici
+   * preluarea Primăriei, nici `resolutionStatus` (chiar dacă lista rămâne goală).
+   */
+  public withdrawAssumption(id: string): ReportAssumptionResult {
+    if (!permissionService.currentUserCan('reports.resolve')) return { success: false, reason: 'denied' };
+    const userId = authService.getCurrentUser()?.id;
+    if (!userId) return { success: false, reason: 'denied' };
+
+    const index = this.reports.findIndex((r) => r.id === id);
+    if (index === -1) return { success: false, reason: 'not_found' };
+
+    const current = this.reports[index];
+    const state = this.getAssumptionState(current);
+    if (!state.assigneeIds.includes(userId)) return { success: false, reason: 'not_assumed' };
+
+    return this.commitAssumptionChange(index, {
+      ...current,
+      assigneeIds: state.assigneeIds.filter((a) => a !== userId),
+    });
+  }
+
+  /**
+   * Preluarea instituțională de către Primărie (`primarie_operator`). Ireversibilă: nu există
+   * operație de renunțare. Idempotentă: o sesizare deja preluată nu primește o a doua preluare.
+   * Transmiterea sesizării prin e-mail către Primărie NU apelează și NU implică această operație.
+   */
+  public takeOverByCityHall(id: string): ReportAssumptionResult {
+    if (!permissionService.currentUserCan('reports.resolve')) return { success: false, reason: 'denied' };
+    if (!permissionService.currentUserActsForCityHall()) return { success: false, reason: 'denied' };
+
+    const index = this.reports.findIndex((r) => r.id === id);
+    if (index === -1) return { success: false, reason: 'not_found' };
+
+    const current = this.reports[index];
+    if (this.getAssumptionState(current).takenOverByCityHall) return { success: true, changed: false };
+
+    return this.commitAssumptionChange(index, {
+      ...current,
+      cityHallTakenOver: true,
+      ...this.assumptionStatusPatch(current),
+    });
+  }
+
+  /**
+   * Regula de produs (Etapa 6.6, corecție finală): dacă sesizarea se află EFECTIV în `new` în
+   * momentul unei asumări/preluări, aceasta o trece în `in_progress` — indiferent dacă a mai fost
+   * asumată în trecut. `in_progress`, `resolved` și `closed` nu sunt modificate.
+   */
+  private assumptionStatusPatch(report: CivicReport): Partial<CivicReport> {
+    return this.getResolutionStatus(report) === 'new' ? { resolutionStatus: 'in_progress' } : {};
+  }
+
+  /**
+   * Salvare tranzacțională (modelul Etapei 6.2): se scrie întâi lista candidat; memoria se
+   * actualizează DOAR după o scriere reușită. La eșec nu se modifică nimic.
+   */
+  private commitAssumptionChange(index: number, updated: CivicReport): ReportAssumptionResult {
+    const candidate = [...this.reports];
+    candidate[index] = updated;
+    const failure = this.writeReports(candidate);
+    if (failure !== null) return { success: false, reason: failure };
+    this.reports = candidate;
+    this.notify();
+    return { success: true, changed: true };
+  }
+
   /**
    * Returnează statistici agregate reale privind sesizările și moderarea (pentru Admin).
    */
@@ -535,24 +684,22 @@ class ReportService {
   // ==========================================
 
   /**
-   * CONDIȚIA CENTRALĂ DE VIZIBILITATE PUBLICĂ (Cerința 14 din Etapa 3E):
+   * CONDIȚIA CENTRALĂ DE VIZIBILITATE PUBLICĂ (Etapa 3E, modificată în Etapa 6.6):
    * O sesizare este vizibilă public dacă și numai dacă:
-   * 1. Cetățeanul a permis publicarea ('public' sau 'public_anonymous') — NICIODATĂ 'private';
-   * 2. Administratorul a aprobat publicarea ('approved') — NICIODATĂ 'pending' sau 'rejected';
-   * 3. Are coordonate geografice valide pentru afișarea pe hartă.
+   * 1. Administratorul a aprobat publicarea ('approved') — NICIODATĂ 'pending' sau 'rejected';
+   * 2. Are coordonate geografice valide pentru afișarea pe hartă.
+   * ETAPA 6.6 — decizia proprietarului: cetățeanul NU mai poate exclude sesizarea de pe hartă.
+   * Valoarea istorică `publicationPreference: 'private'` nu mai are niciun efect asupra
+   * vizibilității (aceeași regulă pentru toate sesizările, indiferent de data creării).
+   * Vizibilitatea sesizării NU înseamnă publicarea identității autorului (vezi `toPublicMapReport`).
    */
   public isPubliclyVisible(report: CivicReport): boolean {
-    // 1. Verificare preferință cetățean
-    if (report.publicationPreference === 'private') {
-      return false;
-    }
-
-    // 2. Verificare decizie moderator
+    // 1. Verificare decizie moderator
     if (report.moderationStatus !== 'approved') {
       return false;
     }
 
-    // 3. Verificare coordonate geografice valide
+    // 2. Verificare coordonate geografice valide
     const lat = report.location?.latitude;
     const lng = report.location?.longitude;
     if (typeof lat !== 'number' || typeof lng !== 'number' || isNaN(lat) || isNaN(lng)) {
@@ -607,15 +754,20 @@ class ReportService {
           }
         : undefined,
       createdAt: report.createdAt,
-      isAnonymous: report.publicationPreference === 'public_anonymous',
+      // ETAPA 6.6 (N1 închis): „Public” și „Public anonim” sunt ambele publice și NU expun identitatea
+      // autorului; valoarea istorică 'private' este tratată explicit ca anonimă. Câmp păstrat pentru
+      // compatibilitate; datele autorului nu sunt incluse în acest model în niciun caz.
+      isAnonymous: report.publicationPreference !== 'public',
+      // ETAPA 6.6: harta publică NU primește informații despre fluxul intern de tratare
+      // (stadiu, asumare, preluarea Primăriei, responsabili) — acestea rămân exclusiv în Admin.
     };
   }
 
   /**
    * Returnează lista tuturor sesizărilor publice eligibile pentru afișarea pe hartă.
-   * - Include DOAR sesizările care respectă regula centrală: cetățeanul a dorit publicarea ȘI moderatorul a aprobat-o;
-   * - Elimină sesizările 'private', 'pending' sau 'rejected';
-   * - Elimină sesizările fără coordonate valide;
+   * - Include DOAR sesizările aprobate de moderator, cu coordonate valide (inclusiv cele cu
+   *   valoarea istorică 'private', din Etapa 6.6);
+   * - Elimină sesizările 'pending' sau 'rejected' și pe cele fără coordonate valide;
    * - Filtrează datele personale garantând confidențialitatea.
    */
   public getPublicMapReports(): PublicMapReport[] {
