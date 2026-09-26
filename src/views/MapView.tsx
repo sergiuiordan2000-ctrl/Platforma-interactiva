@@ -48,6 +48,33 @@ const DEFAULT_CATEGORY_COLOR = {
   ring: 'ring-blue-200',
 };
 
+/**
+ * ETAPA 6.3 (C3) — Separarea strictă a markup-ului aplicației de datele din sesizări.
+ * Leaflet primește HTML ca șir de caractere (`L.divIcon({ html })`, `bindPopup(html)`) și îl
+ * interpretează. De aceea ORICE valoare provenită dintr-o sesizare (număr, categorie, descriere,
+ * adresă, dată) este escapată înainte de a fi inserată: `& < > " '` devin entități HTML, deci
+ * textul este afișat literal și nu poate crea elemente sau atribute (inclusiv în atribute între ghilimele).
+ */
+const HTML_ESCAPES: Record<string, string> = {
+  '&': '&amp;',
+  '<': '&lt;',
+  '>': '&gt;',
+  '"': '&quot;',
+  "'": '&#39;',
+};
+
+const escapeHtml = (value: unknown): string =>
+  String(value ?? '').replace(/[&<>"']/g, (ch) => HTML_ESCAPES[ch]);
+
+/**
+ * ETAPA 6.3 (C3) — Sursa fotografiei este acceptată DOAR ca imagine inline base64 în formatele
+ * produse de compresia aplicației (JPEG/PNG/WebP). Orice altă valoare este ignorată (popup fără foto).
+ */
+const SAFE_IMAGE_DATA_URL = /^data:image\/(?:jpeg|png|webp);base64,[A-Za-z0-9+/]+={0,2}$/;
+
+const getSafeImageSrc = (url: unknown): string | null =>
+  typeof url === 'string' && SAFE_IMAGE_DATA_URL.test(url) ? url : null;
+
 export const MapView: React.FC<MapViewProps> = ({ onNavigate }) => {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
@@ -145,6 +172,14 @@ export const MapView: React.FC<MapViewProps> = ({ onNavigate }) => {
 
       const color = CATEGORY_COLORS[report.categoryId] || DEFAULT_CATEGORY_COLOR;
 
+      // ETAPA 6.3 (C3): toate valorile provenite din sesizare sunt escapate O SINGURĂ DATĂ aici
+      // și doar aceste variabile sunt folosite în șabloanele HTML de mai jos.
+      const safeReferenceNumber = escapeHtml(report.referenceNumber);
+      const safeCategoryName = escapeHtml(report.categoryName);
+      const safeDescription = escapeHtml(report.publicDescription);
+      const safeAddress = escapeHtml(report.publicLocation.addressOrDetails);
+      const safePhotoSrc = report.photo ? getSafeImageSrc(report.photo.dataUrl) : null;
+
       // Creare pin HTML personalizat cu iconiță și identificator civic
       const markerHtml = `
         <div class="relative group cursor-pointer -translate-x-1/2 -translate-y-full">
@@ -156,7 +191,7 @@ export const MapView: React.FC<MapViewProps> = ({ onNavigate }) => {
           </div>
           <div class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-slate-800 rotate-45"></div>
           <div class="absolute -top-6 left-1/2 -translate-x-1/2 bg-slate-900/90 text-white font-mono text-[9px] font-bold px-1.5 py-0.5 rounded shadow whitespace-nowrap pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
-            ${report.referenceNumber}
+            ${safeReferenceNumber}
           </div>
         </div>
       `;
@@ -169,22 +204,24 @@ export const MapView: React.FC<MapViewProps> = ({ onNavigate }) => {
         popupAnchor: [0, -32],
       });
 
-      const formattedDate = new Date(report.createdAt).toLocaleDateString('ro-RO', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-      });
+      const formattedDate = escapeHtml(
+        new Date(report.createdAt).toLocaleDateString('ro-RO', {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+        })
+      );
 
       // Construim conținutul popup-ului PUBLIC (FĂRĂ DATE PERSONALE!)
       const popupHtml = `
         <div class="w-72 max-w-[85vw] font-sans text-slate-800 text-left">
           ${
-            report.photo
+            safePhotoSrc
               ? `
               <div class="relative h-32 w-full overflow-hidden bg-slate-900">
-                <img 
-                  src="${report.photo.dataUrl}" 
-                  alt="${report.referenceNumber}" 
+                <img
+                  src="${safePhotoSrc}"
+                  alt="${safeReferenceNumber}"
                   class="w-full h-full object-cover"
                 />
                 <div class="absolute top-2 right-2 bg-slate-950/80 backdrop-blur-sm text-white text-[9px] px-1.5 py-0.5 rounded font-mono font-bold">
@@ -197,21 +234,21 @@ export const MapView: React.FC<MapViewProps> = ({ onNavigate }) => {
           <div class="p-3.5 space-y-2">
             <div class="flex items-center justify-between gap-2 border-b border-slate-100 pb-2">
               <span class="font-mono text-xs font-black text-blue-900 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
-                ${report.referenceNumber}
+                ${safeReferenceNumber}
               </span>
               <span class="text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full">
-                ${report.categoryName}
+                ${safeCategoryName}
               </span>
             </div>
 
             <p class="text-xs text-slate-700 leading-snug line-clamp-3">
-              ${report.publicDescription}
+              ${safeDescription}
             </p>
 
             <div class="pt-1 border-t border-slate-100 space-y-1 text-[11px] text-slate-500">
               <div class="flex items-center gap-1.5 truncate">
                 <span class="font-semibold text-slate-600">Loc:</span>
-                <span class="truncate">${report.publicLocation.addressOrDetails}</span>
+                <span class="truncate">${safeAddress}</span>
               </div>
               <div class="flex items-center justify-between text-[10px] text-slate-400">
                 <span>Data: ${formattedDate}</span>
@@ -220,7 +257,7 @@ export const MapView: React.FC<MapViewProps> = ({ onNavigate }) => {
             </div>
 
             <div class="bg-amber-50 rounded-lg p-2 text-[9px] text-amber-900 border border-amber-200/60 leading-tight">
-              <strong>${report.referenceNumber}</strong> este codul intern al platformei civice (nu reprezintă nr. oficial de primărie).
+              <strong>${safeReferenceNumber}</strong> este codul intern al platformei civice (nu reprezintă nr. oficial de primărie).
             </div>
           </div>
         </div>
