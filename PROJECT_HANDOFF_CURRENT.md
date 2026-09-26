@@ -177,7 +177,7 @@ Sursa constatărilor inițiale: `RAPORT_AUDIT_ETAPA_6.md`. Problemele critice id
   - sesiunea nu expiră.
 
 ### 6.5: Autorizarea la nivel de servicii și reducerea datelor expuse (M3 / M4), inclusă în `d89fd1c`
-Etapa a început cu un audit read-only (probleme P1–P7, decizii N1–N4). Au fost remediate **P1–P6**. **P7 nu a fost rezolvat**, conform instrucțiunii, iar **N1–N4 au rămas nedecise** (vezi G.3).
+Etapa a început cu un audit read-only (probleme P1–P7, decizii N1–N4). Au fost remediate **P1–P6**. **P7 nu a fost rezolvat**, conform instrucțiunii. Dintre neclaritățile de produs, **N1, N2 și N4 au rămas nedecise**, iar **N3 a fost clarificat tehnic** prin implementarea P1/P2 (vezi G.3).
 
 | # | Remediere |
 |---|---|
@@ -251,7 +251,7 @@ Tot codul rulează în browserul utilizatorului. Prin urmare:
 | Cod | Problemă | Stare |
 |---|---|---|
 | — | Lipsa backend-ului (autentificare, autorizare, date centralizate) | nedecis, decizie de arhitectură |
-| M1 / S4 / `6D-SES-01` / P7 | Sesiunea Admin se poate falsifica din `localStorage` | **FAIL, nerezolvat** (P7 a fost exclus explicit din 6.5) |
+| M1 / S4 / `6D-SES-01` / P7 | Sesiunea Admin se poate falsifica din `localStorage` | **FAIL, nerezolvat** (P7 a fost exclus explicit din 6.5; descrierea din raportul 6.5 este în G.4) |
 | M2 / S5 | Credențiale hardcodate în bundle | nerezolvat; necesită backend |
 | m3 / S9 / `6D-SES-03` | Sesiunea nu expiră (persistă și în `localStorage`) | PARTIAL, nerezolvat |
 | S10 | Jurnalul de e-mail salvează local datele de contact ale cetățeanului | nerezolvat |
@@ -276,11 +276,27 @@ Tot codul rulează în browserul utilizatorului. Prin urmare:
 
 m2 (permisiunile per acțiune în Moderare și Comunicate) a fost **rezolvat** prin P6.
 
-### G.3 Decizii de produs deschise: N1–N4
-- În auditul read-only al Etapei 6.5 au fost identificate patru puncte care cer **decizie de produs**, notate **N1, N2, N3, N4**. Instrucțiunea a fost „NU lua decizii pentru N1–N4”, iar ele au rămas nedecise.
-- **Conținutul exact al N1–N4 NU a putut fi recuperat.** Era doar în raportul de audit 6.5 trimis în conversație, care nu a fost salvat în repository.
-- Proprietarul proiectului are acel raport. **Noul chat trebuie să ceară textul N1–N4 și nu trebuie să îl reconstruiască din presupuneri.**
-- Tot acolo era definit exact **P7**. Din rapoartele ulterioare reiese doar că P7 este legat de `6D-SES-01` (sesiunea falsificabilă / lipsa autorizării reale).
+### G.3 Neclarități de produs din Etapa 6.5: N1–N4
+Sursa: raportul original al Etapei 6.5, secțiunea „Neclarități de produs (nu le decid eu)”, furnizat de proprietarul proiectului. Instrucțiunea din 6.5 a fost „NU lua decizii pentru N1–N4”. Formularea de mai jos este cea din raport.
+
+| Cod | Formularea din raportul 6.5 | Stare actuală |
+|---|---|---|
+| **N1** | `isAnonymous`: „Public” și „Public anonim” se comportă identic. Trebuie afișat numele la varianta „Public”, sau se renunță la una dintre opțiuni? | **DESCHIS**, decizie de produs a proprietarului |
+| **N2** | Rezultatele sondajelor sunt vizibile în timpul consultării (butonul „Rezultate”), deși textul spune „la finalizare”. Care variantă este corectă? | **DESCHIS**, decizie de produs a proprietarului |
+| **N3** | `announcementService.setStatus` servește și la publicare, și la dezactivare. O gardă în serviciu trebuie să aleagă permisiunea după starea țintă. | **CLARIFICAT TEHNIC în 6.5** (P1/P2): `setStatus` verifică permisiunea după starea țintă (`published` → `announcements.publish`; altfel `announcements.disable`). Nu mai este o problemă tehnică nerezolvată; se păstrează aici pentru a documenta originea ca neclaritate N3. |
+| **N4** | Trebuie ca `resetToDemo` să existe în versiunea de producție? | **DESCHIS**, decizie de produs a proprietarului |
+
+- Pentru N1, N2 și N4 documentația **nu propune o soluție și nu alege o variantă**. Întrebările așteaptă decizia proprietarului produsului.
+- N1–N4 sunt distincte de P7 (G.4). P7 este o limitare de arhitectură, nu o neclaritate de produs.
+
+### G.4 P7: sesiune client-side falsificabilă (`6D-SES-01`)
+Sursa: fragmentul final recuperat al raportului de execuție al Etapei 6.5, furnizat de proprietarul proiectului. P7 nu mai este un punct cu text nerecuperat; raportul 6.5 îl identifică astfel:
+- **P7 este asociat cu `6D-SES-01`**, care a rămas **FAIL** după 6.5.
+- **`6D-SES-01` = sesiune client-side falsificabilă:** o sesiune JSON validă structural poate fi introdusă manual în `localStorage` și este acceptată.
+- **Validarea din 6.4** (`isValidSessionUser`, `VALID_ROLES`) verifică **structura** sesiunii, **nu autenticitatea** ei.
+- **Fără backend, autorizarea reală nu poate fi garantată:** gărzile din frontend pot fi ocolite.
+- **P1/P2** (helper-ele `currentUserCan*` și gărzile din servicii) sunt **protecții în frontend** și **nu înlocuiesc autorizarea server-side**.
+- **P7 rămâne nerezolvat.** Remedierea reală necesită o arhitectură cu backend. Aceasta este o **decizie de arhitectură / produs** nedecisă (vezi F.2); documentul de față nu propune o soluție.
 
 ---
 
@@ -300,7 +316,8 @@ m2 (permisiunile per acțiune în Moderare și Comunicate) a fost **rezolvat** p
 | Cheile `localStorage` (A.6) | schimbarea lor pierde datele existente | decizie tehnică, cu migrare |
 | Schemele de date (`src/types/*.ts`: `CivicReport`, `Announcement`, `Survey` etc.) | compatibilitate cu datele salvate | decizie tehnică + produs |
 | `SimulatedEmailTransportAdapter` | nu trebuie să raporteze niciodată `sent` | tehnică |
-| N1–N4, M7 (preluare/asumare), P7 | nedecise | **decizie de produs** |
+| N1, N2, N4 (G.3), M7 (preluare/asumare) | nedecise | **decizie de produs** |
+| P7 (`6D-SES-01`) | nerezolvat; remedierea reală cere backend (G.4) | **decizie de arhitectură / produs** |
 | `main` | nu se atinge | regulă de proiect |
 
 ---
@@ -316,4 +333,4 @@ Conținutul Etapei 6.6 **nu este definit** în repository și nu trebuie presupu
 2. verifică starea Git (B.4): commit-ul de handoff ca HEAD, `d89fd1c` imediat sub el (ultimul commit de cod) și `main` la `d9bc2c9`;
 3. rulează `npx tsc --noEmit` și `npm run build`;
 4. confirmă înțelegerea stării și **așteaptă instrucțiunile pentru 6.6** de la proprietarul proiectului;
-5. cere textul N1–N4 / P7 dacă devine relevant (G.3).
+5. ține cont că N1, N2 și N4 așteaptă decizia proprietarului, iar N3 este clarificat tehnic (G.3); P7 este descris în G.4.

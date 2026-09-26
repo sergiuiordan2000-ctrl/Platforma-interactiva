@@ -23,7 +23,7 @@ Punctul de plecare: `RAPORT_AUDIT_ETAPA_6.md` (6A–6E: 85 de verificări, 70 PA
 2. **`6D-SES-01` rămâne FAIL:** o sesiune falsificată în `localStorage`, cu structură validă, dă acces Admin (M1 / P7).
 3. **Credențialele sunt în bundle** (M2).
 4. **Sesiunea nu expiră** (m3 / `6D-SES-03` PARTIAL).
-5. **N1–N4 și P7 sunt decizii deschise.** Textul lor exact era în raportul de audit 6.5 din conversație și **nu este în repository**; trebuie cerut proprietarului.
+5. **N1–N4:** formularea originală din raportul 6.5 a fost recuperată și este consemnată în `PROJECT_HANDOFF_CURRENT.md`, G.3. N1, N2 și N4 sunt decizii de produs deschise, iar N3 a fost clarificat tehnic în 6.5 (P1/P2). **P7** este descris în `PROJECT_HANDOFF_CURRENT.md`, G.4: sesiunea client-side falsificabilă (`6D-SES-01`). Este nerezolvat și necesită backend pentru o remediere reală.
 6. **M7 / `6A-MOD-08`:** nu există preluare/asumare a sesizărilor (decizie de produs).
 7. **Încă deschise din auditul Etapei 6:** M5 (ecran alb pe `#sondaje` la date corupte, fără error boundary), M6 (footer-ul afirmă trimitere prin e-mail), S10 (jurnalul de e-mail conține date de contact local), m1 și m4–m17.
 8. **Mesajele de refuz** apar doar în Moderare și Comunicate. Ghidul, Apel rapid și Sondaje nu afișează refuzul serviciului (operatorul nu are acolo butoane de modificare).

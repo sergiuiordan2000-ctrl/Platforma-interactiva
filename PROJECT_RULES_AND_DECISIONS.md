@@ -43,7 +43,7 @@ Reguli de lucru obligatorii pentru toate etapele viitoare, indiferent de asisten
 
 - **Nu se inventează cerințe și nu se iau decizii de produs** în numele proprietarului.
 - Când apare o decizie de produs (ce vede publicul, ce poate face un rol, o funcționalitate nouă, o alternativă de UI): **STOP, se prezintă opțiunile și se cere decizia.**
-- Deciziile deschise cunoscute: **N1–N4** (din auditul 6.5), **P7**, **M7** (preluarea/asumarea sesizărilor), introducerea unui backend. Vezi `PROJECT_HANDOFF_CURRENT.md`, G.3.
+- Deciziile deschise cunoscute: **N1, N2, N4** (din auditul 6.5; N3 a fost clarificat tehnic în 6.5), **P7**, **M7** (preluarea/asumarea sesizărilor), introducerea unui backend. Vezi `PROJECT_HANDOFF_CURRENT.md`, G.3.
 
 ## 5. Onestitate tehnică
 
