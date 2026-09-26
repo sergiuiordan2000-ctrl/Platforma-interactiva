@@ -35,7 +35,8 @@ export const AnnouncementsView: React.FC<AnnouncementsViewProps> = ({
   const [sortBy, setSortBy] = useState<AnnouncementSortOption>('published_desc');
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(() => {
     if (selectedAnnouncementId) {
-      return announcementService.getById(selectedAnnouncementId) || null;
+      // ETAPA 6.5 (P5): zona publică folosește getter-ul care returnează DOAR comunicate publice și vizibile
+      return announcementService.getPublicById(selectedAnnouncementId) || null;
     }
     return null;
   });
@@ -43,7 +44,7 @@ export const AnnouncementsView: React.FC<AnnouncementsViewProps> = ({
   // Reîmprospătare la schimbare id din exterior
   React.useEffect(() => {
     if (selectedAnnouncementId) {
-      const found = announcementService.getById(selectedAnnouncementId);
+      const found = announcementService.getPublicById(selectedAnnouncementId);
       if (found) {
         setSelectedAnnouncement(found);
       }

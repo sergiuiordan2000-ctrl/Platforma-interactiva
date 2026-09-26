@@ -33,6 +33,7 @@ import {
 import { CivicReport, ModerationStatus, PublicationPreference, ResolutionStatus } from '../../../types/report';
 import { reportService } from '../../../services/reportService';
 import { authService } from '../../../services/authService';
+import { permissionService } from '../../../services/permissionService';
 
 interface AdminReportsModerationProps {
   onSuccess: (message: string) => void;
@@ -59,9 +60,20 @@ export const AdminReportsModeration: React.FC<AdminReportsModerationProps> = ({ 
 
   const stats = reportService.getModerationStats();
 
+  // ETAPA 6.5 (P6): permisiuni pe acțiune (matricea 5D), nu doar accesul la tab.
+  const canModerate = permissionService.currentUserCan('reports.moderate');
+  const canResolve = permissionService.currentUserCan('reports.resolve');
+  const canReply = permissionService.currentUserCan('reports.reply');
+  // Mesaj afișat când acțiunea este refuzată (lipsă permisiune sau refuz al serviciului).
+  const [actionError, setActionError] = useState<string | null>(null);
+  const DENIED_MESSAGE = 'Acțiunea nu a fost efectuată: nu aveți permisiunea necesară sau operația a fost refuzată.';
+
   const handleUpdateStatus = (id: string, refNumber: string, newStatus: ModerationStatus) => {
+    if (!canModerate) { setActionError(DENIED_MESSAGE); return; }
     const success = reportService.updateModerationStatus(id, newStatus);
+    if (!success) { setActionError(DENIED_MESSAGE); return; }
     if (success) {
+      setActionError(null);
       setReports(reportService.getAllReports());
       if (newStatus === 'approved') {
         onSuccess(`Sesizarea ${refNumber} a fost aprobată pentru publicare.`);
@@ -75,8 +87,11 @@ export const AdminReportsModeration: React.FC<AdminReportsModerationProps> = ({ 
 
   // Etapa 5C — schimbarea stadiului de soluționare (independent de moderare)
   const handleChangeResolutionStatus = (id: string, refNumber: string, newStatus: ResolutionStatus) => {
+    if (!canResolve) { setActionError(DENIED_MESSAGE); return; }
     const success = reportService.updateResolutionStatus(id, newStatus);
+    if (!success) { setActionError(DENIED_MESSAGE); return; }
     if (success) {
+      setActionError(null);
       setReports(reportService.getAllReports());
       onSuccess(`Stadiul soluționării pentru ${refNumber} a fost actualizat: „${RESOLUTION_LABELS[newStatus]}”.`);
     }
@@ -84,6 +99,7 @@ export const AdminReportsModeration: React.FC<AdminReportsModerationProps> = ({ 
 
   // Etapa 5C — adăugare răspuns administrativ nou (păstrează istoricul, nu suprascrie)
   const handleAddResponse = (id: string, refNumber: string) => {
+    if (!canReply) { setActionError(DENIED_MESSAGE); return; }
     const text = (responseDrafts[id] || '').trim();
     if (!text) return;
 
@@ -91,7 +107,9 @@ export const AdminReportsModeration: React.FC<AdminReportsModerationProps> = ({ 
     const authorName = currentUser?.name || 'Administrator';
 
     const created = reportService.addResponse(id, text, authorName);
+    if (!created) { setActionError(DENIED_MESSAGE); return; }
     if (created) {
+      setActionError(null);
       setReports(reportService.getAllReports());
       setResponseDrafts((prev) => ({ ...prev, [id]: '' }));
       onSuccess(`Răspunsul administrativ a fost adăugat la sesizarea ${refNumber}.`);
@@ -121,7 +139,15 @@ export const AdminReportsModeration: React.FC<AdminReportsModerationProps> = ({ 
 
   return (
     <div className="space-y-6">
-      
+
+      {/* ETAPA 6.5 (P6): acțiune refuzată — nu se afișează succes */}
+      {actionError && (
+        <div role="alert" className="p-3.5 rounded-2xl bg-red-50 border border-red-200 text-xs text-red-800 font-semibold flex items-center justify-between gap-3">
+          <span>{actionError}</span>
+          <button type="button" onClick={() => setActionError(null)} className="text-red-700 hover:text-red-900 font-bold">×</button>
+        </div>
+      )}
+
       {/* 1. Header Secțiune și Indicatori Reali (Cerința 20 din Etapa 3E) */}
       <div className="bg-white rounded-3xl border border-slate-200 p-5 sm:p-6 shadow-sm space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
@@ -474,8 +500,8 @@ export const AdminReportsModeration: React.FC<AdminReportsModerationProps> = ({ 
                   </div>
 
                   <div className="flex items-center gap-2">
-                    {/* Buton Aprobă */}
-                    {report.moderationStatus !== 'approved' && (
+                    {/* Buton Aprobă — ETAPA 6.5 (P6): doar cu `reports.moderate` */}
+                    {canModerate && report.moderationStatus !== 'approved' && (
                       <button
                         onClick={() => handleUpdateStatus(report.id, report.referenceNumber, 'approved')}
                         className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition-all active:scale-95"
@@ -486,7 +512,7 @@ export const AdminReportsModeration: React.FC<AdminReportsModerationProps> = ({ 
                     )}
 
                     {/* Buton Respinge / Retrage */}
-                    {report.moderationStatus !== 'rejected' && (
+                    {canModerate && report.moderationStatus !== 'rejected' && (
                       <button
                         onClick={() => handleUpdateStatus(report.id, report.referenceNumber, 'rejected')}
                         className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-sm transition-all active:scale-95"
@@ -497,7 +523,7 @@ export const AdminReportsModeration: React.FC<AdminReportsModerationProps> = ({ 
                     )}
 
                     {/* Buton Re-pune în așteptare */}
-                    {report.moderationStatus !== 'pending' && (
+                    {canModerate && report.moderationStatus !== 'pending' && (
                       <button
                         onClick={() => handleUpdateStatus(report.id, report.referenceNumber, 'pending')}
                         className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-colors"
@@ -550,7 +576,7 @@ export const AdminReportsModeration: React.FC<AdminReportsModerationProps> = ({ 
                           <button
                             key={rs}
                             onClick={() => handleChangeResolutionStatus(report.id, report.referenceNumber, rs)}
-                            disabled={resolutionStatus === rs}
+                            disabled={resolutionStatus === rs || !canResolve}
                             className={`px-3 py-1.5 rounded-xl text-[11px] font-bold whitespace-nowrap transition-all border ${
                               resolutionStatus === rs
                                 ? `${RESOLUTION_COLORS[rs]} cursor-default`
@@ -596,11 +622,12 @@ export const AdminReportsModeration: React.FC<AdminReportsModerationProps> = ({ 
                             }
                             placeholder="Adaugă un răspuns/observație administrativă internă..."
                             rows={2}
+                            disabled={!canReply}
                             className="flex-1 p-2.5 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-purple-200"
                           />
                           <button
                             onClick={() => handleAddResponse(report.id, report.referenceNumber)}
-                            disabled={!(responseDrafts[report.id] || '').trim()}
+                            disabled={!canReply || !(responseDrafts[report.id] || '').trim()}
                             className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-purple-700 hover:bg-purple-800 disabled:opacity-40 disabled:pointer-events-none text-white font-bold text-xs shadow-sm transition-all shrink-0 self-start sm:self-stretch"
                           >
                             <Send className="w-3.5 h-3.5" />

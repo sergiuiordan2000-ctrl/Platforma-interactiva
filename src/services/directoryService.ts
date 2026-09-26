@@ -12,6 +12,7 @@ import {
   CityHallAudience 
 } from '../types/directory';
 import { INITIAL_DEMO_CITY_HALL_INFO } from '../data/mockDirectory';
+import { permissionService, Permission } from './permissionService';
 
 const STORAGE_KEY = 'turnu_civic_city_hall_directory';
 
@@ -107,9 +108,24 @@ class DirectoryService {
   }
 
   /**
+   * ETAPA 6.5 (P1/P2): `updateInstitutionInfo` poate primi prin patch și colecțiile Ghidului.
+   * Pe lângă `directory.institution.edit`, fiecare colecție inclusă în patch cere permisiunea ei,
+   * astfel încât această metodă să nu poată ocoli permisiunile dedicate.
+   */
+  private canUpdateInstitution(patch: Partial<CityHallInfo>): boolean {
+    const required: Permission[] = ['directory.institution.edit'];
+    if (patch.departments) required.push('directory.departments.manage');
+    if (patch.services) required.push('directory.services.manage');
+    if (patch.usefulLinks) required.push('directory.links.manage');
+    if (patch.schedule || patch.audienceSchedule) required.push('directory.schedule.manage');
+    return permissionService.currentUserCanAll(required);
+  }
+
+  /**
    * Actualizează datele instituționale generale ale Primăriei.
    */
-  public updateInstitutionInfo(patch: Partial<CityHallInfo>): void {
+  public updateInstitutionInfo(patch: Partial<CityHallInfo>): boolean {
+    if (!this.canUpdateInstitution(patch)) return false; // ETAPA 6.5 (P1/P2): autorizare la nivel de serviciu
     this.info = {
       ...this.info,
       ...patch,
@@ -121,6 +137,7 @@ class DirectoryService {
       audienceSchedule: patch.audienceSchedule || this.info.audienceSchedule,
     };
     this.save();
+    return true;
   }
 
   // ==========================================
@@ -137,7 +154,8 @@ class DirectoryService {
     return (this.info.departments || []).find((d) => d.id === id);
   }
 
-  public addDepartment(dept: Omit<CityHallDepartment, 'id'>): CityHallDepartment {
+  public addDepartment(dept: Omit<CityHallDepartment, 'id'>): CityHallDepartment | null {
+    if (!permissionService.currentUserCan('directory.departments.manage')) return null; // ETAPA 6.5 (P1/P2): autorizare la nivel de serviciu
     const newId = `dep-${Date.now()}`;
     const nextOrder = (this.info.departments || []).length + 1;
     const newDepartment: CityHallDepartment = {
@@ -152,7 +170,8 @@ class DirectoryService {
     return newDepartment;
   }
 
-  public updateDepartment(id: string, patch: Partial<CityHallDepartment>): void {
+  public updateDepartment(id: string, patch: Partial<CityHallDepartment>): boolean {
+    if (!permissionService.currentUserCan('directory.departments.manage')) return false; // ETAPA 6.5 (P1/P2): autorizare la nivel de serviciu
     this.info.departments = (this.info.departments || []).map((dept) => {
       if (dept.id === id) {
         return { ...dept, ...patch };
@@ -160,9 +179,11 @@ class DirectoryService {
       return dept;
     });
     this.save();
+    return true;
   }
 
-  public toggleDepartmentStatus(id: string): void {
+  public toggleDepartmentStatus(id: string): boolean {
+    if (!permissionService.currentUserCan('directory.departments.manage')) return false; // ETAPA 6.5 (P1/P2): autorizare la nivel de serviciu
     this.info.departments = (this.info.departments || []).map((dept) => {
       if (dept.id === id) {
         return { ...dept, isActive: !dept.isActive };
@@ -170,14 +191,18 @@ class DirectoryService {
       return dept;
     });
     this.save();
+    return true;
   }
 
-  public deleteDepartment(id: string): void {
+  public deleteDepartment(id: string): boolean {
+    if (!permissionService.currentUserCan('directory.departments.manage')) return false; // ETAPA 6.5 (P1/P2): autorizare la nivel de serviciu
     this.info.departments = (this.info.departments || []).filter((dept) => dept.id !== id);
     this.save();
+    return true;
   }
 
-  public reorderDepartments(orderedIds: string[]): void {
+  public reorderDepartments(orderedIds: string[]): boolean {
+    if (!permissionService.currentUserCan('directory.departments.manage')) return false; // ETAPA 6.5 (P1/P2): autorizare la nivel de serviciu
     const map = new Map((this.info.departments || []).map((d) => [d.id, d]));
     const reordered: CityHallDepartment[] = [];
 
@@ -196,6 +221,7 @@ class DirectoryService {
 
     this.info.departments = reordered;
     this.save();
+    return true;
   }
 
   // ==========================================
@@ -212,7 +238,8 @@ class DirectoryService {
     return this.getServices(includeInactive).filter((s) => s.departmentId === departmentId);
   }
 
-  public addService(srv: Omit<CityHallService, 'id'>): CityHallService {
+  public addService(srv: Omit<CityHallService, 'id'>): CityHallService | null {
+    if (!permissionService.currentUserCan('directory.services.manage')) return null; // ETAPA 6.5 (P1/P2): autorizare la nivel de serviciu
     const newId = `srv-${Date.now()}`;
     const nextOrder = (this.info.services || []).length + 1;
     const newService: CityHallService = {
@@ -227,7 +254,8 @@ class DirectoryService {
     return newService;
   }
 
-  public updateService(id: string, patch: Partial<CityHallService>): void {
+  public updateService(id: string, patch: Partial<CityHallService>): boolean {
+    if (!permissionService.currentUserCan('directory.services.manage')) return false; // ETAPA 6.5 (P1/P2): autorizare la nivel de serviciu
     this.info.services = (this.info.services || []).map((srv) => {
       if (srv.id === id) {
         return { ...srv, ...patch };
@@ -235,9 +263,11 @@ class DirectoryService {
       return srv;
     });
     this.save();
+    return true;
   }
 
-  public toggleServiceStatus(id: string): void {
+  public toggleServiceStatus(id: string): boolean {
+    if (!permissionService.currentUserCan('directory.services.manage')) return false; // ETAPA 6.5 (P1/P2): autorizare la nivel de serviciu
     this.info.services = (this.info.services || []).map((srv) => {
       if (srv.id === id) {
         return { ...srv, isActive: !srv.isActive };
@@ -245,14 +275,18 @@ class DirectoryService {
       return srv;
     });
     this.save();
+    return true;
   }
 
-  public deleteService(id: string): void {
+  public deleteService(id: string): boolean {
+    if (!permissionService.currentUserCan('directory.services.manage')) return false; // ETAPA 6.5 (P1/P2): autorizare la nivel de serviciu
     this.info.services = (this.info.services || []).filter((srv) => srv.id !== id);
     this.save();
+    return true;
   }
 
-  public reorderServices(orderedIds: string[]): void {
+  public reorderServices(orderedIds: string[]): boolean {
+    if (!permissionService.currentUserCan('directory.services.manage')) return false; // ETAPA 6.5 (P1/P2): autorizare la nivel de serviciu
     const map = new Map((this.info.services || []).map((s) => [s.id, s]));
     const reordered: CityHallService[] = [];
 
@@ -270,20 +304,25 @@ class DirectoryService {
 
     this.info.services = reordered;
     this.save();
+    return true;
   }
 
   // ==========================================
   // PROGRAM & AUDIENȚE
   // ==========================================
 
-  public updateSchedule(schedule: CityHallSchedule[]): void {
+  public updateSchedule(schedule: CityHallSchedule[]): boolean {
+    if (!permissionService.currentUserCan('directory.schedule.manage')) return false; // ETAPA 6.5 (P1/P2): autorizare la nivel de serviciu
     this.info.schedule = [...schedule];
     this.save();
+    return true;
   }
 
-  public updateAudienceSchedule(audiences: CityHallAudience[]): void {
+  public updateAudienceSchedule(audiences: CityHallAudience[]): boolean {
+    if (!permissionService.currentUserCan('directory.schedule.manage')) return false; // ETAPA 6.5 (P1/P2): autorizare la nivel de serviciu
     this.info.audienceSchedule = [...audiences];
     this.save();
+    return true;
   }
 
   // ==========================================
@@ -296,7 +335,8 @@ class DirectoryService {
     return [...filtered].sort((a, b) => (a.order || 0) - (b.order || 0));
   }
 
-  public addUsefulLink(link: Omit<UsefulLink, 'id'>): UsefulLink {
+  public addUsefulLink(link: Omit<UsefulLink, 'id'>): UsefulLink | null {
+    if (!permissionService.currentUserCan('directory.links.manage')) return null; // ETAPA 6.5 (P1/P2): autorizare la nivel de serviciu
     const newId = `link-${Date.now()}`;
     const nextOrder = (this.info.usefulLinks || []).length + 1;
     const newLink: UsefulLink = {
@@ -311,7 +351,8 @@ class DirectoryService {
     return newLink;
   }
 
-  public updateUsefulLink(id: string, patch: Partial<UsefulLink>): void {
+  public updateUsefulLink(id: string, patch: Partial<UsefulLink>): boolean {
+    if (!permissionService.currentUserCan('directory.links.manage')) return false; // ETAPA 6.5 (P1/P2): autorizare la nivel de serviciu
     this.info.usefulLinks = (this.info.usefulLinks || []).map((l) => {
       if (l.id === id) {
         return { ...l, ...patch };
@@ -319,9 +360,11 @@ class DirectoryService {
       return l;
     });
     this.save();
+    return true;
   }
 
-  public toggleUsefulLinkStatus(id: string): void {
+  public toggleUsefulLinkStatus(id: string): boolean {
+    if (!permissionService.currentUserCan('directory.links.manage')) return false; // ETAPA 6.5 (P1/P2): autorizare la nivel de serviciu
     this.info.usefulLinks = (this.info.usefulLinks || []).map((l) => {
       if (l.id === id) {
         return { ...l, isActive: !l.isActive };
@@ -329,14 +372,18 @@ class DirectoryService {
       return l;
     });
     this.save();
+    return true;
   }
 
-  public deleteUsefulLink(id: string): void {
+  public deleteUsefulLink(id: string): boolean {
+    if (!permissionService.currentUserCan('directory.links.manage')) return false; // ETAPA 6.5 (P1/P2): autorizare la nivel de serviciu
     this.info.usefulLinks = (this.info.usefulLinks || []).filter((l) => l.id !== id);
     this.save();
+    return true;
   }
 
-  public reorderUsefulLinks(orderedIds: string[]): void {
+  public reorderUsefulLinks(orderedIds: string[]): boolean {
+    if (!permissionService.currentUserCan('directory.links.manage')) return false; // ETAPA 6.5 (P1/P2): autorizare la nivel de serviciu
     const map = new Map((this.info.usefulLinks || []).map((l) => [l.id, l]));
     const reordered: UsefulLink[] = [];
 
@@ -354,12 +401,14 @@ class DirectoryService {
 
     this.info.usefulLinks = reordered;
     this.save();
+    return true;
   }
 
   /**
    * Resetare la setul demonstrativ inițial.
    */
-  public resetToDemo(): void {
+  public resetToDemo(): boolean {
+    if (!permissionService.currentUserCan('directory.institution.edit')) return false; // ETAPA 6.5 (P1/P2): autorizare la nivel de serviciu
     this.info = {
       ...INITIAL_DEMO_CITY_HALL_INFO,
       departments: INITIAL_DEMO_CITY_HALL_INFO.departments.map((d, idx) => ({ ...d, isActive: true, order: idx + 1 })),
@@ -367,6 +416,7 @@ class DirectoryService {
       usefulLinks: INITIAL_DEMO_CITY_HALL_INFO.usefulLinks.map((l, idx) => ({ ...l, isActive: true, order: idx + 1 })),
     };
     this.save();
+    return true;
   }
 }
 

@@ -5,8 +5,16 @@
 
 import { Announcement, AnnouncementFilterType, AnnouncementSortOption, AnnouncementStatus } from '../types/announcement';
 import { INITIAL_DEMO_ANNOUNCEMENTS } from '../data/mockAnnouncements';
+import { permissionService, Permission } from './permissionService';
 
 const STORAGE_KEY = 'turnu_civic_announcements';
+
+/**
+ * ETAPA 6.5 (P1/P2) — permisiunea necesară pentru a aduce un comunicat în starea țintă:
+ * publicare → `announcements.publish`; dezactivare (ciornă) → `announcements.disable`.
+ */
+const statusPermission = (status: AnnouncementStatus): Permission =>
+  status === 'published' ? 'announcements.publish' : 'announcements.disable';
 
 class AnnouncementService {
   private announcements: Announcement[] = [];
@@ -114,6 +122,15 @@ class AnnouncementService {
   }
 
   /**
+   * ETAPA 6.5 (P5) — Getter pentru ZONA PUBLICĂ: returnează comunicatul doar dacă este
+   * publicat și neexpirat (aceeași regulă ca `getAll()` public). Altfel `undefined`.
+   */
+  public getPublicById(id: string): Announcement | undefined {
+    const found = this.announcements.find(a => a.id === id);
+    return found && this.isVisiblePublicly(found) ? found : undefined;
+  }
+
+  /**
    * Returnează cel mai recent comunicat publicat și vizibil public.
    */
   public getLatest(): Announcement | undefined {
@@ -159,12 +176,17 @@ class AnnouncementService {
 
   /**
    * Creează un comunicat nou (Etapa 5B). `status` implicit 'published' dacă nu este specificat.
+   * ETAPA 6.5: necesită `announcements.create` și, pentru starea rezultată, permisiunea de
+   * publicare/dezactivare corespunzătoare. Fără permisiune → `null`, nicio modificare.
    */
-  public create(data: Omit<Announcement, 'id'>): Announcement {
+  public create(data: Omit<Announcement, 'id'>): Announcement | null {
+    const status: AnnouncementStatus = data.status ?? 'published';
+    if (!permissionService.currentUserCanAll(['announcements.create', statusPermission(status)])) return null;
+
     const newAnnouncement: Announcement = {
       ...data,
       id: `ann-${Date.now()}`,
-      status: data.status ?? 'published',
+      status,
     };
     this.announcements = [...this.announcements, newAnnouncement];
     this.save();
@@ -173,27 +195,45 @@ class AnnouncementService {
 
   /**
    * Actualizează un comunicat existent (editare — Etapa 5B).
+   * ETAPA 6.5: necesită `announcements.edit`; dacă patch-ul schimbă starea, și permisiunea
+   * pentru starea țintă. Returnează `false` (fără modificare) la refuz sau ID inexistent.
    */
-  public update(id: string, patch: Partial<Omit<Announcement, 'id'>>): void {
+  public update(id: string, patch: Partial<Omit<Announcement, 'id'>>): boolean {
+    const current = this.announcements.find(a => a.id === id);
+    if (!current) return false;
+    const required: Permission[] = ['announcements.edit'];
+    if (patch.status && patch.status !== current.status) required.push(statusPermission(patch.status));
+    if (!permissionService.currentUserCanAll(required)) return false;
+
     this.announcements = this.announcements.map(a => (a.id === id ? { ...a, ...patch } : a));
     this.save();
+    return true;
   }
 
   /**
    * Schimbă starea de publicare a unui comunicat (publicare / dezactivare — Etapa 5B).
    * Nu șterge fizic comunicatul.
+   * ETAPA 6.5: publicare → `announcements.publish`; dezactivare → `announcements.disable`.
    */
-  public setStatus(id: string, status: AnnouncementStatus): void {
+  public setStatus(id: string, status: AnnouncementStatus): boolean {
+    if (!permissionService.currentUserCan(statusPermission(status))) return false;
+    if (!this.announcements.some(a => a.id === id)) return false;
+
     this.announcements = this.announcements.map(a => (a.id === id ? { ...a, status } : a));
     this.save();
+    return true;
   }
 
   /**
    * Resetare la setul inițial demo (util pentru testare și audit).
+   * ETAPA 6.5: operație distructivă fără permisiune dedicată în matrice; tratată conservator ca
+   * administrare completă a comunicatelor (creare + editare), similar deciziei 5D pentru sondaje.
    */
-  public resetToDemo(): void {
+  public resetToDemo(): boolean {
+    if (!permissionService.currentUserCanAll(['announcements.create', 'announcements.edit'])) return false;
     this.announcements = [...INITIAL_DEMO_ANNOUNCEMENTS];
     this.save();
+    return true;
   }
 }
 

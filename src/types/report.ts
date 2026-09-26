@@ -123,9 +123,9 @@ export interface CivicReport {
  * - NU conține număr de telefon
  * - NU conține adresă de e-mail
  * - NU conține alte date de contact
+ * - ETAPA 6.5 (P4): NU conține ID-ul tehnic intern și nici numele fișierului original al fotografiei
  */
 export interface PublicMapReport {
-  id: string; // ID tehnic de referință
   referenceNumber: string; // TM-XXX (identificator civic intern al platformei)
   categoryId: string;
   categoryName: string;
@@ -137,7 +137,6 @@ export interface PublicMapReport {
   };
   photo?: {
     dataUrl: string;
-    name: string;
     size: number;
     compressionRatio?: number;
   };

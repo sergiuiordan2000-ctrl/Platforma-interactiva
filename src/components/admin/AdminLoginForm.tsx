@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { Lock, Mail, KeyRound, AlertCircle, ShieldCheck, ArrowRight, Info, Sparkles } from 'lucide-react';
+import { Lock, Mail, KeyRound, AlertCircle, ShieldCheck, ArrowRight, Info } from 'lucide-react';
 import { authService } from '../../services/authService';
 
 interface AdminLoginFormProps {
@@ -42,19 +42,6 @@ export const AdminLoginForm: React.FC<AdminLoginFormProps> = ({ onSuccess, onCan
         setError(res.error || 'Credențiale incorecte.');
       }
     }, 200);
-  };
-
-  const handleQuickDemoLogin = () => {
-    setEmail('admin@turnumagurele.ro');
-    setPassword('AdminTurnu2026!');
-    setIsLoading(true);
-    setTimeout(() => {
-      const res = authService.login('admin@turnumagurele.ro', 'AdminTurnu2026!');
-      setIsLoading(false);
-      if (res.success) {
-        onSuccess();
-      }
-    }, 150);
   };
 
   return (
@@ -96,7 +83,7 @@ export const AdminLoginForm: React.FC<AdminLoginFormProps> = ({ onSuccess, onCan
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@turnumagurele.ro"
+                placeholder="nume@exemplu.ro"
                 autoComplete="email"
                 className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all"
               />
@@ -131,22 +118,6 @@ export const AdminLoginForm: React.FC<AdminLoginFormProps> = ({ onSuccess, onCan
             </button>
           </div>
         </form>
-
-        {/* Buton Rapid DEMO pentru testare facilă */}
-        <div className="pt-2 border-t border-slate-100">
-          <button
-            type="button"
-            onClick={handleQuickDemoLogin}
-            disabled={isLoading}
-            className="w-full py-2.5 px-3 rounded-xl bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-800 font-bold text-xs transition-colors flex items-center justify-center gap-2"
-          >
-            <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-            <span>Autentificare rapidă DEMO (1-Click)</span>
-          </button>
-          <div className="text-[11px] text-center text-slate-400 mt-1.5">
-            Credențiale DEMO: <span className="font-mono text-slate-600">admin@turnumagurele.ro</span> / <span className="font-mono text-slate-600">AdminTurnu2026!</span>
-          </div>
-        </div>
 
         {/* Link Înapoi */}
         <div className="text-center pt-1">

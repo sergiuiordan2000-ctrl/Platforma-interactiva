@@ -5,6 +5,7 @@
 
 import { QuickDialCategory, QuickDialContact } from '../types/quickDial';
 import { INITIAL_DEMO_CATEGORIES, INITIAL_DEMO_CONTACTS } from '../data/mockQuickDial';
+import { permissionService } from './permissionService';
 
 const STORAGE_CONTACTS_KEY = 'turnu_civic_quickdial_contacts';
 const STORAGE_CATEGORIES_KEY = 'turnu_civic_quickdial_categories';
@@ -95,7 +96,8 @@ class QuickDialService {
     return [...list].sort((a, b) => (a.order || 0) - (b.order || 0));
   }
 
-  public addCategory(category: Omit<QuickDialCategory, 'id'>): QuickDialCategory {
+  public addCategory(category: Omit<QuickDialCategory, 'id'>): QuickDialCategory | null {
+    if (!permissionService.currentUserCan('quickDial.categories.manage')) return null; // ETAPA 6.5 (P1/P2): autorizare la nivel de serviciu
     const newId = `cat-${Date.now()}`;
     const nextOrder = this.categories.length + 1;
     const newCategory: QuickDialCategory = {
@@ -110,7 +112,8 @@ class QuickDialService {
     return newCategory;
   }
 
-  public updateCategory(id: string, patch: Partial<QuickDialCategory>): void {
+  public updateCategory(id: string, patch: Partial<QuickDialCategory>): boolean {
+    if (!permissionService.currentUserCan('quickDial.categories.manage')) return false; // ETAPA 6.5 (P1/P2): autorizare la nivel de serviciu
     this.categories = this.categories.map((c) => {
       if (c.id === id) {
         const updated = { ...c, ...patch };
@@ -129,9 +132,11 @@ class QuickDialService {
       return c;
     });
     this.saveCategories();
+    return true;
   }
 
   public deleteCategory(id: string): { success: boolean; error?: string } {
+    if (!permissionService.currentUserCan('quickDial.categories.manage')) return { success: false, error: 'Nu aveți permisiunea necesară pentru această operație.' }; // ETAPA 6.5 (P1/P2)
     // Verificăm dacă există contacte asociate
     const hasContacts = this.contacts.some((c) => c.categoryId === id);
     if (hasContacts) {
@@ -146,7 +151,8 @@ class QuickDialService {
     return { success: true };
   }
 
-  public reorderCategories(orderedIds: string[]): void {
+  public reorderCategories(orderedIds: string[]): boolean {
+    if (!permissionService.currentUserCan('quickDial.categories.manage')) return false; // ETAPA 6.5 (P1/P2): autorizare la nivel de serviciu
     const map = new Map(this.categories.map((c) => [c.id, c]));
     const reordered: QuickDialCategory[] = [];
 
@@ -164,6 +170,7 @@ class QuickDialService {
 
     this.categories = reordered;
     this.saveCategories();
+    return true;
   }
 
   // ==========================================
@@ -212,7 +219,8 @@ class QuickDialService {
     return this.contacts.find((c) => c.id === id);
   }
 
-  public addContact(contact: Omit<QuickDialContact, 'id'>): QuickDialContact {
+  public addContact(contact: Omit<QuickDialContact, 'id'>): QuickDialContact | null {
+    if (!permissionService.currentUserCan('quickDial.contacts.manage')) return null; // ETAPA 6.5 (P1/P2): autorizare la nivel de serviciu
     const newId = `qd-${Date.now()}`;
     const nextOrder = this.contacts.length + 1;
     const cleanedPhone = contact.phone.replace(/[\s\-\(\)\.]/g, '');
@@ -231,7 +239,8 @@ class QuickDialService {
     return newContact;
   }
 
-  public updateContact(id: string, patch: Partial<QuickDialContact>): void {
+  public updateContact(id: string, patch: Partial<QuickDialContact>): boolean {
+    if (!permissionService.currentUserCan('quickDial.contacts.manage')) return false; // ETAPA 6.5 (P1/P2): autorizare la nivel de serviciu
     this.contacts = this.contacts.map((c) => {
       if (c.id === id) {
         const cleanedPhone = patch.phone ? patch.phone.replace(/[\s\-\(\)\.]/g, '') : c.phone;
@@ -244,9 +253,11 @@ class QuickDialService {
       return c;
     });
     this.saveContacts();
+    return true;
   }
 
-  public toggleContactStatus(id: string): void {
+  public toggleContactStatus(id: string): boolean {
+    if (!permissionService.currentUserCan('quickDial.contacts.manage')) return false; // ETAPA 6.5 (P1/P2): autorizare la nivel de serviciu
     this.contacts = this.contacts.map((c) => {
       if (c.id === id) {
         return { ...c, isActive: !c.isActive };
@@ -254,14 +265,18 @@ class QuickDialService {
       return c;
     });
     this.saveContacts();
+    return true;
   }
 
-  public deleteContact(id: string): void {
+  public deleteContact(id: string): boolean {
+    if (!permissionService.currentUserCan('quickDial.contacts.manage')) return false; // ETAPA 6.5 (P1/P2): autorizare la nivel de serviciu
     this.contacts = this.contacts.filter((c) => c.id !== id);
     this.saveContacts();
+    return true;
   }
 
-  public reorderContacts(orderedIds: string[]): void {
+  public reorderContacts(orderedIds: string[]): boolean {
+    if (!permissionService.currentUserCan('quickDial.contacts.manage')) return false; // ETAPA 6.5 (P1/P2): autorizare la nivel de serviciu
     const map = new Map(this.contacts.map((c) => [c.id, c]));
     const reordered: QuickDialContact[] = [];
 
@@ -279,6 +294,7 @@ class QuickDialService {
 
     this.contacts = reordered;
     this.saveContacts();
+    return true;
   }
 
   public getCountsByCategory(includeInactive = false): Record<string, number> {
@@ -290,11 +306,13 @@ class QuickDialService {
     return counts;
   }
 
-  public resetToDemo(): void {
+  public resetToDemo(): boolean {
+    if (!permissionService.currentUserCanAll(['quickDial.contacts.manage', 'quickDial.categories.manage'])) return false; // ETAPA 6.5 (P1/P2): autorizare la nivel de serviciu
     this.categories = INITIAL_DEMO_CATEGORIES.map((c, idx) => ({ ...c, isActive: true, order: idx + 1 }));
     this.contacts = INITIAL_DEMO_CONTACTS.map((c, idx) => ({ ...c, isActive: true, order: idx + 1 }));
     this.saveCategories();
     this.saveContacts();
+    return true;
   }
 }
 

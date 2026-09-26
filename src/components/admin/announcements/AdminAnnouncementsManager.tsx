@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { Announcement, AnnouncementType, AnnouncementFilterType } from '../../../types/announcement';
 import { announcementService } from '../../../services/announcementService';
+import { permissionService } from '../../../services/permissionService';
 import { formatDateTimeRo } from '../../../utils/dateFormatter';
 
 interface AdminAnnouncementsManagerProps {
@@ -59,6 +60,15 @@ export const AdminAnnouncementsManager: React.FC<AdminAnnouncementsManagerProps>
   const [formState, setFormState] = useState(emptyForm);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
+  // ETAPA 6.5 (P6): permisiuni pe acțiune (matricea 5D). Un comunicat nou este creat direct
+  // publicat, deci crearea cere `announcements.create` + `announcements.publish`.
+  const canCreate = permissionService.currentUserCanAll(['announcements.create', 'announcements.publish']);
+  const canEdit = permissionService.currentUserCan('announcements.edit');
+  const canPublish = permissionService.currentUserCan('announcements.publish');
+  const canDisable = permissionService.currentUserCan('announcements.disable');
+  const [actionError, setActionError] = useState<string | null>(null);
+  const DENIED_MESSAGE = 'Acțiunea nu a fost efectuată: nu aveți permisiunea necesară sau operația a fost refuzată.';
+
   const refresh = () => {
     setAnnouncements(announcementService.getAll('all', 'published_desc', true));
   };
@@ -72,6 +82,7 @@ export const AdminAnnouncementsManager: React.FC<AdminAnnouncementsManagerProps>
     });
 
   const handleStartCreate = () => {
+    if (!canCreate) { setActionError(DENIED_MESSAGE); return; }
     setFormState(emptyForm);
     setFormErrors({});
     setIsCreating(true);
@@ -79,6 +90,7 @@ export const AdminAnnouncementsManager: React.FC<AdminAnnouncementsManagerProps>
   };
 
   const handleStartEdit = (a: Announcement) => {
+    if (!canEdit) { setActionError(DENIED_MESSAGE); return; }
     setFormState({
       type: a.type,
       title: a.title,
@@ -140,15 +152,22 @@ export const AdminAnnouncementsManager: React.FC<AdminAnnouncementsManagerProps>
     };
 
     if (isCreating) {
-      announcementService.create({
+      if (!canCreate) { setActionError(DENIED_MESSAGE); return; }
+      const created = announcementService.create({
         ...basePayload,
         publishedAt: new Date().toISOString(),
         status: 'published',
         isDemo: false,
       });
+      // ETAPA 6.5 (P6): succes afișat DOAR dacă serviciul a acceptat operația
+      if (!created) { setActionError(DENIED_MESSAGE); return; }
+      setActionError(null);
       onSuccess(`Comunicatul „${formState.title}” a fost creat și publicat cu succes!`);
     } else if (editingAnnouncement) {
-      announcementService.update(editingAnnouncement.id, basePayload);
+      if (!canEdit) { setActionError(DENIED_MESSAGE); return; }
+      const updated = announcementService.update(editingAnnouncement.id, basePayload);
+      if (!updated) { setActionError(DENIED_MESSAGE); return; }
+      setActionError(null);
       onSuccess(`Comunicatul „${formState.title}” a fost actualizat cu succes!`);
     }
 
@@ -158,7 +177,11 @@ export const AdminAnnouncementsManager: React.FC<AdminAnnouncementsManagerProps>
 
   const handleToggleStatus = (a: Announcement) => {
     const isCurrentlyPublished = (a.status ?? 'published') === 'published';
-    announcementService.setStatus(a.id, isCurrentlyPublished ? 'draft' : 'published');
+    // ETAPA 6.5 (P6): dezactivare → `announcements.disable`; publicare → `announcements.publish`
+    if (isCurrentlyPublished ? !canDisable : !canPublish) { setActionError(DENIED_MESSAGE); return; }
+    const changed = announcementService.setStatus(a.id, isCurrentlyPublished ? 'draft' : 'published');
+    if (!changed) { setActionError(DENIED_MESSAGE); return; }
+    setActionError(null);
     onSuccess(
       `Comunicatul „${a.title}” este acum ${isCurrentlyPublished ? 'DEZACTIVAT (ciornă)' : 'PUBLICAT'} în zona publică.`
     );
@@ -167,6 +190,14 @@ export const AdminAnnouncementsManager: React.FC<AdminAnnouncementsManagerProps>
 
   return (
     <div className="space-y-6">
+
+      {/* ETAPA 6.5 (P6): acțiune refuzată — nu se afișează succes */}
+      {actionError && (
+        <div role="alert" className="p-3.5 rounded-2xl bg-red-50 border border-red-200 text-xs text-red-800 font-semibold flex items-center justify-between gap-3">
+          <span>{actionError}</span>
+          <button type="button" onClick={() => setActionError(null)} className="text-red-700 hover:text-red-900 font-bold">×</button>
+        </div>
+      )}
 
       {/* Bară Superioară: Titlu + Buton Adăugare */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm">
@@ -181,7 +212,7 @@ export const AdminAnnouncementsManager: React.FC<AdminAnnouncementsManagerProps>
           </p>
         </div>
 
-        {!isCreating && !editingAnnouncement && (
+        {canCreate && !isCreating && !editingAnnouncement && (
           <button
             onClick={handleStartCreate}
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-sm transition-all active:scale-95 shrink-0"
@@ -497,6 +528,7 @@ export const AdminAnnouncementsManager: React.FC<AdminAnnouncementsManagerProps>
               <div className="flex items-center gap-1.5 self-end sm:self-center shrink-0 border-t sm:border-t-0 pt-2 sm:pt-0">
                 <button
                   onClick={() => handleToggleStatus(a)}
+                  disabled={isPublished ? !canDisable : !canPublish}
                   title={isPublished ? 'Dezactivează (ciornă)' : 'Publică în zona publică'}
                   className={`p-1.5 rounded-lg border transition-colors ${
                     !isPublished
@@ -509,6 +541,7 @@ export const AdminAnnouncementsManager: React.FC<AdminAnnouncementsManagerProps>
 
                 <button
                   onClick={() => handleStartEdit(a)}
+                  disabled={!canEdit}
                   title="Editează comunicatul"
                   className="p-1.5 rounded-lg border border-slate-200 text-blue-700 hover:bg-blue-50 transition-colors"
                 >

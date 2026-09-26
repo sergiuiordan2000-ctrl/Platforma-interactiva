@@ -21,6 +21,18 @@ import {
   SurveyOptionResult 
 } from '../types/surveyStatistics';
 import { DEMO_SURVEYS } from '../data/mockSurveys';
+import { permissionService, Permission } from './permissionService';
+
+/**
+ * ETAPA 6.5 (P1/P2) — permisiunea necesară pentru a aduce un sondaj într-o stare țintă:
+ * 'active' → `surveys.activate`; 'closed' → `surveys.close`; 'draft' → `surveys.edit`
+ * (readucerea la ciornă este o editare; nu există permisiune dedicată în matrice).
+ */
+const surveyStatusPermission = (status: SurveyStatus): Permission =>
+  status === 'active' ? 'surveys.activate' : status === 'closed' ? 'surveys.close' : 'surveys.edit';
+
+/** ETAPA 6.5: ștergerea / resetarea sondajelor — aceeași regulă ca în UI (decizia 5D). */
+const SURVEY_DATA_MANAGEMENT: Permission[] = ['surveys.create', 'surveys.edit'];
 
 /**
  * Cheia de stocare locală utilizată de instanța de prototip (MVP).
@@ -222,6 +234,15 @@ export class SurveyService {
     const surveys = this.getAllSurveys();
     const existingIndex = surveys.findIndex((s) => s.id === survey.id);
 
+    // ETAPA 6.5 (P1/P2): creare → `surveys.create`; modificare → `surveys.edit`; dacă starea
+    // rezultată diferă de cea existentă (sau un sondaj nou nu e ciornă) → și permisiunea stării țintă.
+    const previousStatus: SurveyStatus = existingIndex >= 0 ? surveys[existingIndex].status : 'draft';
+    const required: Permission[] = [existingIndex >= 0 ? 'surveys.edit' : 'surveys.create'];
+    if (survey.status && survey.status !== previousStatus) required.push(surveyStatusPermission(survey.status));
+    if (!permissionService.currentUserCanAll(required)) {
+      return { success: false, errors: ['Nu aveți permisiunea necesară pentru această operație.'] };
+    }
+
     const now = new Date().toISOString();
     const surveyToSave: Survey = {
       ...survey,
@@ -247,6 +268,10 @@ export class SurveyService {
    * Dacă noul status este 'active', verifică dacă sondajul respectă regulile de validare structurală.
    */
   public updateSurveyStatus(id: string, newStatus: SurveyStatus): { success: boolean; errors?: string[] } {
+    // ETAPA 6.5 (P1/P2): permisiunea se alege după acțiunea efectivă (activare / închidere / ciornă).
+    if (!permissionService.currentUserCan(surveyStatusPermission(newStatus))) {
+      return { success: false, errors: ['Nu aveți permisiunea necesară pentru această operație.'] };
+    }
     const surveys = this.getAllSurveys();
     const surveyIndex = surveys.findIndex((s) => s.id === id);
     if (surveyIndex === -1) {
@@ -296,6 +321,7 @@ export class SurveyService {
    * Șterge un sondaj după identificator.
    */
   public deleteSurvey(id: string): boolean {
+    if (!permissionService.currentUserCanAny(SURVEY_DATA_MANAGEMENT)) return false; // ETAPA 6.5 (P1/P2)
     const surveys = this.getAllSurveys();
     const filtered = surveys.filter((s) => s.id !== id);
     if (filtered.length === surveys.length) return false;
@@ -304,13 +330,17 @@ export class SurveyService {
 
   /**
    * Resetează stocarea locală a sondajelor la starea inițială demonstrativă.
+   * ETAPA 6.5: returnează `false` (fără modificare) dacă utilizatorul nu are permisiunea.
    */
-  public resetToDemo(): void {
-    if (typeof window === 'undefined') return;
+  public resetToDemo(): boolean {
+    if (!permissionService.currentUserCanAny(SURVEY_DATA_MANAGEMENT)) return false; // ETAPA 6.5 (P1/P2)
+    if (typeof window === 'undefined') return false;
     try {
       localStorage.setItem(STORAGE_SURVEYS_KEY, JSON.stringify(DEMO_SURVEYS));
+      return true;
     } catch (e) {
       console.warn('Nu s-a putut reseta stocarea locală pentru sondaje:', e);
+      return false;
     }
   }
 

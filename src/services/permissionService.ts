@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { AdminUser } from './authService';
+import { AdminUser, authService } from './authService';
 
 /**
  * Serviciu central de autorizare (Etapa 5G).
@@ -151,6 +151,33 @@ class PermissionService {
    */
   public hasAnyPermission(role: string | null | undefined, permissions: Permission[]): boolean {
     return permissions.some((p) => this.hasPermission(role, p));
+  }
+
+  /**
+   * ETAPA 6.5 (P1/P2) — Verificare la nivel de SERVICIU pentru utilizatorul autentificat curent.
+   * Folosește aceeași matrice (`ROLE_PERMISSIONS`); fără sesiune validă → `false`.
+   * Operațiile administrative din servicii apelează această metodă înainte de orice modificare.
+   *
+   * LIMITĂ ASUMATĂ (fără backend): verificarea rulează în browser; împiedică modificările făcute
+   * prin codul aplicației fără permisiune, dar nu înlocuiește autorizarea pe server.
+   */
+  public currentUserCan(permission: Permission): boolean {
+    return this.hasPermission(authService.getCurrentUser()?.role, permission);
+  }
+
+  /**
+   * ETAPA 6.5 — Adevărat dacă utilizatorul curent are cel puțin una dintre permisiuni.
+   */
+  public currentUserCanAny(permissions: Permission[]): boolean {
+    return this.hasAnyPermission(authService.getCurrentUser()?.role, permissions);
+  }
+
+  /**
+   * ETAPA 6.5 — Adevărat dacă utilizatorul curent are TOATE permisiunile date.
+   */
+  public currentUserCanAll(permissions: Permission[]): boolean {
+    const role = authService.getCurrentUser()?.role;
+    return permissions.length > 0 && permissions.every((p) => this.hasPermission(role, p));
   }
 }
 

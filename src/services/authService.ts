@@ -13,6 +13,30 @@ export interface AdminUser {
 
 const SESSION_KEY = 'turnu_civic_admin_session';
 
+const VALID_ROLES: ReadonlyArray<AdminUser['role']> = ['super_admin', 'primarie_operator'];
+
+/**
+ * ETAPA 6.4 (C4) — Validarea structurii unei sesiuni citite din stocare.
+ * O sesiune lipsă, coruptă sau cu formă invalidă (ex. obiect gol, fără rol, rol inexistent)
+ * NU mai este tratată ca utilizator autentificat: este eliminată, iar utilizatorul vede
+ * formularul de autentificare.
+ *
+ * LIMITĂ ASUMATĂ (arhitectură 100% client-side, fără backend): aceasta este o verificare de
+ * integritate a datelor, NU o protecție criptografică. O sesiune scrisă manual în DevTools cu
+ * structură validă nu poate fi deosebită de una reală fără un server care să emită și să
+ * verifice un token semnat.
+ */
+function isValidSessionUser(value: unknown): value is AdminUser {
+  if (!value || typeof value !== 'object') return false;
+  const u = value as Record<string, unknown>;
+  return (
+    typeof u.id === 'string' && u.id.length > 0 &&
+    typeof u.email === 'string' && u.email.length > 0 &&
+    typeof u.name === 'string' && u.name.length > 0 &&
+    typeof u.role === 'string' && (VALID_ROLES as ReadonlyArray<string>).includes(u.role)
+  );
+}
+
 class AuthService {
   private currentUser: AdminUser | null = null;
   private listeners: Array<(isAuth: boolean) => void> = [];
@@ -25,7 +49,14 @@ class AuthService {
     try {
       const stored = sessionStorage.getItem(SESSION_KEY) || localStorage.getItem(SESSION_KEY);
       if (stored) {
-        this.currentUser = JSON.parse(stored);
+        const parsed: unknown = JSON.parse(stored);
+        if (isValidSessionUser(parsed)) {
+          this.currentUser = parsed;
+        } else {
+          // Sesiune invalidă: nu acordă acces și este curățată din stocare.
+          this.currentUser = null;
+          this.persistSession(null);
+        }
       }
     } catch {
       this.currentUser = null;

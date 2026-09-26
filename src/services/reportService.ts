@@ -15,6 +15,7 @@ import {
 import { DEMO_REPORT_CATEGORIES } from '../data/mockReportCategories';
 import { directoryService } from './directoryService';
 import { emailService } from './emailService';
+import { permissionService } from './permissionService';
 
 const STORAGE_REPORTS_KEY = 'turnu_civic_reports_store';
 const STORAGE_COUNTER_KEY = 'turnu_civic_reports_counter';
@@ -414,6 +415,9 @@ class ReportService {
     newStatus: ModerationStatus, 
     note?: string
   ): boolean {
+    // ETAPA 6.5 (P1/P2): autorizare la nivel de serviciu — fără permisiune nu se modifică nimic.
+    if (!permissionService.currentUserCan('reports.moderate')) return false;
+
     const reportIndex = this.reports.findIndex((r) => r.id === id);
     if (reportIndex === -1) return false;
 
@@ -447,6 +451,9 @@ class ReportService {
    * Concept complet independent de `moderationStatus` — nu îl atinge și nu este atins de el.
    */
   public updateResolutionStatus(id: string, newStatus: ResolutionStatus): boolean {
+    // ETAPA 6.5 (P1/P2): autorizare la nivel de serviciu.
+    if (!permissionService.currentUserCan('reports.resolve')) return false;
+
     const reportIndex = this.reports.findIndex((r) => r.id === id);
     if (reportIndex === -1) return false;
 
@@ -465,6 +472,9 @@ class ReportService {
    * doar adaugă la finalul listei existente.
    */
   public addResponse(id: string, message: string, authorName: string): ReportResponse | null {
+    // ETAPA 6.5 (P1/P2): autorizare la nivel de serviciu.
+    if (!permissionService.currentUserCan('reports.reply')) return null;
+
     const reportIndex = this.reports.findIndex((r) => r.id === id);
     if (reportIndex === -1) return null;
 
@@ -577,8 +587,9 @@ class ReportService {
     // Selectăm prima fotografie optimizată dacă există (din 3C)
     const primaryPhoto = report.photos && report.photos.length > 0 ? report.photos[0] : undefined;
 
+    // ETAPA 6.5 (P4): modelul public NU include ID-ul tehnic intern și nici numele fișierului
+    // original al fotografiei (poate conține date personale); nu sunt necesare niciunui consumator public.
     return {
-      id: report.id,
       referenceNumber: report.referenceNumber,
       categoryId: report.categoryId,
       categoryName: report.categoryName,
@@ -591,7 +602,6 @@ class ReportService {
       photo: primaryPhoto
         ? {
             dataUrl: primaryPhoto.dataUrl,
-            name: primaryPhoto.name,
             size: primaryPhoto.size,
             compressionRatio: primaryPhoto.compressionRatio,
           }
