@@ -11,7 +11,6 @@ import {
   Clock, 
   MapPin, 
   Tag, 
-  Trash2, 
   ShieldCheck, 
   PlusCircle,
   Hash
@@ -51,13 +50,6 @@ export const IssuesView: React.FC<IssuesViewProps> = ({ onNavigate }) => {
     setSubmittedReport(null);
     setActiveTab('form');
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const handleDeleteTestReport = (id: string, refNum: string) => {
-    if (window.confirm(`Ștergeți sesizarea de test ${refNum}? Numărul ${refNum} NU va fi refolosit de următoarea sesizare.`)) {
-      reportService.deleteReport(id);
-      setReports(reportService.getAllReports());
-    }
   };
 
   return (
@@ -187,19 +179,6 @@ export const IssuesView: React.FC<IssuesViewProps> = ({ onNavigate }) => {
                       </span>
                     )}
                   </div>
-                </div>
-
-                {/* Acțiune de Test Ștergere (pentru a testa nerefolosirea numărului la următoarea sesizare) */}
-                <div className="self-end sm:self-center shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteTestReport(rep.id, rep.referenceNumber)}
-                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-200 hover:border-red-300 text-slate-500 hover:text-red-700 hover:bg-red-50 text-xs transition-colors"
-                    title="Șterge sesizarea de test pentru a verifica Testul 6 (Nerefolosirea numărului)"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                    <span>Șterge (Test 6)</span>
-                  </button>
                 </div>
               </div>
             ))}

@@ -306,18 +306,13 @@ class ReportService {
   }
 
   /**
-   * Șterge o sesizare din evidența curentă.
-   * REGULĂ OBLIGATORIE ETAPA 3B: Contorul NU este decrementat.
+   * ETAPA 6.1 — Serviciul NU expune nicio operație de ștergere a sesizărilor.
+   * Regula de produs: sesizările pot fi vizualizate, moderate și soluționate,
+   * dar ștergerea nu face parte din administrarea obișnuită (nici public,
+   * nici `primarie_operator`, nici `super_admin`). Metoda `deleteReport()`,
+   * artefact de test din Etapa 3B, a fost eliminată.
+   * Regula 3B rămâne valabilă: contorul TM-XXX nu este niciodată decrementat.
    */
-  public deleteReport(id: string): boolean {
-    const initialLength = this.reports.length;
-    this.reports = this.reports.filter((r) => r.id !== id);
-    if (this.reports.length !== initialLength) {
-      this.saveReports();
-      return true;
-    }
-    return false;
-  }
 
   /**
    * Returnează ultima sesizare transmisă în sesiunea activă.
