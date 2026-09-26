@@ -20,6 +20,36 @@ const STORAGE_REPORTS_KEY = 'turnu_civic_reports_store';
 const STORAGE_COUNTER_KEY = 'turnu_civic_reports_counter';
 
 /**
+ * ETAPA 6.2 (C1) — Motivul pentru care salvarea unei sesizări a eșuat.
+ * - 'quota_exceeded': spațiul de stocare al browserului (localStorage) este plin.
+ * - 'storage_error': altă eroare de scriere (stocare dezactivată, mod privat restrictiv etc.).
+ */
+export type ReportSaveFailureReason = 'quota_exceeded' | 'storage_error';
+
+/**
+ * ETAPA 6.2 (C1) — Rezultatul explicit al trimiterii unei sesizări.
+ * O sesizare este considerată înregistrată DOAR dacă `success === true`,
+ * adică numai după ce a fost scrisă efectiv în stocarea persistentă.
+ */
+export type SubmitReportResult =
+  | { success: true; report: CivicReport }
+  | { success: false; reason: ReportSaveFailureReason };
+
+/**
+ * Recunoaște eroarea de depășire a cotei de stocare în toate browserele majore
+ * (Chromium/WebKit: 'QuotaExceededError' / cod 22; Firefox: 'NS_ERROR_DOM_QUOTA_REACHED' / cod 1014).
+ */
+function isQuotaExceededError(err: unknown): boolean {
+  if (!(err instanceof DOMException)) return false;
+  return (
+    err.name === 'QuotaExceededError' ||
+    err.name === 'NS_ERROR_DOM_QUOTA_REACHED' ||
+    err.code === 22 ||
+    err.code === 1014
+  );
+}
+
+/**
  * Coordonatele de referință ale centrului municipiului Turnu Măgurele
  */
 export const TURNU_MAGURELE_CENTER = {
@@ -150,20 +180,22 @@ class ReportService {
       }
 
       // 2. Încărcare contor secvențial persistent
+      // ETAPA 6.2 (C1): contorul efectiv este MAXIMUL dintre valoarea salvată și cel mai mare
+      // număr TM existent. Astfel, dacă o sesizare a fost salvată dar scrierea contorului a eșuat
+      // (ex. cotă depășită), la următoarea pornire numărul ei NU este refolosit (regula 3B).
       const storedCounter = localStorage.getItem(STORAGE_COUNTER_KEY);
-      if (storedCounter) {
-        this.counter = parseInt(storedCounter, 10) || 0;
-      } else {
-        let maxExisting = 0;
-        this.reports.forEach((r) => {
-          if (r.referenceNumber && r.referenceNumber.startsWith('TM-')) {
-            const numPart = parseInt(r.referenceNumber.replace('TM-', ''), 10);
-            if (!isNaN(numPart) && numPart > maxExisting) {
-              maxExisting = numPart;
-            }
+      let maxExisting = 0;
+      this.reports.forEach((r) => {
+        if (r.referenceNumber && r.referenceNumber.startsWith('TM-')) {
+          const numPart = parseInt(r.referenceNumber.replace('TM-', ''), 10);
+          if (!isNaN(numPart) && numPart > maxExisting) {
+            maxExisting = numPart;
           }
-        });
-        this.counter = maxExisting;
+        }
+      });
+      const parsedCounter = storedCounter ? parseInt(storedCounter, 10) || 0 : 0;
+      this.counter = Math.max(parsedCounter, maxExisting);
+      if (!storedCounter || parsedCounter < maxExisting) {
         this.saveCounter();
       }
     } catch {
@@ -172,13 +204,27 @@ class ReportService {
     }
   }
 
-  private saveReports() {
+  /**
+   * ETAPA 6.2 (C1): scrie o listă de sesizări în stocarea persistentă și raportează explicit
+   * rezultatul. Returnează `null` la succes sau motivul eșecului. Nu modifică starea din memorie.
+   */
+  private writeReports(list: CivicReport[]): ReportSaveFailureReason | null {
     try {
-      localStorage.setItem(STORAGE_REPORTS_KEY, JSON.stringify(this.reports));
-      this.notify();
+      localStorage.setItem(STORAGE_REPORTS_KEY, JSON.stringify(list));
+      return null;
     } catch (e) {
       console.warn('Eroare la salvarea sesizărilor în storage:', e);
+      return isQuotaExceededError(e) ? 'quota_exceeded' : 'storage_error';
     }
+  }
+
+  private saveReports(): boolean {
+    const failure = this.writeReports(this.reports);
+    if (failure === null) {
+      this.notify();
+      return true;
+    }
+    return false;
   }
 
   private saveCounter() {
@@ -207,14 +253,13 @@ class ReportService {
   }
 
   /**
-   * Generează următorul număr secvențial conform formatului TM-XXX.
-   * Contorul este incrementat strict monotonic; numărul nu se refolosește niciodată.
+   * Formatează un număr secvențial conform formatului TM-XXX.
+   * ETAPA 6.2 (C1): contorul este avansat în `submitReport()` DOAR după salvarea reușită
+   * a sesizării, astfel încât o salvare eșuată nu consumă niciun număr.
+   * Contorul rămâne strict monoton; un număr atribuit nu se refolosește niciodată.
    */
-  private generateNextReferenceNumber(): string {
-    this.counter += 1;
-    this.saveCounter();
-    const formattedNumber = String(this.counter).padStart(3, '0');
-    return `TM-${formattedNumber}`;
+  private formatReferenceNumber(sequence: number): string {
+    return `TM-${String(sequence).padStart(3, '0')}`;
   }
 
   /**
@@ -238,17 +283,25 @@ class ReportService {
    * - Se generează TM-XXX secvențial
    * - Se setează `publicationPreference` conform alegerii cetățeanului (implicit 'private')
    * - Se setează `moderationStatus` pe 'pending'
+   *
+   * ETAPA 6.2 (C1) — salvare tranzacțională:
+   * 1. sesizarea este scrisă mai întâi în stocarea persistentă, pe o listă candidat;
+   * 2. DOAR dacă scrierea reușește se actualizează lista din memorie, contorul TM,
+   *    „ultima sesizare transmisă” și se declanșează notificarea e-mail;
+   * 3. dacă scrierea eșuează (ex. `QuotaExceededError`), nu se modifică nimic
+   *    (nici memoria, nici contorul, nici datele existente) și se returnează motivul eșecului.
    */
   public submitReport(
     input: Omit<CivicReport, 'id' | 'referenceNumber' | 'createdAt' | 'status' | 'moderationStatus'> & {
       publicationPreference?: PublicationPreference;
     }
-  ): CivicReport {
+  ): SubmitReportResult {
     // 1. Generare ID tehnic unic pentru storage
     const technicalId = `rep-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
 
-    // 2. Generare identificator civic determinist TM-XXX
-    const civicReferenceNumber = this.generateNextReferenceNumber();
+    // 2. Identificator civic TM-XXX rezervat provizoriu (contorul NU este încă avansat)
+    const nextSequence = this.counter + 1;
+    const civicReferenceNumber = this.formatReferenceNumber(nextSequence);
 
     const report: CivicReport = {
       ...input,
@@ -261,9 +314,19 @@ class ReportService {
       moderationStatus: 'pending',
     };
 
-    // 3. Salvare persistentă
-    this.reports = [report, ...this.reports];
-    this.saveReports();
+    // 3. Salvare persistentă — mai întâi în stocare, abia apoi în memorie
+    const candidateReports = [report, ...this.reports];
+    const failure = this.writeReports(candidateReports);
+    if (failure !== null) {
+      return { success: false, reason: failure };
+    }
+
+    this.reports = candidateReports;
+    this.counter = nextSequence;
+    // Eșecul acestei scrieri nu poate duce la refolosirea numărului: la pornire contorul
+    // este reconciliat cu cel mai mare număr TM existent (vezi `init()`).
+    this.saveCounter();
+    this.notify();
 
     this.lastSubmittedReport = report;
 
@@ -280,7 +343,7 @@ class ReportService {
       console.error(`Eroare la inițierea notificărilor de e-mail pentru ${report.referenceNumber}:`, err);
     }
 
-    return report;
+    return { success: true, report };
   }
 
   /**

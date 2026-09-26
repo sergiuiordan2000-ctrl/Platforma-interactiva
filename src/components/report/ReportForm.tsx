@@ -32,7 +32,7 @@ import {
   UserCheck
 } from 'lucide-react';
 import { CivicReport, ReportCategory, ReportPhoto, PublicationPreference } from '../../types/report';
-import { reportService } from '../../services/reportService';
+import { reportService, ReportSaveFailureReason } from '../../services/reportService';
 import { imageCompressionService } from '../../services/imageCompressionService';
 
 interface ReportFormProps {
@@ -94,6 +94,20 @@ export const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
   // Validare și trimitere
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // ETAPA 6.2 (C1): eroare la salvarea efectivă a sesizării (ex. spațiu de stocare plin).
+  // Când este setată, sesizarea NU a fost înregistrată, iar datele din formular rămân neschimbate.
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const submitErrorRef = useRef<HTMLDivElement | null>(null);
+
+  const buildSubmitErrorMessage = (reason: ReportSaveFailureReason, photoCount: number): string => {
+    if (reason === 'quota_exceeded') {
+      return photoCount > 0
+        ? `Sesizarea NU a fost înregistrată: spațiul de stocare al acestui browser este plin. Fotografiile atașate (${photoCount}) ocupă mult spațiu — eliminați una sau mai multe fotografii și trimiteți din nou. Datele completate au fost păstrate.`
+        : 'Sesizarea NU a fost înregistrată: spațiul de stocare al acestui browser este plin. Datele completate au fost păstrate; vă rugăm să încercați din nou mai târziu.';
+    }
+    return 'Sesizarea NU a fost înregistrată din cauza unei erori de salvare în browser. Datele completate au fost păstrate; vă rugăm să încercați din nou.';
+  };
 
   // 1. Gestiune Fotografii cu Compresie și Redimensionare Automată (Etapa 3C)
   const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -247,6 +261,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
   // 4. Trimitere Sesizare
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmitError(null);
 
     if (!validate()) {
       // Scroll lin la prima eroare
@@ -261,7 +276,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
     const hasContact = contactName.trim() || contactPhone.trim() || contactEmail.trim();
 
     setTimeout(() => {
-      const newReport = reportService.submitReport({
+      const result = reportService.submitReport({
         categoryId: selectedCategoryId,
         categoryName: selectedCategory ? selectedCategory.name : 'Sesizare Generală',
         description: description.trim(),
@@ -284,7 +299,17 @@ export const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
       });
 
       setIsSubmitting(false);
-      onSuccess(newReport);
+
+      // ETAPA 6.2 (C1): confirmarea se afișează DOAR dacă sesizarea a fost salvată efectiv.
+      if (!result.success) {
+        setSubmitError(buildSubmitErrorMessage(result.reason, photos.length));
+        setTimeout(() => {
+          submitErrorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 0);
+        return;
+      }
+
+      onSuccess(result.report);
     }, 250);
   };
 
@@ -821,7 +846,19 @@ export const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
       </div>
 
       {/* 8. BUTONUL DE TRIMITERE */}
-      <div className="pt-2">
+      <div className="pt-2 space-y-3">
+        {/* ETAPA 6.2 (C1): eroare de salvare — sesizarea NU a fost înregistrată */}
+        {submitError && (
+          <div
+            ref={submitErrorRef}
+            role="alert"
+            aria-live="assertive"
+            className="p-4 rounded-2xl bg-red-50 border border-red-300 text-xs sm:text-sm text-red-800 flex items-start gap-2.5 shadow-sm"
+          >
+            <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+            <span className="font-semibold leading-relaxed">{submitError}</span>
+          </div>
+        )}
         <button
           type="submit"
           disabled={isSubmitting}
