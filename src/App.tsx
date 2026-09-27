@@ -13,6 +13,7 @@ import { MapView } from './views/MapView';
 import { SurveysView } from './views/SurveysView';
 import { DirectoryView } from './views/DirectoryView';
 import { AdminView } from './views/AdminView';
+import { ErrorBoundary } from './components/layout/ErrorBoundary';
 
 export default function App() {
   // Stare pentru comunicatul selectat (dacă se navighează direct pe detaliu din Home)
@@ -137,7 +138,9 @@ export default function App() {
     return (
       <div className="min-h-screen bg-slate-50 text-slate-800 antialiased">
         <main className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-          {renderView()}
+          <ErrorBoundary key={currentView} onGoHome={() => handleNavigate('home')}>
+            {renderView()}
+          </ErrorBoundary>
         </main>
       </div>
     );
@@ -145,7 +148,9 @@ export default function App() {
 
   return (
     <AppLayout currentView={currentView} onNavigate={handleNavigate}>
-      {renderView()}
+      <ErrorBoundary key={currentView} onGoHome={() => handleNavigate('home')}>
+        {renderView()}
+      </ErrorBoundary>
     </AppLayout>
   );
 }
