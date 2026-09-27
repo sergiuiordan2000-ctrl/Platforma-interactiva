@@ -30,14 +30,14 @@ interface MapViewProps {
 
 // Mapare de culori vibrante pentru fiecare categorie de sesizare
 const CATEGORY_COLORS: Record<string, { bg: string; text: string; hex: string; ring: string }> = {
+  // A-10: cheile corespund exact ID-urilor din src/data/mockReportCategories.ts (8 categorii, culori distincte).
   iluminat: { bg: 'bg-amber-500', text: 'text-amber-900', hex: '#f59e0b', ring: 'ring-amber-200' },
   drumuri: { bg: 'bg-rose-500', text: 'text-rose-900', hex: '#f43f5e', ring: 'ring-rose-200' },
+  trotuare: { bg: 'bg-orange-500', text: 'text-orange-900', hex: '#ea580c', ring: 'ring-orange-200' },
+  apa_canal: { bg: 'bg-sky-500', text: 'text-sky-900', hex: '#0284c7', ring: 'ring-sky-200' },
   salubritate: { bg: 'bg-emerald-500', text: 'text-emerald-900', hex: '#10b981', ring: 'ring-emerald-200' },
-  'spatii-verzi': { bg: 'bg-green-600', text: 'text-green-900', hex: '#16a34a', ring: 'ring-green-200' },
-  apa: { bg: 'bg-sky-500', text: 'text-sky-900', hex: '#0284c7', ring: 'ring-sky-200' },
-  constructii: { bg: 'bg-orange-500', text: 'text-orange-900', hex: '#ea580c', ring: 'ring-orange-200' },
-  'caini-comunitari': { bg: 'bg-purple-500', text: 'text-purple-900', hex: '#a855f7', ring: 'ring-purple-200' },
-  'mobilier-urban': { bg: 'bg-indigo-500', text: 'text-indigo-900', hex: '#6366f1', ring: 'ring-indigo-200' },
+  spatii_verzi: { bg: 'bg-green-600', text: 'text-green-900', hex: '#16a34a', ring: 'ring-green-200' },
+  semnalizare: { bg: 'bg-indigo-500', text: 'text-indigo-900', hex: '#6366f1', ring: 'ring-indigo-200' },
   altele: { bg: 'bg-slate-600', text: 'text-slate-900', hex: '#475569', ring: 'ring-slate-200' },
 };
 
