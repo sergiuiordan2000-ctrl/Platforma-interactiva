@@ -261,6 +261,8 @@ export const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
   // 4. Trimitere Sesizare
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    // A-13: nu se trimite cât timp fotografiile se comprimă (altfel ar lipsi din sesizare), nici prin Enter.
+    if (isProcessingPhotos) return;
     setSubmitError(null);
 
     if (!validate()) {
@@ -834,7 +836,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
         )}
         <button
           type="submit"
-          disabled={isSubmitting}
+          disabled={isSubmitting || isProcessingPhotos}
           className="w-full py-4 px-6 min-h-[52px] rounded-2xl bg-blue-700 hover:bg-blue-800 text-white font-extrabold text-sm sm:text-base shadow-lg shadow-blue-700/25 transition-all flex items-center justify-center gap-2.5 active:scale-[0.99] disabled:opacity-50 select-none"
         >
           {isSubmitting ? (
