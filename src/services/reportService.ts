@@ -136,8 +136,8 @@ const SEED_REPORTS: CivicReport[] = [
   {
     id: 'rep-seed-003',
     referenceNumber: 'TM-003',
-    categoryId: 'spatii-verzi',
-    categoryName: 'Spații verzi / parcuri',
+    categoryId: 'spatii_verzi',
+    categoryName: 'Spații verzi & parcuri',
     description: 'Creangă uscată de mari dimensiuni la risc de cădere pe alee pietonală.',
     photos: [],
     location: {
