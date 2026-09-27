@@ -1,6 +1,6 @@
 # ETAPA_6_STATUS_FINAL.md — Turnu Măgurele Civic
 
-**Stare la:** 26 septembrie 2026, branch `recovery-etapa-5-0e2cc20`. Ultimul commit de cod: `d89fd1ceba903faed2940d7d59b79fdbaac98d89`. Peste el există doar commit-ul de documentație `docs: finalize project handoff after stage 6.5`. `main` a rămas la `d9bc2c9`, neatins.
+**Stare la:** 26 septembrie 2026, branch `recovery-etapa-5-0e2cc20`. Ultimul commit: `f6809f3` (P0 post-audit + `tests/`), peste `83b77ad` (6.6). **Checkpoint formal al Etapei 6: `f6809f3`** (Faza 0, 27.09.2026: `tsc`, build, `diff --check`, `fsck` exit 0; teste 102/103). `main` a rămas la `d9bc2c9`, neatins.
 
 Punctul de plecare: `RAPORT_AUDIT_ETAPA_6.md` (6A–6E: 85 de verificări, 70 PASS, 12 FAIL, 3 PARTIAL), cu problemele critice C1–C4 și majore M1–M7.
 
@@ -13,7 +13,7 @@ Punctul de plecare: `RAPORT_AUDIT_ETAPA_6.md` (6A–6E: 85 de verificări, 70 PA
 | 6.5 | FINALIZAT | inclus în `d89fd1c` | M3 rezolvat, M4 rezolvat în frontend (P1–P6): gărzi în servicii, fără listă publică de sesizări, `PublicMapReport` redus, `getPublicById`, gărzi pe acțiune în Admin; **19/19 PASS**. P7 și N1–N4 lăsate deschise, conform instrucțiunii |
 | 6.6 | FINALIZAT | `83b77ad` | M7 / `6A-MOD-08` decis și implementat: asumare individuală `super_admin`; preluare instituțională a Primăriei (prioritară, fără retragere); operatorii fără asumare individuală; harta publică fără responsabil / preluare / stadiu; datele cetățeanului nepublice; sesizările `private` aprobate apar pe hartă anonim; N1 închis |
 
-**Verificări tehnice la salvarea `d89fd1c`:** `tsc` exit 0, build exit 0, `git diff --check` exit 0, `git fsck --full --strict` exit 0. Branch-ul de pe GitHub este identic cu HEAD, verificat și într-o clonă separată.
+**Verificări tehnice la salvarea `d89fd1c` (istoric, starea 6.5):** `tsc` exit 0, build exit 0, `git diff --check` exit 0, `git fsck --full --strict` exit 0. Branch-ul de pe GitHub este identic cu HEAD, verificat și într-o clonă separată.
 
 **Regresia suitei Etapei 6:** 61 PASS, 1 PARTIAL (`6A-MOD-08`), 1 FAIL (`6D-SES-01`), 2 ERROR (scenarii învechite `sec_delete` / `sec_demo`, care caută butoane eliminate intenționat). Nicio regresie nouă.
 

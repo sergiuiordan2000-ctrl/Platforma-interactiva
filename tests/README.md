@@ -48,6 +48,7 @@ Codul de ieșire al `run_all.py` este 0 doar dacă nu există FAIL-uri neaștept
   acceptată ca sesiune Admin. Este o **limitare arhitecturală** (fără backend, validarea din 6.4 verifică structura,
   nu autenticitatea). Remedierea reală necesită autentificare pe server. `run_all.py` îl raportează separat ca
   „FAIL CUNOSCUT”.
+  Trecerea FAIL → PASS și orice modificare a `KNOWN_FAILS` se fac numai cu aprobarea explicită a proprietarului.
 
 ## Limitări ale testelor
 

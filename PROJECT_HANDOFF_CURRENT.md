@@ -1,6 +1,6 @@
 # PROJECT_HANDOFF_CURRENT.md — Turnu Măgurele Civic
 
-**Stare documentată:** finalul Etapei 6.5 (26 septembrie 2026), actualizată după **Etapa 6.6** (comisă și publicată: `83b77ad`), după **auditul general** și pentru **remedierea P0 post-audit** (vezi B, G.5 și I)
+**Stare documentată:** finalul Etapei 6.5 (26 septembrie 2026), actualizată după **Etapa 6.6** (comisă și publicată: `83b77ad`), după **auditul general** și pentru **remedierea P0 post-audit** (vezi B, G.5 și I), și după checkpoint-ul Fazei 0 (`f6809f3`)
 **Scop:** documentul principal de preluare pentru un chat nou. Înlocuiește, pentru starea curentă, secțiunile de stare din `PROJECT_HANDOFF.md`. Acela a fost scris la finalul Etapei 5 și este acum depășit la Git, securitate și pasul următor.
 
 > **Regula de pornire pentru noul chat:** citește acest document, apoi `PROJECT_RULES_AND_DECISIONS.md` și `ETAPA_6_STATUS_FINAL.md`. Apoi **verifică starea Git real** (Secțiunea B.4). Nu presupune nimic din memorie. **Codul și istoricul Git sunt sursa de adevăr.** Dacă documentul și codul se contrazic, codul are dreptate, iar contradicția se raportează.
@@ -17,12 +17,13 @@
   - consultări publice (sondaje);
   - Ghidul Primăriei și numerele utile (Apel rapid / Quick Dial).
 
-### A.2 Arhitectura actuală
+### A.2 Arhitectura actuală (până la Faza 5)
 - SPA React, **100% client-side**, un singur bundle.
 - Rutare **hash**, manuală (`window.location.hash` în `src/App.tsx`), fără bibliotecă de rutare.
 - Servicii singleton pe domenii (`src/services/*.ts`), cu persistență în **`localStorage` / `sessionStorage`** din browserul curent.
 - **Nu există backend real.** Nu există server, API, bază de date centralizată, autentificare pe server sau trimitere reală de e-mail.
   - Dependențele `express`, `@google/genai` și `dotenv` din `package.json` sunt reziduuri nefolosite ale boilerplate-ului.
+- **Direcția decisă: D1 = B**, pilot real cu backend. Trecerea se face numai prin Fazele 4 (proiectare) și 5 (implementare incrementală) ale Planului de Lucru Comun.
 - Conexiuni reale la rețea: tile-urile hărții OpenStreetMap și imaginile demo ale comunicatelor, încărcate de pe Unsplash (m16).
 - E-mailul este **simulat** (`emailService`, stare `simulated`, niciodată `sent`).
 
@@ -35,7 +36,7 @@
 | Tailwind CSS | 4 (`@tailwindcss/vite`) |
 | Hartă | Leaflet 1.9 (integrare manuală, fără `react-leaflet`) |
 | Iconițe | `lucide-react` |
-| Teste | Nu există framework de teste în repository (vezi E.3) |
+| Teste | Python + Playwright în `tests/` (D12 = A, comis în `f6809f3`); rulare: `python3 tests/run_all.py`; referință: 102/103, singurul FAIL cunoscut fiind `R6D-SES-01` (P7) |
 
 ### A.4 Roluri
 | Rol | Cine | Acces |
@@ -58,7 +59,7 @@ Matricea completă se află în `src/services/permissionService.ts` (`ROLE_PERMI
   - formular de autentificare, fără login DEMO din 6.4;
   - shell separat cu taburile Dashboard, Comunicate, Moderare Sesizări, Ghidul Primăriei (+ Apel rapid) și Sondaje, fiecare filtrat după permisiuni.
 
-### A.6 Chei `localStorage` (NU se schimbă fără decizie)
+### A.6 Chei `localStorage` (NU se schimbă înainte de Faza 5; atunci numai prin migrarea proiectată în Faza 4, B1)
 `turnu_civic_admin_session` (și în `sessionStorage`), `turnu_civic_announcements`, `turnu_civic_reports_store`, `turnu_civic_reports_counter`, `turnu_civic_email_log_store`, `turnu_civic_city_hall_directory`, `turnu_civic_quickdial_contacts`, `turnu_civic_quickdial_categories`, `turnu_civic_surveys_store`, `turnu_civic_survey_submissions_store`, `turnu_civic_user_participated_surveys`.
 
 ---
@@ -70,11 +71,12 @@ Matricea completă se află în `src/services/permissionService.ts` (`ROLE_PERMI
 |---|---|
 | Repository GitHub | `https://github.com/sergiuiordan2000-ctrl/Platforma-interactiva` |
 | Branch de lucru | `recovery-etapa-5-0e2cc20` |
-| Ultimul commit de COD (starea 6.5) | `d89fd1ceba903faed2940d7d59b79fdbaac98d89`: `Etapele 6.4-6.5: securizare autentificare si autorizare` |
-| Commit de documentație peste el | `docs: finalize project handoff after stage 6.5` (adaugă doar acest document, `PROJECT_RULES_AND_DECISIONS.md` și `ETAPA_6_STATUS_FINAL.md`; fără cod). HEAD-ul branch-ului este acest commit; hash-ul lui se verifică cu `git log -1`. |
-| Branch-ul pe GitHub | identic cu HEAD-ul local; push-uri normale, fast-forward (`3c8d952..d89fd1c`, apoi commit-ul de documentație) |
+| HEAD (checkpoint-ul Fazei 0) | `f6809f35be0c7a71f9430535fa68c006028b4ed6`: `fix(civic): apply post-audit P0 remediation and add test suites` (P0 + `tests/`); părinte `83b77ad` (Etapa 6.6) |
+| Branch-ul pe GitHub | identic cu HEAD-ul local (verificat 27.09.2026) |
 | `main` pe GitHub | `d9bc2c9f53cec27dafc846889b0457eea8495d20`, **NEATINS, nu se modifică** |
-| Working tree | curat după commit-ul de documentație. **Actualizare:** peste acesta există `499ce12` și `83b77ad` (Etapa 6.6), publicate pe GitHub (vezi B.2). Modificările remedierii P0 post-audit se comit doar la instrucțiunea proprietarului |
+| Working tree | curat |
+| Ultimul commit de cod — istoric (starea 6.5) | `d89fd1ceba903faed2940d7d59b79fdbaac98d89`: `Etapele 6.4-6.5: securizare autentificare si autorizare` |
+| Commit de documentație peste el — istoric (starea 6.5) | `docs: finalize project handoff after stage 6.5` (adaugă doar acest document, `PROJECT_RULES_AND_DECISIONS.md` și `ETAPA_6_STATUS_FINAL.md`; fără cod). |
 
 ### B.2 Istoricul commit-urilor branch-ului (cronologic)
 | Commit | Mesaj | Conținut |
@@ -131,7 +133,7 @@ Detaliile complete se află în rapoartele `RAPORT_AUDIT_ETAPA_*.md` din rădăc
 | 3E | Moderare + regula de publicare | `private` / `public` / `public_anonymous` (implicit `private`), publicare doar după aprobare | regula „`private` → nu apare pe hartă” a fost **eliminată în 6.6** (opțiunea scoasă din formular, `private` = valoare istorică fără efect) | în `672bbea` |
 | 4A–4E | Sondaje | structură, administrare, vot, statistici, prevenirea votului multiplu (marker local) | markerul anti-duplicare este doar local | în `672bbea` |
 | 5A | Dashboard Admin + shell separat | — | — | în `672bbea` |
-| 5B–5G | Comunicate CRUD, moderare/soluționare (axe independente), roluri, e-mail simulat, sursă unică de permisiuni, izolarea rolurilor | vezi `RAPORT_AUDIT_FINAL_ETAPA_5.md` | auditul Etapei 5 a dat verdict **FAIL transversal** din cauza ștergerii publice (reparat în 6.1) | `0e2cc20` |
+| 5B–5G (etichete istorice; vezi RULES §9) | Comunicate CRUD, moderare/soluționare (axe independente), roluri, e-mail simulat, sursă unică de permisiuni, izolarea rolurilor | vezi `RAPORT_AUDIT_FINAL_ETAPA_5.md` | auditul Etapei 5 a dat verdict **FAIL transversal** din cauza ștergerii publice (reparat în 6.1) | `0e2cc20` |
 | 5D | Diferențierea `super_admin` / `primarie_operator` | matricea de 24 de permisiuni (13 pentru operator), gărzi în UI și în handlere | — | `2198ebe` |
 | 6 (6A–6E) | Audit: testare funcțională, responsive, erori, securitate, performanță | 85 de verificări: 70 PASS, 12 FAIL, 3 PARTIAL | problemele C1–C4, M1–M7, m1–m17 (vezi G) | raport în `a9f47fe` |
 | 6.1–6.5 | Remedieri | vezi Secțiunea D | vezi G | `3b8d6ca` … `d89fd1c` |
@@ -264,7 +266,7 @@ Tot codul rulează în browserul utilizatorului. Prin urmare:
 ### G.1 Arhitecturale și de securitate
 | Cod | Problemă | Stare |
 |---|---|---|
-| — | Lipsa backend-ului (autentificare, autorizare, date centralizate) | nedecis, decizie de arhitectură |
+| — | Lipsa backend-ului (autentificare, autorizare, date centralizate) | **decis: D1 = B**; implementare în Faza 5 |
 | M1 / S4 / `6D-SES-01` / P7 | Sesiunea Admin se poate falsifica din `localStorage` | **FAIL, nerezolvat** (P7 a fost exclus explicit din 6.5; descrierea din raportul 6.5 este în G.4) |
 | M2 / S5 | Credențiale hardcodate în bundle | nerezolvat; necesită backend |
 | m3 / S9 / `6D-SES-03` | Sesiunea nu expiră (persistă și în `localStorage`) | PARTIAL, nerezolvat |
@@ -310,7 +312,7 @@ Sursa: fragmentul final recuperat al raportului de execuție al Etapei 6.5, furn
 - **Validarea din 6.4** (`isValidSessionUser`, `VALID_ROLES`) verifică **structura** sesiunii, **nu autenticitatea** ei.
 - **Fără backend, autorizarea reală nu poate fi garantată:** gărzile din frontend pot fi ocolite.
 - **P1/P2** (helper-ele `currentUserCan*` și gărzile din servicii) sunt **protecții în frontend** și **nu înlocuiesc autorizarea server-side**.
-- **P7 rămâne nerezolvat.** Remedierea reală necesită o arhitectură cu backend. Aceasta este o **decizie de arhitectură / produs** nedecisă (vezi F.2); documentul de față nu propune o soluție.
+- **P7 rămâne nerezolvat.** Remedierea reală necesită backend: **decisă prin D1 = B**; P7 se închide în Faza 5.2.
 
 ### G.5 Decizii post-audit (D1–D12)
 Auditul general a formulat deciziile D1–D12; proprietarul le-a luat pe toate. Instrucțiunea P0 transmite explicit doar valorile de mai jos.
@@ -337,24 +339,24 @@ Auditul general a formulat deciziile D1–D12; proprietarul le-a luat pe toate. 
 | Protecția XSS 6.3 (`escapeHtml`, `getSafeImageSrc`) | securitatea hărții publice | tehnică, cu retestare |
 | Autentificarea 6.4 (fără DEMO 1-click, validarea sesiunii) | securitatea login-ului | tehnică + produs |
 | Gărzile 6.5 din servicii și UI | autorizare consecventă | tehnică, cu retestare |
-| Arhitectura actuală (frontend + `localStorage`) | introducerea unui backend schimbă totul | **decizie de arhitectură / produs** |
-| Cheile `localStorage` (A.6) | schimbarea lor pierde datele existente | decizie tehnică, cu migrare |
-| Schemele de date (`src/types/*.ts`: `CivicReport`, `Announcement`, `Survey` etc.) | compatibilitate cu datele salvate | decizie tehnică + produs |
+| Arhitectura actuală (frontend + `localStorage`) | schimbarea este decisă (D1 = B); se face numai prin Fazele 4–5, subetapă cu subetapă, cu teste și regresie | **decizie luată; execuția cere aprobarea fiecărei subetape** |
+| Cheile `localStorage` (A.6) | schimbarea lor pierde datele existente | decizie tehnică, cu migrare; modificare permisă numai în Faza 5, conform designului aprobat în Faza 4 |
+| Schemele de date (`src/types/*.ts`: `CivicReport`, `Announcement`, `Survey` etc.) | compatibilitate cu datele salvate | decizie tehnică + produs; modificare permisă numai în Faza 5, conform designului aprobat în Faza 4 |
 | `SimulatedEmailTransportAdapter` | nu trebuie să raporteze niciodată `sent` | tehnică |
 | N2, N4 (G.3) | decise post-audit ca D3 / D4; valorile nu au fost transmise (G.5) | **decizie de produs** |
 | Regulile de asumare/preluare 6.6 (M7) | decise și implementate | **decizie de produs** (nu se schimbă fără decizie nouă) |
-| P7 (`6D-SES-01`) | nerezolvat; remedierea reală cere backend (G.4) | **decizie de arhitectură / produs** |
+| P7 | nerezolvat până la Faza 5.2 | **trecerea FAIL → PASS și orice modificare a `KNOWN_FAILS` numai cu aprobarea explicită a proprietarului** |
 | `main` | nu se atinge | regulă de proiect |
 
 ---
 
 ## I. PUNCTUL EXACT DE CONTINUARE
 
-> **ETAPA 6 ESTE ÎNCHISĂ.** Etapele 6.1–6.6 sunt finalizate; Etapa 6.6 este comisă și publicată (`83b77ad`). **Nu există Etapa 6.7.** A urmat auditul general al proiectului, cu deciziile post-audit D1–D12 (G.5) și remedierea **P0** (A-27, A-05, A-06, A-07, A-08, D11-B, D12-A). **P1 nu este început**; următoarea direcție este Etapa 7 (7A–7F), la instrucțiunea proprietarului.
+> **ETAPA 6 ESTE ÎNCHISĂ.** Etapele 6.1–6.6 sunt finalizate; Etapa 6.6 este comisă și publicată (`83b77ad`). **Nu există Etapa 6.7.** A urmat auditul general al proiectului, cu deciziile post-audit D1–D12 (G.5) și remedierea **P0** (A-27, A-05, A-06, A-07, A-08, D11-B, D12-A). Checkpoint-ul formal al Etapei 6 este `f6809f3` (Faza 0). **Lucrările continuă exclusiv după Planul de Lucru Comun acceptat**; P1 este preluat în fazele acestuia.
 
 Starea de pornire consemnată anterior (finalul 6.5) rămâne mai jos pentru referință. Noul chat:
 1. citește acest document, `PROJECT_RULES_AND_DECISIONS.md` și `ETAPA_6_STATUS_FINAL.md`;
-2. verifică starea Git (B.4): commit-ul de handoff ca HEAD, `d89fd1c` imediat sub el (ultimul commit de cod) și `main` la `d9bc2c9`;
+2. verifică starea Git (B.4): HEAD `f6809f3` (sau un commit ulterior, consemnat în B.1), identic cu `origin`, și `main` la `d9bc2c9`;
 3. rulează `npx tsc --noEmit` și `npm run build`;
 4. confirmă înțelegerea stării și **așteaptă instrucțiunile** proprietarului (salvarea remedierii P0 dacă nu e comisă; apoi P1 / Etapa 7);
 5. ține cont că N2 și N4 așteaptă decizia proprietarului, N3 este clarificat tehnic, iar N1 este închis (G.3); P7 este descris în G.4.
