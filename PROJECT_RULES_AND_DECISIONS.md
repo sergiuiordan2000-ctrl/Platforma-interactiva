@@ -45,7 +45,7 @@ Reguli de lucru obligatorii pentru toate etapele viitoare, indiferent de asisten
 - Când apare o decizie de produs (ce vede publicul, ce poate face un rol, o funcționalitate nouă, o alternativă de UI): **STOP, se prezintă opțiunile și se cere decizia.**
 - Deciziile deschise cunoscute înainte de auditul general: N2, N4 (din auditul 6.5; N3 a fost clarificat tehnic în 6.5, N1 a fost închis în 6.6), **P7**. **Introducerea unui backend a fost decisă: D1 = B** (vezi mai jos). **M7** (preluarea/asumarea sesizărilor) a fost **decis și implementat în 6.6** (secțiunea 6). Vezi `PROJECT_HANDOFF_CURRENT.md`, G.3.
 - **Decizii post-audit cu valoare consemnată:** **D1 = B** (pilot real cu backend; proprietar, 26–27.09.2026), **D9 = A, D10 = A** (de reconfirmat în Faza 3 în contextul D1 = B), **D11 = B, D12 = A**. **D2–D8 sunt deschise și nu se presupun:** D2 (Planul Master / ANALIZA) în Faza 1; D3, D4, D6, D8 în Faza 3; D5, D7 necerute de Planul Master.
-- **Nu există Etapa 6.7.** Etapa 6 (inclusiv 6.1–6.6 și P0) este închisă; checkpoint-ul formal este `f6809f3` (Faza 0). **Ordinea lucrărilor și numerotarea fazelor urmează exclusiv Planul de Lucru Comun acceptat** (Fazele 0–6, apoi Etapa 7A–7F).
+- **Nu există Etapa 6.7.** Etapa 6 (inclusiv 6.1–6.6 și P0) este închisă; checkpoint-ul formal este `f6809f3` (Faza 0). **Ordinea lucrărilor și numerotarea fazelor urmează exclusiv Planul de Lucru Comun v1.1** (Fazele 0–6, apoi Etapa 7A–7F).
 
 ## 5. Onestitate tehnică
 
@@ -71,7 +71,7 @@ Reguli de lucru obligatorii pentru toate etapele viitoare, indiferent de asisten
 | `submitReport` și `submitVote` rămân operații publice | 6.5 |
 | Fără login DEMO 1-click și fără credențiale afișate public | 6.4 |
 | Zona publică nu afișează lista sesizărilor; lista completă există doar în Admin | 6.5 (P3) |
-| E-mailul rămâne simulat **până la Faza 5.5** a Planului de Lucru Comun; transportul real se introduce numai acolo, printr-un adaptor nou (precondiții: N-3, A-17). `SimulatedEmailTransportAdapter` nu raportează niciodată `sent`. | Etapa 5E; D1 = B |
+| E-mailul rămâne simulat **până la Faza 5.5** a Planului de Lucru Comun v1.1; transportul real se introduce numai acolo, printr-un adaptor nou (precondiții: N-3, A-17). `SimulatedEmailTransportAdapter` nu raportează niciodată `sent`. | Etapa 5E; D1 = B |
 | Harta publică afișează doar informații descriptive (număr, categorie, descriere, fotografie, poziție, dată). NU afișează fluxul intern de tratare: stadiu, asumare, preluarea Primăriei, responsabili. Acestea rămân exclusiv în Admin | 6.6 |
 | N1 închis: „Public” și „Public anonim” sunt ambele publice și nu expun identitatea autorului; identitatea și datele de contact nu sunt niciodată incluse în proiecția publică | 6.6 |
 | **M7 / `6A-MOD-08` decis și implementat.** Asumare / preluare disponibilă numai în Admin: `super_admin` poate asuma individual o sesizare și își poate retrage propria asumare; `primarie_operator` NU are asumare individuală | 6.6 |
@@ -99,13 +99,13 @@ Reguli de lucru obligatorii pentru toate etapele viitoare, indiferent de asisten
 ## 9. Nomenclatură
 
 - **„5G” nu este subetapă oficială.** Lucrările consemnate istoric ca „5G” (sistemul central de roluri și permisiuni: `permissionService`, filtrarea modulelor Admin, izolarea rolurilor; auditat PASS în `RAPORT_AUDIT_FINAL_ETAPA_5.md` §8) **rămân valabile** și corespund, în Planul Master, subetapei 5D.
-- Eticheta istorică „5F” (infrastructură / sursă unică de permisiuni) **nu este** 5F din Planul Master (test complet al fluxului), care corespunde Fazei 6 a Planului de Lucru Comun.
+- Eticheta istorică „5F” (infrastructură / sursă unică de permisiuni) **nu este** 5F din Planul Master (test complet al fluxului), care corespunde Fazei 6 a Planului de Lucru Comun v1.1.
 - Mesajele de commit, rapoartele istorice și comentariile din cod **nu se rescriu**.
 
 ## 10. Securitate și credențiale
 
 - APK-ul de test (construit din `f6809f3`) conține credențialele din bundle și **nu se distribuie**.
 - Parolele hardcodate din versiunea actuală **nu vor autentifica** versiunea cu backend.
-- Rotația credențialelor se face la implementarea autentificării, în **Faza 5.2** a Planului de Lucru Comun.
+- Rotația credențialelor se face la implementarea autentificării, în **Faza 5.2** a Planului de Lucru Comun v1.1.
 - **Istoricul Git nu se rescrie** pentru eliminarea retroactivă a parolelor fără o decizie explicită separată a proprietarului.
 - P7 (`R6D-SES-01`): trecerea FAIL → PASS și orice modificare a `KNOWN_FAILS` se fac **numai cu aprobarea explicită a proprietarului**.

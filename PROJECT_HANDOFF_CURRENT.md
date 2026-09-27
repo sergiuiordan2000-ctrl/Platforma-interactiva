@@ -23,7 +23,7 @@
 - Servicii singleton pe domenii (`src/services/*.ts`), cu persistență în **`localStorage` / `sessionStorage`** din browserul curent.
 - **Nu există backend real.** Nu există server, API, bază de date centralizată, autentificare pe server sau trimitere reală de e-mail.
   - Dependențele `express`, `@google/genai` și `dotenv` din `package.json` sunt reziduuri nefolosite ale boilerplate-ului.
-- **Direcția decisă: D1 = B**, pilot real cu backend. Trecerea se face numai prin Fazele 4 (proiectare) și 5 (implementare incrementală) ale Planului de Lucru Comun.
+- **Direcția decisă: D1 = B**, pilot real cu backend. Trecerea se face numai prin Fazele 4 (proiectare) și 5 (implementare incrementală) ale Planului de Lucru Comun v1.1.
 - Conexiuni reale la rețea: tile-urile hărții OpenStreetMap și imaginile demo ale comunicatelor, încărcate de pe Unsplash (m16).
 - E-mailul este **simulat** (`emailService`, stare `simulated`, niciodată `sent`).
 
@@ -108,7 +108,7 @@ git checkout recovery-etapa-5-0e2cc20
 git log --oneline -10        # primul rând: ultimul commit al branch-ului (la actualizare: 83b77ad, Etapa 6.6)
 git status --short           # nimic
 git ls-remote origin refs/heads/main refs/heads/recovery-etapa-5-0e2cc20
-npm install                  # dacă eșuează din conflictul esbuild/vite: npm install --legacy-peer-deps (vezi m15)
+npm ci
 npx tsc --noEmit && npm run build
 ```
 Notă tehnică: copia de lucru din sesiunea anterioară avea `origin` setat pe un bundle local de recuperare, iar push-ul se făcea direct către URL-ul GitHub. O clonă nouă de pe GitHub nu are această particularitate.
@@ -286,7 +286,7 @@ Tot codul rulează în browserul utilizatorului. Prin urmare:
 | m11, m12 | m11 depășit: formularul validează e-mailul și în cod (expresie regulată). m12 rămâne: butonul „Trimite” e activ în timpul compresiei |
 | m13 | Ștergerea unui sondaj sau „Reset Demo” lasă submisii orfane |
 | m14 | Bundle unic de aproximativ 755 KB |
-| m15 | Dependențe moarte; `npm ci` poate eșua fără `--legacy-peer-deps` |
+| m15 | Dependențe moarte (rămân). **Conflictul de instalare este rezolvat prin A-22 (`e62b4ea`):** `npm ci` funcționează fără `--legacy-peer-deps` |
 | m16 | Imagini demo de pe Unsplash |
 | m17 | **Parțial rezolvat în P0 post-audit (D12 = A):** suitele sunt în `tests/` (servicii, UI, robustețe, suprafețe publice, regresie) și rulează cu `python3 tests/run_all.py`; vezi `tests/README.md`. Nu există încă un framework de teste integrat în `npm`. |
 
@@ -352,7 +352,7 @@ Auditul general a formulat deciziile D1–D12; proprietarul le-a luat pe toate. 
 
 ## I. PUNCTUL EXACT DE CONTINUARE
 
-> **ETAPA 6 ESTE ÎNCHISĂ.** Etapele 6.1–6.6 sunt finalizate; Etapa 6.6 este comisă și publicată (`83b77ad`). **Nu există Etapa 6.7.** A urmat auditul general al proiectului, cu deciziile post-audit D1–D12 (G.5) și remedierea **P0** (A-27, A-05, A-06, A-07, A-08, D11-B, D12-A). Checkpoint-ul formal al Etapei 6 este `f6809f3` (Faza 0). **Lucrările continuă exclusiv după Planul de Lucru Comun acceptat**; P1 este preluat în fazele acestuia.
+> **ETAPA 6 ESTE ÎNCHISĂ.** Etapele 6.1–6.6 sunt finalizate; Etapa 6.6 este comisă și publicată (`83b77ad`). **Nu există Etapa 6.7.** A urmat auditul general al proiectului, cu deciziile post-audit D1–D12 (G.5) și remedierea **P0** (A-27, A-05, A-06, A-07, A-08, D11-B, D12-A). Checkpoint-ul formal al Etapei 6 este `f6809f3` (Faza 0). **Lucrările continuă exclusiv după Planul de Lucru Comun v1.1**; P1 este preluat în fazele acestuia.
 
 Starea de pornire consemnată anterior (finalul 6.5) rămâne mai jos pentru referință. Noul chat:
 1. citește acest document, `PROJECT_RULES_AND_DECISIONS.md` și `ETAPA_6_STATUS_FINAL.md`;

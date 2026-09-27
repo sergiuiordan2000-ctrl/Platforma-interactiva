@@ -9,13 +9,13 @@ Platforma nu este oficială și nu este operată de Primărie.
 
 - Aplicație web React + TypeScript + Vite, rulată integral în browser; datele sunt păstrate
   local (`localStorage`). Nu există încă backend, iar e-mailul este simulat.
-- Direcția decisă: **pilot real cu backend (D1 = B)**, conform Planului de Lucru Comun.
+- Direcția decisă: **pilot real cu backend (D1 = B)**, conform Planului de Lucru Comun v1.1.
 - Autentificarea Admin este demonstrativă, doar în browser; **build-ul actual nu trebuie
   publicat** și nu se folosește cu date reale.
 
 ## Cerințe
 
-- Node.js 22 și npm
+- Node.js 22.12+ (sau 20.19+) și npm
 - Pentru teste: Python 3.10+ și Playwright (`tests/requirements.txt`)
 
 ## Rulare locală

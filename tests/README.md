@@ -17,7 +17,7 @@ Suite de teste end-to-end (Python + Playwright) care rulează aplicația reală:
 
 ## Cerințe
 
-- dependențele Node instalate: `npm install --legacy-peer-deps` (vezi m15);
+- dependențele Node instalate: `npm ci`;
 - Python 3.10+ și Playwright: `pip install -r tests/requirements.txt`, apoi `python3 -m playwright install chromium`.
 
 ## Rulare
