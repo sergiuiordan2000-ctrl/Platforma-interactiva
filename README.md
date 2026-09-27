@@ -1,20 +1,41 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# Turnu Măgurele Civic
 
-# Run and deploy your AI Studio app
+Platformă civică digitală **independentă** pentru municipiul Turnu Măgurele: comunicate și
+evenimente, sesizări cetățenești cu fotografie și localizare (moderate și afișate pe hartă),
+consultări publice (sondaje), Ghidul Primăriei și numere utile.
+Platforma nu este oficială și nu este operată de Primărie.
 
-This contains everything you need to run your app locally.
+## Stare
 
-View your app in AI Studio: https://ai.studio/apps/868c1a38-6537-45a0-ab08-3fd5562bbac5
+- Aplicație web React + TypeScript + Vite, rulată integral în browser; datele sunt păstrate
+  local (`localStorage`). Nu există încă backend, iar e-mailul este simulat.
+- Direcția decisă: **pilot real cu backend (D1 = B)**, conform Planului de Lucru Comun.
+- Autentificarea Admin este demonstrativă, doar în browser; **build-ul actual nu trebuie
+  publicat** și nu se folosește cu date reale.
 
-## Run Locally
+## Cerințe
 
-**Prerequisites:**  Node.js
+- Node.js 22 și npm
+- Pentru teste: Python 3.10+ și Playwright (`tests/requirements.txt`)
 
+## Rulare locală
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+    npm ci
+    npm run dev        # server de dezvoltare
+    npm run build      # build de producție în dist/
+    npm run preview    # servește build-ul
+    npm run lint       # verificare TypeScript (tsc --noEmit)
+
+## Teste
+
+    pip install -r tests/requirements.txt
+    python3 -m playwright install chromium
+    python3 tests/run_all.py
+
+Detalii în `tests/README.md`.
+
+## Documentație
+
+- `PROJECT_RULES_AND_DECISIONS.md` — reguli de lucru și decizii
+- `PROJECT_HANDOFF_CURRENT.md` — starea curentă a proiectului
+- `ETAPA_6_STATUS_FINAL.md` — situația Etapei 6

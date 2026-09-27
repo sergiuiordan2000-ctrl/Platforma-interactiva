@@ -2,5 +2,5 @@
   "name": "Turnu Măgurele Civic",
   "description": "Platformă civică digitală independentă pentru municipiul Turnu Măgurele - informare, comunicate, sesizări cetățenești și consultări publice.",
   "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "majorCapabilities": []
 }
