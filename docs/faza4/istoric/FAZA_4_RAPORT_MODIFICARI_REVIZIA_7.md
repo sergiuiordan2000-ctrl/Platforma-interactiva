@@ -45,3 +45,17 @@ Procedura: întrebare cu variante, răspuns direct al lui Sergiu, fără instruc
   2. aprobarea checkpoint-ului;
   3. P-13;
   4. Faza 5 pe un branch nou.
+
+## 4. După auditul final (28.09.2026)
+
+Auditul final ChatGPT (`istoric/FAZA_4_AUDIT_FINAL_CHATGPT.md`) are verdictul **„DESIGN APROBABIL — fără constatări blocante”**.
+
+Proprietarul a ales să fie corectate constatările #12, #13 și #14:
+
+| # | Corectura | Unde |
+|---|---|---|
+| 13 | geocodarea: `POST /citizen/geocode` cu adresa în corpul cererii, nu în URL; adresa nu apare în jurnale | B2 §4.2; B8 §1; B10 |
+| 12 | testul backup-urilor se stabilește odată cu soluția tehnică T-D1 (fără criteriu anticipat) | B10 „Retenție” |
+| 14 | test negativ pe staging: un destinatar al Primăriei care nu este în `EMAIL_ALLOWLIST` → `blocked`, nimic trimis | B10 „E-mail” |
+
+Constatarea #11 (nu toate deciziile au un test propriu) nu cere modificări: deciziile de proces (DN-04, DN-05, DN-07) nu se testează în cod.

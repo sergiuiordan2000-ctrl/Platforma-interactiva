@@ -87,7 +87,7 @@ Aplicația se folosește **fără cont**; votul și dezabonarea rămân fără c
 | GET | `/citizen/reports/:tm` | — | aceleași câmpuri ca `PublicMapReport` + `status` (D28) | 404 dacă nu este a contului | — |
 | DELETE | `/citizen/reports/:tm` | — | 204 | 404 dacă nu este a contului | **ștergere definitivă** (B1 §3.8), indiferent de stare (D22); fără notificare către Primărie (D23); permisă și cu blocare activă (D15); fără rând de audit (B-7) |
 | DELETE | `/citizen/account` | — | 204 | 401 | **2.7:** ștergerea contului; sesizările rămân (`author_account_id = NULL`), conform retenției; identitatea autorului nu este publică; sesiunile și codurile se șterg; blocările rămân asociate `email_hash` (B1 §3.7). O blocare definitivă se reduce la datele minime și împiedică recrearea contului (K-A02-4, T-C6, T-C7) |
-| GET | `/citizen/geocode?address=` | — | `{ lat, lng, approximate: true }` sau 404 | 429 | **2.4:** geocodarea adresei (stradă + număr), prin serverul propriu (proxy către Nominatim, A06-5, `GEOCODER_URL`); rezultat numai în UAT; nu se stochează. Utilizatorul verifică pinul propus și îl poate muta. |
+| POST | `/citizen/geocode` | `{ address }` (în corpul cererii, **nu** în URL, ca adresa să nu ajungă în jurnalele serverului sau ale proxy-ului; audit final #13) | `{ lat, lng, approximate: true }` sau 404 | 429 | **2.4:** geocodarea adresei (stradă + număr), prin serverul propriu (proxy către Nominatim, A06-5, `GEOCODER_URL`); rezultat numai în UAT; nu se stochează. Utilizatorul verifică pinul propus și îl poate muta. |
 
 ## 5. Autentificare
 

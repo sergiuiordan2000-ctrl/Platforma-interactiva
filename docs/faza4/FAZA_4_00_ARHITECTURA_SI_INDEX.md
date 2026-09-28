@@ -193,14 +193,14 @@ Versiunile sunt citite din registrul npm pe 27.09.2026. Se **fixează exact** la
 | Deciziile de produs | ✅ **toate luate**; registrul: `FAZA_4_REGISTRU_DECIZII.md` |
 | Contradicțiile rezolvate sau prezentate | ✅ rezolvate prin decizii; documentația curată nu mai conține reguli contradictorii (de verificat la audit) |
 | Propunerile tehnice | ⏳ de confirmat la audit (`FAZA_4_REGISTRU_DECIZII.md` §4) |
-| Designul revizuit | ❌ **așteaptă auditul ChatGPT** |
+| Designul revizuit | ✅ **auditul final ChatGPT (28.09.2026): „DESIGN APROBABIL — fără constatări blocante”**; corecturile tehnice #12, #13, #14 aplicate (`istoric/FAZA_4_AUDIT_FINAL_CHATGPT.md`) |
 | Designul aprobat explicit | ❌ **așteaptă aprobarea proprietarului** |
 
 **Checkpoint-ul Fazei 4 NU este atins.** Faza 5 nu începe.
 
 ## 10. Ce urmează
 
-1. Auditul final al Fazei 4 (ChatGPT), pe această versiune curată.
+1. Auditul final al Fazei 4 (ChatGPT): **efectuat**, design aprobabil, fără constatări blocante.
 2. Aprobarea checkpoint-ului de către proprietar; înghețarea schemei și a contractelor.
 3. P-13: actualizarea RULES, HANDOFF, Planului v1.1 și Master Planului.
 4. Faza 5, pe un branch nou dedicat (A04-7).
