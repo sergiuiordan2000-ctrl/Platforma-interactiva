@@ -8,6 +8,8 @@
 > **Revizia 2 (SET-A-01, 27.09.2026):** D8–D31 și A-1…A-9; modificările sunt marcate **[SET-A-01]** (§0.3, §D). Conturile cetățenilor: B3 §8; drepturile exclusive ale `super_admin`: B4 §2.4.
 >
 > **Revizia 3 (SET-A-02, 27.09.2026):** 2.1–2.15 + corecturile 1–13; marcaj **[SET-A-02]** (`FAZA_4_DECIZII_NOI.md` §0.4). Schimbări principale: `reports.moderate` eliminat (matricea: 23 + 3 = 26 / operator 12); drepturile exclusive extinse (2.11); recuperarea TOTP (2.15).
+>
+> **Revizia 4 (SET-A-03, 28.09.2026):** K-A02-3, REC-01, B-7, K-A02-4, DN-19; marcaj **[SET-A-03]**. Schimbări principale: blocarea 15 zile / definitivă și datele minime (B3 §8); ștergerile nu se auditează (B4 §5).
 
 > Valorile numerice de mai jos (durate, praguri, parametri) sunt **PROPUNERI** marcate ca atare. Ele se confirmă la aprobarea checkpoint-ului Fazei 4 (DN-15).
 
@@ -96,9 +98,9 @@
 | Enumerare | `POST /citizen/auth/start` răspunde identic indiferent dacă adresa există | propunere tehnică |
 | Sesiune | cookie `__Host-civic_sid`, `principal_type = citizen`; aceleași atribute ca la Admin (G1); expirare prin inactivitate + absolută (valori în DN-15); fără MFA | propunere tehnică |
 | Pe medii (A-9: „se proiectează tehnic”) | **dezvoltare / CI:** `EMAIL_MODE = simulated`; codul se citește din coada simulată **numai** prin comanda CLI `dev:show-code` sau prin harness-ul de teste; comanda refuză să ruleze în producție. **Staging:** înainte de 5.5 (fără SMTP), ca la dezvoltare; după 5.5, `allowlist`: pot crea conturi numai adresele din `EMAIL_ALLOWLIST` (G3-c5), celelalte primesc același 202 generic, fără e-mail. **Producție:** `live`, expeditorul pe domeniul Civic (N3-4); **fără domeniul Civic (G7), în producție nu se pot crea conturi.** | propunere tehnică (T-A3) |
-| Blocarea (D8, D13–D18) | numai `super_admin` (drept exclusiv, B4 §2.4); temporară / permanentă; efect numai asupra `POST /citizen/reports` (403 cu mesaj generic); autentificarea, lista proprie, ștergerea propriilor sesizări, votul și conținutul public neafectate | **aprobat**. **[SET-A-02] 2.6:** blocarea temporară se poate ridica manual înainte de termen de `super_admin`; blocarea este asociată contului / e-mailului (`email_hash`), nu unei identități reale |
+| Blocarea (D8, D13–D18) | numai `super_admin` (drept exclusiv, B4 §2.4); temporară / permanentă; efect numai asupra `POST /citizen/reports` (403 cu mesaj generic); autentificarea, lista proprie, ștergerea propriilor sesizări, votul și conținutul public neafectate | **aprobat**. **[SET-A-02] 2.6:** blocarea temporară se poate ridica manual înainte de termen de `super_admin`; blocarea este asociată contului / e-mailului (`email_hash`), nu unei identități reale. **[SET-A-03]** **K-A02-4:** `super_admin` alege la blocare între **15 zile** (expirare automată) și **definitiv** (fără expirare automată). Retenția nu anulează blocarea definitivă; pentru ea se păstrează numai identificatorul minim (`email_hash`), care împiedică recrearea contului și depunerea de sesizări (T-C6, T-C7) |
 | Politica de utilizare (D8) | **[SET-A-02] 2.9:** bifă explicită „am citit și accept” la **crearea contului**; se păstrează versiunea și data acceptării. Conținut minim: sesizări reale, informații corecte, limbaj decent, utilizare neabuzivă, responsabilitatea pentru conținut (inclusiv fotografii, 2.10); încălcarea poate duce la blocare. **Textul efectiv** se redactează (sarcină documentară, nu decizie). | **aprobat** |
-| Ștergerea contului | **[SET-A-02] 2.7:** cetățeanul își poate șterge contul (`DELETE /citizen/account`); sesizările **rămân**, conform retenției, fără autor în aplicație și fără identitate publică | **aprobat** |
+| Ștergerea contului | **[SET-A-02] 2.7:** cetățeanul își poate șterge contul (`DELETE /citizen/account`); sesizările **rămân**, conform retenției, fără autor în aplicație și fără identitate publică. **[SET-A-03]** Retenția datelor contului: **REC-02 (deschis)** | **aprobat** |
 
 ---
 
@@ -152,7 +154,7 @@ Aceste drepturi **nu sunt permisiuni** și **nu intră** în matricea `ROLE_PERM
 | Drept exclusiv | Decizie | Endpoint |
 |---|---|---|
 | ștergerea definitivă a oricărei sesizări, necondiționat | D10–D12, A-1, A-5 | `DELETE /admin/reports/:id` |
-| blocarea unui utilizator de la depunerea sesizărilor (temporar / permanent) | D8, D13–D14, A-5 | `POST /admin/citizens/:id/blocks` |
+| blocarea unui utilizator de la depunerea sesizărilor (temporar / permanent; **[SET-A-03]** **15 zile / definitiv**) | D8, D13–D14, A-5, **K-A02-4** | `POST /admin/citizens/:id/blocks` |
 | vizualizarea e-mailului cetățeanului în Admin | D29, A-8 | `GET /admin/reports/:id` (câmpul e-mail), `GET /admin/citizens` |
 | **[SET-A-02]** corectarea poziției unei sesizări | 2.11 | `PATCH /admin/reports/:id/location` |
 | **[SET-A-02]** reîncercarea unui e-mail eșuat | 2.11 | `POST /admin/reports/:id/emails/:emailId/retry` |
@@ -211,7 +213,7 @@ Aceste drepturi **nu sunt permisiuni** și **nu intră** în matricea `ROLE_PERM
 **[SET-01] DN-02 aprobat:** regula 6.6 rămâne. Asumarea și retragerea asumării individuale **nu** se auditează; auditul nu se folosește pentru a reconstrui un istoric al asumărilor. Lista de mai jos (operații administrative) rămâne **propunere**.
 
 - **Conturi:** creare, dezactivare / reactivare, schimbarea rolului, resetarea parolei, resetarea TOTP, autentificări reușite și eșuate (agregat).
-- **[SET-A-01] Cetățeni:** blocarea (propus). Ștergerea sesizărilor (de către autor sau `super_admin`): **B-7 (deschis)**.
+- **[SET-A-01] Cetățeni:** blocarea (propus). Ștergerea sesizărilor (de către autor sau `super_admin`): ~~**B-7 (deschis)**~~ **[SET-A-03]** **B-7 decis: ștergerile definitive NU se auditează.** În plus, rândurile de audit care privesc sesizarea ștearsă se șterg (T-C3).
 - **[SET-A-02] Recuperarea TOTP (2.15):** folosirea unui cod de recuperare și resetarea de către alt `super_admin`, ca **acțiuni distincte**; regenerarea codurilor.
 - **[SET-A-02] Blocări:** crearea și ridicarea (2.6).
 - **Setări:** destinatarul, comutatorul, modul Primăriei, referința acordului.
@@ -222,5 +224,6 @@ Aceste drepturi **nu sunt permisiuni** și **nu intră** în matricea `ROLE_PERM
   - preluarea instituțională (propus);
   - ~~anonimizarea contactului (DN-12)~~ **[SET-01] eliminat:** operația nu există;
   - reîncercarea unui e-mail.
+  - **[SET-A-03]** rândurile de mai sus se păstrează numai cât există sesizarea: la ștergerea ei (de către autor, `super_admin` sau prin retenție) se șterg (B-7, REC-01).
 - **Sondaje:** creare, activare, închidere (**[SET-01]** inclusiv închiderea automată la `end_at`, actor `system`, E-3), marcaj de integritate, proof-of-work, consultarea textelor libere (acces la date posibil personale).
 - **Comunicate:** publicare / dezactivare (propus).

@@ -5,6 +5,7 @@
 **Revizia 1 (SET-01, 27.09.2026):** modificările sunt marcate **[SET-01]** (vezi `FAZA_4_DECIZII_NOI.md` §0 și §C).
 **Revizia 2 (SET-A-01, 27.09.2026):** D8–D31 și A-1…A-9; modificările sunt marcate **[SET-A-01]** (vezi `FAZA_4_DECIZII_NOI.md` §0.3 și §D).
 **Revizia 3 (SET-A-02, 27.09.2026):** 2.1–2.15 + corecturile 1–13; modificările sunt marcate **[SET-A-02]** (`FAZA_4_DECIZII_NOI.md` §0.4).
+**Revizia 4 (SET-A-03, 28.09.2026):** K-A02-3, REC-01, B-7, K-A02-4, DN-19; modificările sunt marcate **[SET-A-03]** (`FAZA_4_DECIZII_NOI.md` §0.5).
 
 ---
 
@@ -23,7 +24,7 @@
 | Idempotență | depunerea sesizării: antetul `Idempotency-Key` (UUID); votul: unicitatea jetonului (B7) |
 | Limite | corp JSON ≤ 64 KB; multipart ≤ 4 fișiere, fiecare ≤ 3 MB (**propunere**, DN-15) |
 | Date | ISO 8601 UTC în API |
-| Antete de securitate | prin `@fastify/helmet`: CSP restrictiv (tile-urile OSM și imaginile comunicatelor, DN-19), `nosniff`, `frame-ancestors 'none'` |
+| Antete de securitate | prin `@fastify/helmet`: CSP restrictiv (tile-urile OSM ~~și imaginile comunicatelor, DN-19~~; **[SET-A-03]** **DN-19 (C):** imaginile comunicatelor sunt servite de pe aceeași origine, ca parte a aplicației, deci `img-src` nu permite domenii externe de imagini; T-C9), `nosniff`, `frame-ancestors 'none'` |
 
 ## 2. Operații interne (nu sunt HTTP)
 
@@ -32,11 +33,11 @@ Comenzi CLI (același artefact, alt punct de intrare), rulate prin cron sau manu
 | Comandă | Rol | Frecvență (propunere) |
 |---|---|---|
 | `outbox:process` | procesează coada de e-mail (retry, lease) | la 2 minute |
-| `purge:email-bodies` | șterge corpurile mai vechi de 45 de zile (N3-8) | zilnic |
+| `purge:email-bodies` | șterge corpurile mai vechi de 45 de zile (N3-8). **[SET-A-03]** Pentru e-mailurile fără sesizare; cele legate de o sesizare sunt șterse integral de `purge:retention` (REC-01) | zilnic |
 | `purge:rate-limits`, `purge:rejected` (30 de zile), `purge:sessions`, `purge:pow` | curățare | zilnic |
 | ~~`purge:contacts`~~ | **[SET-01] eliminat** (DN-12: fără funcție de anonimizare). Tratamentul e-mailului la expirarea retenției: DN-11 (deschis). | — |
 | `surveys:close-expired` | **[SET-01] E-3:** trece în `closed` sondajele cu `end_at` depășit (audit, actor `system`); P-11 | la 5 minute (propunere) |
-| `purge:retention` | **[SET-A-02] 2.5:** ștergerea datelor mai vechi de 45 de zile (B1 §3.9; momentul de referință pentru sesizări și conturi: K-A02-3) | zilnic |
+| `purge:retention` | **[SET-A-02] 2.5:** ștergerea datelor mai vechi de 45 de zile (B1 §3.9; ~~momentul de referință pentru sesizări și conturi: K-A02-3~~ **[SET-A-03]** sesizările și toate datele lor: 45 de zile de la depunere, K-A02-3 + REC-01; conturile și datele fără sesizare: REC-02, deschis) | zilnic |
 | `backup:db` | export DB + arhiva fotografiilor (staging: G3, condiția 6) | zilnic |
 | `migrate` | rulează migrațiile (DN-20) | la deploy |
 | `seed:config`, `seed:demo` | seed-uri (`seed:demo` refuzat în producție) | la cerere |
@@ -76,7 +77,7 @@ Comenzi CLI (același artefact, alt punct de intrare), rulate prin cron sau manu
 
 | Metodă | Endpoint | Request | Răspuns | Reguli / efect DB |
 |---|---|---|---|---|
-| POST | `/citizen/auth/start` | `{ email, policyAccepted }` (**[SET-A-02] 2.9:** `policyAccepted = true` + versiunea politicii, obligatorii la crearea unui cont nou; altfel 422) | **202** generic (același răspuns dacă contul există sau nu) | creează contul `pending` dacă nu există (D30: un e-mail = un cont); generează un cod (`confirm` sau `login`); pune în coadă `citizen_login_code`; limite anti-abuz (B7, T-A7) |
+| POST | `/citizen/auth/start` | `{ email, policyAccepted }` (**[SET-A-02] 2.9:** `policyAccepted = true` + versiunea politicii, obligatorii la crearea unui cont nou; altfel 422) | **202** generic (același răspuns dacă contul există sau nu) | creează contul `pending` dacă nu există (D30: un e-mail = un cont); generează un cod (`confirm` sau `login`); pune în coadă `citizen_login_code`; limite anti-abuz (B7, T-A7). **[SET-A-03]** **K-A02-4:** dacă e-mailul are o blocare **definitivă** activă și nu există cont, contul **nu** se creează și nu se trimite cod; răspunsul rămâne același 202 (fără enumerare; T-C7) |
 | POST | `/citizen/auth/verify` | `{ email, code }` | 200 + cookie de sesiune | codul valid, neexpirat, nefolosit; prima verificare → `status = active` (D31); 401 generic la eșec; numărul de încercări limitat |
 | POST | `/citizen/auth/logout` | — | 204 | revocă sesiunea |
 | GET | `/citizen/me` | — | `{ email, blocked: { active, kind, endsAt? } }` | **[SET-A-02]** utilizatorul vede că depunerea îi este blocată și, pentru o blocare temporară, termenul (decizie tehnică; nota internă nu se afișează) |
@@ -88,8 +89,8 @@ Comenzi CLI (același artefact, alt punct de intrare), rulate prin cron sau manu
 | POST | `/citizen/reports` | ca vechiul `POST /public/reports`, **fără** câmpul `email` (e-mailul este al contului, A-9): `categoryId`, `description`, `location { text, lat?, lng?, source: pin\|gps_pin\|geocoded\|text, approximate? }` (**[SET-A-02]** 2.4; coordonatele în afara UAT → 422, 2.12), ~~`publicationPreference`~~ (**[SET-A-02]** eliminat, 2.8), `notifyOptIn`, `transmitToCityHall`, `hp`, `formStartedAt` + `photos[]`; `Idempotency-Key` | **201** `{ referenceNumber, createdAt }` | 401 (fără sesiune), **403 (cont blocat, D15)**, **[SET-A-02] 429 dacă `transmitToCityHall = true` și contul a cerut deja 3 transmiteri în ultimele 24 h (2.14)**, 413, 415, 422, 429 | tranzacție: contor `TM` + `reports` (`author_account_id`, `resolution_status = new`) + `report_photos` + `email_outbox` (confirmare către e-mailul contului; Primărie numai cu `transmitToCityHall` + flux activ). **Publicată imediat** (D9). |
 | GET | `/citizen/reports` | — | listă: `referenceNumber`, `status`, informațiile publice (D27–D28) | 401 | — (fără starea transmiterii, coadă sau procesare internă, D28) |
 | GET | `/citizen/reports/:tm` | — | aceleași câmpuri ca `PublicMapReport` + `status` (D28) | 404 dacă nu este a contului | — |
-| DELETE | `/citizen/reports/:tm` | — | 204 | 404 dacă nu este a contului | **ștergere definitivă** (B1 §3.8), indiferent de stare (D22); fără notificare către Primărie (D23); permisă și cu blocare activă (D15) |
-| DELETE | **[SET-A-02]** `/citizen/account` | — | 204 | 401 | **2.7:** ștergerea contului; sesizările rămân (`author_account_id = NULL`), conform retenției; identitatea autorului nu este publică; sesiunile și codurile se șterg; blocările rămân asociate `email_hash` (B1 §3.7) |
+| DELETE | `/citizen/reports/:tm` | — | 204 | 404 dacă nu este a contului | **ștergere definitivă** (B1 §3.8), indiferent de stare (D22); fără notificare către Primărie (D23); permisă și cu blocare activă (D15). **[SET-A-03]** Fără rând de audit (B-7) |
+| DELETE | **[SET-A-02]** `/citizen/account` | — | 204 | 401 | **2.7:** ștergerea contului; sesizările rămân (`author_account_id = NULL`), conform retenției; identitatea autorului nu este publică; sesiunile și codurile se șterg; blocările rămân asociate `email_hash` (B1 §3.7). **[SET-A-03]** O blocare definitivă se reduce la datele minime și împiedică recrearea contului (K-A02-4, T-C6, T-C7) |
 | GET | **[SET-A-02]** `/citizen/geocode?address=` | — | `{ lat, lng, approximate: true }` sau 404 | 429 | **2.4:** geocodarea adresei (stradă + număr), prin serverul propriu (proxy către serviciul configurat în `GEOCODER_URL`, decizie tehnică); rezultat numai în UAT; nu se stochează. Utilizatorul verifică pinul propus și îl poate muta. |
 
 ## 5. Autentificare
@@ -129,15 +130,15 @@ Toate endpoint-urile cer sesiune completă (MFA verificat, dacă este aplicabil)
 | ~~POST~~ | ~~`/admin/reports/:id/contact/anonymize`~~ | — | — | **[SET-01] eliminat** (DN-12: fără funcție de anonimizare, fără a 4-a permisiune). Închide O-1 / E-4. |
 | GET | `/admin/reports/stats` | `reports.view` | contoare (~~moderare,~~ stadii, fără poziție; **[SET-A-02]** eșecurile e-mail numai pentru `super_admin`) | `getModerationStats` + indicatorul A17-9 |
 | ~~—~~ | ~~ștergere~~ | — | ~~**nu există**~~ | ~~6.1~~ **[SET-A-01] abrogat (A-1)** |
-| DELETE | `/admin/reports/:id` | **drept exclusiv `super_admin`** (A-5; nu este permisiune) | — → 204 | ștergere definitivă, necondiționată, fără motiv obligatoriu (D10–D12); B1 §3.8; audit: **B-7 (deschis)** |
+| DELETE | `/admin/reports/:id` | **drept exclusiv `super_admin`** (A-5; nu este permisiune) | — → 204 | ștergere definitivă, necondiționată, fără motiv obligatoriu (D10–D12); B1 §3.8; audit: ~~**B-7 (deschis)**~~ **[SET-A-03]** **B-7:** fără rând de audit; rândurile de audit ale sesizării se șterg (B1 §3.8, pasul 6) |
 
 ### 6.2 Comunicate
 
 | Metodă | Endpoint | Permisiune | Reguli |
 |---|---|---|---|
 | GET | `/admin/announcements?type=&status=&cursor=` | `announcements.view` | include ciornele și comunicatele expirate |
-| POST | `/admin/announcements` | `announcements.create` + permisiunea stării țintă | 6.5 |
-| PATCH | `/admin/announcements/:id` | `announcements.edit` (+ permisiunea stării, dacă se schimbă) | 6.5 |
+| POST | `/admin/announcements` | `announcements.create` + permisiunea stării țintă | 6.5. **[SET-A-03]** **DN-19:** `imageUrl` acceptă numai calea unei imagini publicate cu aplicația (lista din build); altfel 422 (T-C9) |
+| PATCH | `/admin/announcements/:id` | `announcements.edit` (+ permisiunea stării, dacă se schimbă) | 6.5. **[SET-A-03]** aceeași validare a `imageUrl` (DN-19, T-C9) |
 | PATCH | `/admin/announcements/:id/status` | `announcements.publish` / `announcements.disable` | — |
 | — | ștergere, reset | — | **nu există** (5B, D4) |
 
@@ -189,8 +190,8 @@ La modificarea datelor de referință se pot completa `verifiedAt` și `verified
 | GET | `/admin/email-log?status=&kind=&cursor=` | ~~`audit.view`~~ **[SET-A-02] drept exclusiv `super_admin`** (2.11) | fără corpuri |
 | GET | `/admin/dashboard` | `dashboard.view` | contoare agregate |
 | GET | **[SET-A-01]** `/admin/citizens?q=&blocked=&cursor=` | **drept exclusiv `super_admin`** (A-5, A-8) | e-mail, stare, data creării, numărul de sesizări, blocarea activă |
-| POST | **[SET-A-01]** `/admin/citizens/:id/blocks` | **drept exclusiv `super_admin`** (D13, A-5) | `{ kind: "temporary"\|"permanent", endsAt?, note? }`; D14–D16 |
-| POST | **[SET-A-01]** `/admin/citizens/:id/blocks/:blockId/lift` | **drept exclusiv `super_admin`** | ~~B-8 (deschis)~~ **[SET-A-02] 2.6:** ridicarea manuală a unei blocări **temporare** înainte de termen; audit. O blocare permanentă se ridică tot prin acest endpoint (decizie tehnică: altfel ar deveni ireversibilă). |
+| POST | **[SET-A-01]** `/admin/citizens/:id/blocks` | **drept exclusiv `super_admin`** (D13, A-5) | `{ kind: "temporary"\|"permanent", ~~endsAt?,~~ note? }`; D14–D16. **[SET-A-03]** **K-A02-4:** `temporary` = 15 zile, `ends_at` calculat de server (o durată trimisă de client → 400); `permanent` = fără expirare automată |
+| POST | **[SET-A-01]** `/admin/citizens/:id/blocks/:blockId/lift` | **drept exclusiv `super_admin`** | ~~B-8 (deschis)~~ **[SET-A-02] 2.6:** ridicarea manuală a unei blocări **temporare** înainte de termen; audit. O blocare permanentă se ridică tot prin acest endpoint (decizie tehnică: altfel ar deveni ireversibilă). **[SET-A-03]** O blocare temporară expiră automat după 15 zile (K-A02-4); ridicarea manuală a unei blocări definitive rămâne propunere tehnică (T-B10), neconfirmată. |
 
 ## 7. Modelul asincron în frontend (B2, faza 5.3 și următoarele)
 
@@ -205,6 +206,8 @@ La modificarea datelor de referință se pot completa `verifiedAt` și `verified
 | **[SET-A-02]** Admin | fără ecran și butoane de moderare (2.3); fără butoanele „Reset Demo” (D4, corectura E-6); câmpul `registryEmail` din Ghid rămâne pur informativ (A17-2, E-6); indicatorul „pe hartă” = are poziție validă (E-7) |
 | **[SET-A-01]** Zona cetățeanului | ecran nou „Contul meu” (introducerea e-mailului, codul, lista proprie, ștergerea, D27, A-6); butonul „Depune o sesizare” cere autentificarea (A-9); restul aplicației rămâne fără cont; fără date personale în `localStorage` |
 | **[SET-A-01]** Harta | afișează starea (A-7); publicarea fără moderare (A-2) |
+| **[SET-A-03]** Blocarea (Admin) | alegerea între **15 zile** și **definitiv** (K-A02-4); fără câmp de durată |
+| **[SET-A-03]** Comunicatele | imaginile se adaugă în repository și se publică odată cu versiunea aplicației (DN-19); în Admin, câmpul imaginii alege numai dintre imaginile publicate (T-C9); fără încărcare de imagini, fără CDN sau stocare externă |
 | Abonări (`subscribe`) | se înlocuiesc cu reîncărcarea explicită după o mutație |
 | Tipuri | din `shared/`; se elimină câmpurile care nu mai ajung în client (contact în liste, ID-uri interne publice) |
 | Tranziție | fiecare domeniu trece complet pe API într-o singură subfază; nu există perioade cu date mixte `localStorage` / API pentru același domeniu |

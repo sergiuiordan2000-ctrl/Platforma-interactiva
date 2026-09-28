@@ -5,6 +5,7 @@
 **Revizia 1 (SET-01, 27.09.2026):** modificările sunt marcate **[SET-01]** (vezi `FAZA_4_DECIZII_NOI.md` §0 și §C).
 **Revizia 2 (SET-A-01, 27.09.2026):** D8–D31 și A-1…A-9; modificările sunt marcate **[SET-A-01]** (§0.3, §D).
 **Revizia 3 (SET-A-02, 27.09.2026):** 2.1, 2.2, 2.11, 2.13, 2.14 + corecturile 3, 6, 12 și E-5; marcaj **[SET-A-02]**.
+**Revizia 4 (SET-A-03, 28.09.2026):** K-A02-3, REC-01 (retenția e-mailurilor), K-A02-4 (blocarea); marcaj **[SET-A-03]**.
 
 > Pragurile numerice sunt **propuneri inițiale** (DN-15). N-4 și D9-4 cer fixarea lor în Faza 4 / 5.6; ele rămân configurabile.
 
@@ -90,8 +91,8 @@ Antetele (`Subject`) sunt construite **numai** din `TM-XXX` și din categorie. C
 | Element | Regulă |
 |---|---|
 | Jurnalul | tabelul `email_outbox` însuși (starea, încercările, eroarea, datele) |
-| Corpul | **șters după 45 de zile** (N3-8), prin `purge:email-bodies` |
-| Metadatele | ~~conform DN-11~~ **[SET-A-02] 45 de zile** (2.5) |
+| Corpul | **șters după 45 de zile** (N3-8), prin `purge:email-bodies`. **[SET-A-03]** Pentru e-mailurile fără sesizare; cele legate de o sesizare dispar integral cel târziu la 45 de zile de la depunere (REC-01, T-C2) |
+| Metadatele | ~~conform DN-11~~ ~~**[SET-A-02] 45 de zile** (2.5)~~ **[SET-A-03]** legate de o sesizare: 45 de zile de la depunerea ei (`retention_anchor_at`; K-A02-3, REC-01); celelalte (codurile de cont): 45 de zile de la creare |
 | Acces | ~~per sesizare: `reports.view`; global: `audit.view`~~ **[SET-A-02] drept exclusiv `super_admin`** (2.11), per sesizare și global. `primarie_operator` vede numai starea derivată a transmiterii, fără destinatari (corectura 3). Reîncercarea: exclusiv `super_admin`. |
 | Indicator de eșec | contor pe tabloul de bord și pe sesizare (A17-9) |
 
@@ -135,7 +136,7 @@ Antetele (`Subject`) sunt construite **numai** din `TM-XXX` și din categorie. C
 | **Garantat** (în DB / pe server) | un vot per jeton per sondaj; votul numai în perioada deschisă; numerotarea `TM-XXX` fără duplicate; fără sesizare dublă la retrimiterea aceleiași cereri; aceeași notificare trimisă o singură dată; respectarea limitelor configurate pentru o sursă IP dată; **[SET-A-01]** un e-mail = un cont (D30); depunere numai din cont confirmat și neblocat (A-9, D15) |
 | **Reduce abuzul** | capcana, timpul minim, proof-of-work, limitele pe IP, plafoanele de e-mail, ~~moderarea~~ **[SET-A-01]** contul confirmat, blocarea de către `super_admin`, ștergerea de către `super_admin` (A-2: moderarea prealabilă nu mai există) |
 | **Nu poate fi garantat** | „o persoană = un vot” (N4-1: alt browser sau dispozitiv = alt jeton); oprirea unui atacator distribuit pe multe IP-uri; oprirea completă a spamului în sesizări (~~moderarea rămâne filtrul final…~~ **[SET-A-02]** nu există moderare, 2.3; limita de 3 / 24 h către Primărie, 2.14; **[SET-01]** expunerea se limitează la sesizările cu transmitere cerută, pct. 7) |
-| **[SET-A-01] Riscuri noi** | publicarea imediată (D9) scoate filtrul dinaintea hărții: conținutul abuziv sau fotografiile cu date ale unor terți apar public până la ștergerea de către `super_admin` (**B-12**). Un utilizator blocat își poate crea alt cont cu alt e-mail (D30, **B-14**). **[SET-A-02]** Riscuri asumate prin decizie: fără moderare (2.3), fotografii publice fără verificare (2.10), blocarea legată de e-mail, nu de identitate (2.6). Atenuare: politica acceptată (2.9), blocarea, ștergerea de către `super_admin`, limita de 3 / 24 h către Primărie (2.14). |
+| **[SET-A-01] Riscuri noi** | publicarea imediată (D9) scoate filtrul dinaintea hărții: conținutul abuziv sau fotografiile cu date ale unor terți apar public până la ștergerea de către `super_admin` (**B-12**). Un utilizator blocat își poate crea alt cont cu alt e-mail (D30, **B-14**). **[SET-A-03]** Cu **același** e-mail, sub blocare definitivă, contul nu mai poate fi recreat (K-A02-4). **[SET-A-02]** Riscuri asumate prin decizie: fără moderare (2.3), fotografii publice fără verificare (2.10), blocarea legată de e-mail, nu de identitate (2.6). Atenuare: politica acceptată (2.9), blocarea, ștergerea de către `super_admin`, limita de 3 / 24 h către Primărie (2.14). |
 
 ## 4. Legături
 
