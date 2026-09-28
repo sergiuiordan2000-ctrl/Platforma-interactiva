@@ -1,19 +1,9 @@
 # FAZA 4 — B3 AUTENTIFICARE ȘI SESIUNI · B4 AUTORIZARE PE SERVER
 
 **Proiect:** Turnu Măgurele Civic · **Data:** 27.09.2026 · **Stare:** proiect, neînghețat
-**Bază:** D8 (RULES §11.5), G1 (N-2), RULES §6 (regulile 5D, 6.1–6.6), `permissionService.ts`, `authService.ts` (**parolele actuale nu se reproduc**)
+**Bază:** D8 (RULES §11.5), G1 (N-2), RULES §6 (regulile 5D, 6.1–6.6), `permissionService.ts`, `authService.ts` (**parolele actuale nu se reproduc**); deciziile din `FAZA_4_REGISTRU_DECIZII.md`
 
-> **Revizia 1 (SET-01, 27.09.2026):** modificările sunt marcate **[SET-01]** (vezi `FAZA_4_DECIZII_NOI.md` §0 și §C).
->
-> **Revizia 2 (SET-A-01, 27.09.2026):** D8–D31 și A-1…A-9; modificările sunt marcate **[SET-A-01]** (§0.3, §D). Conturile cetățenilor: B3 §8; drepturile exclusive ale `super_admin`: B4 §2.4.
->
-> **Revizia 3 (SET-A-02, 27.09.2026):** 2.1–2.15 + corecturile 1–13; marcaj **[SET-A-02]** (`FAZA_4_DECIZII_NOI.md` §0.4). Schimbări principale: `reports.moderate` eliminat (matricea: 23 + 3 = 26 / operator 12); drepturile exclusive extinse (2.11); recuperarea TOTP (2.15).
->
-> **Revizia 4 (SET-A-03, 28.09.2026):** K-A02-3, REC-01, B-7, K-A02-4, DN-19; marcaj **[SET-A-03]**. Schimbări principale: blocarea 15 zile / definitivă și datele minime (B3 §8); ștergerile nu se auditează (B4 §5).
->
-> **Revizia 5 (SET-A-04, 28.09.2026):** contul cetățeanului fără ștergere automată; auditul administrativ 6 luni; marcaj **[SET-A-04]**.
->
-> **Revizia 6 (SET-A-05, 28.09.2026):** sesiunile expirate 6 luni; blocarea temporară expirată sau ridicată rămâne în auditul administrativ; marcaj **[SET-A-05]**.
+> **Revizia 7, versiune curată (28.09.2026).** Conține numai regulile valabile. Istoricul reviziilor 1–6 (text tăiat, marcaje de set) este în `istoric/revizia_6_adnotata/`; sursa fiecărei decizii este în `FAZA_4_REGISTRU_DECIZII.md`. Valorile marcate „propunere” sau „propunere tehnică” se confirmă la auditul final.
 
 > Valorile numerice de mai jos (durate, praguri, parametri) sunt **PROPUNERI** marcate ca atare. Ele se confirmă la aprobarea checkpoint-ului Fazei 4 (DN-15).
 
@@ -23,8 +13,7 @@
 
 ## 1. Conturile
 
-- ~~Numai conturi Admin; **fără conturi de cetățeni** (N4-2). **[SET-01] C-1:** confirmat; „contul” din DN-12 înseamnă numai adresa de e-mail din formularul de sesizare.~~
-- **[SET-A-01] A-4 / D29:** două tipuri de cont: **Admin** (acest capitol, §1–§7) și **cetățean** (§8, necesar **numai** pentru depunerea sesizărilor). Votul rămâne fără cont (N4-2, D17).
+- **A-4 / D29:** două tipuri de cont: **Admin** (acest capitol, §1–§7) și **cetățean** (§8, necesar **numai** pentru depunerea sesizărilor). Votul rămâne fără cont (N4-2, D17).
 - Administrare exclusiv de `super_admin`: creare, dezactivare / reactivare, resetarea parolei, schimbarea rolului; **fără ștergere** (D8-1, D8-2).
 - Adrese de e-mail numai controlate de proiect sau furnizate de Primărie (D8-6).
 - Cele 3 conturi hardcodate și parolele lor **dispar** din cod la 5.2. Parolele istorice **nu autentifică** backend-ul (RULES §10; test obligatoriu, B10).
@@ -71,8 +60,8 @@
 | Secret | 160 de biți, criptat AES-256-GCM cu `TOTP_ENC_KEY` (variabilă de mediu); **nu apare** în audit, jurnale sau răspunsuri după activare |
 | Anti-reluare | un cod acceptat o singură dată (`totp_last_step`) |
 | Înrolare | la prima autentificare a unui `super_admin` fără TOTP: secretul se afișează ca text și cod QR (**DN-16**: bibliotecă QR în frontend) → confirmare cu un cod valid |
-| Obligativitate | **DN-17**: din ce mediu devine obligatoriu (D8-8 cere „înainte de date reale”) |
-| Pierderea telefonului | ~~**DN-18**~~ **[SET-A-02] 2.15, ambele mecanisme, proceduri distincte și auditate:** (A) **coduri de recuperare** generate la configurarea TOTP (de exemplu 10), afișate o singură dată, stocate numai ca HMAC (`admin_recovery_codes`), fiecare de unică folosință; (B) **resetarea TOTP de către alt `super_admin`** (`accounts.manage`), care revocă sesiunile și codurile contului. Recomandarea „minimum 2 `super_admin` activi” rămâne. Procedura CLI de urgență rămâne numai pentru pierderea tuturor accesurilor (decizie tehnică). |
+| Obligativitate | obligatoriu pe staging și în producție, de la 5.2 (propunerea DN-17, tehnică; D8-8 cere „înainte de date reale”) |
+| Pierderea telefonului | **2.15, ambele mecanisme, proceduri distincte și auditate:** (A) **coduri de recuperare** generate la configurarea TOTP (de exemplu 10), afișate o singură dată, stocate numai ca HMAC (`admin_recovery_codes`), fiecare de unică folosință; (B) **resetarea TOTP de către alt `super_admin`** (`accounts.manage`), care revocă sesiunile și codurile contului. Recomandarea „minimum 2 `super_admin` activi” rămâne. Procedura CLI de urgență rămâne numai pentru pierderea tuturor accesurilor (propunere tehnică T-B7). |
 | `primarie_operator` | TOTP opțional (nu este cerut de D8-8) |
 
 ## 6. Primul `super_admin` (D8-5)
@@ -88,8 +77,7 @@
 - Până la 5.5: numai de către `super_admin`. Se generează o parolă temporară afișată o dată; sesiunile contului se revocă; se înregistrează în audit (D8-7).
 - După 5.5: resetarea prin e-mail este posibilă, dar **nu este proiectată acum** (D8-7: „poate exista”; va fi o decizie separată).
 
-
-## 8. [SET-A-01] Contul cetățeanului (D29–D31, D8, D13–D18, A-4, A-9)
+## 8. Contul cetățeanului (D29–D31, D8, D13–D18, A-4, A-9)
 
 | Element | Proiect | Statut |
 |---|---|---|
@@ -102,9 +90,9 @@
 | Enumerare | `POST /citizen/auth/start` răspunde identic indiferent dacă adresa există | propunere tehnică |
 | Sesiune | cookie `__Host-civic_sid`, `principal_type = citizen`; aceleași atribute ca la Admin (G1); expirare prin inactivitate + absolută (valori în DN-15); fără MFA | propunere tehnică |
 | Pe medii (A-9: „se proiectează tehnic”) | **dezvoltare / CI:** `EMAIL_MODE = simulated`; codul se citește din coada simulată **numai** prin comanda CLI `dev:show-code` sau prin harness-ul de teste; comanda refuză să ruleze în producție. **Staging:** înainte de 5.5 (fără SMTP), ca la dezvoltare; după 5.5, `allowlist`: pot crea conturi numai adresele din `EMAIL_ALLOWLIST` (G3-c5), celelalte primesc același 202 generic, fără e-mail. **Producție:** `live`, expeditorul pe domeniul Civic (N3-4); **fără domeniul Civic (G7), în producție nu se pot crea conturi.** | propunere tehnică (T-A3) |
-| Blocarea (D8, D13–D18) | numai `super_admin` (drept exclusiv, B4 §2.4); temporară / permanentă; efect numai asupra `POST /citizen/reports` (403 cu mesaj generic); autentificarea, lista proprie, ștergerea propriilor sesizări, votul și conținutul public neafectate | **aprobat**. **[SET-A-02] 2.6:** blocarea temporară se poate ridica manual înainte de termen de `super_admin`; blocarea este asociată contului / e-mailului (`email_hash`), nu unei identități reale. **[SET-A-03]** **K-A02-4:** `super_admin` alege la blocare între **15 zile** (expirare automată) și **definitiv** (fără expirare automată). Retenția nu anulează blocarea definitivă; pentru ea se păstrează numai identificatorul minim (`email_hash`), care împiedică recrearea contului și depunerea de sesizări (T-C6, T-C7) |
-| Politica de utilizare (D8) | **[SET-A-02] 2.9:** bifă explicită „am citit și accept” la **crearea contului**; se păstrează versiunea și data acceptării. Conținut minim: sesizări reale, informații corecte, limbaj decent, utilizare neabuzivă, responsabilitatea pentru conținut (inclusiv fotografii, 2.10); încălcarea poate duce la blocare. **Textul efectiv** se redactează (sarcină documentară, nu decizie). | **aprobat** |
-| Ștergerea contului | **[SET-A-02] 2.7:** cetățeanul își poate șterge contul (`DELETE /citizen/account`); sesizările **rămân**, conform retenției, fără autor în aplicație și fără identitate publică. ~~**[SET-A-03]** Retenția datelor contului: **REC-02 (deschis)**~~ **[SET-A-04]** Contul **nu** se șterge automat; există până când cetățeanul îl șterge (decizia 2) | **aprobat** |
+| Blocarea (D8, D13–D18) | numai `super_admin` (drept exclusiv, B4 §2.4); temporară / permanentă; efect numai asupra `POST /citizen/reports` (403 cu mesaj generic); autentificarea, lista proprie, ștergerea propriilor sesizări, votul și conținutul public neafectate | **aprobat**. **K-A02-4:** `super_admin` alege la blocare între **15 zile** (expirare automată) și **definitiv** (fără expirare automată). **2.6, A06-4:** `super_admin` poate ridica manual orice blocare, cu audit. Blocarea este asociată contului / e-mailului (`email_hash`), nu unei identități reale. Pentru blocarea definitivă se păstrează numai identificatorul minim (`email_hash`), care împiedică recrearea contului și depunerea de sesizări (T-C6, T-C7); la o încercare de recreare, titularul primește pe e-mail „Această adresă nu mai poate fi folosită pentru un cont nou.” (A06-6) |
+| Politica de utilizare (D8) | **2.9:** bifă explicită „am citit și accept” la **crearea contului**; se păstrează versiunea și data acceptării. Conținut minim: sesizări reale, informații corecte, limbaj decent, utilizare neabuzivă, responsabilitatea pentru conținut (inclusiv fotografii, 2.10); încălcarea poate duce la blocare. **Textul efectiv** se redactează (sarcină documentară, nu decizie). | **aprobat** |
+| Ștergerea contului | **2.7:** cetățeanul își poate șterge contul (`DELETE /citizen/account`); sesizările **rămân**, conform retenției, fără autor în aplicație și fără identitate publică. Contul **nu** se șterge automat; există până când cetățeanul îl șterge (A04-2) | **aprobat** |
 
 ---
 
@@ -121,49 +109,46 @@
 
 ### 2.1 Existente (neschimbate; D8-3)
 
-~~24 de permisiuni. `super_admin` = toate. `primarie_operator` = `dashboard.view`, `announcements.*` (5), `reports.*` (4), `directory.view`, `quickDial.view`, `surveys.view` (13).~~
-
-**[SET-A-02] 2.3:** `reports.moderate` **se elimină** (nu există moderare). Rămân **23** de permisiuni existente. `super_admin` = toate. `primarie_operator` = `dashboard.view`, `announcements.*` (5), `reports.view`, `reports.resolve`, `reports.reply` (3), `directory.view`, `quickDial.view`, `surveys.view` (**12**). Modifică decizia 5D (24 / 13); se consemnează în RULES numai la cererea proprietarului.
+**2.3:** `reports.moderate` **se elimină** (nu există moderare). Rămân **23** de permisiuni existente. `super_admin` = toate. `primarie_operator` = `dashboard.view`, `announcements.*` (5), `reports.view`, `reports.resolve`, `reports.reply` (3), `directory.view`, `quickDial.view`, `surveys.view` (**12**). Modifică 5D (24 / 13); se consemnează în RULES la P-13.
 
 ### 2.2 Noi (excepția D8-4; **numai `super_admin`**)
 
-**[SET-01] DN-01 aprobat:** **exact trei** permisiuni noi, exclusiv `super_admin`:
+**DN-01: exact trei** permisiuni noi, exclusiv `super_admin`:
 
 | Permisiune | Acoperă (D8-4) |
 |---|---|
 | `accounts.manage` | administrarea conturilor |
-| `notifications.recipient.manage` | configurarea destinatarului tehnic al notificărilor către Primărie (N3-5). Comutatorul A17-4, modul A17-8 și referința acordului A17-1 sunt incluse **conform primei propuneri, de confirmat (P-10)**. |
+| `notifications.recipient.manage` | configurarea destinatarului tehnic al notificărilor către Primărie (N3-5). Comutatorul A17-4, modul A17-8 și referința acordului A17-1 sunt incluse (propunere tehnică P-10). |
 | `audit.view` | consultarea auditului |
 
-**`primarie_operator` nu primește niciuna.** **[SET-01]** Nu există o a 4-a permisiune (nici pentru anonimizare, DN-12). Teste obligatorii: ~~13 / 27~~ **[SET-A-02]** matricea operatorului are exact **12** permisiuni; `super_admin` are exact **23 + 3 = 26**; `reports.moderate` nu există.
+**`primarie_operator` nu primește niciuna.** Nu există o a 4-a permisiune (nici pentru anonimizare, DN-12). Teste obligatorii: matricea operatorului are exact **12** permisiuni; `super_admin` are exact **23 + 3 = 26**; `reports.moderate` nu există.
 
-### 2.3 Maparea operațiilor noi pe permisiuni existente (Faza 3 a lăsat-o pentru Faza 4; **DN-03**)
+### 2.3 Maparea operațiilor noi pe permisiuni existente (DN-03)
 
 | Operație nouă | Permisiune propusă | Motiv |
 |---|---|---|
-| Corectarea poziției (D6-5) | ~~`reports.moderate`~~ **[SET-A-02] drept exclusiv `super_admin`** (2.11) | — |
-| ~~Răspuns către cetățean (D9-5)~~ | `reports.reply` = **[SET-A-02]** numai note interne | 2.2: nicio notificare pentru răspunsuri; D28: autorul nu vede date nepublice |
+| Corectarea poziției (D6-5) | **drept exclusiv `super_admin`** (2.11) | — |
+| Răspunsurile pe o sesizare | `reports.reply` = numai note interne (A06-3) | fără notificare (2.2); autorul nu vede date nepublice (D28) |
 | Textul integral al răspunsurilor libere (N4-9) | `surveys.edit` **+** sondaj închis | `surveys.edit` este azi numai a `super_admin`; fără permisiune nouă |
 | Marcarea „rezultate posibil afectate”, proof-of-work (N4-10) | `surveys.edit` | acțiuni pe sondaj |
 | Statisticile respingerilor la vot | `surveys.view` | date agregate |
-| Jurnalul e-mail al unei sesizări | ~~`reports.view`~~ **[SET-A-02] drept exclusiv `super_admin`** (2.11, corectura 3) | operatorul vede numai starea derivată a transmiterii, fără destinatari |
-| Jurnalul e-mail global | ~~`audit.view`~~ **[SET-A-02] drept exclusiv `super_admin`** (2.11) | conține adrese ale cetățenilor |
-| Reîncercarea manuală a unui e-mail eșuat (A17-9) | ~~`reports.resolve`~~ **[SET-A-02] drept exclusiv `super_admin`** (2.11) | — |
+| Jurnalul e-mail al unei sesizări | **drept exclusiv `super_admin`** (2.11, corectura 3) | operatorul vede numai starea derivată a transmiterii, fără destinatari |
+| Jurnalul e-mail global | **drept exclusiv `super_admin`** (2.11) | conține adrese ale cetățenilor |
+| Reîncercarea manuală a unui e-mail eșuat (A17-9) | **drept exclusiv `super_admin`** (2.11) | — |
 
+### 2.4 Drepturile exclusive ale rolului `super_admin` (A-5, A-8)
 
-### 2.4 [SET-A-01] Drepturile exclusive ale rolului `super_admin` (A-5, A-8)
-
-Aceste drepturi **nu sunt permisiuni** și **nu intră** în matricea `ROLE_PERMISSIONS`. Matricea rămâne ~~24 + 3~~ **[SET-A-02] 23 + 3 = 26** (DN-01; `reports.moderate` eliminat, 2.3). `primarie_operator` nu le primește prin nicio permisiune `reports.*`.
+Aceste drepturi **nu sunt permisiuni** și **nu intră** în matricea `ROLE_PERMISSIONS`. Matricea rămâne **23 + 3 = 26** (DN-01; `reports.moderate` eliminat, 2.3). `primarie_operator` nu le primește prin nicio permisiune `reports.*`.
 
 | Drept exclusiv | Decizie | Endpoint |
 |---|---|---|
 | ștergerea definitivă a oricărei sesizări, necondiționat | D10–D12, A-1, A-5 | `DELETE /admin/reports/:id` |
-| blocarea unui utilizator de la depunerea sesizărilor (temporar / permanent; **[SET-A-03]** **15 zile / definitiv**) | D8, D13–D14, A-5, **K-A02-4** | `POST /admin/citizens/:id/blocks` |
+| blocarea unui utilizator de la depunerea sesizărilor (temporar / permanent; **15 zile / definitiv**) | D8, D13–D14, A-5, **K-A02-4** | `POST /admin/citizens/:id/blocks` |
 | vizualizarea e-mailului cetățeanului în Admin | D29, A-8 | `GET /admin/reports/:id` (câmpul e-mail), `GET /admin/citizens` |
-| **[SET-A-02]** corectarea poziției unei sesizări | 2.11 | `PATCH /admin/reports/:id/location` |
-| **[SET-A-02]** reîncercarea unui e-mail eșuat | 2.11 | `POST /admin/reports/:id/emails/:emailId/retry` |
-| **[SET-A-02]** accesul la jurnalul e-mailurilor (per sesizare și global) | 2.11 | `GET /admin/reports/:id` (secțiunea jurnal), `GET /admin/email-log` |
-| **[SET-A-02]** ridicarea unei blocări | 2.6 | `POST /admin/citizens/:id/blocks/:blockId/lift` |
+| corectarea poziției unei sesizări | 2.11 | `PATCH /admin/reports/:id/location` |
+| reîncercarea unui e-mail eșuat | 2.11 | `POST /admin/reports/:id/emails/:emailId/retry` |
+| accesul la jurnalul e-mailurilor (per sesizare și global) | 2.11 | `GET /admin/reports/:id` (secțiunea jurnal), `GET /admin/email-log` |
+| ridicarea unei blocări | 2.6 | `POST /admin/citizens/:id/blocks/:blockId/lift` |
 
 **Implementare (propunere tehnică, T-A6):** o listă unică `SUPER_ADMIN_EXCLUSIVE` în `shared/` și o singură funcție de verificare pe server (`isSuperAdmin(session)`), analogă regulii `actsForCityHall` (6.6), centralizată. Fără verificări `role === …` împrăștiate în handler-e (5D). Frontend-ul folosește lista numai pentru afișare.
 
@@ -171,20 +156,19 @@ Aceste drepturi **nu sunt permisiuni** și **nu intră** în matricea `ROLE_PERM
 
 | Domeniu | Operație | Public | `primarie_operator` | `super_admin` | Condiții / reguli |
 |---|---|---|---|---|---|
-| Sesizări | depunere | ~~✅~~ **[SET-A-01]** ✅ numai cu **cont de cetățean confirmat și neblocat** (A-9, D15) | — | — | ~~operație publică (6.5)~~; anti-abuz (B7) |
-| | **[SET-A-01]** lista proprie, ștergerea propriei sesizări | autorul (contul său) | — | — | D19–D22, D27, A-6 |
+| Sesizări | depunere | ✅ numai cu **cont de cetățean confirmat și neblocat** (A-9, D15) | — | — | anti-abuz (B7) |
+| | lista proprie, ștergerea propriei sesizări | autorul (contul său) | — | — | D19–D22, D27, A-6 |
 | | listă / detaliu (fără contact) | ❌ (6.5 P3) | ✅ `reports.view` | ✅ | — |
-| | datele de contact (**[SET-01]** numai e-mail, C-1) | ❌ | ~~✅~~ **[SET-A-01] ❌** (A-8) | ✅ **drept exclusiv** (§2.4) | ~~6.6: vizibile numai în Admin, ambelor roluri~~ **[SET-A-01]** A-8 |
-| | ~~moderare~~ | — | — | — | **[SET-A-02] eliminat (2.3)**; permisiunea `reports.moderate` nu mai există |
-| | **[SET-01]** stadiu `new` → `in_analysis` | ❌ | ~~nedecis (P-1)~~ **[SET-A-02]** ❌ | ~~nedecis (P-1)~~ **[SET-A-02]** ❌ | **2.1:** automat, de sistem, la trimiterea efectivă a e-mailului; nimeni nu îl setează manual |
-| | **[SET-01]** stadiu `in_analysis` → `resolved` | ❌ | ✅ `reports.resolve` + `actsForCityHall` + `primaria_mode = platform` (**[SET-A-02]** confirmat în A-02 §3: „numai subcontul Primăriei”) | ❌ | DN-09: numai prin subcontul Primăriei. Nu este o permisiune nouă; este o regulă de stare, ca preluarea (6.6). |
-| | asumare / retragere individuală | ❌ | ❌ (6.6) | ✅ `reports.resolve` | numai propria asumare se retrage. **[SET-01]** nu schimbă starea (C-3); fără audit (DN-02) |
-| | preluare instituțională | ❌ | ✅ `reports.resolve` + `actsForCityHall` | ❌ | idempotentă, ireversibilă (6.6). **[SET-01]** nu schimbă starea (C-3) |
-| | notă internă (**[SET-A-02]** fără „răspuns către cetățean”) | ❌ | ✅ `reports.reply` | ✅ | fără notificare (2.2) |
-| | corectarea poziției | ❌ | ~~✅ `reports.moderate`~~ **[SET-A-02] ❌** | ✅ **drept exclusiv** (2.11) | audit |
-| | **[SET-A-02]** reîncercare e-mail / jurnal e-mail | ❌ | ❌ | ✅ **drept exclusiv** (2.11) | — |
-| | **ștergere** | ~~❌~~ **[SET-A-01]** numai autorul, pentru propria sesizare | ❌ | ~~❌~~ **[SET-A-01] ✅ drept exclusiv** (§2.4) | ~~**nu există** (6.1)~~ **[SET-A-01]** A-1 (6.1 abrogat) |
-| | **[SET-A-01]** blocarea unui cetățean | ❌ | ❌ | ✅ **drept exclusiv** (§2.4) | D8, D13–D18 |
+| | datele de contact (numai e-mail, C-1) | ❌ | **❌** (A-8) | ✅ **drept exclusiv** (§2.4) | A-8 |
+| | stadiu `new` → `in_analysis` | ❌ | ❌ | ❌ | **2.1:** automat, de sistem, la trimiterea efectivă a e-mailului; nimeni nu îl setează manual |
+| | stadiu `in_analysis` → `resolved` | ❌ | ✅ `reports.resolve` + `actsForCityHall` + `primaria_mode = platform` („numai subcontul Primăriei”, SET-A-02 §3) | ❌ | DN-09: numai prin subcontul Primăriei. Nu este o permisiune nouă; este o regulă de stare, ca preluarea (6.6). |
+| | asumare / retragere individuală | ❌ | ❌ (6.6) | ✅ `reports.resolve` | numai propria asumare se retrage; nu schimbă starea (C-3); fără audit (DN-02) |
+| | preluare instituțională | ❌ | ✅ `reports.resolve` + `actsForCityHall` | ❌ | idempotentă, ireversibilă (6.6); nu schimbă starea (C-3) |
+| | notă internă (singurul tip de răspuns, A06-3) | ❌ | ✅ `reports.reply` | ✅ | fără notificare (2.2) |
+| | corectarea poziției | ❌ | **❌** | ✅ **drept exclusiv** (2.11) | audit |
+| | reîncercare e-mail / jurnal e-mail | ❌ | ❌ | ✅ **drept exclusiv** (2.11) | — |
+| | **ștergere** | numai autorul, pentru propria sesizare | ❌ | **✅ drept exclusiv** (§2.4) | A-1 |
+| | blocarea / ridicarea blocării unui cetățean | ❌ | ❌ | ✅ **drept exclusiv** (§2.4) | D8, D13–D18, K-A02-4, A06-4 |
 | Comunicate | citire publică | ✅ (publicate, neexpirate) | ✅ | ✅ | 6.5 P5 |
 | | creare / editare / publicare / dezactivare | ❌ | ✅ | ✅ | permisiunea stării țintă (6.5) |
 | | ștergere fizică / reset | ❌ | ❌ | ❌ | fără ștergere (5B); fără reset în producție (D4) |
@@ -204,30 +188,27 @@ Aceste drepturi **nu sunt permisiuni** și **nu intră** în matricea `ROLE_PERM
 
 | Informație | Public | Notificare privată către autor (D9) |
 |---|---|---|
-| Stadiul (**[SET-01]** `in_analysis`, `resolved`; C-2) | ~~❌ (6.6)~~ **[SET-A-01] ✅ public (A-7)** | ✅ dacă există opt-in, **[SET-A-02] numai** la `nouă → în analiză` (după trimiterea efectivă, 2.1) și `în analiză → rezolvată` (2.2) |
-| Preluarea instituțională | ❌ | ~~✅~~ **[SET-A-02] ❌** (2.2) |
+| Stadiul (`in_analysis`, `resolved`; C-2) | **✅ public (A-7)** | ✅ dacă există opt-in, **numai** la `nouă → în analiză` (după trimiterea efectivă, 2.1) și `în analiză → rezolvată` (2.2) |
+| Preluarea instituțională | ❌ | **❌** (2.2) |
 | Asumarea individuală, responsabilii | ❌ | ❌ (D9-3) |
 | Nota internă | ❌ | ❌ (D9-5) |
-| ~~Răspunsul către cetățean~~ | ❌ | ~~✅~~ **[SET-A-02] ❌**: tipul nu mai există (2.2 + D28) |
-| ~~Nota de moderare, decizia de moderare~~ | — | **[SET-A-02]** nu mai există (2.3) |
 | Numele operatorilor | ❌ | ❌ (D9-7) |
 
 ## 5. Ce se auditează (propunere)
 
-**[SET-01] DN-02 aprobat:** regula 6.6 rămâne. Asumarea și retragerea asumării individuale **nu** se auditează; auditul nu se folosește pentru a reconstrui un istoric al asumărilor. Lista de mai jos (operații administrative) rămâne **propunere**.
+**DN-02:** regula 6.6 rămâne. Asumarea și retragerea asumării individuale **nu** se auditează; auditul nu se folosește pentru a reconstrui un istoric al asumărilor. Lista de mai jos (operații administrative) rămâne **propunere**.
 
 - **Conturi:** creare, dezactivare / reactivare, schimbarea rolului, resetarea parolei, resetarea TOTP, autentificări reușite și eșuate (agregat).
-- **[SET-A-01] Cetățeni:** blocarea (propus). Ștergerea sesizărilor (de către autor sau `super_admin`): ~~**B-7 (deschis)**~~ **[SET-A-03]** **B-7 decis: ștergerile definitive NU se auditează.** În plus, rândurile de audit care privesc sesizarea ștearsă se șterg (T-C3). **[SET-A-04]** Retenția auditului administrativ (operațiile de mai jos care nu privesc o sesizare): **6 luni**, apoi ștergere automată (decizia 4).
-- **[SET-A-02] Recuperarea TOTP (2.15):** folosirea unui cod de recuperare și resetarea de către alt `super_admin`, ca **acțiuni distincte**; regenerarea codurilor.
-- **[SET-A-02] Blocări:** crearea și ridicarea (2.6). **[SET-A-05]** Și **expirarea** automată a unei blocări temporare (actor `system`), ca informația despre blocare să rămână în auditul administrativ **6 luni** după expirare sau ridicare (REC-02 (e), T-E1).
+- **Ștergerea sesizărilor** (de către autor, `super_admin` sau prin retenție): **nu se auditează** (B-7); rândurile de audit care privesc sesizarea ștearsă se șterg (T-C3).
+- **Retenție:** auditul administrativ (operațiile care nu privesc o sesizare) se păstrează **6 luni**, apoi se șterge automat (A04-4).
+- **Recuperarea TOTP (2.15):** folosirea unui cod de recuperare și resetarea de către alt `super_admin`, ca **acțiuni distincte**; regenerarea codurilor.
+- **Blocări:** crearea, ridicarea (2.6, A06-4) și **expirarea** automată a unei blocări temporare (actor `system`), ca informația despre blocare să rămână în auditul administrativ 6 luni după expirare sau ridicare (A05-3, T-E1).
 - **Setări:** destinatarul, comutatorul, modul Primăriei, referința acordului.
 - **Sesizări:**
   - corectarea poziției;
-  - ~~moderarea (propus, pentru trasabilitate);~~ **[SET-A-02]** nu mai există (2.3);
   - schimbarea stadiului (propus);
   - preluarea instituțională (propus);
-  - ~~anonimizarea contactului (DN-12)~~ **[SET-01] eliminat:** operația nu există;
-  - reîncercarea unui e-mail.
-  - **[SET-A-03]** rândurile de mai sus se păstrează numai cât există sesizarea: la ștergerea ei (de către autor, `super_admin` sau prin retenție) se șterg (B-7, REC-01).
-- **Sondaje:** creare, activare, închidere (**[SET-01]** inclusiv închiderea automată la `end_at`, actor `system`, E-3), marcaj de integritate, proof-of-work, consultarea textelor libere (acces la date posibil personale).
+  - reîncercarea unui e-mail;
+  - rândurile de mai sus se păstrează numai cât există sesizarea: la ștergerea ei (de către autor, `super_admin` sau prin retenție) se șterg (B-7, REC-01).
+- **Sondaje:** creare, activare, închidere (inclusiv închiderea automată la `end_at`, actor `system`, E-3), marcaj de integritate, proof-of-work, consultarea textelor libere (acces la date posibil personale).
 - **Comunicate:** publicare / dezactivare (propus).

@@ -4,23 +4,11 @@
 **Instrucțiune:** „FAZA 4 — ÎNCEPERE PROIECTARE BACKEND”
 **Executant:** Claude · **Auditor:** ChatGPT · **Aprobare:** Sergiu
 
-> **Revizia 1 (SET-01, 27.09.2026):** au fost aplicate deciziile aprobate în `FAZA_4_INSTRUCTIUNI_CLAUDE_01.md` (DN-01, DN-02, DN-09, DN-12, DN-21, E-3, pct. 7) și clarificările C-1…C-4. Rezumatul este în `FAZA_4_DECIZII_NOI.md` §0; punctele deschise noi (P-1…P-13) în §C; lista modificărilor în `FAZA_4_RAPORT_MODIFICARI_SET_01.md`. Modificările sunt marcate **[SET-01]**. **Designul rămâne neaprobat și neînghețat.**
-
-> **Revizia 2 (SET-A-01, 27.09.2026):** au fost aplicate deciziile D8–D31 (`FAZA_4_DECIZII_8_31_INSTRUCTIUNI_CLAUDE.md`) și A-1…A-9 (`FAZA_4_DECIZII_A1_A9_INSTRUCTIUNI_CLAUDE.md`). Rezumatul este în `FAZA_4_DECIZII_NOI.md` §0.3; problemele deschise B-3…B-14 și consecințele tehnice T-A1…T-A10 în §D; raportul în `FAZA_4_RAPORT_MODIFICARI_SET_A_01.md`. Modificările sunt marcate **[SET-A-01]**. **Designul rămâne neînghețat.**
-
-> **Revizia 3 (SET-A-02, 27.09.2026):** au fost aplicate deciziile 2.1–2.15 din `TMC_FAZA_4_INSTRUCTIUNI_CLAUDE_SET_A_02.md` și corecturile obligatorii 1–13. Rezumatul este în `FAZA_4_DECIZII_NOI.md` §0.4; punctele care mai cer o decizie (K-A02-1…K-A02-4) și lista punctelor încă deschise în §E; raportul în `FAZA_4_RAPORT_MODIFICARI_SET_A_02.md`. Marcaj **[SET-A-02]**. **Designul rămâne neînghețat.**
-
-> **Revizia 4 (SET-A-03, 28.09.2026):** au fost aplicate deciziile K-A02-3, REC-01, B-7, K-A02-4 și DN-19 din `istoric/Turnu_Magurele_Civic_INSTRUCTIUNI_SET_A03.md`. DN-04 rămâne temporar deschis: **lista T1–T8 din §6 nu a fost modificată**. Rezumatul este în `FAZA_4_DECIZII_NOI.md` §0.5 și §F; raportul în `FAZA_4_RAPORT_MODIFICARI_SET_A_03.md`. Marcaj **[SET-A-03]**. **Designul rămâne neînghețat.**
-
-> **Revizia 5 (SET-A-04, 28.09.2026):** au fost aplicate deciziile din `istoric/Turnu_Magurele_Civic_SET_DECIZII_INTEGRARE.md`: retenția sesizărilor 45 de zile de la depunere, **fără** excepția de ≈ 90 de zile; contul cetățeanului fără ștergere automată; auditul administrativ 6 luni; DN-04 (lista T1–T8 păstrată exact), DN-05, DN-07 (Windows 11), DN-19. Rezumatul în `FAZA_4_DECIZII_NOI.md` §0.6 și §G; raportul în `FAZA_4_RAPORT_MODIFICARI_SET_A_04.md`. Marcaj **[SET-A-04]**. **§6 nu a fost modificat. Designul rămâne neînghețat.**
-
-> **Revizia 6 (SET-A-05, 28.09.2026):** au fost aplicate deciziile din `istoric/Turnu_Magurele_Civic_SET-A-05_FINAL_RETENTIE.md`: jurnalele aplicației, sesiunile expirate și textele libere din sondaje **6 luni**; blocarea temporară expirată sau ridicată rămâne în auditul administrativ (6 luni); jurnalul e-mail al unei sesizări se șterge **odată cu sesizarea**. Rezumatul în `FAZA_4_DECIZII_NOI.md` §0.7 și §H; raportul în `FAZA_4_RAPORT_MODIFICARI_SET_A_05.md`. Marcaj **[SET-A-05]**. **Designul rămâne neînghețat.**
-
-> **Stare:** pachet de proiectare **propus, NEAPROBAT, NEÎNGHEȚAT**. Checkpoint-ul Fazei 4 **nu este atins**: lipsesc revizia, aprobarea și deciziile DN-01…DN-24.
+> **Revizia 7, versiune curată (28.09.2026).** Conține numai regulile valabile. Istoricul reviziilor 1–6 (text tăiat, marcaje de set) este în `istoric/revizia_6_adnotata/`; sursa fiecărei decizii este în `FAZA_4_REGISTRU_DECIZII.md`. Valorile marcate „propunere” sau „propunere tehnică” se confirmă la auditul final.
 >
-> **Nu s-a implementat nimic:** nu există `server/` sau `shared/`, nu s-a instalat nimic, `package.json` este neschimbat, nu există migrații sau endpoint-uri, nicio acțiune pe hosting, DNS, MySQL sau VPS.
+> **Stare:** design complet, **neînghețat**, pregătit pentru **auditul final**. Nicio decizie de produs deschisă. Checkpoint-ul Fazei 4 **nu este atins** până la audit și aprobarea proprietarului.
 >
-> **Repository-ul este neatins:** HEAD `cb9f47e` = GitHub, working tree curat, `main` = `d9bc2c9`. Documentele sunt în afara repository-ului. Nu am făcut commit sau push.
+> **Nu s-a implementat nimic:** nu există `server/` sau `shared/`, `package.json` este neschimbat, nu există migrații sau endpoint-uri, nicio acțiune pe hosting, DNS, MySQL sau VPS. Documentele sunt în repository, pe branch-ul `recovery-etapa-5-0e2cc20`; `main` = `d9bc2c9`, neatins.
 
 ---
 
@@ -35,7 +23,8 @@
 | `FAZA_4_B5_B8_SESIZARI_DATE_PERSONALE.md` | **B5:** fluxul tranzacțional, `TM-XXX`, fotografii, `PublicMapReport`, stadii. **B8:** inventarul datelor personale |
 | `FAZA_4_B6_B7_EMAIL_ANTISPAM.md` | **B6:** coada, moduri, șabloane, retry, retenție. **B7:** anti-abuz pe zone; garantat / redus / negarantat |
 | `FAZA_4_B10_TESTARE.md` | **B10:** niveluri, matrice CI, acoperire legată de decizii, adaptarea suitei, criterii de acceptare |
-| `FAZA_4_DECIZII_NOI.md` | **contradicțiile K-1…K-6 și deciziile noi DN-01…DN-24** |
+| `FAZA_4_REGISTRU_DECIZII.md` | **registrul deciziilor valabile ale Fazei 4** (cu sursa fiecăreia), regulile din RULES înlocuite, propunerile tehnice de confirmat la audit |
+| `istoric/` | instrucțiunile, rapoartele de modificări și versiunile adnotate ale reviziilor anterioare |
 
 B9 nu se folosește (Plan v1.1).
 
@@ -59,7 +48,7 @@ B9 nu se folosește (Plan v1.1).
                      Aplicația Node (Fastify 5, TypeScript compilat într-un singur fișier)
        ┌────────────┬─────────────┬──────────────┬─────────────┬──────────────┐
     rute publice  rute cetățean  rute auth     rute Admin    CLI (cron / deploy)
-                  [SET-A-01] /citizen/*: cont prin cod pe e-mail, sesizările proprii
+ /citizen/*: cont prin cod pe e-mail, sesizările proprii
        └────────────┴─────────────┴──────┬───────┴─────────────┴──────────────┘
                            servicii de domeniu (reguli 5C, 6.1–6.6, D3/D4, D6, D9, A-17, N-4)
                            shared/: tipuri, scheme Zod, matricea de permisiuni
@@ -93,7 +82,7 @@ B9 nu se folosește (Plan v1.1).
 
 | Mediu | Runtime | DB | E-mail | Date | Referință |
 |---|---|---|---|---|---|
-| Dezvoltare | Node 24 (+ 20 în CI) | MySQL 8.4 local (DN-07; **[SET-A-04]** sistemul de operare: **Windows 11**) | `simulated` | demo (seed) | G3 |
+| Dezvoltare | Node 24 (+ 20 în CI) | MySQL 8.4 local (DN-07; sistemul de operare: **Windows 11**) | `simulated` | demo (seed) | G3 |
 | CI | Node 20 + 24 | MySQL 8.0 + 8.4 (containere) | `simulated` + captare SMTP (DN-24) | seed de test | G5, B10 |
 | Staging temporar | Node 20.20.2 (Basic Plus, Passenger) | MySQL 8.0.37 | `allowlist` / `simulated` | **numai demo** | G3 + cele 8 condiții |
 | Producție | Node 24 LTS | MySQL 8.4 LTS | `live` (după A-17) | curată + referință verificată | G6 (deschis), D10 |
@@ -115,9 +104,10 @@ B9 nu se folosește (Plan v1.1).
 | `TOTP_ENC_KEY` | criptarea secretelor TOTP (32 de octeți) | **da** |
 | `EMAIL_MODE`, `EMAIL_ALLOWLIST`, `MAIL_FROM`, `CIVIC_MAIL_DOMAIN` | e-mail (B6) | nu |
 | `SMTP_HOST` / `PORT` / `SECURE` / `USER` / **`PASS`** | furnizorul SMTP | **`SMTP_PASS` da** |
-| `UAT_BOUNDARY_FILE` | fișierul GeoJSON al limitei UAT Turnu Măgurele (**[SET-A-02] 2.12**: verificare obligatorie pe server; sursa: limita administrativă OSM, ODbL, cu atribuire, verificată vizual de proprietar față de o sursă oficială; decizie tehnică, fosta DN-08) | nu |
-| **[SET-A-02]** `GEOCODER_URL`, `GEOCODER_USER_AGENT` | serviciul de geocodare pentru adrese (2.4), apelat numai de server (proxy), cu cache scurt în memorie per cerere și limite; implicit un serviciu compatibil Nominatim, cu respectarea politicii lui de utilizare. În CI: serviciu simulat. | nu |
-| **[SET-A-02]** `RETENTION_DAYS` | 45 (2.5); nu se poate seta peste valoarea aprobată fără decizie | nu |
+| `UAT_BOUNDARY_FILE` | fișierul GeoJSON al limitei UAT Turnu Măgurele (**2.12**: verificare obligatorie pe server; sursa: limita administrativă OSM, ODbL, cu atribuire, verificată vizual de proprietar față de o sursă oficială; propunere tehnică T-B6) | nu |
+| `GEOCODER_URL`, `GEOCODER_USER_AGENT` | serviciul de geocodare pentru adrese (2.4): **serviciul public OpenStreetMap Nominatim** (A06-5), apelat numai de server (proxy), cu respectarea politicii lui de utilizare (maximum o cerere pe secundă, `User-Agent` identificabil, atribuirea „© OpenStreetMap”), cache scurt și limite. În CI: serviciu simulat. | nu |
+| `RETENTION_DAYS` | 45 (2.5, K-A02-3); nu se poate seta peste valoarea aprobată fără decizie | nu |
+| `ADMIN_RETENTION_MONTHS` | 6 (A04-4, A05-1, A05-2): auditul administrativ, jurnalele aplicației, sesiunile expirate, textele libere din sondaje | nu |
 | `LOG_LEVEL` | nivelul jurnalelor | nu |
 
 **Reguli:**
@@ -175,45 +165,42 @@ Versiunile sunt citite din registrul npm pe 27.09.2026. Se **fixează exact** la
 | R-3 | Mecanismul Passenger / cPanel (butoane, restart, rularea scripturilor) neconfirmat (K2) | mediu | testul minim la 5.1, cu aprobare; alternativa S2 (G3) |
 | R-4 | Drizzle < 1.0 | mediu | fixare exactă; migrații SQL versionate, portabile |
 | R-5 | Cod propriu pentru EXIF / semnături / UAT | mediu | teste unitare cu fișiere reale și malformate |
-| R-6 | Pierderea accesului `super_admin` (TOTP) | mediu | ~~DN-18~~ **[SET-A-02] 2.15:** coduri de recuperare de unică folosință + resetare de către alt `super_admin`; recomandare: minimum 2 `super_admin` activi |
-| R-7 | Spam către Primărie înainte de moderare | mediu | B7 + DN-22 + comutatorul A17-4. **[SET-01]** redus: transmiterea se face numai la cererea cetățeanului (pct. 7); **[SET-A-02]** + maximum 3 transmiteri / cont / 24 h (2.14) |
+| R-6 | Pierderea accesului `super_admin` (TOTP) | mediu | **2.15:** coduri de recuperare de unică folosință + resetare de către alt `super_admin`; recomandare: minimum 2 `super_admin` activi |
+| R-7 | Spam către Primărie | mediu | transmiterea numai la cererea cetățeanului (pct. 7); maximum 3 transmiteri / cont / 24 h (2.14); comutatorul A17-4; proof-of-work activabil (B7) |
 | R-8 | Performanța `scrypt` pe 1 vCPU partajat | mic–mediu | parametri moderați (DN-15); limite la login |
 | R-9 | Rotirea greșită a `PARTICIPATION_HMAC_SECRET` | mic | regulă documentată (§5); rotire numai fără sondaje deschise |
-| R-10 | ~~Retenție neclarificată~~ **[SET-A-02]** Retenție decisă: 45 de zile (2.5); momentul de referință pentru sesizări și conturi: **K-A02-3**; verificarea juridică rămâne înainte de „date reale”. **[SET-A-03]** De la depunere, pentru toate datele sesizării (K-A02-3, REC-01); ~~contul și datele fără sesizare: REC-02~~ **[SET-A-04]** contul fără ștergere automată; auditul administrativ 6 luni; ~~restul: REC-02~~ **[SET-A-05]** jurnale, sesiuni, texte libere 6 luni; jurnalul e-mail cu sesizarea | mediu | B1 §3.9 |
+| R-10 | Retenția: datele sesizării 45 de zile de la depunere (K-A02-3, REC-01); contul fără ștergere automată (A04-2); auditul administrativ, jurnalele, sesiunile expirate 6 luni; textele libere 6 luni de la închiderea sondajului (A06-1). Verificarea juridică rămâne obligatorie înainte de „date reale”. | mediu | B1 §3.9 |
 | R-11 | Resurse partajate cu Electrovolt pe staging | mic | T-ISO-5 + numai trafic de test (G3) |
-| R-12 | Faza 4 cere „schema completă” înainte de deciziile DN | — | schema este completă ca structură; DN-urile schimbă **valori și permisiuni**, nu entități. **[SET-01]** DN-02 și DN-12 sunt aprobate (fără permisiune nouă; `report_contacts` redus la e-mail). DN-09 a schimbat enum-ul stărilor. Rămân DN-13 (un enum) și P-1…P-13. |
-| **R-13** | **[SET-01]** Deciziile din setul 01 modifică reguli consemnate în RULES (5C, 6.6-g, A17-3, A17-5, A17-6, D9-3), care nu sunt încă actualizate în repository | mediu | consemnarea în RULES numai la cererea proprietarului (P-13); până atunci, designul trimite la `FAZA_4_DECIZII_NOI.md` §0 |
-| **R-14** | **[SET-01]** `super_admin` nu mai poate marca o sesizare „rezolvată” (DN-09); dacă Primăria nu participă, nicio sesizare nu devine „rezolvată” | mic (comportament voit) | consecința directă a DN-09; confirmarea traducerii tehnice: P-9 |
-| **R-15** | **[SET-A-01/02]** Publicarea imediată, **fără nicio moderare** (D9, 2.3), inclusiv a fotografiilor (2.10): conținut abuziv sau date ale unor terți | mediu–ridicat | cont confirmat; politica acceptată (2.9); blocare (2.6); ștergere de către `super_admin`; limite per cont (B7). Risc asumat prin decizie. |
-| **R-16** | **[SET-A-01]** Fără domeniul Civic (G7) și fără SMTP în producție nu se pot crea conturi de cetățeni, deci nu se pot depune sesizări | ridicat (blochează utilizarea reală) | dependență de G7 / N3-2 / 5.5; pe dezvoltare și staging: coduri `simulated` / `allowlist` (T-A3) |
-| **R-17** | **[SET-A-01]** Ștergerea definitivă nu poate curăța imediat backup-urile și e-mailurile deja trimise | ~~mediu~~ **[SET-A-02] mic** | **[SET-A-02]** rezolvat prin retenție: toate copiile expiră în cel mult 45 de zile (2.5); e-mailul deja primit de Primărie rămâne în afara aplicației (D21). ~~**[SET-A-03]** Precizare: o copie de siguranță realizată înainte de ștergere se păstrează până la rotația ei (limita tehnică din REC-01, T-C4)~~ **[SET-A-04]** regula de produs rămâne 45 de zile de la depunere; respectarea ei în copiile de siguranță este o problemă tehnică de implementare (T-D1) |
-| **R-18** | **[SET-A-01]** Regulile din RULES §6 / §11, Planul v1.1 și Master Planul sunt depășite (6.1, 3E, 6.6, D6-2, D9-6, fluxul critic) | mediu | amendament documentar, **numai la cererea proprietarului** (P-13 extins) |
-| **R-19** | **[SET-A-02]** Geocodarea depinde de un serviciu extern: disponibilitate, limite de utilizare, atribuire; adresele ajung la terț (numai textul adresei) | mic–mediu | proxy pe server, cache, limite; la eșec sesizarea se salvează fără poziție (2.4); furnizorul concret se fixează la 5.4 (tehnic) |
-| **R-20** | **[SET-A-02]** Retenția de 45 de zile poate șterge o sesizare încă `în analiză` sau înainte să fie `rezolvată`, iar harta pierde istoricul | mediu | ~~depinde de momentul de referință **K-A02-3**~~ **[SET-A-03]** **asumat prin decizie:** K-A02-3 = de la depunere; o sesizare dispare după 45 de zile indiferent de stare, inclusiv `în analiză` |
-| **R-21** | **[SET-A-03]** Imaginile comunicatelor există numai în versiunea aplicației (DN-19): o imagine nouă cere o versiune nouă | mic | asumat prin decizie; comunicatele se pot publica și fără imagine |
+| R-12 | Valorile numerice (DN-15) sunt propuneri | mic | configurabile; se ajustează în 5.x pe baza testelor |
+| **R-13** | Deciziile Fazei 4 modifică reguli consemnate în RULES §6 / §11, încă neactualizate | mediu | P-13, la cererea proprietarului, înainte de Faza 5; până atunci, sursa de adevăr este `FAZA_4_REGISTRU_DECIZII.md` |
+| **R-14** | `super_admin` nu poate marca o sesizare „rezolvată”; dacă Primăria nu participă, nicio sesizare nu devine „rezolvată” | mic (comportament voit) | consecința directă a DN-09 și a regulii „`rezolvată` numai prin subcontul Primăriei” (SET-A-02 §3) |
+| **R-15** | Publicarea imediată, **fără nicio moderare** (D9, 2.3), inclusiv a fotografiilor (2.10): conținut abuziv sau date ale unor terți | mediu–ridicat | cont confirmat; politica acceptată (2.9); blocare (2.6); ștergere de către `super_admin`; limite per cont (B7). Risc asumat prin decizie. |
+| **R-16** | Fără domeniul Civic (G7) și fără SMTP în producție nu se pot crea conturi de cetățeni, deci nu se pot depune sesizări | ridicat (blochează utilizarea reală) | dependență de G7 / N3-2 / 5.5; pe dezvoltare și staging: coduri `simulated` / `allowlist` (T-A3) |
+| **R-17** | Ștergerea definitivă nu poate retrage e-mailul deja primit de Primărie și nu curăță automat copiile de siguranță | mic | e-mailul primit de Primărie rămâne în afara aplicației (D21); regula de produs rămâne 45 de zile de la depunere (A04-1); respectarea ei în copiile de siguranță este o **problemă tehnică de implementare** (T-D1), de rezolvat la 5.1 |
+| **R-18** | Planul v1.1 și Master Planul sunt depășite (fluxul `Admin → Moderare → Hartă`, conturile de cetățeni) | mediu | amendament documentar, la cererea proprietarului (P-13) |
+| **R-19** | Geocodarea depinde de un serviciu extern: disponibilitate, limite de utilizare, atribuire; adresele ajung la terț (numai textul adresei) | mic–mediu | furnizorul: Nominatim public (A06-5); proxy pe server, cache, limite; la eșec, cetățeanul pune pinul manual sau sesizarea se salvează fără poziție (2.4) |
+| **R-20** | O sesizare dispare după 45 de zile de la depunere indiferent de stare, inclusiv `în analiză`; harta nu păstrează istoric | mediu | **asumat prin decizie** (K-A02-3) |
+| **R-21** | Imaginile comunicatelor există numai în versiunea aplicației (DN-19): o imagine nouă cere o versiune nouă | mic | asumat prin decizie; comunicatele se pot publica și fără imagine |
 
 ## 9. Stadiul checkpoint-ului Fazei 4 (instrucțiunea §17)
 
 | Criteriu | Stare |
 |---|---|
 | B1–B8 și B10 proiectate | ✅ **propus** (documentele de mai sus) |
-| Schema DB completă | ✅ **structural**; **[SET-A-02]** 30 de tabele (B1 §7); rămâne neînghețată ~~până la K-A02-1…K-A02-4 și aprobarea finală~~ **[SET-A-03]** până la REC-02 și aprobarea finală; numărul de tabele rămâne 30. **[SET-A-04]** Rămân: ~~restul REC-02 și~~ aprobarea finală. **[SET-A-05]** REC-02 închis; numărul de tabele rămâne 30 |
+| Schema DB completă | ✅ 30 de tabele (B1 §7); se îngheață la aprobarea checkpoint-ului |
 | Contractele API complete | ✅ **propus** (B2); detaliile de câmp urmează schemele Zod de la 5.x |
 | Arhitectura coerentă | ✅ propus |
-| Deciziile restante identificate | ✅ DN-01…DN-24; **[SET-01]** aprobate: DN-01, DN-02, DN-09, DN-12, DN-21, E-3; noi deschise: P-1…P-13. **[SET-A-01]** aprobate: D8–D31, A-1…A-9; deschise: B-3…B-5, B-7…B-14. **[SET-A-02]** aprobate: 2.1–2.15; mai cer decizie: K-A02-1…K-A02-4 + DN-04, DN-05, DN-19 (§E). **[SET-A-03]** decise: K-A02-3, REC-01, B-7, K-A02-4, DN-19; deschise: REC-02, DN-04 (temporar), DN-05; informație: DN-07 (`FAZA_4_DECIZII_NOI.md` §F). **[SET-A-04]** decise: contul fără ștergere automată, auditul administrativ 6 luni, DN-04, DN-05, DN-07; deschise: restul REC-02 (jurnale, sesiuni, texte libere, blocări temporare expirate) și T-C8 (`FAZA_4_DECIZII_NOI.md` §G). **[SET-A-05]** decise: REC-02 (c), (d), (e), T-C8; **nicio decizie de produs deschisă**; de confirmat: observația O-A05-1 și propunerile tehnice (`FAZA_4_DECIZII_NOI.md` §H) |
-| Contradicțiile rezolvate sau prezentate | ✅ **[SET-01]** K-2, K-3, K-6 închise prin decizie; K-5 modificată; K-1, K-4 deschise; nimic rezolvat tacit |
+| Deciziile de produs | ✅ **toate luate**; registrul: `FAZA_4_REGISTRU_DECIZII.md` |
+| Contradicțiile rezolvate sau prezentate | ✅ rezolvate prin decizii; documentația curată nu mai conține reguli contradictorii (de verificat la audit) |
+| Propunerile tehnice | ⏳ de confirmat la audit (`FAZA_4_REGISTRU_DECIZII.md` §4) |
 | Designul revizuit | ❌ **așteaptă auditul ChatGPT** |
 | Designul aprobat explicit | ❌ **așteaptă aprobarea proprietarului** |
 
 **Checkpoint-ul Fazei 4 NU este atins.** Faza 5 nu începe.
 
-## 10. Raport scurt
+## 10. Ce urmează
 
-| Întrebare | Răspuns |
-|---|---|
-| Ce am analizat | documentația aprobată (RULES §11, HANDOFF, Plan v1.1, Master Plan, rapoartele Fazei 3); codul (tipuri, servicii, gărzi de permisiuni, formularul, compresia); versiunile și compatibilitatea dependențelor (npm, numai citire) |
-| Documente create | 8 fișiere `.md` (§1), **în afara repository-ului** |
-| Decizii deja acoperite | toate deciziile Fazei 3 sunt integrate: N-2 / G1–G10, N-3, D6, D8, D3/D4, N-4, D10 V2, D9, A-17; regulile 5C, 5D, 6.1–6.6 |
-| Decizii noi | **DN-01…DN-24** (`FAZA_4_DECIZII_NOI.md`) |
-| Contradicții | **K-1…K-6**: T1–T8 nedefinite; audit față de 6.6; textul public al locației față de D6; compatibilitatea unor versiuni recente cu Node 20 (fără încălcare); spamul către Primărie înainte de moderare; anonimizarea în afara listei D8-4. **[SET-01]** K-2, K-3, K-6 închise; K-5 modificată (pct. 7) |
-| Ce lipsește pentru checkpoint | revizia ChatGPT; deciziile DN-01…DN-24; aprobarea explicită a designului; apoi înghețarea schemei și a contractelor |
+1. Auditul final al Fazei 4 (ChatGPT), pe această versiune curată.
+2. Aprobarea checkpoint-ului de către proprietar; înghețarea schemei și a contractelor.
+3. P-13: actualizarea RULES, HANDOFF, Planului v1.1 și Master Planului.
+4. Faza 5, pe un branch nou dedicat (A04-7).
