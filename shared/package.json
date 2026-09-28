@@ -1,0 +1,13 @@
+{
+  "name": "@tmc/shared",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Turnu Măgurele Civic — cod comun frontend / server (tipuri, scheme Zod). Faza 5.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  }
+}

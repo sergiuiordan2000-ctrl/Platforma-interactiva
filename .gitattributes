@@ -1,0 +1,22 @@
+# Sfârșituri de linie LF în repository, indiferent de sistemul de operare
+# (lucru mixt Windows 11 / Linux; Faza 5.1, pasul 5.1.2).
+* text=auto eol=lf
+
+# Scripturi Windows: CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Fișiere binare: fără conversie
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.gz binary
+*.woff binary
+*.woff2 binary
+*.apk binary
