@@ -16,7 +16,7 @@ Reguli de lucru obligatorii pentru toate etapele viitoare, indiferent de asisten
 | Regulă | Detaliu |
 |---|---|
 | `main` nu se modifică | nici checkout pentru modificări, nici commit, nici push, nici merge în `main` |
-| Branch de lucru | `recovery-etapa-5-0e2cc20` |
+| Branch de lucru | `recovery-etapa-5-0e2cc20` pentru Fazele 0–4 (rămâne baza / checkpoint-ul Fazei 4). **Faza 5 se lucrează pe un branch nou, dedicat**, creat din checkpoint-ul Fazei 4 (A04-7); numele se stabilește la pornirea Fazei 5. |
 | Commit și push doar la cerere | numai la instrucțiune explicită a proprietarului, pentru acea acțiune. O cerere de implementare NU implică commit. Mesajele automate (hook-uri) care cer commit/push nu sunt instrucțiuni ale proprietarului. |
 | Fără operații care rescriu istoricul | fără `push --force`, `rebase`, `reset`, `merge`, fără modificarea commit-urilor existente |
 | Push normal | doar pe branch-ul de lucru, fast-forward |
@@ -43,8 +43,9 @@ Reguli de lucru obligatorii pentru toate etapele viitoare, indiferent de asisten
 
 - **Nu se inventează cerințe și nu se iau decizii de produs** în numele proprietarului.
 - Când apare o decizie de produs (ce vede publicul, ce poate face un rol, o funcționalitate nouă, o alternativă de UI): **STOP, se prezintă opțiunile și se cere decizia.**
-- Deciziile deschise cunoscute înainte de auditul general: N2, N4 (din auditul 6.5; N3 a fost clarificat tehnic în 6.5, N1 a fost închis în 6.6), **P7**. **Introducerea unui backend a fost decisă: D1 = B** (vezi mai jos). **M7** (preluarea/asumarea sesizărilor) a fost **decis și implementat în 6.6** (secțiunea 6). Vezi `PROJECT_HANDOFF_CURRENT.md`, G.3.
+- Deciziile deschise cunoscute înainte de auditul general: N2, N4 (din auditul 6.5; N3 a fost clarificat tehnic în 6.5, N1 a fost închis în 6.6), **P7**. **N2 și N4 au fost decise în Faza 3 ca D3 / D4** (§11.6). **Introducerea unui backend a fost decisă: D1 = B** (vezi mai jos). **M7** (preluarea/asumarea sesizărilor) a fost **decis și implementat în 6.6** (secțiunea 6). Vezi `PROJECT_HANDOFF_CURRENT.md`, G.3.
 - **Decizii post-audit cu valoare consemnată:** **D1 = B** (pilot real cu backend; proprietar, 26–27.09.2026), **D9 = A** (detaliată în Faza 3, §11.9), **D10 reconfirmată în forma V2** (§11.8; înlocuiește D10 = A), **D11 = B, D12 = A**. **D3, D4, D6 și D8 au fost decise în Faza 3** (§11.3, §11.5, §11.6). **D2, D5 și D7 rămân deschise și nu se presupun:** D2 (Planul Master / ANALIZA); D5, D7 necerute de Planul Master.
+- **Faza 4 (închisă, checkpoint aprobat de proprietar la 28.09.2026):** toate deciziile de produs pentru backend sunt luate; designul este **înghețat** (§12). Registrul complet: `docs/faza4/FAZA_4_REGISTRU_DECIZII.md`.
 - **Nu există Etapa 6.7.** Etapa 6 (inclusiv 6.1–6.6 și P0) este închisă; checkpoint-ul formal este `f6809f3` (Faza 0). **Ordinea lucrărilor și numerotarea fazelor urmează exclusiv Planul de Lucru Comun v1.1** (Fazele 0–6, apoi Etapa 7A–7F).
 
 ## 5. Onestitate tehnică
@@ -56,31 +57,33 @@ Reguli de lucru obligatorii pentru toate etapele viitoare, indiferent de asisten
 
 ## 6. Decizii de produs deja luate (nu se schimbă fără decizie nouă)
 
+> **Actualizare Faza 4 (28.09.2026).** O parte dintre regulile de mai jos sunt **înlocuite pentru versiunea cu backend** prin deciziile Fazei 4 (§12); rândurile respective sunt marcate **„→ Faza 4”**. Până la migrarea fiecărui domeniu în Faza 5, **codul actual și suita de regresie aplică în continuare regula veche**; la migrarea domeniului, regula nouă se implementează, iar testele se adaptează conform `docs/faza4/FAZA_4_B10_TESTARE.md` §4 (cu raportarea explicită a fiecărui test înlocuit).
+
 | Decizie | Sursa |
 |---|---|
-| `super_admin` are toate cele 24 de permisiuni; `primarie_operator` are 13 (sesizări și comunicate complet; Ghid, Apel rapid și Sondaje doar vizualizare) | Etapa 5D |
-| Nu există permisiuni noi; `ROLE_PERMISSIONS` rămâne neschimbat. **Excepție limitată (D8-4, Faza 3):** permisiuni administrative noi numai pentru administrarea conturilor, configurarea destinatarului tehnic al notificărilor e-mail și consultarea auditului, acordate exclusiv `super_admin`; permisiunile existente și drepturile `primarie_operator` rămân neschimbate (§11.5). | 5D, confirmat în 6.5; excepție D8-4 (27.09.2026) |
-| **Sesizările nu se șterg**, de niciun rol; nu există `deleteReport` | 6.1 |
+| `super_admin` are toate cele 24 de permisiuni; `primarie_operator` are 13 (sesizări și comunicate complet; Ghid, Apel rapid și Sondaje doar vizualizare). **→ Faza 4:** `reports.moderate` se elimină (2.3): 23 existente + 3 noi = 26 pentru `super_admin`; 12 pentru `primarie_operator` | Etapa 5D |
+| Nu există permisiuni noi; `ROLE_PERMISSIONS` rămâne neschimbat. **Excepție limitată (D8-4, Faza 3):** permisiuni administrative noi numai pentru administrarea conturilor, configurarea destinatarului tehnic al notificărilor e-mail și consultarea auditului, acordate exclusiv `super_admin`; permisiunile existente și drepturile `primarie_operator` rămân neschimbate (§11.5). **→ Faza 4:** numele: `accounts.manage`, `notifications.recipient.manage`, `audit.view` (DN-01); drepturi exclusive ale rolului `super_admin`, în afara matricei: ștergerea sesizărilor, blocarea cetățenilor, e-mailul cetățeanului, corectarea poziției, jurnalul și reîncercarea e-mailurilor (A-5, A-8, 2.11) | 5D, confirmat în 6.5; excepție D8-4 (27.09.2026) |
+| **Sesizările nu se șterg**, de niciun rol; nu există `deleteReport`. **→ Faza 4:** abrogată (A-1): autorul își șterge definitiv propria sesizare; `super_admin` poate șterge orice sesizare; `TM-XXX` rămâne rezervat | 6.1 |
 | Contorul `TM-XXX` e secvențial și nu se refolosește niciodată | 3B, 6.1, 6.2 |
 | Confirmarea unei sesizări apare doar după salvarea efectivă | 6.2 |
-| Toate sesizările aprobate pot fi afișate pe hartă conform regulilor de publicare (aprobare + coordonate valide). Identitatea și datele de contact ale autorului nu sunt afișate public. Cetățeanul nu are o opțiune de excludere a sesizării de pe hartă; valoarea istorică `private` nu mai are efect (se publică anonim). Implicit în formular: `public_anonymous` | 6.6 (înlocuiește regula 3E „implicit `private`; pe hartă doar sesizările publice aprobate”) |
-| Moderarea publicării și soluționarea internă sunt axe independente | 5C |
+| Toate sesizările aprobate pot fi afișate pe hartă conform regulilor de publicare (aprobare + coordonate valide). Identitatea și datele de contact ale autorului nu sunt afișate public. Cetățeanul nu are o opțiune de excludere a sesizării de pe hartă; valoarea istorică `private` nu mai are efect (se publică anonim). Implicit în formular: `public_anonymous`. **→ Faza 4:** publicare **imediată**, fără aprobare (D9, A-2); fără opțiunea „Public / Public anonim” (2.8); pe hartă numai cu poziție validă în UAT (2.4, 2.12) | 6.6 (înlocuiește regula 3E „implicit `private`; pe hartă doar sesizările publice aprobate”) |
+| Moderarea publicării și soluționarea internă sunt axe independente. **→ Faza 4:** moderarea nu există (2.3); rămân 3 stări `nouă` → `în analiză` → `rezolvată` (DN-09, 2.1) | 5C |
 | Comunicatele nu au ștergere fizică (doar publicare / dezactivare) | 5B / 5D |
 | Ștergerea și resetarea sondajelor sunt permise cu `surveys.create` SAU `surveys.edit` (fără permisiune nouă) | 5D, aplicat și în serviciu în 6.5 |
 | Operațiile de reset (`resetToDemo`) cer toate permisiunile de gestionare ale domeniului | 6.5 |
-| `submitReport` și `submitVote` rămân operații publice | 6.5 |
+| `submitReport` și `submitVote` rămân operații publice. **→ Faza 4:** votul rămâne fără cont; depunerea unei sesizări cere un cont de cetățean cu e-mail confirmat (A-9, D29–D31) | 6.5 |
 | Fără login DEMO 1-click și fără credențiale afișate public | 6.4 |
-| Zona publică nu afișează lista sesizărilor; lista completă există doar în Admin | 6.5 (P3) |
+| Zona publică nu afișează lista sesizărilor; lista completă există doar în Admin. **→ Faza 4:** în plus, cetățeanul autentificat își vede lista proprie (D27, A-6) | 6.5 (P3) |
 | E-mailul rămâne simulat **până la Faza 5.5** a Planului de Lucru Comun v1.1; transportul real se introduce numai acolo, printr-un adaptor nou (precondiții: N-3, A-17). `SimulatedEmailTransportAdapter` nu raportează niciodată `sent`. | Etapa 5E; D1 = B |
-| Harta publică afișează doar informații descriptive (număr, categorie, descriere, fotografie, poziție, dată). NU afișează fluxul intern de tratare: stadiu, asumare, preluarea Primăriei, responsabili. Acestea rămân exclusiv în Admin **Clarificare D9-8 (27.09.2026):** „rămân exclusiv în Admin” înseamnă „nu sunt afișate public”; regula nu interzice notificările private către autorul sesizării, conform D9 (§11.9). | 6.6 |
-| N1 închis: „Public” și „Public anonim” sunt ambele publice și nu expun identitatea autorului; identitatea și datele de contact nu sunt niciodată incluse în proiecția publică | 6.6 |
+| Harta publică afișează doar informații descriptive (număr, categorie, descriere, fotografie, poziție, dată). NU afișează fluxul intern de tratare: stadiu, asumare, preluarea Primăriei, responsabili. Acestea rămân exclusiv în Admin **Clarificare D9-8 (27.09.2026):** „rămân exclusiv în Admin” înseamnă „nu sunt afișate public”; regula nu interzice notificările private către autorul sesizării, conform D9 (§11.9). **→ Faza 4:** starea sesizării devine **publică** (A-7); asumarea, preluarea și responsabilii rămân nepublice | 6.6 |
+| N1 închis: „Public” și „Public anonim” sunt ambele publice și nu expun identitatea autorului; identitatea și datele de contact nu sunt niciodată incluse în proiecția publică. **→ Faza 4:** opțiunea se elimină complet (2.8); identitatea autorului rămâne nepublică | 6.6 |
 | **M7 / `6A-MOD-08` decis și implementat.** Asumare / preluare disponibilă numai în Admin: `super_admin` poate asuma individual o sesizare și își poate retrage propria asumare; `primarie_operator` NU are asumare individuală | 6.6 |
 | Primăria (`primarie_operator`) poate prelua instituțional o sesizare. Preluarea este idempotentă (un al doilea operator nu creează o a doua preluare) și **nu poate fi retrasă** | 6.6 |
 | Pot coexista responsabili individuali și preluarea Primăriei; **preluarea Primăriei are prioritate** (în Admin). Se păstrează doar starea curentă, fără istoric de asumări | 6.6 |
-| O asumare/preluare a unei sesizări aflate în `new` o trece în `in_progress` (indiferent de istoric); retragerea nu schimbă stadiul; `resolved`/`closed` nu sunt atinse; nu există status nou „asumat” | 6.6 |
+| O asumare/preluare a unei sesizări aflate în `new` o trece în `in_progress` (indiferent de istoric); retragerea nu schimbă stadiul; `resolved`/`closed` nu sunt atinse; nu există status nou „asumat”. **→ Faza 4:** asumarea și preluarea **nu** schimbă starea (C-3); `in_progress` și `closed` dispar (C-2) | 6.6 |
 | Asumarea/preluarea folosește permisiunea existentă `reports.resolve` (fără permisiune nouă); rolul care acționează pentru Primărie este definit central în `permissionService`. Fiecare cont Admin are un ID unic și stabil | 6.6 |
-| Harta publică NU afișează responsabilul, preluarea sau stadiul; datele cetățeanului nu sunt publice (sunt vizibile doar în Admin, pentru `super_admin` și `primarie_operator`) | 6.6 |
-| **D9 = A:** notificările către cetățean la evenimentele relevante sunt aprobate; implementarea se face în etapa corespunzătoare din backlog, nu ad-hoc | post-audit |
+| Harta publică NU afișează responsabilul, preluarea sau stadiul; datele cetățeanului nu sunt publice (sunt vizibile doar în Admin, pentru `super_admin` și `primarie_operator`). **→ Faza 4:** stadiul devine public (A-7); e-mailul cetățeanului numai pentru `super_admin` (A-8) | 6.6 |
+| **D9 = A:** notificările către cetățean la evenimentele relevante sunt aprobate; implementarea se face în etapa corespunzătoare din backlog, nu ad-hoc. **→ Faza 4:** numai la `nouă → în analiză` și `în analiză → rezolvată` (2.2) | post-audit |
 | **D10 — reconfirmată V2 (§11.8):** datele demo numai în dezvoltare, staging și demonstrații; producția pornește curată; contul `demo@` **nu se păstrează**. Înlocuiește formularea inițială D10 = A. | post-audit; Faza 3 |
 | **D11 = B:** zona publică nu conține linkuri sau intrări către Admin; ruta `#admin` și funcționalitatea Admin rămân, accesibile prin acces direct | post-audit |
 | **D12 = A:** suitele de teste se păstrează permanent în repository (`tests/`), nu în directoare temporare | post-audit |
@@ -106,7 +109,7 @@ Reguli de lucru obligatorii pentru toate etapele viitoare, indiferent de asisten
 
 - APK-ul de test (construit din `f6809f3`) conține credențialele din bundle și **nu se distribuie**.
 - Parolele hardcodate din versiunea actuală **nu vor autentifica** versiunea cu backend.
-- Rotația credențialelor se face la implementarea autentificării, în **Faza 5.2** a Planului de Lucru Comun v1.1.
+- Rotația credențialelor se face la implementarea autentificării, în **Faza 5.2** a Planului de Lucru Comun v1.1 (conturi Admin noi prin bootstrap, fără parole în cod; TOTP obligatoriu pentru `super_admin`, `docs/faza4/FAZA_4_B3_B4_AUTENTIFICARE_AUTORIZARE.md`).
 - **Istoricul Git nu se rescrie** pentru eliminarea retroactivă a parolelor fără o decizie explicită separată a proprietarului.
 - P7 (`R6D-SES-01`): trecerea FAIL → PASS și orice modificare a `KNOWN_FAILS` se fac **numai cu aprobarea explicită a proprietarului**.
 
@@ -153,6 +156,8 @@ Reguli de lucru obligatorii pentru toate etapele viitoare, indiferent de asisten
 
 **Pe staging nu se trimite nimic către destinatari reali**, cu excepția listei explicite `allowlist`.
 
+**Actualizare Faza 4:** **N3-6** — nu există e-mail de confirmare la depunere (A06-2). **N3-8** — completat: jurnalul e-mail al unei sesizări se șterge odată cu sesizarea (A05-4); e-mailurile de cont, după 45 de zile.
+
 **Aprobarea N-3 nu autorizează:** implementarea codului, modificarea repository-ului, commit, push, configurarea SMTP, crearea adreselor de e-mail, modificarea DNS, acțiuni pe HostGate și trimiterea oricărui e-mail real.
 
 ### 11.3 D6 — Pin pe hartă (**închisă**, aprobată de proprietar la 27.09.2026)
@@ -168,6 +173,8 @@ Reguli de lucru obligatorii pentru toate etapele viitoare, indiferent de asisten
 | D6-7 | **Fără reverse geocoding** în MVP |
 
 **Rămân pentru Faza 4:** limitele exacte ale municipiului, schema DB definitivă, contractele API, permisiunea exactă pentru corectarea poziției. **Aprobarea D6 nu autorizează implementarea.**
+
+**Actualizare Faza 4:** **D6-2** — pinul rămâne opțional, dar locația se poate da și prin adresă geocodată (Nominatim, pin aproximativ) (2.4, A06-5); publicarea nu mai cere aprobare (A-2). **D6-4** — numai în UAT Turnu Măgurele, verificat pe server (2.12). **D6-5** — corectarea poziției: drept exclusiv `super_admin` (2.11). **D6-7** — rămâne: fără reverse geocoding (geocodarea adresei → poziție este permisă).
 
 ### 11.4 Clarificări de nomenclatură (Faza 3)
 
@@ -190,6 +197,8 @@ Reguli de lucru obligatorii pentru toate etapele viitoare, indiferent de asisten
 **Protecții asociate (din analiza aprobată):** nu se poate dezactiva sau retrograda ultimul `super_admin` activ; nimeni nu își schimbă propriul rol; blocare temporară după încercări repetate; sesiunile se invalidează la dezactivare, la schimbarea rolului și la resetarea parolei; toate operațiile pe conturi se înregistrează în audit.
 
 **Aprobarea D8 nu autorizează** implementarea, modificarea repository-ului, commit, push, configurarea conturilor pe hosting, SMTP, DNS, DB sau deploy. Schema DB și contractele API se proiectează în Faza 4.
+
+**Actualizare Faza 4:** D8-4 — numele permisiunilor: `accounts.manage`, `notifications.recipient.manage`, `audit.view` (DN-01). D8-8 — recuperarea TOTP: coduri de unică folosință + resetare de către alt `super_admin` (2.15). Pe lângă conturile Admin există **conturi de cetățeni** (numai e-mail, confirmat), necesare numai pentru depunerea sesizărilor (A-9, D29–D31).
 
 ### 11.6 D3 / D4 — Sondaje (**închise**, aprobate de proprietar la 27.09.2026)
 
@@ -217,6 +226,8 @@ Aceste reguli sunt **cerințe pentru schema DB și API din Faza 4**. Definiția 
 | N4-10 | Voturile **nu se șterg manual**. La abuz: marcarea sondajului ca „rezultate posibil afectate” (cu audit), activarea proof-of-work sau închiderea anticipată. |
 | N4-11 | Votul înregistrat **nu poate fi modificat**. |
 | N4-12 | `localStorage` rămâne **numai pentru experiența utilizatorului**, nu pentru securitate sau unicitate. |
+
+**Actualizare Faza 4:** N4-2 privește **numai votul**; conturile de cetățeni pentru sesizări sunt decise separat (A-9). N4-9 — textele libere se șterg la 6 luni de la închiderea sondajului (A05-2, A06-1).
 
 Valorile numerice (limite de rate, timpi, dificultatea proof-of-work) se stabilesc în Faza 4 / 5.6. Deciziile sunt **cerințe pentru schema DB și contractele API**. **Aprobarea nu autorizează implementarea.**
 
@@ -249,6 +260,8 @@ D10 V2 **înlocuiește formularea inițială D10 = A** (decisă înainte de D1 =
 | D9-7 | **Conținut:** șabloane fixe; fără descrierea liberă a cetățeanului; fără numele operatorilor; fără note interne. |
 | D9-8 | **Clarificarea regulii 6.6:** fluxul intern de preluare, asumare și procesare nu este public; regula nu interzice notificările private către autor („rămân exclusiv în Admin” = „nu sunt afișate public”). |
 
+**Actualizare Faza 4:** **D9-3 / D9-4** — notificări numai la `nouă → în analiză` și `în analiză → rezolvată` (2.2); fără notificare la preluare sau la alte acțiuni administrative. **D9-5** — există numai nota internă; nu există răspuns către cetățean (A06-3). **D9-6** — în MVP există lista proprie a cetățeanului autentificat (A-6). **D9-8** — starea devine publică (A-7).
+
 D9 **nu redeschide și nu modifică** D1, D3/D4, D6, D8, D10 V2, N-3 sau N-4. N3-5 rămâne definitiv: **destinatarul** notificărilor către Primărie, configurat de `super_admin`. **Aprobarea nu autorizează implementarea.**
 
 ### 11.10 A-17 — E-mailul real către Primărie (**închisă**, aprobată de proprietar la 27.09.2026)
@@ -265,4 +278,29 @@ D9 **nu redeschide și nu modifică** D1, D3/D4, D6, D8, D10 V2, N-3 sau N-4. N3
 | A17-8 | Arhitectura permite trei moduri: Primăria **folosește platforma** / **primește doar e-mailuri** / **nu este implicată**. Modul efectiv se stabilește odată cu acordul (A17-1). |
 | A17-9 | La eșec: **indicator în Admin** și **reîncercare manuală**; sesizarea rămâne salvată. |
 
+**Actualizare Faza 4:** **A17-3** — înlocuit: transmiterea către Primărie are loc **numai la cererea cetățeanului** (pct. 7, C-4); fără cerere, sesizarea rămâne `nouă`. **A17-5 / A17-6** — dacă cetățeanul cere transmiterea, Primăria primește numai adresa de e-mail a contului (DN-12, D29). `în analiză` se setează automat numai după trimiterea efectivă (2.1); cu fluxul oprit, transmiterea așteaptă și se reia automat (2.13); maximum 3 transmiteri / cont / 24 h (2.14). `rezolvată` numai prin subcontul Primăriei (DN-09).
+
 **Fluxul real către Primărie rămâne dezactivat** până la confirmarea scrisă a Primăriei și stabilirea infrastructurii de producție. **Aprobarea A-17 nu autorizează:** implementarea codului, configurarea e-mailului real, trimiterea vreunui e-mail real, modificări pe hosting, DNS sau DB, commit, push, deploy.
+
+## 12. Decizii Faza 4 — designul backend-ului (**înghețat**, checkpoint aprobat de proprietar la 28.09.2026)
+
+**Sursa completă:** `docs/faza4/FAZA_4_REGISTRU_DECIZII.md` (fiecare decizie cu sursa ei). Documentele de proiectare: `docs/faza4/` (Revizia 7, versiune curată; auditul final ChatGPT: „design aprobabil, fără constatări blocante”). Istoricul: `docs/faza4/istoric/`.
+
+**Regula de înghețare:** schema bazei de date și contractele API din `docs/faza4/` se modifică **numai printr-o decizie nouă, explicită**, a proprietarului. Propunerile tehnice din registru (§4) fac parte din designul înghețat; singura problemă tehnică deschisă este **T-D1** (backup-urile), de rezolvat la 5.1 fără a modifica regula de retenție.
+
+| Domeniu | Decizii principale (ID-urile din registru) |
+|---|---|
+| Utilizare și cont | aplicația complet utilizabilă fără cont; cont de cetățean (numai e-mail confirmat, un e-mail = un cont) cerut **numai** la depunerea unei sesizări; politica de utilizare acceptată explicit; contul **nu se șterge automat**, numai la cererea cetățeanului (A-9, D29–D31, 2.9, 2.7, A04-2) |
+| Sesizare | publicare imediată, **fără moderare**; fără „Public / Public anonim”; locație prin punct pe hartă sau adresă geocodată (Nominatim, pin aproximativ); numai în UAT; fotografii publice imediat; starea publică; lista proprie (D9, A-2, 2.3, 2.8, 2.4, A06-5, 2.12, 2.10, A-7, A-6) |
+| Stări și Primărie | `nouă` → `în analiză` (automat, numai după trimiterea efectivă) → `rezolvată` (numai subcontul Primăriei); transmiterea opțională, la cererea cetățeanului; Primăria primește numai e-mailul; flux oprit → reluare automată; max. 3 transmiteri / cont / 24 h (DN-09, 2.1, pct. 7, DN-12, 2.13, 2.14) |
+| Notificări | numai la cele două schimbări de stare; fără confirmare la depunere; fără răspuns către cetățean (numai note interne); e-mail către titularul unei adrese blocate definitiv care încearcă să-și refacă contul (2.2, A06-2, A06-3, A06-6) |
+| Ștergere | definitivă, de autor sau `super_admin`; fără audit al ștergerii; jurnalul e-mail dispare odată cu sesizarea; `TM-XXX` rezervat (A-1, D10–D26, B-7, A05-4) |
+| Blocare | numai `super_admin`; 15 zile sau definitivă; identificatorul minim păstrat pentru blocarea definitivă; ridicare manuală posibilă pentru ambele tipuri; după expirare, informația în audit 6 luni (K-A02-4, 2.6, A06-4, A05-3) |
+| Retenție | datele sesizării **45 de zile de la depunere**, fără excepție (backup-urile: problemă tehnică); audit administrativ, jurnale, sesiuni expirate **6 luni**; texte libere **6 luni de la închiderea sondajului**; `rejected_attempts` 30 de zile (K-A02-3, REC-01, A04-1, A04-4, A05-1, A05-2, A06-1, N4-8) |
+| Drepturi | 3 permisiuni noi exclusiv `super_admin`; drepturi exclusive în afara matricei; `primarie_operator` nu vede niciodată e-mailul cetățeanului; recuperarea TOTP prin două mecanisme (DN-01, A-5, A-8, 2.11, 2.15) |
+| Sondaje | închidere automată la `endDate`; fără `admin_only` (E-3, corectura 1) |
+| Comunicate, proces | imaginile comunicatelor în repository, fără CDN; lista T1–T8 păstrată exact; branch nou pentru Faza 5; mediul local: Windows 11 (A04-5…A04-8) |
+
+**Reguli din acest document înlocuite:** marcate „→ Faza 4” în §6 și în notele „Actualizare Faza 4” din §11. Codul actual le aplică pe cele vechi până la migrarea fiecărui domeniu în Faza 5.
+
+**Planul de Lucru Comun v1.1 și Master Planul** (în afara repository-ului) sunt amendate prin `docs/AMENDAMENTE_PLAN_V1_1_SI_MASTER_PLAN.md`; originalele nu se modifică.

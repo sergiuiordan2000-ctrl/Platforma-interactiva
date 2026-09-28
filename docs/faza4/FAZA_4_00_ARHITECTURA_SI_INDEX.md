@@ -4,9 +4,9 @@
 **Instrucțiune:** „FAZA 4 — ÎNCEPERE PROIECTARE BACKEND”
 **Executant:** Claude · **Auditor:** ChatGPT · **Aprobare:** Sergiu
 
-> **Revizia 7, versiune curată (28.09.2026).** Conține numai regulile valabile. Istoricul reviziilor 1–6 (text tăiat, marcaje de set) este în `istoric/revizia_6_adnotata/`; sursa fiecărei decizii este în `FAZA_4_REGISTRU_DECIZII.md`. Valorile marcate „propunere” sau „propunere tehnică” se confirmă la auditul final.
+> **Revizia 7, versiune curată (28.09.2026).** Conține numai regulile valabile. Istoricul reviziilor 1–6 (text tăiat, marcaje de set) este în `istoric/revizia_6_adnotata/`; sursa fiecărei decizii este în `FAZA_4_REGISTRU_DECIZII.md`. Valorile marcate „propunere” sau „propunere tehnică” fac parte din designul înghețat; valorile numerice (DN-15) rămân configurabile.
 >
-> **Stare:** design complet, **neînghețat**, pregătit pentru **auditul final**. Nicio decizie de produs deschisă. Checkpoint-ul Fazei 4 **nu este atins** până la audit și aprobarea proprietarului.
+> **Stare:** design complet, **ÎNGHEȚAT** (checkpoint-ul Fazei 4 aprobat de proprietar la 28.09.2026, după auditul final). Nicio decizie de produs deschisă.
 >
 > **Nu s-a implementat nimic:** nu există `server/` sau `shared/`, `package.json` este neschimbat, nu există migrații sau endpoint-uri, nicio acțiune pe hosting, DNS, MySQL sau VPS. Documentele sunt în repository, pe branch-ul `recovery-etapa-5-0e2cc20`; `main` = `d9bc2c9`, neatins.
 
@@ -194,13 +194,13 @@ Versiunile sunt citite din registrul npm pe 27.09.2026. Se **fixează exact** la
 | Contradicțiile rezolvate sau prezentate | ✅ rezolvate prin decizii; documentația curată nu mai conține reguli contradictorii (de verificat la audit) |
 | Propunerile tehnice | ⏳ de confirmat la audit (`FAZA_4_REGISTRU_DECIZII.md` §4) |
 | Designul revizuit | ✅ **auditul final ChatGPT (28.09.2026): „DESIGN APROBABIL — fără constatări blocante”**; corecturile tehnice #12, #13, #14 aplicate (`istoric/FAZA_4_AUDIT_FINAL_CHATGPT.md`) |
-| Designul aprobat explicit | ❌ **așteaptă aprobarea proprietarului** |
+| Designul aprobat explicit | ✅ **checkpoint-ul Fazei 4 aprobat de proprietar la 28.09.2026; designul este înghețat** (schema și contractele API se modifică numai printr-o decizie nouă, explicită) |
 
-**Checkpoint-ul Fazei 4 NU este atins.** Faza 5 nu începe.
+**Checkpoint-ul Fazei 4 este atins** (28.09.2026). Faza 5 începe numai la instrucțiunea explicită a proprietarului.
 
 ## 10. Ce urmează
 
 1. Auditul final al Fazei 4 (ChatGPT): **efectuat**, design aprobabil, fără constatări blocante.
-2. Aprobarea checkpoint-ului de către proprietar; înghețarea schemei și a contractelor.
+2. Aprobarea checkpoint-ului de către proprietar: **efectuată (28.09.2026)**; schema și contractele sunt înghețate.
 3. P-13: actualizarea RULES, HANDOFF, Planului v1.1 și Master Planului.
 4. Faza 5, pe un branch nou dedicat (A04-7).

@@ -2,6 +2,8 @@
 
 **Proiect:** Turnu Măgurele Civic · **Revizia 7 (versiune curată), 28.09.2026** · **Executant:** Claude · **Aprobare:** Sergiu
 
+> **Checkpoint-ul Fazei 4 aprobat de proprietar la 28.09.2026: designul este înghețat.** Schema DB și contractele API se modifică numai printr-o decizie nouă, explicită.
+
 > Acest registru înlocuiește `FAZA_4_DECIZII_NOI.md` (versiunea adnotată rămâne în `istoric/revizia_6_adnotata/`).
 >
 > Conține numai deciziile **valabile**, fiecare cu sursa ei. Deciziile înlocuite nu mai apar aici; istoricul lor este în `istoric/`.

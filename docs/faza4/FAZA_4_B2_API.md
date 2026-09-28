@@ -1,9 +1,9 @@
 # FAZA 4 — B2: API ȘI MODELUL ASINCRON ÎN FRONTEND
 
-**Proiect:** Turnu Măgurele Civic · **Data:** 27.09.2026 · **Stare:** proiect, neînghețat
+**Proiect:** Turnu Măgurele Civic · **Data:** 27.09.2026 · **Stare:** **înghețat** (checkpoint-ul Fazei 4 aprobat la 28.09.2026)
 **Bază:** G1 (REST `/api/v1`, aceeași origine), B1 (modelul de date), B3 / B4 (autentificare, permisiuni), serviciile actuale din `src/services/*`; deciziile din `FAZA_4_REGISTRU_DECIZII.md`
 
-> **Revizia 7, versiune curată (28.09.2026).** Conține numai regulile valabile. Istoricul reviziilor 1–6 (text tăiat, marcaje de set) este în `istoric/revizia_6_adnotata/`; sursa fiecărei decizii este în `FAZA_4_REGISTRU_DECIZII.md`. Valorile marcate „propunere” sau „propunere tehnică” se confirmă la auditul final.
+> **Revizia 7, versiune curată (28.09.2026).** Conține numai regulile valabile. Istoricul reviziilor 1–6 (text tăiat, marcaje de set) este în `istoric/revizia_6_adnotata/`; sursa fiecărei decizii este în `FAZA_4_REGISTRU_DECIZII.md`. Valorile marcate „propunere” sau „propunere tehnică” fac parte din designul înghețat; valorile numerice (DN-15) rămân configurabile.
 
 ---
 

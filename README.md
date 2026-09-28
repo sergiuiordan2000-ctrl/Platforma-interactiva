@@ -10,6 +10,8 @@ Platforma nu este oficială și nu este operată de Primărie.
 - Aplicație web React + TypeScript + Vite, rulată integral în browser; datele sunt păstrate
   local (`localStorage`). Nu există încă backend, iar e-mailul este simulat.
 - Direcția decisă: **pilot real cu backend (D1 = B)**, conform Planului de Lucru Comun v1.1.
+  Designul backend-ului (Faza 4) este încheiat și înghețat: `docs/faza4/` (registrul deciziilor:
+  `docs/faza4/FAZA_4_REGISTRU_DECIZII.md`). Implementarea urmează în Faza 5.
 - Autentificarea Admin este demonstrativă, doar în browser; **build-ul actual nu trebuie
   publicat** și nu se folosește cu date reale.
 

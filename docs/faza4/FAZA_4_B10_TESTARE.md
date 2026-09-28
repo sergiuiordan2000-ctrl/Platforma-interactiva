@@ -1,9 +1,9 @@
 # FAZA 4 — B10: STRATEGIA DE TESTARE
 
-**Proiect:** Turnu Măgurele Civic · **Data:** 27.09.2026 · **Stare:** proiect, neînghețat
+**Proiect:** Turnu Măgurele Civic · **Data:** 27.09.2026 · **Stare:** **înghețat** (checkpoint-ul Fazei 4 aprobat la 28.09.2026)
 **Bază:** suita existentă `tests/` (Python + Playwright, 102/103, P7 = FAIL cunoscut); G5 (B-2: CI pe Node 20 + 24, MySQL 8.0 + 8.4); testele de staging din analiza N-2 v3 §6; deciziile Fazei 3 și cele din `FAZA_4_REGISTRU_DECIZII.md`
 
-> **Revizia 7, versiune curată (28.09.2026).** Conține numai regulile valabile. Istoricul reviziilor 1–6 (text tăiat, marcaje de set) este în `istoric/revizia_6_adnotata/`; sursa fiecărei decizii este în `FAZA_4_REGISTRU_DECIZII.md`. Valorile marcate „propunere” sau „propunere tehnică” se confirmă la auditul final.
+> **Revizia 7, versiune curată (28.09.2026).** Conține numai regulile valabile. Istoricul reviziilor 1–6 (text tăiat, marcaje de set) este în `istoric/revizia_6_adnotata/`; sursa fiecărei decizii este în `FAZA_4_REGISTRU_DECIZII.md`. Valorile marcate „propunere” sau „propunere tehnică” fac parte din designul înghețat; valorile numerice (DN-15) rămân configurabile.
 
 ---
 

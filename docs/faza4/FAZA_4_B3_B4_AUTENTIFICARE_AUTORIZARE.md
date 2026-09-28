@@ -1,9 +1,9 @@
 # FAZA 4 — B3 AUTENTIFICARE ȘI SESIUNI · B4 AUTORIZARE PE SERVER
 
-**Proiect:** Turnu Măgurele Civic · **Data:** 27.09.2026 · **Stare:** proiect, neînghețat
+**Proiect:** Turnu Măgurele Civic · **Data:** 27.09.2026 · **Stare:** **înghețat** (checkpoint-ul Fazei 4 aprobat la 28.09.2026)
 **Bază:** D8 (RULES §11.5), G1 (N-2), RULES §6 (regulile 5D, 6.1–6.6), `permissionService.ts`, `authService.ts` (**parolele actuale nu se reproduc**); deciziile din `FAZA_4_REGISTRU_DECIZII.md`
 
-> **Revizia 7, versiune curată (28.09.2026).** Conține numai regulile valabile. Istoricul reviziilor 1–6 (text tăiat, marcaje de set) este în `istoric/revizia_6_adnotata/`; sursa fiecărei decizii este în `FAZA_4_REGISTRU_DECIZII.md`. Valorile marcate „propunere” sau „propunere tehnică” se confirmă la auditul final.
+> **Revizia 7, versiune curată (28.09.2026).** Conține numai regulile valabile. Istoricul reviziilor 1–6 (text tăiat, marcaje de set) este în `istoric/revizia_6_adnotata/`; sursa fiecărei decizii este în `FAZA_4_REGISTRU_DECIZII.md`. Valorile marcate „propunere” sau „propunere tehnică” fac parte din designul înghețat; valorile numerice (DN-15) rămân configurabile.
 
 > Valorile numerice de mai jos (durate, praguri, parametri) sunt **PROPUNERI** marcate ca atare. Ele se confirmă la aprobarea checkpoint-ului Fazei 4 (DN-15).
 

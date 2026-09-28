@@ -1,9 +1,9 @@
 # FAZA 4 — B1: PERSISTENȚĂ (MODELUL DE DATE) ȘI MIGRAREA DIN `localStorage`
 
-**Proiect:** Turnu Măgurele Civic · **Data:** 27.09.2026 · **Stare:** proiect, **NEÎNGHEȚAT**; se îngheață numai la aprobarea checkpoint-ului Fazei 4.
+**Proiect:** Turnu Măgurele Civic · **Data:** 27.09.2026 · **Stare:** **ÎNGHEȚAT** (checkpoint-ul Fazei 4 aprobat la 28.09.2026).
 **Bază:** RULES §6, §11 (deciziile Fazei 3); tipurile din `src/types/*`; serviciile din `src/services/*` (la `cb9f47e`); deciziile din `FAZA_4_REGISTRU_DECIZII.md`.
 
-> **Revizia 7, versiune curată (28.09.2026).** Conține numai regulile valabile. Istoricul reviziilor 1–6 (text tăiat, marcaje de set) este în `istoric/revizia_6_adnotata/`; sursa fiecărei decizii este în `FAZA_4_REGISTRU_DECIZII.md`. Valorile marcate „propunere” sau „propunere tehnică” se confirmă la auditul final.
+> **Revizia 7, versiune curată (28.09.2026).** Conține numai regulile valabile. Istoricul reviziilor 1–6 (text tăiat, marcaje de set) este în `istoric/revizia_6_adnotata/`; sursa fiecărei decizii este în `FAZA_4_REGISTRU_DECIZII.md`. Valorile marcate „propunere” sau „propunere tehnică” fac parte din designul înghețat; valorile numerice (DN-15) rămân configurabile.
 
 ---
 

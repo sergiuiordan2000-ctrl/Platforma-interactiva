@@ -1,9 +1,9 @@
 # FAZA 4 — B6 E-MAIL REAL ȘI JURNAL · B7 PROTECȚII ANTI-SPAM
 
-**Proiect:** Turnu Măgurele Civic · **Data:** 27.09.2026 · **Stare:** proiect, neînghețat
+**Proiect:** Turnu Măgurele Civic · **Data:** 27.09.2026 · **Stare:** **înghețat** (checkpoint-ul Fazei 4 aprobat la 28.09.2026)
 **Bază:** N-3 (RULES §11.2), D9 (§11.9), A-17 (§11.10), N-4 (§11.7), B1, B2, B5; deciziile din `FAZA_4_REGISTRU_DECIZII.md`
 
-> **Revizia 7, versiune curată (28.09.2026).** Conține numai regulile valabile. Istoricul reviziilor 1–6 (text tăiat, marcaje de set) este în `istoric/revizia_6_adnotata/`; sursa fiecărei decizii este în `FAZA_4_REGISTRU_DECIZII.md`. Valorile marcate „propunere” sau „propunere tehnică” se confirmă la auditul final.
+> **Revizia 7, versiune curată (28.09.2026).** Conține numai regulile valabile. Istoricul reviziilor 1–6 (text tăiat, marcaje de set) este în `istoric/revizia_6_adnotata/`; sursa fiecărei decizii este în `FAZA_4_REGISTRU_DECIZII.md`. Valorile marcate „propunere” sau „propunere tehnică” fac parte din designul înghețat; valorile numerice (DN-15) rămân configurabile.
 
 > Pragurile numerice sunt **propuneri inițiale** (DN-15). N-4 și D9-4 cer fixarea lor în Faza 4 / 5.6; ele rămân configurabile.
 

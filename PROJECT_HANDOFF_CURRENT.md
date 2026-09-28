@@ -1,9 +1,9 @@
 # PROJECT_HANDOFF_CURRENT.md — Turnu Măgurele Civic
 
-**Stare documentată:** finalul Etapei 6.5 (26 septembrie 2026), actualizată după **Etapa 6.6** (comisă și publicată: `83b77ad`), după **auditul general** și pentru **remedierea P0 post-audit** (vezi B, G.5 și I), după checkpoint-ul Fazei 0 (`f6809f3`), după Fazele 1–2 (ultimul commit publicat la actualizare: `af60778`) și după deciziile Fazei 3 (`PROJECT_RULES_AND_DECISIONS.md` §11)
+**Stare documentată:** finalul Etapei 6.5 (26 septembrie 2026), actualizată după **Etapa 6.6** (comisă și publicată: `83b77ad`), după **auditul general** și pentru **remedierea P0 post-audit** (vezi B, G.5 și I), după checkpoint-ul Fazei 0 (`f6809f3`), după Fazele 1–2, după deciziile Fazei 3 (`PROJECT_RULES_AND_DECISIONS.md` §11) și după **Faza 4** (designul backend-ului, checkpoint aprobat de proprietar la 28.09.2026; `PROJECT_RULES_AND_DECISIONS.md` §12, `docs/faza4/`)
 **Scop:** documentul principal de preluare pentru un chat nou. Înlocuiește, pentru starea curentă, secțiunile de stare din `PROJECT_HANDOFF.md`. Acela a fost scris la finalul Etapei 5 și este acum depășit la Git, securitate și pasul următor.
 
-> **Regula de pornire pentru noul chat:** citește acest document, apoi `PROJECT_RULES_AND_DECISIONS.md` și `ETAPA_6_STATUS_FINAL.md`. Apoi **verifică starea Git real** (Secțiunea B.4). Nu presupune nimic din memorie. **Codul și istoricul Git sunt sursa de adevăr.** Dacă documentul și codul se contrazic, codul are dreptate, iar contradicția se raportează.
+> **Regula de pornire pentru noul chat:** citește acest document, apoi `PROJECT_RULES_AND_DECISIONS.md`, `docs/faza4/FAZA_4_REGISTRU_DECIZII.md` și `ETAPA_6_STATUS_FINAL.md`. Apoi **verifică starea Git real** (Secțiunea B.4). Nu presupune nimic din memorie. **Codul și istoricul Git sunt sursa de adevăr.** Dacă documentul și codul se contrazic, codul are dreptate, iar contradicția se raportează.
 
 ---
 
@@ -13,7 +13,7 @@
 - **Nume:** Turnu Măgurele Civic. Titlul din `index.html` este cel corect; `package.json` are încă numele generic `react-example`, moștenit din boilerplate-ul AI Studio.
 - **Scop:** platformă civică digitală **independentă** (nu oficială, nu operată de Primărie) pentru municipiul Turnu Măgurele:
   - comunicate și evenimente locale;
-  - sesizări cetățenești cu fotografie și localizare, moderate și afișate pe hartă;
+  - sesizări cetățenești cu fotografie și localizare, afișate pe hartă (în versiunea actuală, după moderare; în designul Faza 4, imediat, fără moderare, cu cont de cetățean);
   - consultări publice (sondaje);
   - Ghidul Primăriei și numerele utile (Apel rapid / Quick Dial).
 
@@ -25,6 +25,7 @@
   - Dependențele `express`, `@google/genai` și `dotenv` din `package.json` sunt reziduuri nefolosite ale boilerplate-ului.
 - **Direcția decisă: D1 = B**, pilot real cu backend. Trecerea se face numai prin Fazele 4 (proiectare) și 5 (implementare incrementală) ale Planului de Lucru Comun v1.1.
 - **Stack backend decis (N-2, Faza 3, 27.09.2026):** Node.js + TypeScript + Fastify 5 + Drizzle + Zod + MySQL (8.4 LTS; 8.0 numai pe staging-ul temporar), în același repository (`server/` + `shared/`); staging temporar pe HostGate Basic Plus numai cu date demo, izolat de `electrovolt.ro`. Detalii și condiții: `PROJECT_RULES_AND_DECISIONS.md` §11. **Nimic nu este încă implementat.**
+- **Designul backend-ului (Faza 4) este complet și înghețat** (28.09.2026): modelul de date (30 de tabele), API-ul, autentificarea și autorizarea, sesizările, e-mailul, anti-abuzul, datele personale și testarea, în `docs/faza4/`; deciziile, în `docs/faza4/FAZA_4_REGISTRU_DECIZII.md`. Schema și contractele API se modifică numai printr-o decizie nouă, explicită. Modificările față de Planul v1.1 și Master Plan: `docs/AMENDAMENTE_PLAN_V1_1_SI_MASTER_PLAN.md`.
 - Conexiuni reale la rețea: tile-urile hărții OpenStreetMap și imaginile demo ale comunicatelor, încărcate de pe Unsplash (m16).
 - E-mailul este **simulat** (`emailService`, stare `simulated`, niciodată `sent`).
 
@@ -46,7 +47,7 @@
 | `primarie_operator` | personal Primărie | 13 din 24 de permisiuni: dashboard, sesizări (toate), comunicate (toate); Ghid, Apel rapid și Sondaje **doar vizualizare** |
 | `super_admin` | administrator | toate cele 24 de permisiuni |
 
-Matricea completă se află în `src/services/permissionService.ts` (`ROLE_PERMISSIONS`), neschimbată din Etapa 5D. **Nu există permisiune de ștergere a sesizărilor.**
+Matricea completă se află în `src/services/permissionService.ts` (`ROLE_PERMISSIONS`), neschimbată din Etapa 5D. **Nu există permisiune de ștergere a sesizărilor.** (Starea codului actual. În designul Faza 4: `reports.moderate` dispare, apar 3 permisiuni noi pentru `super_admin`, conturile de cetățeni și drepturile exclusive ale `super_admin`, inclusiv ștergerea sesizărilor; vezi RULES §12.)
 
 ### A.5 Structura Public / Admin
 - **Public:**
@@ -72,10 +73,12 @@ Matricea completă se află în `src/services/permissionService.ts` (`ROLE_PERMI
 |---|---|
 | Repository GitHub | `https://github.com/sergiuiordan2000-ctrl/Platforma-interactiva` |
 | Branch de lucru | `recovery-etapa-5-0e2cc20` |
-| Ultimul commit publicat (la actualizare) | `af60778`: `docs: reference work plan v1.1, Node version and npm ci after phase 2` (commit-urile ulterioare se verifică cu `git log`, B.4) |
+| Ultimul commit publicat înaintea acestei actualizări | `5f88750`: `docs(faza-4): corecturi dupa auditul final (#12, #13, #14)` (închiderea Fazei 4); actualizarea documentelor generale urmează într-un commit de documentație (se verifică cu `git log`, B.4) |
+| Checkpoint-ul Fazei 4 | `5f88750` (designul înghețat, aprobat de proprietar la 28.09.2026) |
+| Branch pentru Faza 5 | **nou, dedicat**, creat din checkpoint-ul Fazei 4 la pornirea Fazei 5 (A04-7); numele nu este încă stabilit |
 | Checkpoint-ul Fazei 0 | `f6809f35be0c7a71f9430535fa68c006028b4ed6`: `fix(civic): apply post-audit P0 remediation and add test suites` (P0 + `tests/`); părinte `83b77ad` (Etapa 6.6) |
 | Închiderea Fazei 2 (ultimul commit de cod) | `ff53758` |
-| Branch-ul pe GitHub | identic cu HEAD-ul local (verificat 27.09.2026) |
+| Branch-ul pe GitHub | identic cu HEAD-ul local (verificat 28.09.2026) |
 | `main` pe GitHub | `d9bc2c9f53cec27dafc846889b0457eea8495d20`, **NEATINS, nu se modifică** |
 | Working tree | curat |
 | Ultimul commit de cod — istoric (starea 6.5) | `d89fd1ceba903faed2940d7d59b79fdbaac98d89`: `Etapele 6.4-6.5: securizare autentificare si autorizare` |
@@ -105,6 +108,13 @@ Matricea completă se află în `src/services/permissionService.ts` (`ROLE_PERMI
 | `e62b4ea` | fix(civic): A-22 remove unused esbuild devDependency to fix npm peer conflict | Faza 2, A-22 |
 | `ff53758` | fix(civic): A-25 replace AI Studio README, metadata capability and package name | Faza 2, A-25; închiderea Fazei 2 |
 | `af60778` | docs: reference work plan v1.1, Node version and npm ci after phase 2 | trecerea documentară după Faza 2 |
+| `cb9f47e` | docs: record phase 3 backend decision gate (N-2, N-3, D6, D8, D3/D4, N-4, D10, D9, A-17) | închiderea Fazei 3 |
+| `3c586d0` | docs(faza-4): checkpoint revizia 3 dupa SET-A-02 | Faza 4, Revizia 3 |
+| `8d87e94` | docs(faza-4): integrate decisions after revizia 3 | Faza 4, Revizia 4 |
+| `ddc9ef8` | docs(faza-4): integrate consolidated decisions | Faza 4, Revizia 5 |
+| `988d0a1` | docs(faza-4): integrate final retention decisions | Faza 4, Revizia 6 |
+| `1198e65` | docs(faza-4): revizia 7 - versiune curata si decizii directe | Faza 4, Revizia 7 (versiune curată, registrul deciziilor) |
+| `5f88750` | docs(faza-4): corecturi dupa auditul final (#12, #13, #14) | închiderea Fazei 4 (checkpoint) |
 
 ### B.3 Continuitatea Etapei 6
 - Etapa 6.1: commit `3b8d6ca`
@@ -117,7 +127,7 @@ Matricea completă se află în `src/services/permissionService.ts` (`ROLE_PERMI
 git clone https://github.com/sergiuiordan2000-ctrl/Platforma-interactiva.git
 cd Platforma-interactiva
 git checkout recovery-etapa-5-0e2cc20
-git log --oneline -10        # primul rând: ultimul commit al branch-ului (la actualizare: af60778 sau un commit ulterior de documentație)
+git log --oneline -10        # primul rând: ultimul commit al branch-ului (commit-ul acestei actualizări sau unul ulterior de documentație)
 git status --short           # nimic
 git ls-remote origin refs/heads/main refs/heads/recovery-etapa-5-0e2cc20
 npm ci
@@ -269,7 +279,7 @@ Tot codul rulează în browserul utilizatorului. Prin urmare:
 - **Orice gardă din frontend poate fi ocolită** de un utilizator cu DevTools.
 - **Datele nu sunt centralizate:** fiecare browser are propria copie, iar Primăria nu vede sesizările trimise din alt browser.
 
-> **Aceste protecții NU trebuie prezentate ca securitate server-side.** Pentru o utilizare reală (pilot cu cetățeni sau date reale) este necesar un backend, cu autentificare pe server, token semnat, autorizare pe fiecare operație și bază de date. Introducerea unui backend este o **decizie de produs și de arhitectură**, nedecisă.
+> **Aceste protecții NU trebuie prezentate ca securitate server-side.** Pentru o utilizare reală (pilot cu cetățeni sau date reale) este necesar un backend, cu autentificare pe server, sesiuni pe server, autorizare pe fiecare operație și bază de date. Backend-ul este **decis (D1 = B)**, **proiectat și înghețat în Faza 4** (`docs/faza4/`) și se implementează în Faza 5.
 
 ---
 
@@ -310,11 +320,11 @@ Sursa: raportul original al Etapei 6.5, secțiunea „Neclarități de produs (n
 | Cod | Formularea din raportul 6.5 | Stare actuală |
 |---|---|---|
 | **N1** | `isAnonymous`: „Public” și „Public anonim” se comportă identic. Trebuie afișat numele la varianta „Public”, sau se renunță la una dintre opțiuni? | **ÎNCHIS în 6.6** (decizia proprietarului): ambele variante sunt publice și nu expun identitatea autorului; identitatea și datele de contact nu sunt niciodată în proiecția publică |
-| **N2** | Rezultatele sondajelor sunt vizibile în timpul consultării (butonul „Rezultate”), deși textul spune „la finalizare”. Care variantă este corectă? | **DESCHIS**, decizie de produs a proprietarului |
+| **N2** | Rezultatele sondajelor sunt vizibile în timpul consultării (butonul „Rezultate”), deși textul spune „la finalizare”. Care variantă este corectă? | **DECIS în Faza 3 ca D3** (RULES §11.6): vizibilitatea o stabilește administratorul per sondaj, implicit după închidere |
 | **N3** | `announcementService.setStatus` servește și la publicare, și la dezactivare. O gardă în serviciu trebuie să aleagă permisiunea după starea țintă. | **CLARIFICAT TEHNIC în 6.5** (P1/P2): `setStatus` verifică permisiunea după starea țintă (`published` → `announcements.publish`; altfel `announcements.disable`). Nu mai este o problemă tehnică nerezolvată; se păstrează aici pentru a documenta originea ca neclaritate N3. |
-| **N4** | Trebuie ca `resetToDemo` să existe în versiunea de producție? | **DESCHIS**, decizie de produs a proprietarului |
+| **N4** | Trebuie ca `resetToDemo` să existe în versiunea de producție? | **DECIS în Faza 3 ca D4** (RULES §11.6): nu există în producție |
 
-- Pentru N2 și N4 documentația **nu propune o soluție și nu alege o variantă**. Întrebările așteaptă decizia proprietarului produsului.
+- N2 și N4 au fost decise în Faza 3 (D3 / D4).
 - N1–N4 sunt distincte de P7 (G.4). P7 este o limitare de arhitectură, nu o neclaritate de produs.
 
 ### G.4 P7: sesiune client-side falsificabilă (`6D-SES-01`)
@@ -338,6 +348,7 @@ Auditul general a formulat deciziile D1–D12. Instrucțiunea P0 a transmis ini�
 | D1 | **B** | pilot real cu backend |
 | D3, D4, D6, D8 | decise în Faza 3 | sondaje (D3/D4), pin pe hartă (D6), conturi (D8); vezi RULES §11.3, §11.5, §11.6 |
 | D2, D5, D7 | **deschise** | nu se presupun |
+| Faza 4 | **închisă** (28.09.2026) | designul backend-ului, înghețat; toate deciziile, în `docs/faza4/FAZA_4_REGISTRU_DECIZII.md`; rezumat în RULES §12 |
 
 ---
 
@@ -348,7 +359,7 @@ Auditul general a formulat deciziile D1–D12. Instrucțiunea P0 a transmis ini�
 | `ROLE_PERMISSIONS` și lista de 24 de permisiuni | decizia 5D confirmată | **decizie de produs** |
 | `submitReport` (public, tranzacțional din 6.2) | operație publică; protecția 6.2 | decizie de produs + tehnică |
 | `submitVote` (public) | operație publică | decizie de produs |
-| Mecanismul 6.1 (fără `deleteReport`, contorul TM nu scade) | regula „Primăria NU șterge sesizări” | **decizie de produs** |
+| Mecanismul 6.1 (fără `deleteReport`, contorul TM nu scade) | regula „Primăria NU șterge sesizări” în **codul actual**; în designul Faza 4 regula este abrogată (A-1) și se schimbă la migrarea sesizărilor (5.4) | **decizie de produs** (deja luată pentru Faza 5) |
 | Protecțiile 6.2 (salvare tranzacțională, reconcilierea contorului, formular păstrat) | previn pierderea de date și numerele duplicate | tehnică, cu retestare |
 | Protecția XSS 6.3 (`escapeHtml`, `getSafeImageSrc`) | securitatea hărții publice | tehnică, cu retestare |
 | Autentificarea 6.4 (fără DEMO 1-click, validarea sesiunii) | securitatea login-ului | tehnică + produs |
@@ -357,8 +368,9 @@ Auditul general a formulat deciziile D1–D12. Instrucțiunea P0 a transmis ini�
 | Cheile `localStorage` (A.6) | schimbarea lor pierde datele existente | decizie tehnică, cu migrare; modificare permisă numai în Faza 5, conform designului aprobat în Faza 4 |
 | Schemele de date (`src/types/*.ts`: `CivicReport`, `Announcement`, `Survey` etc.) | compatibilitate cu datele salvate | decizie tehnică + produs; modificare permisă numai în Faza 5, conform designului aprobat în Faza 4 |
 | `SimulatedEmailTransportAdapter` | nu trebuie să raporteze niciodată `sent` | tehnică |
-| N2, N4 (G.3) | decise post-audit ca D3 / D4; valorile nu au fost transmise (G.5) | **decizie de produs** |
-| Regulile de asumare/preluare 6.6 (M7) | decise și implementate | **decizie de produs** (nu se schimbă fără decizie nouă) |
+| N2, N4 (G.3) | decise în Faza 3 ca D3 / D4 (RULES §11.6) | **decizie de produs** |
+| Regulile de asumare/preluare 6.6 (M7) | decise și implementate; în designul Faza 4, asumarea / preluarea nu mai schimbă starea (C-3) | **decizie de produs** (nu se schimbă fără decizie nouă) |
+| Designul Faza 4 (`docs/faza4/`) | înghețat la checkpoint-ul Fazei 4 | **orice modificare a schemei DB sau a contractelor API cere o decizie nouă, explicită** |
 | P7 | nerezolvat până la Faza 5.2 | **trecerea FAIL → PASS și orice modificare a `KNOWN_FAILS` numai cu aprobarea explicită a proprietarului** |
 | `main` | nu se atinge | regulă de proiect |
 
@@ -368,11 +380,12 @@ Auditul general a formulat deciziile D1–D12. Instrucțiunea P0 a transmis ini�
 
 > **ETAPA 6 ESTE ÎNCHISĂ.** Etapele 6.1–6.6 sunt finalizate; Etapa 6.6 este comisă și publicată (`83b77ad`). **Nu există Etapa 6.7.** A urmat auditul general al proiectului, cu deciziile post-audit D1–D12 (G.5) și remedierea **P0** (A-27, A-05, A-06, A-07, A-08, D11-B, D12-A). Checkpoint-ul formal al Etapei 6 este `f6809f3` (Faza 0). **Lucrările continuă exclusiv după Planul de Lucru Comun v1.1**; P1 este preluat în fazele acestuia.
 
-> **Stadiul fazelor (27.09.2026):** Fazele 0, 1 și 2 sunt închise (ultimul commit al Fazei 2: `ff53758`, urmat de trecerea documentară `af60778`). **Faza 3 este închisă** (checkpoint aprobat de proprietar la 27.09.2026): N-2, N-3, D6, D8, D3/D4, N-4, D10 (reconfirmată V2), D9 și A-17 (`PROJECT_RULES_AND_DECISIONS.md` §11.1–§11.10); schema DB și contractele API se proiectează și se îngheață în Faza 4. **Faza 4 nu a început**; pornește numai la instrucțiunea explicită a proprietarului.
+> **Stadiul fazelor (28.09.2026):** Fazele 0, 1 și 2 sunt închise (ultimul commit al Fazei 2: `ff53758`, urmat de trecerea documentară `af60778`). **Faza 3 este închisă** (27.09.2026): N-2, N-3, D6, D8, D3/D4, N-4, D10 (reconfirmată V2), D9 și A-17 (`PROJECT_RULES_AND_DECISIONS.md` §11). **Faza 4 este închisă** (checkpoint aprobat de proprietar la 28.09.2026, commit `5f88750`): designul backend-ului este complet și **înghețat** (`docs/faza4/`, RULES §12). **Faza 5 nu a început**; pornește numai la instrucțiunea explicită a proprietarului, pe un branch nou, dedicat.
 
 Starea de pornire consemnată anterior (finalul 6.5) rămâne mai jos pentru referință. Noul chat:
 1. citește acest document, `PROJECT_RULES_AND_DECISIONS.md` și `ETAPA_6_STATUS_FINAL.md`;
 2. verifică starea Git (B.4): HEAD = ultimul commit consemnat în B.1 (sau un commit ulterior de documentație), identic cu `origin`, și `main` la `d9bc2c9`;
 3. rulează `npx tsc --noEmit` și `npm run build`;
-4. confirmă înțelegerea stării și **așteaptă instrucțiunile** proprietarului (următoarea fază conform Planului v1.1: Faza 4, proiectarea backend-ului);
-5. ține cont că N2 și N4 au fost decise în Faza 3 ca D3 / D4 (RULES §11.6), N3 este clarificat tehnic, iar N1 este închis (G.3); P7 este descris în G.4 și se închide la 5.2 numai cu aprobarea proprietarului.
+4. confirmă înțelegerea stării și **așteaptă instrucțiunile** proprietarului (următoarea fază conform Planului v1.1: **Faza 5**, implementarea incrementală a backend-ului, subfază cu subfază, cu aprobare; la 5.1 se rezolvă și T-D1, backup-urile);
+5. ține cont că N2 și N4 au fost decise în Faza 3 ca D3 / D4 (RULES §11.6), N3 este clarificat tehnic, iar N1 este închis (G.3); P7 este descris în G.4 și se închide la 5.2 numai cu aprobarea proprietarului;
+6. **modul de lucru pentru decizii** (din 28.09.2026): Claude pune proprietarului întrebările direct, una câte una, cu variante; deciziile se integrează în documentație o singură dată, la final de etapă, cu un singur commit aprobat; ChatGPT auditează la punctele de control (final de fază / subfază).
