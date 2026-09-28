@@ -6,6 +6,7 @@
 **Revizia 2 (SET-A-01, 27.09.2026):** D8–D31 și A-1…A-9; modificările sunt marcate **[SET-A-01]** (§0.3, §D).
 **Revizia 3 (SET-A-02, 27.09.2026):** 2.1, 2.2, 2.11, 2.13, 2.14 + corecturile 3, 6, 12 și E-5; marcaj **[SET-A-02]**.
 **Revizia 4 (SET-A-03, 28.09.2026):** K-A02-3, REC-01 (retenția e-mailurilor), K-A02-4 (blocarea); marcaj **[SET-A-03]**.
+**Revizia 5 (SET-A-04, 28.09.2026):** fără modificări de fond în B6 / B7; retenția e-mailurilor legate de o sesizare rămâne 45 de zile de la depunere (decizia 1); marcaj **[SET-A-04]**.
 
 > Pragurile numerice sunt **propuneri inițiale** (DN-15). N-4 și D9-4 cer fixarea lor în Faza 4 / 5.6; ele rămân configurabile.
 

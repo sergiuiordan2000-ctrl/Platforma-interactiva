@@ -5,6 +5,7 @@
 **Revizia 2 (SET-A-01):** 27.09.2026, după `FAZA_4_DECIZII_8_31_INSTRUCTIUNI_CLAUDE.md` (deciziile D8–D31) și `FAZA_4_DECIZII_A1_A9_INSTRUCTIUNI_CLAUDE.md` (A-1…A-9). Modificările sunt marcate **[SET-A-01]**; textul înlocuit rămâne vizibil (tăiat).
 **Revizia 3 (SET-A-02):** 27.09.2026, după `TMC_FAZA_4_INSTRUCTIUNI_CLAUDE_SET_A_02.md` (2.1–2.15 + corecturile 1–13). Marcaj **[SET-A-02]**; rezumatul în §0.4, starea finală a punctelor în §E.
 **Revizia 4 (SET-A-03):** 28.09.2026, după `istoric/Turnu_Magurele_Civic_INSTRUCTIUNI_SET_A03.md` (K-A02-3, REC-01, B-7, K-A02-4, DN-19; DN-04 temporar deschis). Marcaj **[SET-A-03]**; rezumatul în §0.5, starea punctelor în §F. Sursa ID-ului REC-01: `istoric/FAZA_4_RECONCILIERE_STARE.md` §7.
+**Revizia 5 (SET-A-04):** 28.09.2026, după `istoric/Turnu_Magurele_Civic_SET_DECIZII_INTEGRARE.md` (instrucțiunile de context: `istoric/Turnu_Magurele_Civic_SET_A04_INSTRUCTIUNI.md`). Marcaj **[SET-A-04]**; rezumatul în §0.6, starea punctelor în §G.
 
 Punctele **nemarcate [SET-01] — APROBAT** rămân **`DECIZIE NOUĂ — NECESITĂ APROBARE`**.
 
@@ -87,7 +88,7 @@ Punctele **nemarcate [SET-01] — APROBAT** rămân **`DECIZIE NOUĂ — NECESIT
 | 2.2 | notificări către cetățean **numai** la `nouă → în analiză` și `în analiză → rezolvată`; nimic pentru asumare, preluare sau alte acțiuni | P-3; D9-3 (preluarea, răspunsul); F-1 din reconciliere |
 | 2.3 | **fără moderare după publicare**; `reports.moderate`, endpoint-urile și fluxurile de moderare se elimină; ieșirea din sistem numai prin ștergere (autor, `super_admin`) | B-3, B-13; 5C (axa moderării); 5D (24 / 13 → 23 / 12) |
 | 2.4 | locația: punct pe hartă (inclusiv poziția curentă) **sau** adresă geocodată automat, cu pin aproximativ verificabil de utilizator; fără poziție determinabilă: sesizarea se depune și rămâne în sistem, dar nu apare pe hartă | B-4; F-2. **Notă:** geocodarea adresei (adresă → poziție) nu contrazice D6-7, care exclude numai reverse geocoding (poziție → adresă). |
-| 2.5 | **retenție 45 de zile** pentru toate categoriile discutate (sesizare, e-mailuri și jurnale, fotografii, datele contului, backup-uri); `TM-XXX` rezervat definitiv | DN-11, B-5, F-3 |
+| 2.5 | **retenție 45 de zile** pentru toate categoriile discutate (sesizare, e-mailuri și jurnale, fotografii, datele contului, backup-uri); `TM-XXX` rezervat definitiv. **[SET-A-04]** Precizat de §0.6: 45 de zile de la depunere pentru datele sesizării; contul **nu** se șterge automat; backup-urile = problemă tehnică | DN-11, B-5, F-3 |
 | 2.6 | blocarea: numai `super_admin`; temporară / permanentă; cea temporară se poate ridica manual înainte de termen; asociată contului / e-mailului, nu unei identități reale | B-8, B-14 |
 | 2.7 | cetățeanul își poate șterge contul; sesizările rămân conform retenției, fără identitate publică | B-9 |
 | 2.8 | opțiunea „Public / Public anonim” **eliminată complet** | B-10, DN-13 |
@@ -148,9 +149,9 @@ Aplicate și eratele E-2 (închis = arhivă publică, prin E-3), E-5 (fluxul tes
 - **T-C1:** momentul de referință este `reports.created_at`. `purge:retention` șterge zilnic sesizările cu `created_at + 45 de zile ≤ acum`, prin aceeași procedură ca ștergerea definitivă (B1 §3.8).
 - **T-C2:** coloana nouă `email_outbox.retention_anchor_at` = `reports.created_at`, copiată la crearea rândului și păstrată și după `report_id = NULL`. Rândurile legate de o sesizare (inclusiv cele trimise) se șterg la `retention_anchor_at + 45 de zile`. E-mailurile fără sesizare (codurile de cont) rămân la N3-8 (45 de zile de la creare).
 - **T-C3:** B-7 aplicat și asupra rândurilor existente. La ștergerea definitivă (autor, `super_admin` sau retenție), rândurile `audit_log` cu `target_type = 'report'` ale sesizării se șterg în aceeași tranzacție. Consecință: auditul corectării poziției (D6-5), al reîncercării e-mailului și al schimbării stării există numai cât există sesizarea.
-- **T-C4:** limita tehnică din REC-01. O copie de siguranță realizată **înainte** de ștergere se păstrează până la rotația ei de 45 de zile. Datele unei sesizări pot rămâne într-o copie până la ≈ 90 de zile de la depunere. E-mailul deja primit de Primărie rămâne în afara aplicației (D21).
+- **T-C4:** limita tehnică din REC-01. O copie de siguranță realizată **înainte** de ștergere se păstrează până la rotația ei de 45 de zile. ~~Datele unei sesizări pot rămâne într-o copie până la ≈ 90 de zile de la depunere.~~ **[SET-A-04]** **Înlocuit de T-D1:** nu există o excepție de ≈ 90 de zile; regula de produs rămâne 45 de zile de la depunere (decizia 1). E-mailul deja primit de Primărie rămâne în afara aplicației (D21).
 - **T-C5:** pentru o blocare temporară, `ends_at = starts_at + 15 zile`, calculat de server. Expirarea este automată, prin comparație cu `ends_at` (fără job). O durată trimisă de client → 400.
-- **T-C6:** datele minime ale unei blocări definitive. La ștergerea contului sau a datelor contului, rândul se reduce la `id`, `kind`, `email_hash`; `account_id`, `note`, `created_by`, `starts_at` → NULL.
+- **T-C6:** datele minime ale unei blocări definitive. La ștergerea contului ~~sau a datelor contului~~ (**[SET-A-04]** contul nu se șterge automat), rândul se reduce la `id`, `kind`, `email_hash`; `account_id`, `note`, `created_by`, `starts_at` → NULL.
 - **T-C7:** împiedicarea recreării contului. Dacă e-mailul are o blocare definitivă activă și nu există cont, `POST /citizen/auth/start` nu creează contul și nu trimite cod, dar răspunde cu același 202 (fără enumerare). Un cont existent și blocat rămâne utilizabil conform D15.
 - **T-C8:** interpretare **de confirmat**. B-7 privește auditul; jurnalul e-mail (`email_outbox`) nu este audit. Rândurile deja trimise ale unei sesizări șterse rămân (fără legătură cu sesizarea) până la `retention_anchor_at + 45 de zile`, ca în Revizia 3.
 - **T-C9:** DN-19 în practică:
@@ -159,6 +160,39 @@ Aplicate și eratele E-2 (închis = arhivă publică, prin E-3), E-5 (fluxul tes
   - comunicatele demo cu imagini externe (Unsplash) primesc imagini locale sau rămân fără imagine (numai în afara producției, D10); detaliul se stabilește la 5.3.
 
 > **Consecință pentru RULES (extinde P-13):** D14 (durata blocării). Neconsemnat în repository (numai la cererea proprietarului).
+
+### 0.6 **[SET-A-04]** Decizii consolidate după Revizia 4 (aprobate)
+
+**Sursa:** `istoric/Turnu_Magurele_Civic_SET_DECIZII_INTEGRARE.md` (28.09.2026), împreună cu corecția transmisă în conversație în aceeași zi (REC-02.1: „contul cetățeanului NU se șterge automat după 45 de zile”). Context: `istoric/Turnu_Magurele_Civic_SET_A04_INSTRUCTIUNI.md`.
+
+| # | Decizie aprobată | Închide / înlocuiește |
+|---|---|---|
+| 1 | Datele unei sesizări se păstrează **45 de zile de la depunere**. **Nu** există o retenție de ≈ 90 de zile ca regulă de produs. Backup-urile sunt o problemă tehnică de implementare și nu modifică regula. | T-C4 (formularea „≈ 90 de zile”) |
+| 2 | Contul cetățeanului **nu** se șterge automat după 45 de zile. Cele 45 de zile privesc datele sesizării, nu existența contului. Nu există ștergere automată după ultima activitate, creare sau ultima sesizare. | REC-02 (a); **2.5**, partea „datele contului cetățeanului”; propunerea din Revizia 3 (45 de zile pentru cont) |
+| 3 | Blocarea: `super_admin` decide; **15 zile** (expirare automată) sau **definitivă**. Pentru blocarea definitivă se păstrează identificatorul minim care împiedică recrearea contului cu același e-mail. | confirmă K-A02-4 |
+| 4 | Auditul operațiilor administrative care **nu** țin de o sesizare: **6 luni**, apoi ștergere automată. Auditul unei sesizări dispare odată cu sesizarea, iar ștergerea sesizării nu generează eveniment de audit. | REC-02 (b); confirmă B-7 și T-C3 |
+| 5 | DN-19: imaginile comunicatelor sunt păstrate în repository și livrate direct de aplicație; fără CDN, fără stocare externă. | confirmă DN-19 |
+| 6 | DN-04: se păstrează **exact** lista existentă T1–T8 (`FAZA_4_00` §6), fără modificare, reinterpretare sau înlocuire. | DN-04 |
+| 7 | DN-05: la începutul Fazei 5 se creează **un branch nou, dedicat Fazei 5**, pornit din checkpoint-ul Fazei 4. `recovery-etapa-5-0e2cc20` rămâne baza / checkpoint-ul Fazei 4. | DN-05 (propunerea (a) respinsă) |
+| 8 | DN-07: mediul local de dezvoltare este **Windows 11**. | DN-07 (informația) |
+
+**Consecințe tehnice** (propuneri tehnice, **neconfirmate**; nu sunt decizii de produs):
+- **T-D1:** backup-urile.
+  - Respectarea regulii de 45 de zile în copiile de siguranță este o **problemă tehnică de implementare**, deschisă tehnic.
+  - Se proiectează la 5.1, împreună cu G6 (infrastructura de producție).
+  - Nu prelungește și nu modifică regula de produs.
+- **T-D2:** `purge:retention` șterge rândurile `audit_log` cu `target_type ≠ 'report'` mai vechi de 6 luni. Rândurile cu `target_type = 'report'` urmează sesizarea (T-C3).
+- **T-D3:** `purge:retention` nu atinge `citizen_accounts`.
+  - Contul dispare numai la cererea cetățeanului (2.7).
+  - Codurile de autentificare expiră și se curăță ca până acum.
+  - Reducerea unei blocări definitive la datele minime (T-C6) se face numai la ștergerea contului.
+- **T-D4:** numele branch-ului Fazei 5 **nu** este stabilit prin decizia 7; se fixează la pornirea Fazei 5.
+- **T-D5:** mediul local pe Windows 11.
+  - Propunerea DN-07 (Docker cu MySQL 8.4 și captare SMTP; alternativă: instalare nativă) rămâne propunere tehnică.
+  - Pe Windows 11, Docker Desktop folosește WSL 2.
+  - Varianta se confirmă la 5.1.
+
+> **Consecință pentru RULES (extinde P-13):** 2.5 (partea „datele contului”); nicio regulă Faza 3 nouă afectată. Neconsemnat în repository (numai la cererea proprietarului).
 
 ---
 
@@ -198,7 +232,7 @@ Aplicate și eratele E-2 (închis = arhivă publică, prin E-3), E-5 (fluxul tes
   - reîncercarea e-mailului (A17-9): `reports.resolve`.
 - **Impact:** B2, B4, teste de autorizare.
 
-### DN-04 — Definiția T1–T8 (K-1) · **[SET-A-02] DESCHIS** (§E.2) · **[SET-A-03]** **DECIZIE B: temporar deschis**; lista din `FAZA_4_00_ARHITECTURA_SI_INDEX.md` §6 **nu se modifică**; analiza: `FAZA_4_RAPORT_MODIFICARI_SET_A_03.md` §4
+### DN-04 — Definiția T1–T8 (K-1) · **[SET-A-02] DESCHIS** (§E.2) · ~~**[SET-A-03]** **DECIZIE B: temporar deschis**~~ · **[SET-A-04]** **ÎNCHIS: se păstrează exact lista existentă** (decizia 6); lista din `FAZA_4_00_ARHITECTURA_SI_INDEX.md` §6 **nu se modifică**; analiza: `FAZA_4_RAPORT_MODIFICARI_SET_A_03.md` §4
 - **Propunere:** dacă proprietarul nu are lista originală, T1–T8 = grupele de dependențe tehnice din `FAZA_4_00_ARHITECTURA_SI_INDEX.md` §6:
   - T1 runtime;
   - T2 framework HTTP;
@@ -210,7 +244,7 @@ Aplicate și eratele E-2 (închis = arhivă publică, prin E-3), E-5 (fluxul tes
   - T8 build și testare.
 - **Alternativă:** lista originală, dacă există la ChatGPT sau la proprietar.
 
-### DN-05 — Strategia de branch-uri pentru Faza 5 · **[SET-A-02] DESCHIS** (§E.2)
+### DN-05 — Strategia de branch-uri pentru Faza 5 · **[SET-A-02] DESCHIS** (§E.2) · **[SET-A-04]** **ÎNCHIS:** branch nou, dedicat Fazei 5, pornit din checkpoint-ul Fazei 4; `recovery-etapa-5-0e2cc20` rămâne baza Fazei 4 (decizia 7). Propunerea (a) de mai jos nu se aplică; numele branch-ului: la pornirea Fazei 5 (T-D4).
 - **Opțiuni:**
   - (a) se continuă pe `recovery-etapa-5-0e2cc20`, cu commit-uri per subetapă (practica actuală);
   - (b) branch per subfază 5.x, integrat în branch-ul de lucru după audit.
@@ -223,7 +257,7 @@ Aplicate și eratele E-2 (închis = arhivă publică, prin E-3), E-5 (fluxul tes
   - (b) `server/` cu propriul `package.json` și importuri relative din `shared/`.
 - **Propunere:** **(a)**. Modifică `package.json` rădăcină la 5.1.
 
-### DN-07 — Mediul de dezvoltare local · **[SET-A-02]** necesită o informație (sistemul de operare)
+### DN-07 — Mediul de dezvoltare local · **[SET-A-02]** necesită o informație (sistemul de operare) · **[SET-A-04]** **Windows 11** (decizia 8); varianta Docker / nativ: propunere tehnică (T-D5)
 - **Problema:** G3 = dezvoltare locală + CI. MySQL 8.4 local cere Docker sau o instalare nativă pe calculatorul proprietarului, iar sistemul de operare local nu este cunoscut.
 - **Propunere:** Docker (MySQL 8.4 + captare SMTP), cu instalarea nativă ca alternativă.
 - **De stabilit:** sistemul de operare și preferința proprietarului.
@@ -262,7 +296,7 @@ Aplicate și eratele E-2 (închis = arhivă publică, prin E-3), E-5 (fluxul tes
 - **Alternativă:** coadă retroactivă la activare (risc: trimiterea în masă a unor sesizări vechi).
 - **[SET-01] Precizare:** de acum, întrebarea privește **numai** sesizările la care cetățeanul a cerut transmiterea (pct. 7); celelalte nu intră niciodată în coadă. DN-10 rămâne **deschisă**.
 
-### DN-11 — Politica de retenție · **[SET-A-02] ÎNCHIS** (2.5: 45 de zile; momentul de referință: K-A02-3) · **[SET-A-03]** momentul: **depunerea sesizării** (K-A02-3); domeniul: toate datele legate de sesizare (REC-01); datele fără legătură cu o sesizare: **REC-02 (deschis)**. Tabelul de mai jos este istoricul propunerilor din revizia 0 și **nu se aplică**.
+### DN-11 — Politica de retenție · **[SET-A-02] ÎNCHIS** (2.5: 45 de zile; momentul de referință: K-A02-3) · **[SET-A-03]** momentul: **depunerea sesizării** (K-A02-3); domeniul: toate datele legate de sesizare (REC-01); datele fără legătură cu o sesizare: **REC-02 (deschis)**; **[SET-A-04]** contul: fără ștergere automată; auditul administrativ: 6 luni; fără excepția de ≈ 90 de zile. Tabelul de mai jos este istoricul propunerilor din revizia 0 și **nu se aplică**.
 Nicio valoare nu este decisă; toate sunt **propuneri**:
 
 | Date | Propunere |
@@ -346,7 +380,7 @@ Toate sunt configurabile; se ajustează în 5.x pe baza testelor.
   - fără coduri de recuperare în MVP.
 - **Alternativă:** coduri de recuperare de unică folosință.
 
-### DN-19 — Resursele externe și CSP · **[SET-A-02] DESCHIS** (§E.2) · **[SET-A-03]** **ÎNCHIS — decizie tehnică C:** imaginile comunicatelor fac parte din aplicație / repository și se publică odată cu versiunea software; fără CDN sau stocare externă (T-C9)
+### DN-19 — Resursele externe și CSP · **[SET-A-02] DESCHIS** (§E.2) · **[SET-A-03]** **ÎNCHIS — decizie tehnică C:** imaginile comunicatelor fac parte din aplicație / repository și se publică odată cu versiunea software; fără CDN sau stocare externă (T-C9) · **[SET-A-04]** confirmat: păstrate în repository, livrate direct de aplicație (decizia 5)
 - **Problema:** harta folosește tile-uri OSM; comunicatele demo folosesc imagini externe (Unsplash, m16).
 - **Propunere:** CSP care permite **numai** tile-urile OSM. În producție, imaginile comunicatelor numai de pe domeniul propriu. Încărcarea imaginilor pentru comunicate **nu există azi** și ar fi o funcționalitate nouă; până atunci, comunicatele de producție fără imagine sau cu o listă de domenii permise aprobată.
 
@@ -525,7 +559,7 @@ Le-am identificat aplicând setul 01. **Nu le-am rezolvat.** Acolo unde designul
 | K-A02-4 | decizia: 15 zile / definitiv; identificatorul minim |
 | DN-19 | decizia tehnică C |
 
-### F.2 Rămân deschise (necesită o decizie a lui Sergiu)
+### F.2 Rămân deschise (necesită o decizie a lui Sergiu) · **[SET-A-04]** starea actualizată este în §G
 
 | ID | Întrebarea | De ce este necesară | Documente afectate |
 |---|---|---|---|
@@ -539,5 +573,38 @@ Le-am identificat aplicând setul 01. **Nu le-am rezolvat.** Acolo unde designul
 - propunerile tehnice T-B1…T-B10 și T-C1…T-C9;
 - DN-uri declarate tehnice (§E.1);
 - **K-A02-1:** în reconcilierea din 28.09.2026 (`istoric/FAZA_4_RECONCILIERE_STARE.md`, R-14), K-A02-1 a fost tratat ca rezolvat prin 2.2 („numai”); SET-A-03 nu îl menționează explicit. Revizia 4 păstrează eliminarea e-mailului de confirmare la depunere.
+
+**Acțiune la cerere (nu decizie):** P-13, adică RULES, HANDOFF, Plan v1.1 și Master Plan.
+
+
+---
+
+## G. **[SET-A-04]** Starea punctelor după Revizia 5
+
+### G.1 Închise în această revizie
+
+| Punct | Închis prin |
+|---|---|
+| excepția de ≈ 90 de zile (T-C4) | decizia 1: eliminată; backup-urile = problemă tehnică (T-D1) |
+| REC-02 (a) contul cetățeanului | decizia 2: fără ștergere automată |
+| REC-02 (b) auditul administrativ | decizia 4: 6 luni |
+| DN-04 | decizia 6: lista păstrată exact |
+| DN-05 | decizia 7: branch nou pentru Faza 5 |
+| DN-07 | decizia 8: Windows 11 |
+| DN-19 | decizia 5 (confirmare) |
+
+### G.2 Rămân deschise (necesită o decizie a lui Sergiu)
+
+| ID | Întrebarea | De ce este necesară | Documente afectate |
+|---|---|---|---|
+| **REC-02 (c)** | Cât se păstrează jurnalele aplicației și sesiunile expirate? | nicio decizie nu le acoperă; valorile existente (14 zile, 45 de zile) sunt propuneri ale lui Claude | B1 §3.9, B8 §1, B10 |
+| **REC-02 (d)** | Cât se păstrează textele libere din sondaje? | idem; propunerea existentă: 45 de zile după închiderea sondajului | B1 §3.9, B8 §1, B10 |
+| **REC-02 (e)** | Ce se întâmplă cu o blocare **temporară** după expirare sau ridicare (se șterge imediat sau se păstrează un timp)? | decizia 3 fixează durata și expirarea, nu și păstrarea înregistrării după expirare | B1 `citizen_blocks`, §3.9, B10 |
+| **T-C8** | Rândurile deja trimise din jurnalul e-mail ale unei sesizări șterse rămân până la termenul de 45 de zile de la depunere sau se șterg odată cu sesizarea? | B-7 privește numai auditul; decizia 1 fixează termenul maxim, nu și ce se întâmplă la ștergerea anticipată | B1 §3.8, B6 §6, B10 |
+
+**De confirmat la audit (nu decizii noi):**
+- T-B1…T-B10, T-C1…T-C3, T-C5…T-C7, T-C9 și T-D1…T-D5;
+- DN-urile declarate tehnice (§E.1);
+- K-A02-1 (vezi §F).
 
 **Acțiune la cerere (nu decizie):** P-13, adică RULES, HANDOFF, Plan v1.1 și Master Plan.

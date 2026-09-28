@@ -6,6 +6,7 @@
 **Revizia 2 (SET-A-01, 27.09.2026):** aplică D8–D31 și A-1…A-9 (`FAZA_4_DECIZII_NOI.md` §0.3). Modificările sunt marcate **[SET-A-01]**; problemele deschise B-x sunt în §D.
 **Revizia 3 (SET-A-02, 27.09.2026):** aplică `TMC_FAZA_4_INSTRUCTIUNI_CLAUDE_SET_A_02.md` (2.1–2.15) și corecturile obligatorii 1–13 (`FAZA_4_DECIZII_NOI.md` §0.4). Modificările sunt marcate **[SET-A-02]**. Numărul final de tabele: **30** (§7).
 **Revizia 4 (SET-A-03, 28.09.2026):** aplică `istoric/Turnu_Magurele_Civic_INSTRUCTIUNI_SET_A03.md` (K-A02-3, REC-01, B-7, K-A02-4, DN-19; DN-04 fără modificări). Modificările sunt marcate **[SET-A-03]**; consecințele tehnice T-C1…T-C9 sunt în `FAZA_4_DECIZII_NOI.md` §0.5. Numărul de tabele rămâne **30** (fără tabele noi; o coloană nouă: `email_outbox.retention_anchor_at`).
+**Revizia 5 (SET-A-04, 28.09.2026):** aplică `istoric/Turnu_Magurele_Civic_SET_DECIZII_INTEGRARE.md` (retenția de 45 de zile fără excepția de ≈ 90 de zile; contul cetățeanului fără ștergere automată; auditul administrativ 6 luni; DN-04, DN-05, DN-07, DN-19). Modificările sunt marcate **[SET-A-04]**; rezumatul în `FAZA_4_DECIZII_NOI.md` §0.6.
 
 ---
 
@@ -104,7 +105,7 @@ Folosirea unui cod și resetarea TOTP de către alt `super_admin` (2.15-B) se î
 | `ip_hash` | CHAR(64) NULL | — |
 
 Ce se auditează: vezi B4 §5. **[SET-01] DN-02 aprobat:** asumarea și retragerea asumării individuale **nu** se scriu în `audit_log`; auditul nu se folosește pentru a reconstrui un istoric al asumărilor (regula 6.6).
-Retenția: ~~DN-11~~ ~~**[SET-A-02] 45 de zile** (2.5, §3.9).~~ **[SET-A-03]** rândurile care privesc o sesizare (`target_type = 'report'`) se șterg **odată cu sesizarea**, la ștergerea definitivă sau la expirarea retenției (B-7, REC-01, §3.8, T-C3). Ștergerea definitivă **nu** se auditează (B-7). Retenția rândurilor care nu privesc o sesizare: **REC-02 (deschis)**; până la decizie rămâne propunerea din Revizia 3 (45 de zile), **neconfirmată**.
+Retenția: ~~DN-11~~ ~~**[SET-A-02] 45 de zile** (2.5, §3.9).~~ **[SET-A-03]** rândurile care privesc o sesizare (`target_type = 'report'`) se șterg **odată cu sesizarea**, la ștergerea definitivă sau la expirarea retenției (B-7, REC-01, §3.8, T-C3). Ștergerea definitivă **nu** se auditează (B-7). ~~Retenția rândurilor care nu privesc o sesizare: **REC-02 (deschis)**; până la decizie rămâne propunerea din Revizia 3 (45 de zile), **neconfirmată**.~~ **[SET-A-04]** Rândurile care **nu** privesc o sesizare (auditul administrativ) se păstrează **6 luni** și apoi se șterg automat (decizia 4, SET-A-04).
 
 **`settings`**
 
@@ -324,7 +325,7 @@ Fără nume, telefon, CNP sau adresă (A-9). Fără parolă (autentificare prin 
 
 Efect (D15–D18): o blocare activă respinge **numai** depunerea unei sesizări noi (403). Autentificarea, lista proprie, ștergerea propriilor sesizări, votul și conținutul public rămân neafectate. Sesizările existente nu se ating (D16).
 
-**[SET-A-03]** **Date minime pentru blocarea definitivă (K-A02-4; propunere tehnică T-C6):** la ștergerea contului (2.7) sau la ștergerea datelor contului prin retenție (REC-02), rândul unei blocări definitive active se reduce la `id`, `kind` și `email_hash`; `account_id`, `note`, `created_by` și `starts_at` devin NULL. Nu se păstrează alte date (K-A02-4: „nu se păstrează mai multe date decât sunt necesare”).
+**[SET-A-03]** **Date minime pentru blocarea definitivă (K-A02-4; propunere tehnică T-C6):** la ștergerea contului (2.7) ~~sau la ștergerea datelor contului prin retenție (REC-02)~~ (**[SET-A-04]** contul nu se șterge automat, decizia 2), rândul unei blocări definitive active se reduce la `id`, `kind` și `email_hash`; `account_id`, `note`, `created_by` și `starts_at` devin NULL. Nu se păstrează alte date (K-A02-4: „nu se păstrează mai multe date decât sunt necesare”).
 
 **[SET-A-02] Politica de utilizare (2.9):** `citizen_accounts.policy_version` + `policy_accepted_at` (NOT NULL). Contul nu se creează fără bifarea explicită a acceptării (422 la API).
 
@@ -343,25 +344,26 @@ O singură tranzacție (propunere tehnică, T-A4):
 6. **[SET-A-03]** **B-7:** pentru ștergere **nu** se scrie niciun rând în `audit_log`; rândurile existente care privesc sesizarea (`target_type = 'report'`, `target_id` = sesizarea) se șterg în aceeași tranzacție, ca să nu rămână în audit o urmă care să permită reconstituirea ei (propunere tehnică T-C3). Același pas se aplică la ștergerea prin retenție (§3.9).
 
 ~~**Deschise:** rândurile `email_outbox` deja trimise (B-5 + DN-11); auditul (B-7); backup-urile (B-5).~~
-**[SET-A-02]** Rândurile `email_outbox` deja trimise rămân, cu `report_id = NULL`, până la expirarea retenției de **45 de zile** (2.5). Backup-urile expiră tot la 45 de zile (2.5), deci o sesizare ștearsă dispare din toate copiile în cel mult 45 de zile. ~~**Rămâne deschis:** B-7, auditul ștergerii.~~ **[SET-A-03]** B-7 decis: ștergerea nu se auditează (pasul 6). Rândurile `email_outbox` deja trimise se șterg la 45 de zile de la **depunerea** sesizării (`retention_anchor_at`; K-A02-3, REC-01, T-C2). Precizare față de Revizia 3: o copie de siguranță realizată **înainte** de ștergere se păstrează până la rotația ei de 45 de zile; aceasta este limita tehnică prevăzută de REC-01 (T-C4). Jurnalul e-mail nu este audit: rândurile trimise ale unei sesizări șterse rămân în `email_outbox` până la termenul de retenție (T-C8, **neconfirmat**).
+**[SET-A-02]** Rândurile `email_outbox` deja trimise rămân, cu `report_id = NULL`, până la expirarea retenției de **45 de zile** (2.5). Backup-urile expiră tot la 45 de zile (2.5), deci o sesizare ștearsă dispare din toate copiile în cel mult 45 de zile. ~~**Rămâne deschis:** B-7, auditul ștergerii.~~ **[SET-A-03]** B-7 decis: ștergerea nu se auditează (pasul 6). Rândurile `email_outbox` deja trimise se șterg la 45 de zile de la **depunerea** sesizării (`retention_anchor_at`; K-A02-3, REC-01, T-C2). ~~Precizare față de Revizia 3: o copie de siguranță realizată **înainte** de ștergere se păstrează până la rotația ei de 45 de zile; aceasta este limita tehnică prevăzută de REC-01 (T-C4).~~ **[SET-A-04]** Regula de produs rămâne **45 de zile de la depunere**, fără excepție pentru backup-uri. Modul în care copiile de siguranță respectă această regulă este o **problemă tehnică de implementare** (T-D1), nu o prelungire a retenției. Jurnalul e-mail nu este audit: rândurile trimise ale unei sesizări șterse rămân în `email_outbox` până la termenul de retenție (T-C8, **neconfirmat**).
 
 ### 3.9 [SET-A-02] Retenția (2.5)
 
-**Regula aprobată:** **45 de zile** pentru toate categoriile de date discutate, inclusiv sesizarea, e-mailurile și jurnalele lor, fotografiile, datele contului cetățeanului și backup-urile. Excepție: `TM-XXX` rămâne rezervat definitiv (contorul nu se atinge).
+**Regula aprobată:** **45 de zile** pentru toate categoriile de date discutate, inclusiv sesizarea, e-mailurile și jurnalele lor, fotografiile, datele contului cetățeanului și backup-urile. Excepție: `TM-XXX` rămâne rezervat definitiv (contorul nu se atinge). **[SET-A-04]** Partea „datele contului cetățeanului” este înlocuită de decizia 2 (SET-A-04): contul nu se șterge automat.
 
-**[SET-A-03]** **Precizări aprobate (K-A02-3, REC-01, K-A02-4):** termenul de 45 de zile curge de la **depunerea sesizării** și se aplică **tuturor datelor legate de sesizare** și asociate ei (sesizarea, fotografiile, e-mailurile și alte date aferente), în măsura în care ștergerea este posibilă legal și tehnic. Blocarea definitivă este tratată **separat** de retenție. Pentru datele care **nu** sunt legate de o sesizare, termenele din tabel rămân **propuneri tehnice neconfirmate** până la **REC-02** (`FAZA_4_DECIZII_NOI.md` §F).
+**[SET-A-03]** **Precizări aprobate (K-A02-3, REC-01, K-A02-4):** termenul de 45 de zile curge de la **depunerea sesizării** și se aplică **tuturor datelor legate de sesizare** și asociate ei (sesizarea, fotografiile, e-mailurile și alte date aferente), în măsura în care ștergerea este posibilă legal și tehnic. Blocarea definitivă este tratată **separat** de retenție. ~~Pentru datele care **nu** sunt legate de o sesizare, termenele din tabel rămân **propuneri tehnice neconfirmate** până la **REC-02** (`FAZA_4_DECIZII_NOI.md` §F).~~ **[SET-A-04]** **Decizii SET-A-04:** fără excepția de ≈ 90 de zile (decizia 1); contul cetățeanului **nu** se șterge automat (decizia 2); auditul administrativ fără legătură cu o sesizare: **6 luni** (decizia 4). Rămân nedecise (REC-02, `FAZA_4_DECIZII_NOI.md` §G): jurnalele aplicației și sesiunile expirate, textele libere din sondaje, blocările temporare după expirare.
 
 | Date | Termen | Mecanism (tehnic) |
 |---|---|---|
 | sesizarea + fotografiile + răspunsurile + responsabilii **[SET-A-03]** + rândurile `audit_log` ale sesizării | 45 de zile ~~de la **momentul de referință K-A02-3 (DE DECIS)**~~ **[SET-A-03]** **de la depunere** (`reports.created_at`; K-A02-3, REC-01), indiferent de stare | `purge:retention` zilnic: aceeași ștergere definitivă ca în §3.8, inclusiv pasul 6 (B-7) |
 | `email_outbox` (corp **și** metadate) | ~~45 de zile de la creare~~ **[SET-A-03]** legate de o sesizare: 45 de zile de la depunerea ei (`retention_anchor_at`, REC-01); fără sesizare (codurile de cont): 45 de zile de la creare (N3-8) | `purge:retention` |
-| contul cetățeanului (`citizen_accounts`, codurile, sesiunile) | 45 de zile; **[SET-A-03]** **momentul de start pentru cont: NEDECIS (REC-02)**. K-A02-3 a fost decis numai pentru sesizare. | `purge:retention`, după decizie |
+| contul cetățeanului (`citizen_accounts`) | ~~45 de zile; **[SET-A-03]** **momentul de start pentru cont: NEDECIS (REC-02)**. K-A02-3 a fost decis numai pentru sesizare.~~ **[SET-A-04]** **fără ștergere automată** (decizia 2): contul rămâne până când cetățeanul îl șterge (2.7). Codurile de autentificare expiră și se curăță zilnic (neschimbat). | ~~`purge:retention`, după decizie~~ **[SET-A-04]** `purge:retention` **nu** atinge conturile |
 | `citizen_blocks` | ~~o blocare temporară: 45 de zile după expirare sau ridicare;~~ **[SET-A-03]** blocarea temporară (15 zile): păstrarea după expirare sau ridicare = **REC-02** (Revizia 3 propunea 45 de zile, neconfirmat); **o blocare definitivă se păstrează** fără termen, redusă la datele minime (K-A02-4, T-C6) | `purge:retention` |
-| backup-uri | 45 de zile (rotație). **[SET-A-03]** O sesizare ștearsă poate rămâne într-o copie realizată anterior până la rotația acesteia (limita tehnică din REC-01; T-C4) | `backup:db` + ștergerea copiilor mai vechi |
-| ~~`audit_log`~~ **[SET-A-03]** `audit_log` fără legătură cu o sesizare, jurnalele aplicației, sesiunile expirate | 45 de zile: **[SET-A-03]** **propunere tehnică neconfirmată (REC-02)** | `purge:retention` |
+| backup-uri | 45 de zile (rotație). ~~**[SET-A-03]** O sesizare ștearsă poate rămâne într-o copie realizată anterior până la rotația acesteia (limita tehnică din REC-01; T-C4)~~ **[SET-A-04]** Regula de produs rămâne 45 de zile de la depunere; respectarea ei în copiile de siguranță = problemă tehnică de implementare (T-D1) | `backup:db` + ștergerea copiilor mai vechi |
+| ~~`audit_log`~~ **[SET-A-03]** `audit_log` fără legătură cu o sesizare ~~, jurnalele aplicației, sesiunile expirate~~ | ~~45 de zile: **[SET-A-03]** **propunere tehnică neconfirmată (REC-02)**~~ **[SET-A-04]** **6 luni**, apoi ștergere automată (decizia 4) | `purge:retention` |
+| **[SET-A-04]** jurnalele aplicației, sesiunile expirate | **REC-02 (deschis)**; până la decizie, propunerile anterioare (jurnale: 14 zile; sesiuni: 45 de zile) rămân **neconfirmate** | `purge:retention` |
 | `rejected_attempts` | **30 de zile** (N4-8, decizie anterioară, mai strictă) | neschimbat |
 | sondajele, voturile agregate, arhiva publică | **nu intră** în regula de 45 de zile (D3: arhivă publică, cu rezultatele finale) | — |
-| textele libere din sondaje | 45 de zile după închiderea sondajului: **[SET-A-03]** **propunere tehnică neconfirmată (REC-02)** | `purge:retention` |
+| textele libere din sondaje | 45 de zile după închiderea sondajului: **[SET-A-03]** **propunere tehnică neconfirmată (REC-02)**; **[SET-A-04]** încă nedecis | `purge:retention` |
 
 ## 4. Integritate: rezumat
 
@@ -384,6 +386,8 @@ O singură tranzacție (propunere tehnică, T-A4):
 | **[SET-A-03]** Ștergerea nu lasă urme în audit (B-7) | în tranzacția de ștergere: niciun rând nou + ștergerea rândurilor `target_type = 'report'` ale sesizării |
 | **[SET-A-03]** Blocare temporară = 15 zile (K-A02-4) | `ends_at` calculat de server; `CHECK` (`kind = 'temporary'` ⇒ `ends_at` NOT NULL) |
 | **[SET-A-03]** Fără recrearea contului sub blocare definitivă (K-A02-4) | verificarea `email_hash` la crearea contului (T-C7) |
+| **[SET-A-04]** Auditul administrativ: 6 luni (decizia 4) | `purge:retention` șterge rândurile `audit_log` cu `target_type ≠ 'report'` mai vechi de 6 luni; test obligatoriu |
+| **[SET-A-04]** Contul cetățeanului nu se șterge automat (decizia 2) | `purge:retention` nu conține nicio regulă pentru `citizen_accounts`; test obligatoriu |
 | Coordonatele: ambele sau niciuna | `CHECK` |
 | O notificare de un anumit tip o singură dată | `email_outbox.dedupe_key UNIQUE` |
 | Cel puțin un `super_admin` activ | verificare tranzacțională în serviciul de conturi |
@@ -435,7 +439,7 @@ Detaliate în `FAZA_4_DECIZII_NOI.md`:
 - **DN-02:** asumările în audit față de regula 6.6 (**[SET-01] aprobat**);
 - **DN-09:** stările și tranzițiile (**[SET-01] aprobat**; **[SET-A-02]** P-1 decis prin 2.1, P-9 confirmat; P-4 / P-5 tehnice);
 - **DN-10:** fluxul către Primărie dezactivat: **[SET-A-02] decis (2.13)**, reluare automată;
-- **DN-11:** retenția datelor: **[SET-A-02] decis (2.5)**, 45 de zile; ~~momentul de referință: K-A02-3;~~ **[SET-A-03]** de la depunerea sesizării (K-A02-3), pentru toate datele legate de sesizare (REC-01); contul și datele fără legătură cu o sesizare: **REC-02 (deschis)**;
+- **DN-11:** retenția datelor: **[SET-A-02] decis (2.5)**, 45 de zile; ~~momentul de referință: K-A02-3;~~ **[SET-A-03]** de la depunerea sesizării (K-A02-3), pentru toate datele legate de sesizare (REC-01); ~~contul și datele fără legătură cu o sesizare: **REC-02 (deschis)**;~~ **[SET-A-04]** contul: fără ștergere automată; auditul administrativ: 6 luni; jurnalele aplicației, sesiunile, textele libere, blocările temporare expirate: **REC-02 (deschis)**;
 - **DN-12:** datele de contact (**[SET-01] aprobat**; **[SET-A-01/02]** P-6 și P-7 închise; e-mailul în contul cetățeanului);
 - **DN-13:** eliminarea valorii istorice `private`: **[SET-A-02] închis** (2.8, câmpul eliminat);
 - **DN-14:** încărcarea datelor de referință în producție (deschis).

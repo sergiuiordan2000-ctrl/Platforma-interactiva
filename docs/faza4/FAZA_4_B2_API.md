@@ -6,6 +6,7 @@
 **Revizia 2 (SET-A-01, 27.09.2026):** D8–D31 și A-1…A-9; modificările sunt marcate **[SET-A-01]** (vezi `FAZA_4_DECIZII_NOI.md` §0.3 și §D).
 **Revizia 3 (SET-A-02, 27.09.2026):** 2.1–2.15 + corecturile 1–13; modificările sunt marcate **[SET-A-02]** (`FAZA_4_DECIZII_NOI.md` §0.4).
 **Revizia 4 (SET-A-03, 28.09.2026):** K-A02-3, REC-01, B-7, K-A02-4, DN-19; modificările sunt marcate **[SET-A-03]** (`FAZA_4_DECIZII_NOI.md` §0.5).
+**Revizia 5 (SET-A-04, 28.09.2026):** retenția (fără ≈ 90 de zile), contul fără ștergere automată, auditul administrativ 6 luni; marcaj **[SET-A-04]** (`FAZA_4_DECIZII_NOI.md` §0.6).
 
 ---
 
@@ -37,7 +38,7 @@ Comenzi CLI (același artefact, alt punct de intrare), rulate prin cron sau manu
 | `purge:rate-limits`, `purge:rejected` (30 de zile), `purge:sessions`, `purge:pow` | curățare | zilnic |
 | ~~`purge:contacts`~~ | **[SET-01] eliminat** (DN-12: fără funcție de anonimizare). Tratamentul e-mailului la expirarea retenției: DN-11 (deschis). | — |
 | `surveys:close-expired` | **[SET-01] E-3:** trece în `closed` sondajele cu `end_at` depășit (audit, actor `system`); P-11 | la 5 minute (propunere) |
-| `purge:retention` | **[SET-A-02] 2.5:** ștergerea datelor mai vechi de 45 de zile (B1 §3.9; ~~momentul de referință pentru sesizări și conturi: K-A02-3~~ **[SET-A-03]** sesizările și toate datele lor: 45 de zile de la depunere, K-A02-3 + REC-01; conturile și datele fără sesizare: REC-02, deschis) | zilnic |
+| `purge:retention` | **[SET-A-02] 2.5:** ștergerea datelor mai vechi de 45 de zile (B1 §3.9; ~~momentul de referință pentru sesizări și conturi: K-A02-3~~ **[SET-A-03]** sesizările și toate datele lor: 45 de zile de la depunere, K-A02-3 + REC-01; ~~conturile și datele fără sesizare: REC-02, deschis~~; **[SET-A-04]** conturile **nu** se șterg automat; auditul administrativ: 6 luni; restul: REC-02, deschis) | zilnic |
 | `backup:db` | export DB + arhiva fotografiilor (staging: G3, condiția 6) | zilnic |
 | `migrate` | rulează migrațiile (DN-20) | la deploy |
 | `seed:config`, `seed:demo` | seed-uri (`seed:demo` refuzat în producție) | la cerere |
