@@ -7,6 +7,7 @@
 **Revizia 3 (SET-A-02, 27.09.2026):** 2.1, 2.2, 2.11, 2.13, 2.14 + corecturile 3, 6, 12 și E-5; marcaj **[SET-A-02]**.
 **Revizia 4 (SET-A-03, 28.09.2026):** K-A02-3, REC-01 (retenția e-mailurilor), K-A02-4 (blocarea); marcaj **[SET-A-03]**.
 **Revizia 5 (SET-A-04, 28.09.2026):** fără modificări de fond în B6 / B7; retenția e-mailurilor legate de o sesizare rămâne 45 de zile de la depunere (decizia 1); marcaj **[SET-A-04]**.
+**Revizia 6 (SET-A-05, 28.09.2026):** jurnalul e-mail al unei sesizări se șterge odată cu sesizarea (T-C8); marcaj **[SET-A-05]**.
 
 > Pragurile numerice sunt **propuneri inițiale** (DN-15). N-4 și D9-4 cer fixarea lor în Faza 4 / 5.6; ele rămân configurabile.
 
@@ -92,8 +93,8 @@ Antetele (`Subject`) sunt construite **numai** din `TM-XXX` și din categorie. C
 | Element | Regulă |
 |---|---|
 | Jurnalul | tabelul `email_outbox` însuși (starea, încercările, eroarea, datele) |
-| Corpul | **șters după 45 de zile** (N3-8), prin `purge:email-bodies`. **[SET-A-03]** Pentru e-mailurile fără sesizare; cele legate de o sesizare dispar integral cel târziu la 45 de zile de la depunere (REC-01, T-C2) |
-| Metadatele | ~~conform DN-11~~ ~~**[SET-A-02] 45 de zile** (2.5)~~ **[SET-A-03]** legate de o sesizare: 45 de zile de la depunerea ei (`retention_anchor_at`; K-A02-3, REC-01); celelalte (codurile de cont): 45 de zile de la creare |
+| Corpul | **șters după 45 de zile** (N3-8), prin `purge:email-bodies`. **[SET-A-03]** Pentru e-mailurile fără sesizare; cele legate de o sesizare dispar integral ~~cel târziu la 45 de zile de la depunere (REC-01, T-C2)~~ **[SET-A-05]** odată cu sesizarea: la ștergerea ei definitivă sau la expirarea celor 45 de zile de la depunere (T-C8) |
+| Metadatele | ~~conform DN-11~~ ~~**[SET-A-02] 45 de zile** (2.5)~~ **[SET-A-03]** legate de o sesizare: ~~45 de zile de la depunerea ei (`retention_anchor_at`; K-A02-3, REC-01)~~ **[SET-A-05]** odată cu sesizarea (T-C8); celelalte (codurile de cont): 45 de zile de la creare |
 | Acces | ~~per sesizare: `reports.view`; global: `audit.view`~~ **[SET-A-02] drept exclusiv `super_admin`** (2.11), per sesizare și global. `primarie_operator` vede numai starea derivată a transmiterii, fără destinatari (corectura 3). Reîncercarea: exclusiv `super_admin`. |
 | Indicator de eșec | contor pe tabloul de bord și pe sesizare (A17-9) |
 

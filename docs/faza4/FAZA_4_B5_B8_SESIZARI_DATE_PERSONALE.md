@@ -7,6 +7,7 @@
 **Revizia 3 (SET-A-02, 27.09.2026):** 2.1–2.15 + corecturile 1–13; marcaj **[SET-A-02]** (`FAZA_4_DECIZII_NOI.md` §0.4).
 **Revizia 4 (SET-A-03, 28.09.2026):** K-A02-3, REC-01, B-7, K-A02-4; marcaj **[SET-A-03]** (`FAZA_4_DECIZII_NOI.md` §0.5).
 **Revizia 5 (SET-A-04, 28.09.2026):** retenția fără ≈ 90 de zile; contul fără ștergere automată; auditul administrativ 6 luni; marcaj **[SET-A-04]** (`FAZA_4_DECIZII_NOI.md` §0.6).
+**Revizia 6 (SET-A-05, 28.09.2026):** jurnalul e-mail șters cu sesizarea; jurnale, sesiuni, texte libere 6 luni; marcaj **[SET-A-05]** (`FAZA_4_DECIZII_NOI.md` §0.7).
 
 ---
 
@@ -119,7 +120,7 @@
 | `primarie_operator` | **nu poate șterge** (D11) | — |
 
 - **Fără notificare** către Primărie (D23).
-- E-mailurile netrimise ale sesizării se anulează (`cancelled`), inclusiv notificarea către Primărie aflată în coadă. E-mailul deja trimis nu se poate retrage (D21). Anularea este o consecință tehnică din D20 / D24 (T-A4).
+- ~~E-mailurile netrimise ale sesizării se anulează (`cancelled`), inclusiv notificarea către Primărie aflată în coadă.~~ **[SET-A-05]** **Tot jurnalul e-mail al sesizării** (netrimise și trimise) se șterge odată cu sesizarea (T-C8); nimic din coadă nu mai pleacă. E-mailul deja trimis nu se poate retrage (D21). ~~Anularea este o consecință tehnică din D20 / D24 (T-A4).~~
 - Sesizarea ștearsă nu mai există: niciun endpoint Admin nu o mai găsește (404); Primăria nu o mai poate marca `rezolvată` (D24).
 - **`TM-XXX` rămâne rezervat** (D25–D26).
 - ~~**Deschise:** email_outbox și backup-uri (B-5)~~ **[SET-A-02] 2.5:** rândurile deja trimise și backup-urile expiră în cel mult **45 de zile**. ~~**Rămâne deschis:** auditul ștergerii (**B-7**).~~ **[SET-A-03]** Ștergerea **nu se auditează** și nu lasă în audit o urmă care să permită reconstituirea sesizării (B-7). Termenul de 45 de zile curge de la depunere (K-A02-3). ~~O copie de siguranță realizată înainte de ștergere rămâne până la rotația ei: limita tehnică din REC-01 (T-C4).~~ **[SET-A-04]** Regula rămâne 45 de zile de la depunere; copiile de siguranță = problemă tehnică de implementare (T-D1), nu o prelungire a retenției.
@@ -146,14 +147,14 @@ Vezi B4 §5 (propunere) și **DN-02** (asumările). **[SET-A-01]** Ștergerile: 
 | **Coordonate exacte** | `reports.lat` / `lng` | Admin | **rotunjite** (D6-3) | exacte (A17-6) | ca sesizarea |
 | **Precizia GPS** | `reports.gps_accuracy_m` | Admin | nu | nu | ca sesizarea |
 | **Date de sondaj** | `survey_submissions` / `survey_answers` | agregate | agregate, conform D3 | — | cu sondajul |
-| **Răspunsuri libere** | `survey_answers.text_value` | **numai `super_admin`, după închidere** (N4-9) | **niciodată** | — | ~~DN-11~~ **[SET-A-02] 45 de zile după închiderea sondajului** (2.5). **[SET-A-03]** Neacoperit de REC-01: propunere neconfirmată (REC-02); **[SET-A-04]** încă nedecis |
+| **Răspunsuri libere** | `survey_answers.text_value` | **numai `super_admin`, după închidere** (N4-9) | **niciodată** | — | ~~DN-11~~ **[SET-A-02] 45 de zile după închiderea sondajului** (2.5). ~~**[SET-A-03]** Neacoperit de REC-01: propunere neconfirmată (REC-02); **[SET-A-04]** încă nedecis~~ **[SET-A-05]** **6 luni**, apoi ștergere automată (momentul de start: vezi O-A05-1) |
 | **Jeton de participare** | numai în cookie; în DB doar HMAC per sondaj | nimeni | — | — | cu votul |
 | **IP** | numai HMAC cu cheie zilnică, în `rate_limits` (≤ 48 h), `rejected_attempts` (30 de zile), `sessions`, `audit_log` | `super_admin` (audit) | niciodată | — | conform tabelului |
 | **Datele operatorilor** (e-mail, nume) | `admin_users` | `super_admin`; celelalte roluri văd numai numele afișate | niciodată (nici în e-mailuri, D9-7) | — | durata contului Admin (conturile Admin nu se șterg, D8-2) |
 | **Audit** | `audit_log` (fără secrete, fără corpuri de e-mail) | `super_admin` | nu | — | ~~DN-11~~ ~~**[SET-A-02] 45 de zile** (2.5)~~ **[SET-A-03]** rândurile unei sesizări: odată cu sesizarea (B-7, REC-01); celelalte: ~~REC-02 (Revizia 3: 45 de zile, neconfirmat)~~ **[SET-A-04]** **6 luni**, apoi ștergere automată (decizia 4). Ștergerile definitive nu se auditează (B-7). |
 | **[SET-A-02] Adresa pentru geocodare** | trimisă serviciului de geocodare configurat (numai textul adresei, fără date ale contului) | — | — | — | nu se stochează (2.4) |
 | **Corpul e-mailurilor** | `email_outbox.body_text` | `super_admin` (jurnal global, fără corp în listă) | nu | — | **45 de zile** (N3-8); **[SET-A-03]** pentru un e-mail legat de o sesizare: cel târziu la 45 de zile de la depunerea ei (REC-01) |
-| **Jurnale de aplicație** | fișiere sau ieșirea procesului | administratorul tehnic | nu | — | **redactare automată** (pino `redact`): parole, cookie-uri, jetoane, e-mail, telefon, nume, `Authorization`; rotație (propunere 14 zile). **[SET-A-03]** REC-02; **[SET-A-04]** încă nedecis |
+| **Jurnale de aplicație** | fișiere sau ieșirea procesului | administratorul tehnic | nu | — | **redactare automată** (pino `redact`): parole, cookie-uri, jetoane, e-mail, telefon, nume, `Authorization`; rotație (propunere 14 zile). ~~**[SET-A-03]** REC-02; **[SET-A-04]** încă nedecis~~ **[SET-A-05]** **6 luni** (în locul propunerii de 14 zile), apoi ștergere automată |
 | **Backup-uri** | staging: export propriu; producție: G6 | administratorul tehnic | nu | — | **[SET-A-02] rotație 45 de zile** (2.5); ~~**[SET-A-03]** limita tehnică din REC-01 (T-C4)~~ **[SET-A-04]** fără prelungirea regulii de 45 de zile; problemă tehnică de implementare (T-D1) | staging: numai date demo (G3); producție: criptare + retenție de decis la G6 |
 
 ## 2. Reguli de expunere către frontend
@@ -177,6 +178,6 @@ Nu sunt jurist; necesită verificare juridică (E-6 din checkpoint-ul Fazei 3).
 - **DN-02:** asumările în audit (**[SET-01] aprobat**);
 - **DN-09:** stările și tranzițiile (**[SET-01] aprobat**; **[SET-A-02]** P-1 decis prin 2.1);
 - **DN-10:** coada Primăriei când fluxul este oprit: **[SET-A-02] decis (2.13)**, `on_hold` + reluare automată;
-- **DN-11:** retenția: **[SET-A-02] decis (2.5)**, 45 de zile; ~~momentul de referință: K-A02-3;~~ **[SET-A-03]** de la depunere, pentru toate datele sesizării (K-A02-3, REC-01); ~~contul și datele fără sesizare: REC-02;~~ **[SET-A-04]** contul fără ștergere automată; auditul administrativ 6 luni; restul: REC-02;
+- **DN-11:** retenția: **[SET-A-02] decis (2.5)**, 45 de zile; ~~momentul de referință: K-A02-3;~~ **[SET-A-03]** de la depunere, pentru toate datele sesizării (K-A02-3, REC-01); ~~contul și datele fără sesizare: REC-02;~~ **[SET-A-04]** contul fără ștergere automată; auditul administrativ 6 luni; ~~restul: REC-02;~~ **[SET-A-05]** jurnale, sesiuni expirate, texte libere: 6 luni; blocarea temporară expirată: în audit (6 luni); jurnalul e-mail: odată cu sesizarea;
 - **DN-12:** datele de contact (**[SET-01] aprobat**; **[SET-A-01/02]** P-6 și P-7 închise);
 - **DN-21:** textul locației public (**[SET-01] aprobat**; P-8).

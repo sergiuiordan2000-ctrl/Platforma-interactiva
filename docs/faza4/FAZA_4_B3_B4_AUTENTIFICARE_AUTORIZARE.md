@@ -12,6 +12,8 @@
 > **Revizia 4 (SET-A-03, 28.09.2026):** K-A02-3, REC-01, B-7, K-A02-4, DN-19; marcaj **[SET-A-03]**. Schimbări principale: blocarea 15 zile / definitivă și datele minime (B3 §8); ștergerile nu se auditează (B4 §5).
 >
 > **Revizia 5 (SET-A-04, 28.09.2026):** contul cetățeanului fără ștergere automată; auditul administrativ 6 luni; marcaj **[SET-A-04]**.
+>
+> **Revizia 6 (SET-A-05, 28.09.2026):** sesiunile expirate 6 luni; blocarea temporară expirată sau ridicată rămâne în auditul administrativ; marcaj **[SET-A-05]**.
 
 > Valorile numerice de mai jos (durate, praguri, parametri) sunt **PROPUNERI** marcate ca atare. Ele se confirmă la aprobarea checkpoint-ului Fazei 4 (DN-15).
 
@@ -217,7 +219,7 @@ Aceste drepturi **nu sunt permisiuni** și **nu intră** în matricea `ROLE_PERM
 - **Conturi:** creare, dezactivare / reactivare, schimbarea rolului, resetarea parolei, resetarea TOTP, autentificări reușite și eșuate (agregat).
 - **[SET-A-01] Cetățeni:** blocarea (propus). Ștergerea sesizărilor (de către autor sau `super_admin`): ~~**B-7 (deschis)**~~ **[SET-A-03]** **B-7 decis: ștergerile definitive NU se auditează.** În plus, rândurile de audit care privesc sesizarea ștearsă se șterg (T-C3). **[SET-A-04]** Retenția auditului administrativ (operațiile de mai jos care nu privesc o sesizare): **6 luni**, apoi ștergere automată (decizia 4).
 - **[SET-A-02] Recuperarea TOTP (2.15):** folosirea unui cod de recuperare și resetarea de către alt `super_admin`, ca **acțiuni distincte**; regenerarea codurilor.
-- **[SET-A-02] Blocări:** crearea și ridicarea (2.6).
+- **[SET-A-02] Blocări:** crearea și ridicarea (2.6). **[SET-A-05]** Și **expirarea** automată a unei blocări temporare (actor `system`), ca informația despre blocare să rămână în auditul administrativ **6 luni** după expirare sau ridicare (REC-02 (e), T-E1).
 - **Setări:** destinatarul, comutatorul, modul Primăriei, referința acordului.
 - **Sesizări:**
   - corectarea poziției;
