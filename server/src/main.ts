@@ -46,7 +46,12 @@ async function startServer(config: Config): Promise<void> {
     return st.ok ? 'ok' : 'degraded';
   };
 
-  const app = await buildApp({ config, health, frontendDir: FRONTEND_DIST_DIR });
+  const app = await buildApp({
+    config,
+    health,
+    frontendDir: FRONTEND_DIST_DIR,
+    ctx: { config, pool: handle.pool, now: () => new Date() },
+  });
 
   const shutdown = async (signal: string) => {
     app.log.info({ signal }, 'oprire');

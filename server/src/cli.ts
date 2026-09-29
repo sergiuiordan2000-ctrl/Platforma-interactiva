@@ -4,6 +4,7 @@
 // Comenzile următoare (backup, purge, outbox…) se adaugă în subfazele lor.
 
 import type { Config } from './config.ts';
+import { BootstrapRefusedError, bootstrapAdmin } from './accounts.ts';
 import { createBackup, listBackups, restoreBackup } from './db/backup.ts';
 import { createDb } from './db/client.ts';
 import { migrate, schemaStatus } from './db/migrations.ts';
@@ -19,6 +20,8 @@ export const CLI_COMMANDS = [
   'check:no-demo',
   'backup:db',
   'restore:db',
+  'bootstrap-admin',
+  'dev:show-code',
 ] as const;
 
 export type CliCommand = (typeof CLI_COMMANDS)[number];
@@ -37,6 +40,8 @@ export async function runCli(
   args: string[] = [],
 ): Promise<number> {
   if (command === 'backup:db' || command === 'restore:db') return runBackupCommand(command, config, out, args);
+  if (command === 'bootstrap-admin') return runBootstrap(config, out, args);
+  if (command === 'dev:show-code') return runShowCode(config, out, args);
   const handle = createDb(config.databaseUrl, { connectionLimit: 2 });
   try {
     switch (command) {
@@ -129,5 +134,63 @@ async function runBackupCommand(
   } catch (err) {
     out.error(err instanceof Error ? err.message : String(err));
     return 1;
+  }
+}
+
+function argValue(args: string[], name: string): string | undefined {
+  const i = args.indexOf(name);
+  return i >= 0 ? args[i + 1] : undefined;
+}
+
+/** B3 §6: primul super_admin; parola temporară apare O SINGURĂ DATĂ, numai în ieșirea comenzii. */
+async function runBootstrap(config: Config, out: Out, args: string[]): Promise<number> {
+  const email = argValue(args, '--email');
+  const name = argValue(args, '--name') ?? 'Administrator';
+  if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+    out.error('Utilizare: bootstrap-admin --email <adresă controlată> [--name "Nume afișat"]');
+    return 2;
+  }
+  const handle = createDb(config.databaseUrl, { connectionLimit: 1 });
+  try {
+    const created = await bootstrapAdmin(handle.pool, new Date(), email, name);
+    out.log(`Cont super_admin creat pentru ${email.toLowerCase()}.`);
+    out.log(`Parola temporară (afișată o singură dată; se schimbă la prima autentificare): ${created.temporaryPassword}`);
+    return 0;
+  } catch (err) {
+    out.error(err instanceof BootstrapRefusedError ? err.message : err instanceof Error ? err.message : String(err));
+    return err instanceof BootstrapRefusedError ? 2 : 1;
+  } finally {
+    await handle.close();
+  }
+}
+
+/** B3 §8 (T-A3): codul simulat al unui cetățean, numai în afara producției. */
+async function runShowCode(config: Config, out: Out, args: string[]): Promise<number> {
+  if (config.appEnv === 'production') {
+    out.error('dev:show-code este refuzat în producție.');
+    return 2;
+  }
+  const email = argValue(args, '--email');
+  if (!email) {
+    out.error('Utilizare: dev:show-code --email <adresa cetățeanului>');
+    return 2;
+  }
+  const handle = createDb(config.databaseUrl, { connectionLimit: 1 });
+  try {
+    const [rows] = await handle.pool.query(
+      `SELECT body_text AS b, created_at AS c FROM email_outbox
+       WHERE kind = 'citizen_login_code' AND recipient = ? AND body_text IS NOT NULL ORDER BY created_at DESC LIMIT 1`,
+      [email.trim().toLowerCase()],
+    );
+    const row = (rows as Array<{ b: string; c: Date }>)[0];
+    const code = row?.b.match(/\b(\d{6})\b/)?.[1];
+    if (!code) {
+      out.error('Niciun cod pentru această adresă.');
+      return 1;
+    }
+    out.log(`Ultimul cod (${row!.c.toISOString()}): ${code}`);
+    return 0;
+  } finally {
+    await handle.close();
   }
 }

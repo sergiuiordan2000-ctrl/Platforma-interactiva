@@ -6,9 +6,15 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import Fastify, { type FastifyInstance } from 'fastify';
+import cookie from '@fastify/cookie';
 import helmet from '@fastify/helmet';
 import fastifyStatic from '@fastify/static';
 import type { Config } from './config.ts';
+import type { AppContext } from './context.ts';
+import { registerCsrf } from './auth/guards.ts';
+import { registerAdminAccountRoutes } from './routes/adminAccounts.ts';
+import { registerAuthRoutes } from './routes/auth.ts';
+import { registerCitizenRoutes } from './routes/citizens.ts';
 import { apiError } from './errors.ts';
 import { APP_VERSION } from './version.ts';
 
@@ -22,6 +28,8 @@ export type AppOptions = {
   frontendDir?: string;
   /** `false` în teste. */
   logger?: boolean;
+  /** DB + ceas; fără el, aplicația servește numai `health` și frontend-ul. */
+  ctx?: AppContext;
 };
 
 /** Limita corpului JSON: 64 KB (B2 §1, DN-15). */
@@ -94,8 +102,15 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   }
 
   // ---- API ----
+  await app.register(cookie);
+  if (options.ctx) registerCsrf(app, options.ctx);
   await app.register(
     async (api) => {
+      if (options.ctx) {
+        registerAuthRoutes(api, options.ctx);
+        registerAdminAccountRoutes(api, options.ctx);
+        registerCitizenRoutes(api, options.ctx);
+      }
       api.get('/health', async (_request, reply) => {
         let status: HealthState;
         try {
