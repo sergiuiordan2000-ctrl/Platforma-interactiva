@@ -99,3 +99,19 @@ Regulile rămân cele din G3 (RULES §11.1): docroot propriu în afara `public_h
 **K2:** aplicația Node rulează pe LiteSpeed / CloudLinux (Node 20.20.2), cu artefactul CommonJS fără `node_modules`.
 **T-RUN:** pornire (după restart), refuz corect la configurare lipsă și la schemă lipsă, `health` = `ok`.
 **Nerulate pe staging (acoperite de testele automate):** restaurarea completă (`restore:db`) cere un DB nou; se exersează la nevoie, cu aprobare.
+
+## 6. Faza 5.2.10: deploy autentificare pe server + primul `super_admin` (29.09.2026)
+
+Aprobări separate ale proprietarului pentru fiecare pas pe hosting. T-ISO înainte (12:33, Claude: T-ISO-1…4, 6; proprietarul: T-ISO-5, 7): **identice cu referința din §3**.
+
+| # | Data | Pas | T-ISO după | Rezultat |
+|---|---|---|---|---|
+| 7 | 29.09.2026 12:45 | deploy `civic-3c1f668.zip` în `civic-test-app` (File Manager, Upload + Extract, calea verificată), apoi Restart în Setup Node.js App. Pachetul conține scriptul npm `civic-bootstrap-admin` (adresa primului cont numai în pachet, nu în repository) | `GET /api/v1/health` → `{"status":"ok","version":"0.0.0+3c1f668"}` (proprietarul); T-ISO-1, 2, 4 (Claude, 12:48): identice; `electrovolt.ro/civic-test-app` → 404 | **OK** |
+| 8 | 29.09.2026 ~12:50 | `bootstrap-admin` prin cPanel → Setup Node.js App → **Run JS script** → `civic-bootstrap-admin` (nu prin cron: parola temporară apare numai în fereastra de rezultat, nu într-un fișier). „Run JS script” primește `CIVIC_ENV_FILE` | „Cont super_admin creat pentru …”; parola temporară păstrată numai de proprietar. Rândul „stderr:” și anunțurile `npm notice` din fereastră sunt ieșirea npm, nu erori | **OK** |
+| 9 | 29.09.2026 20:45–21:00 | prima autentificare pe `/#admin`: parola temporară → înrolare TOTP (aplicație de autentificare pe telefon) → coduri de recuperare → parolă nouă; Panoul Admin afișat cu contul `super_admin` | T-ISO-1, 2 (Claude, 21:02): identice; T-ISO-5, 7 (proprietarul, 21:02): identice | **OK** |
+
+**Constatări (5.2.10):**
+- Protecția cu parolă a staging-ului (Directory Privacy, fereastra browserului) și login-ul aplicației sunt **două ecrane diferite, cu parole diferite**; completarea automată a browserului le-a amestecat și a întârziat prima autentificare. Recomandare: nu se salvează în browser parola temporară.
+- Managerul de parole al browserului a propus suprascrierea unui login salvat anterior pentru alt serviciu de pe același server; refuzat. Nu privește serverul.
+- Cheia TOTP afișată la înrolare a apărut într-o captură de ecran trimisă lui Claude înainte de confirmare; serverul generează o cheie nouă la fiecare pornire a înrolării, iar proprietarul a regenerat-o înainte de scanare (confirmat: cheia înrolată diferă de cea din captură).
+- Verificările externe ale lui Claude nu trec de protecția cu parolă a staging-ului; starea aplicației se confirmă prin capturile proprietarului.
