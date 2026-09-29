@@ -60,6 +60,8 @@ Oprirea: în fereastra PowerShell apeși **Ctrl + C**.
 
 La nivelul Minim, aplicația rulează ca până acum, cu datele demo salvate în browser (`localStorage`); serverul nou nu este pornit. Asta este normal: frontend-ul trece pe server domeniu cu domeniu, de la 5.2 încolo.
 
+> **De la Faza 5.2, Admin-ul cere serverul.** Autentificarea Admin se verifică numai pe server, deci la nivelul Minim login-ul Admin nu funcționează (partea publică merge normal). Pentru Admin folosești staging-ul (`civic-test.electrovolt.ro`) sau nivelul Complet (§7).
+
 ## 4. O vezi pe telefon (prin Wi-Fi)
 
 1. Telefonul și calculatorul sunt în **aceeași rețea Wi-Fi** (de acasă).
@@ -92,6 +94,8 @@ npm run dev
 | `Port 3000 is already in use` | aplicația rulează deja în altă fereastră | închizi cealaltă fereastră (Ctrl + C) |
 | pe telefon pagina nu se încarcă | rețele diferite sau firewall | aceeași rețea Wi-Fi; firewall: Node.js permis pe „Private networks” |
 | `npm ci` dă erori de rețea | conexiune instabilă | rulezi din nou `npm ci` |
+| „Cererea a fost respinsă.” la login (nivelul Complet) | adresa din browser diferă de `PUBLIC_BASE_URL` | §7 pasul 6 |
+| login-ul Admin nu merge la nivelul Minim | de la 5.2, Admin-ul cere serverul | staging sau nivelul Complet (§7) |
 
 ## 7. Nivelul Complet (opțional, pentru mai târziu)
 
@@ -113,5 +117,9 @@ Numai dacă vei vrea să rulezi **și serverul cu baza de date** pe calculator. 
    npm run dev -w server
    ```
 5. Verificare: **http://localhost:3000/api/v1/health** → `{"status":"ok",…}` (portul din `.env`).
+6. **`PUBLIC_BASE_URL` din `.env` trebuie să fie exact adresa pe care o scrii în browser** (protocol, nume sau IP, port). Serverul respinge orice cerere de modificare (inclusiv login-ul) venită de pe altă adresă, cu mesajul „Cererea a fost respinsă.” (protecția CSRF).
+   - numai pe calculator: `PUBLIC_BASE_URL=http://localhost:3000`, iar în browser deschizi `http://localhost:3000` (nu `127.0.0.1`);
+   - de pe telefon, prin Wi-Fi: `HOST=0.0.0.0` și `PUBLIC_BASE_URL=http://192.168.1.23:3000` (adresa ta din `ipconfig`), iar pe **ambele** dispozitive deschizi `http://192.168.1.23:3000`;
+   - după orice schimbare în `.env`, oprești serverul (Ctrl + C) și îl pornești din nou.
 
 Parolele locale le alegi tu; nu le trimite nimănui și nu le scrie în fișierele proiectului, în afară de `.env`.
