@@ -115,3 +115,14 @@ Aprobări separate ale proprietarului pentru fiecare pas pe hosting. T-ISO înai
 - Managerul de parole al browserului a propus suprascrierea unui login salvat anterior pentru alt serviciu de pe același server; refuzat. Nu privește serverul.
 - Cheia TOTP afișată la înrolare a apărut într-o captură de ecran trimisă lui Claude înainte de confirmare; serverul generează o cheie nouă la fiecare pornire a înrolării, iar proprietarul a regenerat-o înainte de scanare (confirmat: cheia înrolată diferă de cea din captură).
 - Verificările externe ale lui Claude nu trec de protecția cu parolă a staging-ului; starea aplicației se confirmă prin capturile proprietarului.
+
+## 7. Faza 5.3.8: conținutul public pe server (29.09.2026)
+
+Aprobare separată a proprietarului pentru deploy. T-ISO înainte (22:27, Claude: T-ISO-1, 2, 4; proprietarul, 22:37: T-ISO-5, 7): **identice cu referința din §3**.
+
+| # | Data | Pas | T-ISO după | Rezultat |
+|---|---|---|---|---|
+| 10 | 29.09.2026 ~22:38 | deploy `civic-3c1f668` → `civic-909999d.zip` în `civic-test-app` (Upload + Extract cu suprascriere, calea verificată), Restart. Fără migrații noi; datele demo (comunicate, ghid, apel rapid) erau deja în DB din 5.1 | `health` → `{"status":"ok","version":"0.0.0+909999d"}` (proprietarul); T-ISO-1, 2 (Claude, 22:38): identice; `electrovolt.ro/civic-test-app` → 404; T-ISO-5, 7 (proprietarul, 22:53): identice | **OK** |
+| 11 | 29.09.2026 22:40–22:50 | verificare de către proprietar: Comunicate (7; Notificări 1, Anunțuri 1, Știri 2, Evenimente 3), Ghid (instituție, direcții, link-uri), Apel rapid (contacte, căutare), Admin | datele vin de la server | **OK** |
+
+**Constatare (5.3.8):** după deploy, browserul a afișat inițial versiunea veche a paginii, cu datele vechi din `localStorage` (imagini externe blocate, comunicate „dezactivate” numai local). După **Ctrl + F5** s-a încărcat versiunea nouă, cu datele serverului. Recomandare: după fiecare deploy, reîncărcare completă a paginii.
