@@ -1,0 +1,149 @@
+# CI — Turnu Măgurele Civic (Faza 5.1, pasul 5.1.7)
+# Matricea G5 / B10 §2: Node 20 + 24 × MySQL 8.0 + 8.4.
+# Etape: lint (tsc) → build (frontend + artefactul backend) → unitare → API → integrare DB → artefact → E2E.
+# Orice eșec blochează integrarea (B-2).
+#
+# Repository public: jurnalele CI sunt publice. Aici nu există secrete reale; parolele MySQL de mai jos
+# sunt de unică folosință, pentru containerele de test, iar secretele aplicației se generează la fiecare rulare.
+
+name: CI
+
+on:
+  push:
+    branches: [faza-5-backend]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: backend (Node ${{ matrix.node }}, MySQL ${{ matrix.mysql }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['20', '24']
+        mysql: ['8.0', '8.4']
+    services:
+      mysql:
+        image: mysql:${{ matrix.mysql }}
+        env:
+          MYSQL_ROOT_PASSWORD: ci_root_only
+          MYSQL_DATABASE: civic_test
+          MYSQL_USER: civic
+          MYSQL_PASSWORD: ci_civic_only
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -pci_root_only"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=30
+    env:
+      CIVIC_TEST_DATABASE_URL: mysql://civic:ci_civic_only@127.0.0.1:3306/civic_test
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+
+      - name: Versiuni
+        run: |
+          node --version
+          npm --version
+          mysql -h 127.0.0.1 -uroot -pci_root_only -N -e "SELECT VERSION()"
+
+      - name: npm ci
+        run: npm ci
+
+      - name: Lint (tsc) — frontend
+        run: npx tsc --noEmit
+
+      - name: Lint (tsc) — server, shared
+        run: npm run typecheck --workspaces
+
+      - name: Build frontend
+        run: npm run build
+
+      - name: Build artefact backend
+        run: npm run build -w server
+
+      - name: Teste unitare
+        run: npm run test:unit -w server
+
+      - name: Teste API
+        run: npm run test:api -w server
+
+      - name: Teste de integrare (MySQL ${{ matrix.mysql }})
+        run: npm run test:integration -w server
+
+      - name: Artefactul (server/dist/app.js) — migrate, seed, pornire, health
+        run: |
+          mysql -h 127.0.0.1 -uroot -pci_root_only -e "DROP DATABASE civic_test; CREATE DATABASE civic_test CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci; GRANT ALL ON civic_test.* TO 'civic'@'%';"
+          gen() { node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"; }
+          {
+            echo "APP_ENV=development"
+            echo "PORT=3900"
+            echo "PUBLIC_BASE_URL=http://localhost:3900"
+            echo "DATABASE_URL=$CIVIC_TEST_DATABASE_URL"
+            echo "STORAGE_DIR=$RUNNER_TEMP/storage"
+            echo "IP_HASH_SECRET=$(gen)"
+            echo "PARTICIPATION_HMAC_SECRET=$(gen)"
+            echo "FORM_TOKEN_SECRET=$(gen)"
+            echo "POW_HMAC_KEY=$(gen)"
+            echo "TOTP_ENC_KEY=$(gen)"
+          } > "$RUNNER_TEMP/civic.env"
+          # artefactul rulează fără node_modules (ca pe hosting)
+          mkdir -p "$RUNNER_TEMP/deploy/server"
+          cp -r dist "$RUNNER_TEMP/deploy/dist"
+          cp -r server/dist server/migrations server/seeds "$RUNNER_TEMP/deploy/server/"
+          cd "$RUNNER_TEMP/deploy"
+          node --env-file="$RUNNER_TEMP/civic.env" server/dist/app.js migrate
+          node --env-file="$RUNNER_TEMP/civic.env" server/dist/app.js migrate
+          node --env-file="$RUNNER_TEMP/civic.env" server/dist/app.js seed:config
+          node --env-file="$RUNNER_TEMP/civic.env" server/dist/app.js seed:demo
+          node --env-file="$RUNNER_TEMP/civic.env" server/dist/app.js migrate:status
+          node --env-file="$RUNNER_TEMP/civic.env" server/dist/app.js > "$RUNNER_TEMP/server.log" 2>&1 &
+          SERVER_PID=$!
+          for i in $(seq 1 30); do curl -sf http://127.0.0.1:3900/api/v1/health && break; sleep 1; done
+          echo
+          test "$(curl -s http://127.0.0.1:3900/api/v1/health | node -pe 'JSON.parse(require("fs").readFileSync(0)).status')" = ok
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3900/)" = 200
+          kill "$SERVER_PID"
+
+  e2e:
+    name: E2E — suita existentă (Python + Playwright)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          cache: npm
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: npm ci
+        run: npm ci
+
+      - name: Playwright (Chromium)
+        run: |
+          pip install -r tests/requirements.txt
+          python -m playwright install --with-deps chromium
+
+      # 102/103: singurul FAIL este cel cunoscut, P7 (R6D-SES-01); run_all.py iese cu 0 numai fără FAIL-uri noi
+      - name: Suita existentă (tests/run_all.py)
+        run: python tests/run_all.py
