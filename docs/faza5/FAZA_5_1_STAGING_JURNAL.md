@@ -1,0 +1,80 @@
+# FAZA 5.1 — STAGING: JURNALUL INTERVENȚIILOR (5.1.10)
+
+**Proiect:** Turnu Măgurele Civic · **Hosting:** HostGate Basic Plus (contul Electrovolt) · **Început:** 29.09.2026
+
+## 1. Aprobări (29.09.2026, proprietarul)
+
+| Subiect | Decizie |
+|---|---|
+| **G4**, adresa staging-ului | subdomeniul **`civic-test.electrovolt.ro`**, cu condiția ca site-ul `electrovolt.ro` să nu fie afectat |
+| Cine lucrează în cPanel | **proprietarul**, după ghidul pas cu pas; Claude verifică rezultatul (Claude nu are acces la cPanel) |
+| Testele de izolare | lista T-ISO-1…7 de mai jos (propusă de Claude, aprobată de proprietar; analiza N-2 v3 §6 nu este în repository) |
+
+> **Repository public:** în acest jurnal numele contului cPanel este înlocuit cu `<cont>`; parolele și secretele nu apar niciodată aici.
+
+Regulile rămân cele din G3 (RULES §11.1): docroot propriu în afara `public_html`, fără „Share document root”; nimic modificat la `electrovolt.ro`; DB și utilizator dedicate; parolă + `noindex`; numai date demo; backup propriu; T-ISO înainte și după fiecare pas.
+
+## 2. Testele de izolare (T-ISO)
+
+| Test | Ce verifică | Cine |
+|---|---|---|
+| T-ISO-1 | DNS `electrovolt.ro`: A, AAAA, MX, TXT (SPF, verificarea Google), `_dmarc`, NS, `www`, `mail`: identice | Claude (DNS-over-HTTPS) |
+| T-ISO-2 | prima pagină: același titlu, același H1, aceeași navigare, același subsol | Claude |
+| T-ISO-3 | `http://` și `www` ajung la `https://electrovolt.ro/` | Claude |
+| T-ISO-4 | paginile PRAM, Proiectare, Prețuri, Contact: același titlu și H1 | Claude |
+| T-ISO-5 | `public_html/.htaccess`: aceeași dată și mărime; niciun folder nou în `public_html` | proprietarul (File Manager) |
+| T-ISO-6 | `https://electrovolt.ro/civic-test` → 404 (nimic sub `electrovolt.ro`); subdomeniul nu servește conținutul Electrovolt | Claude |
+| T-ISO-7 | un e-mail trimis către o adresă `@electrovolt.ro` ajunge normal | proprietarul |
+
+**Oprire:** dacă un singur test diferă de referință, intervenția se oprește și se revine.
+
+## 3. Referința „înainte” (29.09.2026, ~05:40, ora României)
+
+**T-ISO-1: DNS**
+
+| Înregistrare | Valoare |
+|---|---|
+| `electrovolt.ro` A | `80.96.7.228` |
+| `electrovolt.ro` AAAA | niciuna |
+| `electrovolt.ro` MX | `0 mail.electrovolt.ro.` |
+| `electrovolt.ro` TXT | `google-site-verification=w7v7ecAmVqd_a9OgST5Np8wYg0qUwnK-blU5ftJgoHM`; `v=spf1 +a +mx +ip4:80.96.6.249 ~all` |
+| `_dmarc.electrovolt.ro` TXT | `v=DMARC1; p=none;` |
+| `electrovolt.ro` NS | `ns1.hostgate.ro.`, `ns2.hostgate.ro.` |
+| `www.electrovolt.ro` | CNAME `electrovolt.ro.` → `80.96.7.228` |
+| `mail.electrovolt.ro` A | `80.96.7.228` |
+| `civic-test.electrovolt.ro` | nu există (NXDOMAIN) |
+| SOA (serial) | `2026090900`. **Se va schimba** la crearea subdomeniului (o înregistrare nouă); înregistrările de mai sus nu trebuie să se schimbe. |
+
+**T-ISO-2: prima pagină**
+- titlu: „Verificări PRAM, Proiectare și Consultanță Electrică în Teleorman | ElectroVolt”;
+- H1: „SIGURANȚĂ ELECTRICĂ”;
+- navigare: Acasă, PRAM, Proiectare, Consultanță, Împământări, Prețuri, FAQ, Despre noi, Contact;
+- subsol: „AC-DC CONCEPT S.R.L. · J2025033228001 · CUI 51766631 · Teleorman, România”.
+
+**T-ISO-3:** `http://electrovolt.ro/` și `https://www.electrovolt.ro/` → `https://electrovolt.ro/`, același titlu.
+
+**T-ISO-4**
+
+| Pagină | Titlu | H1 |
+|---|---|---|
+| `/verificari-pram.html` | Verificări PRAM și Buletine PRAM în Teleorman \| ElectroVolt | VERIFICĂRI PRAM ȘI BULETINE PRAM |
+| `/proiectare-instalatii-electrice.html` | Proiectare Instalații Electrice în Teleorman \| ElectroVolt | PROIECTARE INSTALAȚII ELECTRICE |
+| `/preturi.html` | Prețuri Verificări PRAM și Servicii Electrice \| ElectroVolt | PREȚURI CLARE, ADAPTATE LUCRĂRII |
+| `/contact.html` | Contact ElectroVolt \| Verificări PRAM și Servicii Electrice Teleorman | IA LEGĂTURA CU NOI |
+
+**T-ISO-5** (proprietarul, File Manager, 29.09.2026 05:27):
+- `public_html/.htaccess`: **281 bytes**, **Jun 10, 2026, 9:48 AM**;
+- foldere în `public_html`: numai `.well-known` (Jun 10, 2026, 10:02 AM) și `cgi-bin` (Jun 10, 2026, 9:46 AM);
+- fișiere: `consultanta-tehnica.html`, `contact.html`, `contact.php`, `despre-noi.html`, `index.html`, `intrebari-frecvente.html`, `logo-acdc.png`, `multumim.html`, `preturi.html`, `prize-de-pamant.html`, `proiectare-instalatii-electrice.html`, `robots.txt`, `schema fundal.png`, `sitemap.xml`, `verificari-pram.html` (18 elemente în total, cu folderele și `.htaccess`).
+
+**T-ISO-6:** `https://electrovolt.ro/civic-test` → **404**.
+
+**T-ISO-7** (proprietarul, 29.09.2026 05:27): e-mailul de test către o adresă `@electrovolt.ro` **a ajuns**.
+
+## 4. Intervențiile
+
+| # | Data | Pas | T-ISO după | Rezultat |
+|---|---|---|---|---|
+| 1 | 29.09.2026 05:30 | subdomeniul `civic-test.electrovolt.ro` creat de proprietar (cPanel → Domains → Create A New Domain); „Share document root” **debifat**; Document Root `/home2/<cont>/civic-test.electrovolt.ro` (în afara `public_html`); Force HTTPS: Off (certificat SSL încă neemis) | T-ISO-1…4, 6: identice cu referința (DNS-ul existent neschimbat; noul nume nu apare încă în DNS-ul public: cache negativ, ≤ 30 min); T-ISO-5: proprietarul | **OK**: T-ISO-5 identic (proprietarul, 05:43) |
+| 2 | 29.09.2026 05:40 | DB `<cont>_civic_test` și utilizatorul `<cont>_civic` create de proprietar (Manage My Databases), utilizatorul legat numai de această DB; parola păstrată numai de proprietar; MySQL **8.0.37** (= G2) | T-ISO-1, 2, 4 (cu ocolirea cache-ului): identice; T-ISO-6: `civic-test.electrovolt.ro` → `80.96.7.228` (IP-ul comun al contului), HTTPS activ, servește numai „Index of /” (folderul nou, gol: `cgi-bin`, `php.ini`), **niciun conținut Electrovolt**; serverul web este **LiteSpeed** | OK |
+| 3 | 29.09.2026 05:52 | aplicația Node creată de proprietar (cPanel → Node.js → Create Application): Node **20.20.2**, Production, Application root `civic-test-app` (`/home2/<cont>/civic-test-app`, în afara `public_html` și a docroot-ului), URL `civic-test.electrovolt.ro/`, startup `server/dist/app.js`; fără „Run NPM Install”. **K2 (mecanismul Node în cPanel): funcționează**; aplicația de probă cPanel răspunde „It works! NodeJS 20.20.2” | T-ISO-1, 2, 4, 6 (cu ocolirea cache-ului): identice; `electrovolt.ro/civic-test-app` → 404; T-ISO-5: identic (proprietarul, 05:56) | **OK** |

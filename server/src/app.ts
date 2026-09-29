@@ -82,6 +82,17 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
     frameguard: { action: 'deny' },
   });
 
+  // ---- staging: niciodată indexat (G3, condiția 4) ----
+  if (config.appEnv === 'staging') {
+    app.addHook('onSend', async (_request, reply) => {
+      reply.header('X-Robots-Tag', 'noindex, nofollow');
+    });
+    app.get('/robots.txt', async (_request, reply) => {
+      reply.type('text/plain; charset=utf-8').header('Cache-Control', 'no-cache');
+      return 'User-agent: *\nDisallow: /\n';
+    });
+  }
+
   // ---- API ----
   await app.register(
     async (api) => {

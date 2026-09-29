@@ -122,3 +122,24 @@ describe('erori și frontend', () => {
     await a.close();
   });
 });
+
+describe('staging: noindex (G3, condiția 4)', () => {
+  it('staging: X-Robots-Tag pe orice răspuns și robots.txt care interzice tot', async () => {
+    const a = await app({ env: { APP_ENV: 'staging', PUBLIC_BASE_URL: 'https://exemplu.test' }, frontendDir: fakeFrontend() });
+    for (const url of ['/', '/api/v1/health', '/api/v1/nu-exista']) {
+      const res = await a.inject({ method: 'GET', url });
+      assert.equal(res.headers['x-robots-tag'], 'noindex, nofollow', url);
+    }
+    const robots = await a.inject({ method: 'GET', url: '/robots.txt' });
+    assert.equal(robots.statusCode, 200);
+    assert.equal(robots.body, 'User-agent: *\nDisallow: /\n');
+    await a.close();
+  });
+
+  it('dezvoltare: fără X-Robots-Tag', async () => {
+    const a = await app();
+    const res = await a.inject({ method: 'GET', url: '/api/v1/health' });
+    assert.equal(res.headers['x-robots-tag'], undefined);
+    await a.close();
+  });
+});

@@ -10,3 +10,4 @@ coverage/
 # Faza 5: date locale ale serverului (niciodată în Git)
 /storage/
 /backups/
+/server/release/
