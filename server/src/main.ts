@@ -10,6 +10,7 @@
 import { buildApp, type HealthState } from './app.ts';
 import { CLI_COMMANDS, isCliCommand, runCli } from './cli.ts';
 import { ConfigError, loadConfig, type Config } from './config.ts';
+import { EnvFileError, loadEnvFileFromVar } from './envFile.ts';
 import { createDb, pingDb } from './db/client.ts';
 import { schemaStatus } from './db/migrations.ts';
 import { checkNoDemo } from './db/noDemo.ts';
@@ -65,9 +66,10 @@ async function main(): Promise<void> {
 
   let config: Config;
   try {
+    loadEnvFileFromVar();
     config = loadConfig();
   } catch (err) {
-    if (err instanceof ConfigError) fail(err.message);
+    if (err instanceof ConfigError || err instanceof EnvFileError) fail(err.message);
     throw err;
   }
 

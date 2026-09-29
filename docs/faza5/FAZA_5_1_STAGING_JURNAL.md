@@ -8,6 +8,7 @@
 |---|---|
 | **G4**, adresa staging-ului | subdomeniul **`civic-test.electrovolt.ro`**, cu condiția ca site-ul `electrovolt.ro` să nu fie afectat |
 | Cine lucrează în cPanel | **proprietarul**, după ghidul pas cu pas; Claude verifică rezultatul (Claude nu are acces la cPanel) |
+| Setările pe staging (**decizia tehnică 5.1-A**) | cPanel nu are Terminal, deci comenzile CLI rulează prin Cron Jobs. Toate setările stau într-un singur fișier `/home2/<cont>/civic-test-data/civic.env` (în afara oricărui docroot, drepturi 600); aplicația Node și cron primesc numai `CIVIC_ENV_FILE`. Abatere aprobată de la `00` §5 |
 | Testele de izolare | lista T-ISO-1…7 de mai jos (propusă de Claude, aprobată de proprietar; analiza N-2 v3 §6 nu este în repository) |
 
 > **Repository public:** în acest jurnal numele contului cPanel este înlocuit cu `<cont>`; parolele și secretele nu apar niciodată aici.

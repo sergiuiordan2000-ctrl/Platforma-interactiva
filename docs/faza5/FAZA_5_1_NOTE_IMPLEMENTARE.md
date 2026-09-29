@@ -51,6 +51,7 @@
 | Variabila `BACKUP_DIR` | nouă față de lista din `00` §5; opțională, cerută numai de `backup:db` / `restore:db` | directorul backup-urilor, în afara oricărui docroot (G3, condiția 6) |
 | Backup: date efemere | sesiunile, codurile de autentificare, limitele de rată și provocările PoW nu intră în backup | după o restaurare, utilizatorii se autentifică din nou |
 | Backup: contorul `TM` | valoarea maximă emisă se ține lângă backup-uri; restaurarea nu coboară contorul sub ea | D25–D26: un număr `TM-XXX` deja comunicat nu se refolosește, chiar dacă sesizarea s-a pierdut la restaurare |
+| **Decizia tehnică 5.1-A** (proprietarul, 29.09.2026): fișierul de setări | pe staging nu există Terminal; comenzile CLI (`migrate`, `seed`, `backup:db`) rulează prin Cron Jobs, care nu văd variabilele din pagina aplicației Node. Toate setările stau într-un singur fișier în afara oricărui docroot, cu drepturi 600; aplicația și cron primesc numai `CIVIC_ENV_FILE`. Aplicația refuză un fișier citibil de alți utilizatori. **Abatere față de textul `00` §5** („secretele … în Environment variables ale aplicației Node”), aprobată explicit; variabilele de mediu directe funcționează în continuare (au prioritate față de fișier) | o singură sursă de setări pentru aplicație și cron |
 | Retenția în configurare | `RETENTION_DAYS` ≤ 45, `ADMIN_RETENTION_MONTHS` ≤ 6 | valorile aprobate nu pot fi depășite prin configurare |
 
 ## 3. Constatări
