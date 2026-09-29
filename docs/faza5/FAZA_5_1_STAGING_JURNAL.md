@@ -81,9 +81,21 @@ Regulile rămân cele din G3 (RULES §11.1): docroot propriu în afara `public_h
 | 3 | 29.09.2026 05:52 | aplicația Node creată de proprietar (cPanel → Node.js → Create Application): Node **20.20.2**, Production, Application root `civic-test-app` (`/home2/<cont>/civic-test-app`, în afara `public_html` și a docroot-ului), URL `civic-test.electrovolt.ro/`, startup `server/dist/app.js`; fără „Run NPM Install”. **K2 (mecanismul Node în cPanel): funcționează**; aplicația de probă cPanel răspunde „It works! NodeJS 20.20.2” | T-ISO-1, 2, 4, 6 (cu ocolirea cache-ului): identice; `electrovolt.ro/civic-test-app` → 404; T-ISO-5: identic (proprietarul, 05:56) | **OK** |
 | 4 | 29.09.2026 06:00–06:50 | deploy `civic-2ce0d98.zip` în `civic-test-app` (File Manager, Upload + Extract); folderul `/home2/<cont>/civic-test-data` (`storage`, `backups`) și fișierul de setări `civic.env` (drepturi 0600, decizia 5.1-A); parola utilizatorului DB schimbată (numai litere și cifre); variabila `CIVIC_ENV_FILE` în aplicația Node (**prima încercare nesalvată → aplicația a refuzat pornirea cu „configurare invalidă”, cum era proiectat**; a doua, salvată); `migrate`, `seed:config`, `seed:demo`, `migrate:status` prin Cron Jobs (rulat de 2 ori, a doua fără efect; `cli.log`: „Versiunea schemei: 1 (așteptată: 1)”), apoi comanda cron ștearsă | aplicația rulează: prima pagină afișată; `GET /api/v1/health` → `{"status":"ok","version":"0.0.0+2ce0d98"}`; `robots.txt` interzice indexarea (confirmat de un robot extern); T-ISO-1, 2, 4: identice; T-ISO-5, 7: identice (proprietarul, 06:55; e-mailul a sosit cu ~1 min întârziere, normal) | **OK** |
 | 5 | 29.09.2026 07:00 | protecție cu parolă (cPanel → Directory Privacy) pe folderul subdomeniului `civic-test.electrovolt.ro` (nu `public_html`), utilizator `civic`, parola păstrată numai de proprietar | proprietarul: browserul cere utilizator și parolă; cu ele aplicația se deschide | **OK** |
+| 6 | 29.09.2026 10:25 | cron `backup:db` (Cron Jobs; setările prin `CIVIC_ENV_FILE`); testat la fiecare minut (3 backup-uri create: `civic-backup-20260929T0725…Z`, `…T0726…Z`, `…T0727…Z`; `backup.log` cu numărul de rânduri pe tabel), apoi setat **zilnic la 03:17** | T-ISO final (10:30): DNS A, MX, prima pagină electrovolt.ro identice | **OK** |
 
-## 5. Rămas pentru 5.1.10
+## 5. Rezultatul 5.1.10
 
-- cron zilnic `backup:db` (G3, condiția 6) și un test de restaurare (T-BAK);
-- T-RUN: repornire, pornire la rece, cron;
-- T-ISO final după ultimul pas.
+| Condiție G3 | Stare |
+|---|---|
+| 1. docroot propriu, în afara `public_html`, fără „Share document root” | ✅ |
+| 2. nimic modificat la `electrovolt.ro` | ✅ T-ISO identice după fiecare pas (1–6) |
+| 3. DB și utilizator dedicate | ✅ `<cont>_civic_test`, `<cont>_civic` |
+| 4. parolă + `noindex` | ✅ Directory Privacy; `X-Robots-Tag` + `robots.txt` (confirmat extern) |
+| 5. numai date demo, fără e-mailuri reale | ✅ `seed:demo`; `EMAIL_MODE=simulated` |
+| 6. backup propriu | ✅ cron zilnic 03:17, rotație 7 zile (T-D1) |
+| 7. T-ISO înainte și după | ✅ |
+| 8. creare numai în 5.1, cu aprobare | ✅ aprobările din §1 |
+
+**K2:** aplicația Node rulează pe LiteSpeed / CloudLinux (Node 20.20.2), cu artefactul CommonJS fără `node_modules`.
+**T-RUN:** pornire (după restart), refuz corect la configurare lipsă și la schemă lipsă, `health` = `ok`.
+**Nerulate pe staging (acoperite de testele automate):** restaurarea completă (`restore:db`) cere un DB nou; se exersează la nevoie, cu aprobare.
