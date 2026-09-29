@@ -164,6 +164,6 @@ jobs:
           pip install -r tests/requirements.txt
           python -m playwright install --with-deps chromium
 
-      # run_all.py iese cu 0 numai fără FAIL-uri noi; P7 (R6D-SES-01) trece de la 5.2 (închiderea formală: 5.2.9)
+      # run_all.py iese cu 0 numai fără FAIL-uri noi; P7 (R6D-SES-01) închis formal la 5.2.9, nu mai e FAIL cunoscut
       - name: Suita existentă (tests/run_all.py)
         run: python tests/run_all.py

@@ -23,9 +23,8 @@ SUITES = [
     'regression/test_regresie_6_1_6_5.py',
 ]
 # Limitări cunoscute, documentate în PROJECT_HANDOFF_CURRENT.md (G.4 / P7). Nu sunt bug-uri de regresie.
-KNOWN_FAILS = {
-    'R6D-SES-01': 'P7 / 6D-SES-01: sesiunea client-side falsificabilă (fără backend); limitare arhitecturală',
-}
+# P7 / R6D-SES-01 închis formal la Faza 5.2 (sesiune validată pe server); orice FAIL al lui este acum regresie.
+KNOWN_FAILS = {}
 
 
 def main():
@@ -55,7 +54,7 @@ def main():
         print(f'  FAIL CUNOSCUT: {k}')
     for u in unexpected:
         print(f'  FAIL NEAȘTEPTAT: {u}')
-    print('REZULTAT:', 'OK (doar FAIL-uri cunoscute)' if not unexpected else 'EȘEC')
+    print('REZULTAT:', 'EȘEC' if unexpected else ('OK (doar FAIL-uri cunoscute)' if known else 'OK'))
     sys.exit(0 if not unexpected else 1)
 
 

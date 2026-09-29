@@ -53,11 +53,11 @@ with dev_server(), sync_playwright() as pw:
     r64 = run_js(page, "return { user: authService.getCurrentUser(), stored: localStorage.getItem('turnu_civic_admin_session') };")
     res.check('R6.4b sesiune cu forma invalida: respinsa si stearsa', r64 == {'user': None, 'stored': None}, json.dumps(r64))
 
-    # 6D-SES-01 (P7) — limitare cunoscuta, trebuie sa ramana documentata (nu se repara in 6.6)
+    # 6D-SES-01 (P7) — inchis la Faza 5.2: sesiunea este validata pe server; o sesiune falsificata in browser trebuie respinsa
     run_js(page, "localStorage.setItem('turnu_civic_admin_session', JSON.stringify({ id: 'usr-fals', email: 'x@y.z', name: 'Fals', role: 'super_admin', lastLogin: '' })); return 1;")
     page.reload(); page.wait_for_load_state('networkidle')
     p7 = run_js(page, SUB + "const id = sub('p7').report.id; const r = reportService.assumeReport(id); const leak = JSON.stringify(reportService.getPublicMapReports()).includes('usr-fals') || JSON.stringify(reportService.getPublicMapReports()).includes('Fals'); authService.setUserForDevTests(null); return { can: r.success, pub: leak ? 'LEAK' : null };")
-    res.check('R6D-SES-01 (P7) ramane limitare: sesiune falsificata valida structural este acceptata [FAIL asteptat, neschimbat]', not p7['can'], json.dumps(p7))
+    res.check('R6D-SES-01 (P7) inchis la 5.2: sesiunea falsificata in browser este respinsa (validare pe server)', not p7['can'], json.dumps(p7))
     res.check('R6.6-P7 ID-ul/numele sesiunii falsificate nu apar in modelul public', p7['pub'] is None, json.dumps(p7))
 
     # 6.5 — garzi in servicii: 3 roluri x operatii reprezentative
