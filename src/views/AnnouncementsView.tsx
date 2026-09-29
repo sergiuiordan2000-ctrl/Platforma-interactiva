@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { 
   Megaphone, 
   RotateCcw, 
@@ -19,6 +19,8 @@ import { announcementService } from '../services/announcementService';
 import { AnnouncementFilter } from '../components/announcements/AnnouncementFilter';
 import { AnnouncementCard } from '../components/announcements/AnnouncementCard';
 import { AnnouncementDetail } from '../components/announcements/AnnouncementDetail';
+import { ErrorBlock, LoadingBlock } from '../components/common/LoadState';
+import { useAsync } from '../hooks/useAsync';
 
 interface AnnouncementsViewProps {
   onNavigate: (view: AppView) => void;
@@ -33,22 +35,21 @@ export const AnnouncementsView: React.FC<AnnouncementsViewProps> = ({
 }) => {
   const [activeFilter, setActiveFilter] = useState<AnnouncementFilterType>('all');
   const [sortBy, setSortBy] = useState<AnnouncementSortOption>('published_desc');
-  const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(() => {
-    if (selectedAnnouncementId) {
-      // ETAPA 6.5 (P5): zona publică folosește getter-ul care returnează DOAR comunicate publice și vizibile
-      return announcementService.getPublicById(selectedAnnouncementId) || null;
-    }
-    return null;
-  });
+  const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
 
-  // Reîmprospătare la schimbare id din exterior
+  // Comunicatul cerut din exterior (Acasă): ETAPA 6.5 (P5) — numai dacă este public (serverul întoarce 404 altfel)
   React.useEffect(() => {
-    if (selectedAnnouncementId) {
-      const found = announcementService.getPublicById(selectedAnnouncementId);
-      if (found) {
-        setSelectedAnnouncement(found);
-      }
-    }
+    if (!selectedAnnouncementId) return;
+    let active = true;
+    announcementService
+      .getPublicById(selectedAnnouncementId)
+      .then((found) => {
+        if (active && found) setSelectedAnnouncement(found);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
   }, [selectedAnnouncementId]);
 
   // Schimbare automată a sortării implicite la comutarea pe Evenimente
@@ -61,14 +62,11 @@ export const AnnouncementsView: React.FC<AnnouncementsViewProps> = ({
     }
   };
 
-  // Lista filtrată și ordonată conform selecției
-  const announcements = useMemo(() => {
-    return announcementService.getAll(activeFilter, sortBy);
-  }, [activeFilter, sortBy]);
-
-  const counts = useMemo(() => {
-    return announcementService.getCounts();
-  }, []);
+  // Lista filtrată și ordonată de server conform selecției (Faza 5.3)
+  const list = useAsync(() => announcementService.getAll(activeFilter, sortBy), [activeFilter, sortBy]);
+  const highlights = useAsync(() => announcementService.getHighlights(), []);
+  const announcements = list.data ?? [];
+  const counts = highlights.data?.counts ?? { all: 0, notification: 0, announcement: 0, news: 0, event: 0 };
 
   const handleSelectAnnouncement = (announcement: Announcement) => {
     setSelectedAnnouncement(announcement);
@@ -152,7 +150,11 @@ export const AnnouncementsView: React.FC<AnnouncementsViewProps> = ({
       </div>
 
       {/* Grilă de carduri de comunicate (Ordonate conform selecției) */}
-      {announcements.length > 0 ? (
+      {list.loading && !list.data ? (
+        <LoadingBlock label="Se încarcă comunicatele…" />
+      ) : list.error ? (
+        <ErrorBlock message={list.error} onRetry={list.reload} />
+      ) : announcements.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6 pt-2">
           {announcements.map((announcement) => (
             <AnnouncementCard

@@ -3,238 +3,187 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Announcement, AnnouncementFilterType, AnnouncementSortOption, AnnouncementStatus } from '../types/announcement';
-import { INITIAL_DEMO_ANNOUNCEMENTS } from '../data/mockAnnouncements';
-import { permissionService, Permission } from './permissionService';
-
-const STORAGE_KEY = 'turnu_civic_announcements';
-
 /**
- * ETAPA 6.5 (P1/P2) — permisiunea necesară pentru a aduce un comunicat în starea țintă:
- * publicare → `announcements.publish`; dezactivare (ciornă) → `announcements.disable`.
+ * Comunicatele (Faza 5.3): client al API-ului (B2 §3, §6.2). Sursa datelor este serverul; nimic în
+ * `localStorage`. Regulile de vizibilitate (publicat + neexpirat) și permisiunile se aplică pe server;
+ * interfața folosește permisiunile doar pentru a afișa sau ascunde butoanele.
  */
-const statusPermission = (status: AnnouncementStatus): Permission =>
-  status === 'published' ? 'announcements.publish' : 'announcements.disable';
+
+import {
+  announcementCreateRequest,
+  announcementUpdateRequest,
+  type AdminAnnouncement,
+  type AnnouncementHighlights,
+  type Page,
+  type PublicAnnouncement,
+} from '@tmc/shared';
+import { Announcement, AnnouncementFilterType, AnnouncementSortOption, AnnouncementStatus } from '../types/announcement';
+import { api, ApiError } from './apiClient';
+
+export type AnnouncementCounts = Record<AnnouncementFilterType, number>;
+
+export interface Highlights {
+  latest?: Announcement;
+  latestEvent?: Announcement;
+  urgentAlert?: Announcement;
+  counts: AnnouncementCounts;
+}
+
+/** Rezultatul unei operații Admin: succes sau mesajul de eroare (+ câmpurile invalide). */
+export type MutationResult = { success: true; id?: string } | { success: false; error: string; fields?: Record<string, string> };
+
+/** Datele formularului Admin (fără câmpurile stabilite de server: id, data publicării, isDemo). */
+export type AnnouncementInput = Omit<Announcement, 'id' | 'publishedAt' | 'isDemo'>;
+
+const u = <T>(v: T | null): T | undefined => (v === null ? undefined : v);
+
+function fromApi(a: PublicAnnouncement | AdminAnnouncement): Announcement {
+  return {
+    id: a.id,
+    type: a.type,
+    title: a.title,
+    summary: a.summary,
+    content: a.content,
+    publishedAt: a.publishedAt,
+    author: a.author,
+    category: a.category,
+    imageUrl: u(a.imageUrl),
+    isUrgent: a.isUrgent,
+    expiresAt: u(a.expiresAt),
+    status: 'status' in a ? a.status : 'published',
+    isDemo: a.isDemo,
+    eventDate: u(a.eventDate),
+    eventTime: u(a.eventTime),
+    eventLocation: u(a.eventLocation),
+    eventOrganizer: u(a.eventOrganizer),
+  };
+}
+
+/** Câmpurile formularului → corpul cererii (golurile devin `null`). */
+function toApi(data: Partial<AnnouncementInput>) {
+  const n = <T>(v: T | undefined) => (v === undefined || v === '' ? null : v);
+  const out: Record<string, unknown> = {};
+  const set = (k: string, v: unknown) => {
+    if (v !== undefined) out[k] = v;
+  };
+  set('type', data.type);
+  set('title', data.title);
+  set('summary', data.summary);
+  set('content', data.content);
+  set('author', data.author);
+  set('category', data.category);
+  set('status', data.status);
+  set('isUrgent', data.isUrgent);
+  if ('imageUrl' in data) out.imageUrl = n(data.imageUrl);
+  if ('expiresAt' in data) out.expiresAt = n(data.expiresAt);
+  if ('eventDate' in data) out.eventDate = n(data.eventDate);
+  if ('eventTime' in data) out.eventTime = n(data.eventTime);
+  if ('eventLocation' in data) out.eventLocation = n(data.eventLocation);
+  if ('eventOrganizer' in data) out.eventOrganizer = n(data.eventOrganizer);
+  return out;
+}
+
+function failure(err: unknown): MutationResult {
+  if (err instanceof ApiError) return { success: false, error: err.message, fields: err.fields };
+  return { success: false, error: 'Operația a eșuat. Încercați din nou.' };
+}
+
+/** Toate paginile unei liste (listele sunt mici; paginarea serverului rămâne în vigoare). */
+async function allPages<T>(path: string): Promise<T[]> {
+  const sep = path.includes('?') ? '&' : '?';
+  const items: T[] = [];
+  let cursor: string | null = null;
+  for (let i = 0; i < 50; i++) {
+    const page: Page<T> = await api.get<Page<T>>(`${path}${sep}limit=100${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`);
+    items.push(...page.items);
+    if (!page.nextCursor) break;
+    cursor = page.nextCursor;
+  }
+  return items;
+}
 
 class AnnouncementService {
-  private announcements: Announcement[] = [];
+  // ——— zona publică ———
 
-  constructor() {
-    this.init();
+  /** Comunicatele publicate și neexpirate, filtrate și sortate de server. */
+  public async getAll(filter: AnnouncementFilterType = 'all', sort: AnnouncementSortOption = 'published_desc'): Promise<Announcement[]> {
+    const params = new URLSearchParams({ sort });
+    if (filter !== 'all') params.set('type', filter);
+    return (await allPages<PublicAnnouncement>(`/public/announcements?${params}`)).map(fromApi);
   }
 
-  private init() {
+  /** ETAPA 6.5 (P5): numai un comunicat public; altfel `undefined` (404). */
+  public async getPublicById(id: string): Promise<Announcement | undefined> {
     try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const parsed: Announcement[] = JSON.parse(stored);
-        // Ne asigurăm că elementele demonstrative noi sunt integrate fără a suprascrie modificările
-        const existingIds = new Set(parsed.map(a => a.id));
-        const missingInitial = INITIAL_DEMO_ANNOUNCEMENTS.filter(item => !existingIds.has(item.id));
-        this.announcements = [...parsed, ...missingInitial];
-        if (missingInitial.length > 0) {
-          this.save();
-        }
-      } else {
-        this.announcements = [...INITIAL_DEMO_ANNOUNCEMENTS];
-        this.save();
-      }
-    } catch {
-      this.announcements = [...INITIAL_DEMO_ANNOUNCEMENTS];
+      return fromApi(await api.get<PublicAnnouncement>(`/public/announcements/${encodeURIComponent(id)}`));
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 404) return undefined;
+      throw err;
     }
   }
 
-  private save() {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.announcements));
-    } catch {
-      // Ignorare erori de quota în spații restrânse
-    }
-  }
-
-  /**
-   * Un comunicat fără câmpul `status` (toate articolele existente/demo dinainte
-   * de Etapa 5B) este tratat implicit ca 'published', prin fallback — nu a fost
-   * nevoie să se rescrie datele demo existente.
-   */
-  private isPublished(a: Announcement): boolean {
-    return (a.status ?? 'published') === 'published';
-  }
-
-  /**
-   * Un comunicat este expirat dacă `expiresAt` există și este în trecut.
-   * Fără `expiresAt`, comunicatul nu expiră niciodată.
-   */
-  private isExpired(a: Announcement): boolean {
-    if (!a.expiresAt) return false;
-    const ts = new Date(a.expiresAt).getTime();
-    return !isNaN(ts) && ts < Date.now();
-  }
-
-  /**
-   * Un comunicat este vizibil în zona publică doar dacă este 'published'
-   * (nu 'draft'/dezactivat) ȘI nu este expirat.
-   */
-  private isVisiblePublicly(a: Announcement): boolean {
-    return this.isPublished(a) && !this.isExpired(a);
-  }
-
-  /**
-   * Returnează comunicatele filtrate și sortate conform opțiunii solicitate.
-   * Pentru evenimente, permite sortarea atât după data publicării, cât și după data de desfășurare.
-   *
-   * `includeAll` (implicit false): când este true, sunt returnate TOATE comunicatele,
-   * indiferent de stare (draft/dezactivat) sau expirare — folosit exclusiv de panoul Admin.
-   * Zona publică (implicit) vede doar comunicatele 'published' și neexpirate.
-   */
-  public getAll(
-    filter: AnnouncementFilterType = 'all',
-    sort: AnnouncementSortOption = 'published_desc',
-    includeAll: boolean = false
-  ): Announcement[] {
-    let items = [...this.announcements];
-
-    if (!includeAll) {
-      items = items.filter(a => this.isVisiblePublicly(a));
-    }
-
-    if (filter !== 'all') {
-      items = items.filter(a => a.type === filter);
-    }
-
-    if (sort === 'event_date_asc') {
-      return items.sort((a, b) => {
-        const dateA = a.eventDate ? new Date(a.eventDate).getTime() : 0;
-        const dateB = b.eventDate ? new Date(b.eventDate).getTime() : 0;
-        return dateA - dateB;
-      });
-    }
-
-    // Implicit: cele mai noi publicate primele
-    return items.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
-  }
-
-  /**
-   * Returnează un comunicat după identificatorul unic (indiferent de stare — folosit și de Admin).
-   */
-  public getById(id: string): Announcement | undefined {
-    return this.announcements.find(a => a.id === id);
-  }
-
-  /**
-   * ETAPA 6.5 (P5) — Getter pentru ZONA PUBLICĂ: returnează comunicatul doar dacă este
-   * publicat și neexpirat (aceeași regulă ca `getAll()` public). Altfel `undefined`.
-   */
-  public getPublicById(id: string): Announcement | undefined {
-    const found = this.announcements.find(a => a.id === id);
-    return found && this.isVisiblePublicly(found) ? found : undefined;
-  }
-
-  /**
-   * Returnează cel mai recent comunicat publicat și vizibil public.
-   */
-  public getLatest(): Announcement | undefined {
-    const sorted = this.getAll('all', 'published_desc');
-    return sorted[0];
-  }
-
-  /**
-   * Returnează cel mai recent eveniment publicat și vizibil public (Etapa 1C).
-   */
-  public getLatestEvent(): Announcement | undefined {
-    const events = this.announcements.filter(a => a.type === 'event' && this.isVisiblePublicly(a));
-    return events.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())[0];
-  }
-
-  /**
-   * Returnează cea mai recentă notificare urgentă activă și vizibilă public (dacă există).
-   */
-  public getUrgentAlert(): Announcement | undefined {
-    const alerts = this.announcements.filter(a => a.type === 'notification' && a.isUrgent && this.isVisiblePublicly(a));
-    return alerts.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())[0];
-  }
-
-  /**
-   * Returnează numărul de comunicate vizibile public pe fiecare categorie.
-   */
-  public getCounts(): Record<AnnouncementFilterType, number> {
-    const visible = this.announcements.filter(a => this.isVisiblePublicly(a));
-    const all = visible.length;
-    const notification = visible.filter(a => a.type === 'notification').length;
-    const announcement = visible.filter(a => a.type === 'announcement').length;
-    const news = visible.filter(a => a.type === 'news').length;
-    const event = visible.filter(a => a.type === 'event').length;
-
+  /** Acasă: ultimul comunicat, ultimul eveniment, alerta urgentă și contoarele pe tip. */
+  public async getHighlights(): Promise<Highlights> {
+    const h = await api.get<AnnouncementHighlights>('/public/announcements/highlights');
     return {
-      all,
-      notification,
-      announcement,
-      news,
-      event,
+      latest: h.latest ? fromApi(h.latest) : undefined,
+      latestEvent: h.latestEvent ? fromApi(h.latestEvent) : undefined,
+      urgentAlert: h.urgentAlert ? fromApi(h.urgentAlert) : undefined,
+      counts: h.counts,
     };
   }
 
-  /**
-   * Creează un comunicat nou (Etapa 5B). `status` implicit 'published' dacă nu este specificat.
-   * ETAPA 6.5: necesită `announcements.create` și, pentru starea rezultată, permisiunea de
-   * publicare/dezactivare corespunzătoare. Fără permisiune → `null`, nicio modificare.
-   */
-  public create(data: Omit<Announcement, 'id'>): Announcement | null {
-    const status: AnnouncementStatus = data.status ?? 'published';
-    if (!permissionService.currentUserCanAll(['announcements.create', statusPermission(status)])) return null;
+  // ——— Admin ———
 
-    const newAnnouncement: Announcement = {
-      ...data,
-      id: `ann-${Date.now()}`,
-      status,
-    };
-    this.announcements = [...this.announcements, newAnnouncement];
-    this.save();
-    return newAnnouncement;
+  /** Toate comunicatele (inclusiv ciornele și cele expirate), cele mai noi primele. */
+  public async getAllForAdmin(): Promise<Announcement[]> {
+    return (await allPages<AdminAnnouncement>('/admin/announcements')).map(fromApi);
   }
 
-  /**
-   * Actualizează un comunicat existent (editare — Etapa 5B).
-   * ETAPA 6.5: necesită `announcements.edit`; dacă patch-ul schimbă starea, și permisiunea
-   * pentru starea țintă. Returnează `false` (fără modificare) la refuz sau ID inexistent.
-   */
-  public update(id: string, patch: Partial<Omit<Announcement, 'id'>>): boolean {
-    const current = this.announcements.find(a => a.id === id);
-    if (!current) return false;
-    const required: Permission[] = ['announcements.edit'];
-    if (patch.status && patch.status !== current.status) required.push(statusPermission(patch.status));
-    if (!permissionService.currentUserCanAll(required)) return false;
-
-    this.announcements = this.announcements.map(a => (a.id === id ? { ...a, ...patch } : a));
-    this.save();
-    return true;
+  /** Imaginile publicate cu aplicația (DN-19, T-C9). */
+  public async getPublishedImages(): Promise<string[]> {
+    return (await api.get<{ items: string[] }>('/admin/announcements/images')).items;
   }
 
-  /**
-   * Schimbă starea de publicare a unui comunicat (publicare / dezactivare — Etapa 5B).
-   * Nu șterge fizic comunicatul.
-   * ETAPA 6.5: publicare → `announcements.publish`; dezactivare → `announcements.disable`.
-   */
-  public setStatus(id: string, status: AnnouncementStatus): boolean {
-    if (!permissionService.currentUserCan(statusPermission(status))) return false;
-    if (!this.announcements.some(a => a.id === id)) return false;
-
-    this.announcements = this.announcements.map(a => (a.id === id ? { ...a, status } : a));
-    this.save();
-    return true;
+  public async create(data: AnnouncementInput): Promise<MutationResult> {
+    const body = toApi(data);
+    const check = announcementCreateRequest.safeParse(body);
+    if (!check.success) return { success: false, error: 'Datele trimise nu sunt valide.', fields: fieldsOf(check.error.issues) };
+    try {
+      const res = await api.post<{ id: string }>('/admin/announcements', body);
+      return { success: true, id: res.id };
+    } catch (err) {
+      return failure(err);
+    }
   }
 
-  /**
-   * Resetare la setul inițial demo (util pentru testare și audit).
-   * ETAPA 6.5: operație distructivă fără permisiune dedicată în matrice; tratată conservator ca
-   * administrare completă a comunicatelor (creare + editare), similar deciziei 5D pentru sondaje.
-   */
-  public resetToDemo(): boolean {
-    if (!permissionService.currentUserCanAll(['announcements.create', 'announcements.edit'])) return false;
-    this.announcements = [...INITIAL_DEMO_ANNOUNCEMENTS];
-    this.save();
-    return true;
+  public async update(id: string, patch: Partial<AnnouncementInput>): Promise<MutationResult> {
+    const body = toApi(patch);
+    const check = announcementUpdateRequest.safeParse(body);
+    if (!check.success) return { success: false, error: 'Datele trimise nu sunt valide.', fields: fieldsOf(check.error.issues) };
+    try {
+      await api.patch(`/admin/announcements/${encodeURIComponent(id)}`, body);
+      return { success: true };
+    } catch (err) {
+      return failure(err);
+    }
   }
+
+  /** Publicare / dezactivare (fără ștergere, 5B / D4). */
+  public async setStatus(id: string, status: AnnouncementStatus): Promise<MutationResult> {
+    try {
+      await api.patch(`/admin/announcements/${encodeURIComponent(id)}/status`, { status });
+      return { success: true };
+    } catch (err) {
+      return failure(err);
+    }
+  }
+}
+
+function fieldsOf(issues: Array<{ path: PropertyKey[] }>): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const i of issues) out[i.path.map(String).join('.') || '_'] ??= 'valoare invalidă';
+  return out;
 }
 
 export const announcementService = new AnnouncementService();

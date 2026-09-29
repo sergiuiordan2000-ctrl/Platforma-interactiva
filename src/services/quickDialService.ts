@@ -3,316 +3,170 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { QuickDialCategory, QuickDialContact } from '../types/quickDial';
-import { INITIAL_DEMO_CATEGORIES, INITIAL_DEMO_CONTACTS } from '../data/mockQuickDial';
-import { permissionService } from './permissionService';
+/**
+ * Apelul rapid (Faza 5.3): client al API-ului (B2 §3, §6.3). Sursa datelor este serverul; nimic în
+ * `localStorage`. Datele se încarcă o dată pe ecran; filtrarea și căutarea rămân locale (listă mică).
+ * Permisiunile (`quickDial.*`) se aplică pe server; resetarea la datele demo nu mai există (D4).
+ */
 
-const STORAGE_CONTACTS_KEY = 'turnu_civic_quickdial_contacts';
-const STORAGE_CATEGORIES_KEY = 'turnu_civic_quickdial_categories';
+import {
+  quickDialCategoryCreateRequest,
+  quickDialCategoryUpdateRequest,
+  quickDialContactCreateRequest,
+  quickDialContactUpdateRequest,
+  type QuickDialResponse,
+} from '@tmc/shared';
+import type { z } from 'zod';
+import { QuickDialCategory, QuickDialContact } from '../types/quickDial';
+import { api, ApiError } from './apiClient';
+import type { MutationResult } from './announcementService';
+
+export interface QuickDialData {
+  categories: QuickDialCategory[];
+  contacts: QuickDialContact[];
+  /** E-7: numărul contactelor pe categorie (calculat de server). */
+  counts: Record<string, number>;
+}
+
+const u = <T>(v: T | null): T | undefined => (v === null ? undefined : v);
+const n = (v: string | undefined) => (v === undefined ? undefined : v.trim() === '' ? null : v.trim());
+
+function toData(r: QuickDialResponse): QuickDialData {
+  return {
+    categories: r.categories.map((c) => ({ id: c.id, name: c.name, description: c.description, order: c.order, isActive: c.isActive })),
+    contacts: r.contacts.map((c) => ({
+      id: c.id,
+      name: c.name,
+      phone: c.phone,
+      formattedPhone: c.formattedPhone,
+      categoryId: c.categoryId,
+      categoryName: c.categoryName,
+      shortDescription: u(c.shortDescription),
+      availability: c.availability,
+      isEmergency: c.isEmergency,
+      address: u(c.address),
+      isDemo: c.isDemo,
+      isActive: c.isActive,
+      order: c.order,
+    })),
+    // `all` = totalul (folosit de filtrul „Toate”), ca înainte de 5.3
+    counts: { ...r.countsByCategory, all: r.contacts.length },
+  };
+}
+
+/**
+ * Filtrarea după categorie și căutarea (aceleași reguli ca înainte de 5.3).
+ * În zona publică (`emergencyFirst`), urgențele apar primele.
+ */
+export function filterContacts(
+  contacts: QuickDialContact[],
+  categoryId = 'all',
+  searchQuery = '',
+  emergencyFirst = true,
+): QuickDialContact[] {
+  let result = [...contacts];
+  if (categoryId !== 'all') result = result.filter((c) => c.categoryId === categoryId);
+  const term = searchQuery.toLowerCase().trim();
+  if (term !== '') {
+    result = result.filter(
+      (c) =>
+        c.name.toLowerCase().includes(term) ||
+        c.phone.includes(term) ||
+        c.formattedPhone.toLowerCase().includes(term) ||
+        (c.shortDescription && c.shortDescription.toLowerCase().includes(term)) ||
+        (c.address && c.address.toLowerCase().includes(term)),
+    );
+  }
+  return result.sort((a, b) => {
+    if (emergencyFirst) {
+      if (a.isEmergency && !b.isEmergency) return -1;
+      if (!a.isEmergency && b.isEmergency) return 1;
+    }
+    return (a.order || 0) - (b.order || 0);
+  });
+}
+
+function fieldsOf(issues: Array<{ path: PropertyKey[] }>): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const i of issues) out[i.path.map(String).join('.') || '_'] ??= 'valoare invalidă';
+  return out;
+}
+
+async function mutate(schema: z.ZodType | null, body: unknown, call: (b: unknown) => Promise<unknown>): Promise<MutationResult> {
+  if (schema) {
+    const check = schema.safeParse(body);
+    if (!check.success) return { success: false, error: 'Datele trimise nu sunt valide.', fields: fieldsOf(check.error.issues) };
+  }
+  try {
+    const res = (await call(body)) as { id?: string } | undefined;
+    return { success: true, id: res?.id };
+  } catch (err) {
+    if (err instanceof ApiError) return { success: false, error: err.message, fields: err.fields };
+    return { success: false, error: 'Operația a eșuat. Încercați din nou.' };
+  }
+}
+
+const enc = encodeURIComponent;
 
 class QuickDialService {
-  private categories: QuickDialCategory[] = [...INITIAL_DEMO_CATEGORIES];
-  private contacts: QuickDialContact[] = [...INITIAL_DEMO_CONTACTS];
-  private listeners: Array<() => void> = [];
-
-  constructor() {
-    this.init();
+  /** Zona publică: categoriile și contactele active. */
+  public async getPublic(): Promise<QuickDialData> {
+    return toData(await api.get<QuickDialResponse>('/public/quickdial'));
   }
 
-  private init() {
-    try {
-      const storedCategories = localStorage.getItem(STORAGE_CATEGORIES_KEY);
-      if (storedCategories) {
-        const parsed = JSON.parse(storedCategories);
-        this.categories = parsed.map((c: QuickDialCategory, idx: number) => ({
-          ...c,
-          isActive: c.isActive !== undefined ? c.isActive : true,
-          order: c.order !== undefined ? c.order : idx + 1,
-        }));
-      } else {
-        this.categories = INITIAL_DEMO_CATEGORIES.map((c, idx) => ({ ...c, isActive: true, order: idx + 1 }));
-        this.saveCategories();
-      }
-
-      const storedContacts = localStorage.getItem(STORAGE_CONTACTS_KEY);
-      if (storedContacts) {
-        const parsed = JSON.parse(storedContacts);
-        this.contacts = parsed.map((c: QuickDialContact, idx: number) => ({
-          ...c,
-          isActive: c.isActive !== undefined ? c.isActive : true,
-          order: c.order !== undefined ? c.order : idx + 1,
-        }));
-      } else {
-        this.contacts = INITIAL_DEMO_CONTACTS.map((c, idx) => ({ ...c, isActive: true, order: idx + 1 }));
-        this.saveContacts();
-      }
-    } catch {
-      this.categories = [...INITIAL_DEMO_CATEGORIES];
-      this.contacts = [...INITIAL_DEMO_CONTACTS];
-    }
+  /** Admin: toate categoriile și contactele, inclusiv cele inactive. */
+  public async getAdmin(): Promise<QuickDialData> {
+    return toData(await api.get<QuickDialResponse>('/admin/quickdial'));
   }
 
-  private saveCategories() {
-    try {
-      localStorage.setItem(STORAGE_CATEGORIES_KEY, JSON.stringify(this.categories));
-      this.notify();
-    } catch {
-      // Ignoră erorile de storage
-    }
+  // ——— categorii ———
+
+  private catBody(c: Partial<QuickDialCategory>) {
+    const body: Record<string, unknown> = {};
+    if (c.name !== undefined) body.name = c.name.trim();
+    if (c.description !== undefined) body.description = c.description.trim();
+    if (c.isActive !== undefined) body.isActive = c.isActive;
+    return body;
+  }
+  public addCategory(c: Omit<QuickDialCategory, 'id' | 'order'>) {
+    return mutate(quickDialCategoryCreateRequest, this.catBody(c), (b) => api.post('/admin/quickdial/categories', b));
+  }
+  public updateCategory(id: string, patch: Partial<QuickDialCategory>) {
+    return mutate(quickDialCategoryUpdateRequest, this.catBody(patch), (b) => api.patch(`/admin/quickdial/categories/${enc(id)}`, b));
+  }
+  /** 409 dacă are contacte (mesajul vine de la server). */
+  public deleteCategory(id: string) {
+    return mutate(null, undefined, () => api.del(`/admin/quickdial/categories/${enc(id)}`));
+  }
+  public reorderCategories(ids: string[]) {
+    return mutate(null, { ids }, (b) => api.put('/admin/quickdial/categories/order', b));
   }
 
-  private saveContacts() {
-    try {
-      localStorage.setItem(STORAGE_CONTACTS_KEY, JSON.stringify(this.contacts));
-      this.notify();
-    } catch {
-      // Ignoră erorile de storage
-    }
+  // ——— contacte ———
+
+  private contactBody(c: Partial<QuickDialContact>) {
+    const body: Record<string, unknown> = {};
+    if (c.categoryId !== undefined) body.categoryId = c.categoryId;
+    for (const k of ['name', 'phone', 'formattedPhone', 'availability'] as const) if (c[k] !== undefined) body[k] = c[k]!.trim();
+    for (const k of ['shortDescription', 'address'] as const) if (k in c) body[k] = n(c[k]);
+    if (c.isEmergency !== undefined) body.isEmergency = c.isEmergency;
+    if (c.isActive !== undefined) body.isActive = c.isActive;
+    return body;
   }
-
-  private notify() {
-    this.listeners.forEach((listener) => {
-      try {
-        listener();
-      } catch (err) {
-        console.error('Eroare la notificarea ascultătorilor quickDialService:', err);
-      }
-    });
+  public addContact(c: Omit<QuickDialContact, 'id' | 'categoryName' | 'isDemo'> & { categoryName?: string; isDemo?: boolean }) {
+    return mutate(quickDialContactCreateRequest, this.contactBody(c), (b) => api.post('/admin/quickdial/contacts', b));
   }
-
-  public subscribe(listener: () => void): () => void {
-    this.listeners.push(listener);
-    return () => {
-      this.listeners = this.listeners.filter((l) => l !== listener);
-    };
+  public updateContact(id: string, patch: Partial<QuickDialContact>) {
+    return mutate(quickDialContactUpdateRequest, this.contactBody(patch), (b) => api.patch(`/admin/quickdial/contacts/${enc(id)}`, b));
   }
-
-  // ==========================================
-  // CATEGORII QUICK DIAL
-  // ==========================================
-
-  public getCategories(includeInactive = false): QuickDialCategory[] {
-    const list = includeInactive ? this.categories : this.categories.filter((c) => c.isActive !== false);
-    return [...list].sort((a, b) => (a.order || 0) - (b.order || 0));
+  public setContactActive(id: string, isActive: boolean) {
+    return mutate(null, { isActive }, (b) => api.patch(`/admin/quickdial/contacts/${enc(id)}/toggle`, b));
   }
-
-  public addCategory(category: Omit<QuickDialCategory, 'id'>): QuickDialCategory | null {
-    if (!permissionService.currentUserCan('quickDial.categories.manage')) return null; // ETAPA 6.5 (P1/P2): autorizare la nivel de serviciu
-    const newId = `cat-${Date.now()}`;
-    const nextOrder = this.categories.length + 1;
-    const newCategory: QuickDialCategory = {
-      ...category,
-      id: newId,
-      isActive: category.isActive !== undefined ? category.isActive : true,
-      order: category.order !== undefined ? category.order : nextOrder,
-    };
-
-    this.categories = [...this.categories, newCategory];
-    this.saveCategories();
-    return newCategory;
+  public deleteContact(id: string) {
+    return mutate(null, undefined, () => api.del(`/admin/quickdial/contacts/${enc(id)}`));
   }
-
-  public updateCategory(id: string, patch: Partial<QuickDialCategory>): boolean {
-    if (!permissionService.currentUserCan('quickDial.categories.manage')) return false; // ETAPA 6.5 (P1/P2): autorizare la nivel de serviciu
-    this.categories = this.categories.map((c) => {
-      if (c.id === id) {
-        const updated = { ...c, ...patch };
-        // Actualizăm și numele categoriei în contactele asociate dacă s-a modificat
-        if (patch.name && patch.name !== c.name) {
-          this.contacts = this.contacts.map((contact) => {
-            if (contact.categoryId === id) {
-              return { ...contact, categoryName: patch.name! };
-            }
-            return contact;
-          });
-          this.saveContacts();
-        }
-        return updated;
-      }
-      return c;
-    });
-    this.saveCategories();
-    return true;
-  }
-
-  public deleteCategory(id: string): { success: boolean; error?: string } {
-    if (!permissionService.currentUserCan('quickDial.categories.manage')) return { success: false, error: 'Nu aveți permisiunea necesară pentru această operație.' }; // ETAPA 6.5 (P1/P2)
-    // Verificăm dacă există contacte asociate
-    const hasContacts = this.contacts.some((c) => c.categoryId === id);
-    if (hasContacts) {
-      return {
-        success: false,
-        error: 'Categoria nu poate fi ștearsă deoarece are contacte asociate. Reatribuiți contactele înainte de ștergere.',
-      };
-    }
-
-    this.categories = this.categories.filter((c) => c.id !== id);
-    this.saveCategories();
-    return { success: true };
-  }
-
-  public reorderCategories(orderedIds: string[]): boolean {
-    if (!permissionService.currentUserCan('quickDial.categories.manage')) return false; // ETAPA 6.5 (P1/P2): autorizare la nivel de serviciu
-    const map = new Map(this.categories.map((c) => [c.id, c]));
-    const reordered: QuickDialCategory[] = [];
-
-    orderedIds.forEach((id, index) => {
-      const c = map.get(id);
-      if (c) {
-        reordered.push({ ...c, order: index + 1 });
-        map.delete(id);
-      }
-    });
-
-    map.forEach((c) => {
-      reordered.push({ ...c, order: reordered.length + 1 });
-    });
-
-    this.categories = reordered;
-    this.saveCategories();
-    return true;
-  }
-
-  // ==========================================
-  // CONTACTE QUICK DIAL
-  // ==========================================
-
-  public getAllContacts(
-    categoryId: string = 'all',
-    searchQuery: string = '',
-    includeInactive = false
-  ): QuickDialContact[] {
-    let result = includeInactive ? [...this.contacts] : this.contacts.filter((c) => c.isActive !== false);
-
-    if (categoryId !== 'all') {
-      result = result.filter((c) => c.categoryId === categoryId);
-    }
-
-    if (searchQuery.trim() !== '') {
-      const term = searchQuery.toLowerCase().trim();
-      result = result.filter(
-        (c) =>
-          c.name.toLowerCase().includes(term) ||
-          c.phone.includes(term) ||
-          c.formattedPhone.toLowerCase().includes(term) ||
-          (c.shortDescription && c.shortDescription.toLowerCase().includes(term)) ||
-          (c.address && c.address.toLowerCase().includes(term))
-      );
-    }
-
-    return result.sort((a, b) => {
-      // Urgențele primele în modul public
-      if (!includeInactive) {
-        if (a.isEmergency && !b.isEmergency) return -1;
-        if (!a.isEmergency && b.isEmergency) return 1;
-      }
-      return (a.order || 0) - (b.order || 0);
-    });
-  }
-
-  public getEmergencyContacts(includeInactive = false): QuickDialContact[] {
-    const list = includeInactive ? this.contacts : this.contacts.filter((c) => c.isActive !== false);
-    return list.filter((c) => c.isEmergency);
-  }
-
-  public getContactById(id: string): QuickDialContact | undefined {
-    return this.contacts.find((c) => c.id === id);
-  }
-
-  public addContact(contact: Omit<QuickDialContact, 'id'>): QuickDialContact | null {
-    if (!permissionService.currentUserCan('quickDial.contacts.manage')) return null; // ETAPA 6.5 (P1/P2): autorizare la nivel de serviciu
-    const newId = `qd-${Date.now()}`;
-    const nextOrder = this.contacts.length + 1;
-    const cleanedPhone = contact.phone.replace(/[\s\-\(\)\.]/g, '');
-
-    const newContact: QuickDialContact = {
-      ...contact,
-      id: newId,
-      phone: cleanedPhone,
-      formattedPhone: contact.formattedPhone || contact.phone,
-      isActive: contact.isActive !== undefined ? contact.isActive : true,
-      order: contact.order !== undefined ? contact.order : nextOrder,
-    };
-
-    this.contacts = [...this.contacts, newContact];
-    this.saveContacts();
-    return newContact;
-  }
-
-  public updateContact(id: string, patch: Partial<QuickDialContact>): boolean {
-    if (!permissionService.currentUserCan('quickDial.contacts.manage')) return false; // ETAPA 6.5 (P1/P2): autorizare la nivel de serviciu
-    this.contacts = this.contacts.map((c) => {
-      if (c.id === id) {
-        const cleanedPhone = patch.phone ? patch.phone.replace(/[\s\-\(\)\.]/g, '') : c.phone;
-        return {
-          ...c,
-          ...patch,
-          phone: cleanedPhone,
-        };
-      }
-      return c;
-    });
-    this.saveContacts();
-    return true;
-  }
-
-  public toggleContactStatus(id: string): boolean {
-    if (!permissionService.currentUserCan('quickDial.contacts.manage')) return false; // ETAPA 6.5 (P1/P2): autorizare la nivel de serviciu
-    this.contacts = this.contacts.map((c) => {
-      if (c.id === id) {
-        return { ...c, isActive: !c.isActive };
-      }
-      return c;
-    });
-    this.saveContacts();
-    return true;
-  }
-
-  public deleteContact(id: string): boolean {
-    if (!permissionService.currentUserCan('quickDial.contacts.manage')) return false; // ETAPA 6.5 (P1/P2): autorizare la nivel de serviciu
-    this.contacts = this.contacts.filter((c) => c.id !== id);
-    this.saveContacts();
-    return true;
-  }
-
-  public reorderContacts(orderedIds: string[]): boolean {
-    if (!permissionService.currentUserCan('quickDial.contacts.manage')) return false; // ETAPA 6.5 (P1/P2): autorizare la nivel de serviciu
-    const map = new Map(this.contacts.map((c) => [c.id, c]));
-    const reordered: QuickDialContact[] = [];
-
-    orderedIds.forEach((id, index) => {
-      const c = map.get(id);
-      if (c) {
-        reordered.push({ ...c, order: index + 1 });
-        map.delete(id);
-      }
-    });
-
-    map.forEach((c) => {
-      reordered.push({ ...c, order: reordered.length + 1 });
-    });
-
-    this.contacts = reordered;
-    this.saveContacts();
-    return true;
-  }
-
-  public getCountsByCategory(includeInactive = false): Record<string, number> {
-    const list = includeInactive ? this.contacts : this.contacts.filter((c) => c.isActive !== false);
-    const counts: Record<string, number> = { all: list.length };
-    this.categories.forEach((cat) => {
-      counts[cat.id] = list.filter((c) => c.categoryId === cat.id).length;
-    });
-    return counts;
-  }
-
-  public resetToDemo(): boolean {
-    if (!permissionService.currentUserCanAll(['quickDial.contacts.manage', 'quickDial.categories.manage'])) return false; // ETAPA 6.5 (P1/P2): autorizare la nivel de serviciu
-    this.categories = INITIAL_DEMO_CATEGORIES.map((c, idx) => ({ ...c, isActive: true, order: idx + 1 }));
-    this.contacts = INITIAL_DEMO_CONTACTS.map((c, idx) => ({ ...c, isActive: true, order: idx + 1 }));
-    this.saveCategories();
-    this.saveContacts();
-    return true;
+  public reorderContacts(ids: string[]) {
+    return mutate(null, { ids }, (b) => api.put('/admin/quickdial/contacts/order', b));
   }
 }
 

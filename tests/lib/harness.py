@@ -100,6 +100,22 @@ def backend_server(port):
         _stop_server(proc)
 
 
+def db_exec(sql, params=None):
+    """Faza 5.3: o instrucțiune SQL direct pe DB-ul de test (CIVIC_TEST_DATABASE_URL), ocolind API-ul.
+    Folosit numai pentru a simula date corupte / vechi pe care validarea API-ului nu le-ar accepta."""
+    import json as _json
+    db = os.environ.get('CIVIC_TEST_DATABASE_URL')
+    if not db or 'test' not in db.rsplit('/', 1)[-1].lower():
+        raise RuntimeError('db_exec cere CIVIC_TEST_DATABASE_URL (un DB cu „test” în nume).')
+    script = ("const m=require('mysql2/promise');(async()=>{const c=await m.createConnection(process.env.DBURL);"
+              "await c.query(process.env.SQL, JSON.parse(process.env.PARAMS));await c.end();})()"
+              ".catch(e=>{console.error(e.message);process.exit(1)})")
+    r = subprocess.run(['node', '-e', script], cwd=REPO, capture_output=True, text=True,
+                       env=dict(os.environ, DBURL=db, SQL=sql, PARAMS=_json.dumps(params or [])))
+    if r.returncode != 0:
+        raise RuntimeError('db_exec: ' + r.stderr[-300:])
+
+
 def _port_in_use(port):
     with socket.socket() as s:
         return s.connect_ex(('127.0.0.1', port)) == 0

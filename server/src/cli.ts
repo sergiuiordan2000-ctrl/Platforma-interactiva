@@ -232,6 +232,8 @@ async function runE2eSetup(config: Config, out: Out): Promise<number> {
     }
     await migrate(handle.pool, MIGRATIONS_DIR);
     await seedConfig(handle.pool, SEEDS_DIR);
+    // Faza 5.3: conținutul public (comunicate, ghid, apel rapid) vine din DB; E2E folosesc datele demo
+    await seedDemo(handle.pool, SEEDS_DIR, config.appEnv);
     const now = new Date();
     const hash = await hashPassword(password);
     const accounts = [

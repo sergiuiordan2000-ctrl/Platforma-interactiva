@@ -23,6 +23,8 @@ import { CityHallService } from '../../../types/directory';
 import { directoryService } from '../../../services/directoryService';
 import { AdminUser } from '../../../services/authService';
 import { permissionService } from '../../../services/permissionService';
+import { ErrorBlock, LoadingBlock } from '../../common/LoadState';
+import { useAsync } from '../../../hooks/useAsync';
 
 interface AdminServicesManagerProps {
   onSuccess: (msg: string) => void;
@@ -33,10 +35,12 @@ export const AdminServicesManager: React.FC<AdminServicesManagerProps> = ({ onSu
   // Etapa 5D: permisiunea `directory.services.manage` controlează CRUD-ul serviciilor.
   const canManage = permissionService.hasPermission(currentUser?.role, 'directory.services.manage');
 
-  const [services, setServices] = useState<CityHallService[]>(() =>
-    directoryService.getServices(true)
-  );
-  const departments = directoryService.getDepartments(false);
+  // Faza 5.3: serviciile (inclusiv cele inactive) și direcțiile active vin de la server
+  const data = useAsync(() => directoryService.getAdminCityHallInfo(), []);
+  const services: CityHallService[] = data.data?.services ?? [];
+  const departments = (data.data?.departments ?? []).filter((d) => d.isActive !== false);
+  const [busy, setBusy] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const [editingService, setEditingService] = useState<CityHallService | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -55,7 +59,23 @@ export const AdminServicesManager: React.FC<AdminServicesManagerProps> = ({ onSu
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   const refresh = () => {
-    setServices(directoryService.getServices(true));
+    void data.reload();
+  };
+
+  /** Rulează o operație pe server; succesul se afișează numai dacă serverul a acceptat-o. */
+  const run = async (op: () => Promise<{ success: boolean; error?: string }>, okMessage: string): Promise<boolean> => {
+    if (busy) return false;
+    setBusy(true);
+    const res = await op();
+    setBusy(false);
+    if (!res.success) {
+      setActionError(res.error ?? 'Operația a eșuat.');
+      return false;
+    }
+    setActionError(null);
+    onSuccess(okMessage);
+    refresh();
+    return true;
   };
 
   const handleStartCreate = () => {
@@ -126,7 +146,7 @@ export const AdminServicesManager: React.FC<AdminServicesManagerProps> = ({ onSu
     return Object.keys(errs).length === 0;
   };
 
-  const handleSaveForm = (e: React.FormEvent) => {
+  const handleSaveForm = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canManage) return;
     if (!validate()) return;
@@ -137,50 +157,48 @@ export const AdminServicesManager: React.FC<AdminServicesManagerProps> = ({ onSu
       .filter(line => line.length > 0);
 
     if (isCreating) {
-      directoryService.addService({
+      const ok = await run(() => directoryService.addService({
         title: formState.title.trim(),
         departmentId: formState.departmentId,
         departmentName: formState.departmentName,
         description: formState.description.trim(),
         documentsRequired: docs.length > 0 ? docs : undefined,
-        processingTime: formState.processingTime.trim() || undefined,
-        fee: formState.fee.trim() || undefined,
-        onlineLink: formState.onlineLink.trim() || undefined,
+        processingTime: formState.processingTime,
+        fee: formState.fee,
+        onlineLink: formState.onlineLink,
         isActive: true,
-      });
-      onSuccess(`Serviciul „${formState.title}” a fost adăugat în Ghid!`);
+      }), `Serviciul „${formState.title}” a fost adăugat în Ghid!`);
+      if (!ok) return;
     } else if (editingService) {
-      directoryService.updateService(editingService.id, {
+      const ok = await run(() => directoryService.updateService(editingService.id, {
         title: formState.title.trim(),
         departmentId: formState.departmentId,
         departmentName: formState.departmentName,
         description: formState.description.trim(),
         documentsRequired: docs.length > 0 ? docs : undefined,
-        processingTime: formState.processingTime.trim() || undefined,
-        fee: formState.fee.trim() || undefined,
-        onlineLink: formState.onlineLink.trim() || undefined,
-      });
-      onSuccess(`Serviciul „${formState.title}” a fost actualizat cu succes!`);
+        processingTime: formState.processingTime,
+        fee: formState.fee,
+        onlineLink: formState.onlineLink,
+      }), `Serviciul „${formState.title}” a fost actualizat cu succes!`);
+      if (!ok) return;
     }
 
     handleCancelForm();
-    refresh();
   };
 
   const handleToggleStatus = (srv: CityHallService) => {
     if (!canManage) return;
-    directoryService.toggleServiceStatus(srv.id);
     const updatedStatus = !srv.isActive;
-    onSuccess(`Serviciul „${srv.title}” este acum ${updatedStatus ? 'ACTIV' : 'DEZACTIVAT'} în zona publică.`);
-    refresh();
+    void run(
+      () => directoryService.setServiceActive(srv.id, updatedStatus),
+      `Serviciul „${srv.title}” este acum ${updatedStatus ? 'ACTIV' : 'DEZACTIVAT'} în zona publică.`,
+    );
   };
 
   const handleDelete = (srv: CityHallService) => {
     if (!canManage) return;
     if (window.confirm(`Sigur doriți să ștergeți serviciul „${srv.title}”?`)) {
-      directoryService.deleteService(srv.id);
-      onSuccess(`Serviciul „${srv.title}” a fost șters.`);
-      refresh();
+      void run(() => directoryService.deleteService(srv.id), `Serviciul „${srv.title}” a fost șters.`);
     }
   };
 
@@ -194,13 +212,22 @@ export const AdminServicesManager: React.FC<AdminServicesManagerProps> = ({ onSu
     newOrder[index] = newOrder[targetIndex];
     newOrder[targetIndex] = temp;
 
-    directoryService.reorderServices(newOrder.map(s => s.id));
-    onSuccess('Ordinea serviciilor a fost actualizată!');
-    refresh();
+    void run(() => directoryService.reorderServices(newOrder.map(s => s.id)), 'Ordinea serviciilor a fost actualizată!');
   };
+
+  if (data.loading && !data.data) return <LoadingBlock label="Se încarcă serviciile…" />;
+  if (data.error && !data.data) return <ErrorBlock message={data.error} onRetry={data.reload} />;
 
   return (
     <div className="space-y-6">
+
+      {/* Faza 5.3: operație refuzată de server — nu se afișează succes */}
+      {actionError && (
+        <div role="alert" className="p-3.5 rounded-2xl bg-red-50 border border-red-200 text-xs text-red-800 font-semibold flex items-center justify-between gap-3">
+          <span>{actionError}</span>
+          <button type="button" onClick={() => setActionError(null)} className="text-red-700 hover:text-red-900 font-bold">×</button>
+        </div>
+      )}
       
       {/* Bară de Acțiuni */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm">

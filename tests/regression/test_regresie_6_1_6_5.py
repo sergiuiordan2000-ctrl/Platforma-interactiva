@@ -64,30 +64,25 @@ with dev_server(), sync_playwright() as pw:
     r65 = run_js(page, LOGIN + """
       const out = {};
       const svc = {
-        announcements: (await import(loaded('announcementService'))).announcementService,
-        directory: (await import(loaded('directoryService'))).directoryService,
-        quickDial: (await import(loaded('quickDialService'))).quickDialService,
         survey: (await import(loaded('surveyService'))).surveyService,
       };
       for (const who of [null, arg.op, arg.admin]) {
         authService.setUserForDevTests(null); if (who) login(who);
         const rid = reportService.getAllReports()[0].id;
-        const before = localStorage.getItem('turnu_civic_city_hall_directory');
         out[who || 'public'] = {
           moderate: reportService.updateModerationStatus(rid, reportService.getReportById(rid).moderationStatus),
           resolve: reportService.updateResolutionStatus(rid, reportService.getResolutionStatus(reportService.getReportById(rid))),
-          dirReset: svc.directory.resetToDemo(),
-          qdReset: svc.quickDial.resetToDemo(),
           surveyReset: svc.survey.resetToDemo(),
-          annReset: svc.announcements.resetToDemo(),
         };
       }
       authService.setUserForDevTests(null); return out;
     """, A)
-    exp = {'public': dict(moderate=False, resolve=False, dirReset=False, qdReset=False, surveyReset=False, annReset=False),
-           OP: dict(moderate=True, resolve=True, dirReset=False, qdReset=False, surveyReset=False, annReset=True),
-           ADMIN: dict(moderate=True, resolve=True, dirReset=True, qdReset=True, surveyReset=True, annReset=True)}
-    res.check('R6.5a garzi servicii conforme matricei (public / operator / super_admin)', r65 == exp, json.dumps(r65))
+    # Faza 5.3: comunicatele, ghidul și apelul rapid sunt pe server; resetările lor la demo nu mai există (D4),
+    # iar permisiunile lor se verifică pe server (server/test/integration/adminContent.test.ts: 401 / 403 / 2xx).
+    exp = {'public': dict(moderate=False, resolve=False, surveyReset=False),
+           OP: dict(moderate=True, resolve=True, surveyReset=False),
+           ADMIN: dict(moderate=True, resolve=True, surveyReset=True)}
+    res.check('R6.5a garzi servicii locale conforme matricei (public / operator / super_admin); domeniile 5.3 pe server', r65 == exp, json.dumps(r65))
 
     pubm = run_js(page, "const p = reportService.getPublicMapReports(); return { keys: [...new Set(p.flatMap(x => Object.keys(x)))].sort(), photoKeys: [...new Set(p.flatMap(x => x.photo ? Object.keys(x.photo) : []))].sort() };")
     res.check('R6.5b PublicMapReport fara id si photo.name (plus publicAssumption optional)', 'id' not in pubm['keys'] and 'name' not in pubm['photoKeys'], json.dumps(pubm))
@@ -96,7 +91,7 @@ with dev_server(), sync_playwright() as pw:
     body = page.inner_text('body')
     res.check('R6.5c zona publica fara lista „Evidență Locală”', 'Evidență Locală' not in body, '')
     ann = run_js(page, "const a = (await import(loaded('announcementService'))).announcementService; return typeof a.getPublicById;")
-    res.check('R6.5d getPublicById exista', ann == 'function', ann)
+    res.check('R6.5d getPublicById exista (zona publica: numai comunicate publice, 404 altfel)', ann == 'function', ann)
 
     res.check('R fara erori JS', not errors, '; '.join(errors))
     browser.close()

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   PhoneCall, 
   Search, 
@@ -16,31 +16,29 @@ import {
   Droplets,
   AlertCircle
 } from 'lucide-react';
-import { quickDialService } from '../../services/quickDialService';
+import { filterContacts, quickDialService } from '../../services/quickDialService';
+import { ErrorBlock, LoadingBlock } from '../common/LoadState';
+import { useAsync } from '../../hooks/useAsync';
 import { QuickDialCard } from './QuickDialCard';
 import { QuickDialCategoryPills } from './QuickDialCategoryPills';
 
 export const QuickDialView: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [version, setVersion] = useState<number>(0);
+  // Faza 5.3: datele vin de la server (numai active); filtrarea și căutarea sunt locale
+  const data = useAsync(() => quickDialService.getPublic(), []);
+  const categories = data.data?.categories ?? [];
+  const counts = data.data?.counts ?? {};
 
-  useEffect(() => {
-    return quickDialService.subscribe(() => {
-      setVersion((v) => v + 1);
-    });
-  }, []);
+  const contacts = useMemo(
+    () => filterContacts(data.data?.contacts ?? [], activeCategory, searchQuery),
+    [data.data, activeCategory, searchQuery],
+  );
 
-  const categories = useMemo(() => quickDialService.getCategories(), [version]);
-  const counts = useMemo(() => quickDialService.getCountsByCategory(), [version]);
-  
-  const contacts = useMemo(() => {
-    return quickDialService.getAllContacts(activeCategory, searchQuery);
-  }, [activeCategory, searchQuery, version]);
+  const emergencyContacts = useMemo(() => (data.data?.contacts ?? []).filter((c) => c.isEmergency), [data.data]);
 
-  const emergencyContacts = useMemo(() => {
-    return quickDialService.getEmergencyContacts();
-  }, [version]);
+  if (data.loading && !data.data) return <LoadingBlock label="Se încarcă numerele utile…" />;
+  if (data.error && !data.data) return <ErrorBlock message={data.error} onRetry={data.reload} />;
 
   return (
     <div className="space-y-6">

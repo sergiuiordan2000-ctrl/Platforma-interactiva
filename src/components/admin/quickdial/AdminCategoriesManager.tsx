@@ -19,6 +19,8 @@ import { QuickDialCategory } from '../../../types/quickDial';
 import { quickDialService } from '../../../services/quickDialService';
 import { AdminUser } from '../../../services/authService';
 import { permissionService } from '../../../services/permissionService';
+import { ErrorBlock, LoadingBlock } from '../../common/LoadState';
+import { useAsync } from '../../../hooks/useAsync';
 
 interface AdminCategoriesManagerProps {
   onSuccess: (msg: string) => void;
@@ -29,9 +31,11 @@ export const AdminCategoriesManager: React.FC<AdminCategoriesManagerProps> = ({ 
   // Etapa 5D: permisiunea `quickDial.categories.manage` controlează CRUD-ul categoriilor.
   const canManage = permissionService.hasPermission(currentUser?.role, 'quickDial.categories.manage');
 
-  const [categories, setCategories] = useState<QuickDialCategory[]>(() =>
-    quickDialService.getCategories(true)
-  );
+  // Faza 5.3: categoriile (inclusiv inactive) și contoarele vin de la server; reîncărcare după mutații
+  const data = useAsync(() => quickDialService.getAdmin(), []);
+  const categories: QuickDialCategory[] = data.data?.categories ?? [];
+  const [busy, setBusy] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const [isCreating, setIsCreating] = useState(false);
   const [editingCat, setEditingCat] = useState<QuickDialCategory | null>(null);
@@ -44,7 +48,23 @@ export const AdminCategoriesManager: React.FC<AdminCategoriesManagerProps> = ({ 
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   const refresh = () => {
-    setCategories(quickDialService.getCategories(true));
+    void data.reload();
+  };
+
+  /** Rulează o operație pe server; succesul se afișează numai dacă serverul a acceptat-o. */
+  const run = async (op: () => Promise<{ success: boolean; error?: string }>, okMessage: string): Promise<boolean> => {
+    if (busy) return false;
+    setBusy(true);
+    const res = await op();
+    setBusy(false);
+    if (!res.success) {
+      setActionError(res.error ?? 'Operația a eșuat.');
+      return false;
+    }
+    setActionError(null);
+    onSuccess(okMessage);
+    refresh();
+    return true;
   };
 
   const handleStartCreate = () => {
@@ -81,41 +101,33 @@ export const AdminCategoriesManager: React.FC<AdminCategoriesManagerProps> = ({ 
     return Object.keys(errs).length === 0;
   };
 
-  const handleSaveForm = (e: React.FormEvent) => {
+  const handleSaveForm = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canManage) return;
     if (!validate()) return;
 
     if (isCreating) {
-      quickDialService.addCategory({
+      const ok = await run(() => quickDialService.addCategory({
         name: formState.name.trim(),
         description: formState.description.trim(),
-        order: categories.length + 1,
         isActive: true,
-      });
-      onSuccess(`Categoria „${formState.name}” a fost adăugată!`);
+      }), `Categoria „${formState.name}” a fost adăugată!`);
+      if (!ok) return;
     } else if (editingCat) {
-      quickDialService.updateCategory(editingCat.id, {
+      const ok = await run(() => quickDialService.updateCategory(editingCat.id, {
         name: formState.name.trim(),
         description: formState.description.trim(),
-      });
-      onSuccess(`Categoria „${formState.name}” a fost actualizată!`);
+      }), `Categoria „${formState.name}” a fost actualizată!`);
+      if (!ok) return;
     }
 
     handleCancelForm();
-    refresh();
   };
 
   const handleDelete = (cat: QuickDialCategory) => {
     if (!canManage) return;
-    const res = quickDialService.deleteCategory(cat.id);
-    if (!res.success) {
-      alert(res.error);
-      return;
-    }
-
-    onSuccess(`Categoria „${cat.name}” a fost ștearsă.`);
-    refresh();
+    // 409 dacă are contacte: mesajul serverului apare în banda de eroare (fără alert)
+    void run(() => quickDialService.deleteCategory(cat.id), `Categoria „${cat.name}” a fost ștearsă.`);
   };
 
   const handleMove = (index: number, direction: 'up' | 'down') => {
@@ -128,15 +140,24 @@ export const AdminCategoriesManager: React.FC<AdminCategoriesManagerProps> = ({ 
     newOrder[index] = newOrder[targetIndex];
     newOrder[targetIndex] = temp;
 
-    quickDialService.reorderCategories(newOrder.map(c => c.id));
-    onSuccess('Ordinea categoriilor a fost actualizată!');
-    refresh();
+    void run(() => quickDialService.reorderCategories(newOrder.map(c => c.id)), 'Ordinea categoriilor a fost actualizată!');
   };
 
-  const counts = quickDialService.getCountsByCategory(true);
+  const counts = data.data?.counts ?? {};
+
+  if (data.loading && !data.data) return <LoadingBlock label="Se încarcă categoriile…" />;
+  if (data.error && !data.data) return <ErrorBlock message={data.error} onRetry={data.reload} />;
 
   return (
     <div className="space-y-6">
+
+      {/* Faza 5.3: operație refuzată de server (ex. categorie cu contacte) — nu se afișează succes */}
+      {actionError && (
+        <div role="alert" className="p-3.5 rounded-2xl bg-red-50 border border-red-200 text-xs text-red-800 font-semibold flex items-center justify-between gap-3">
+          <span>{actionError}</span>
+          <button type="button" onClick={() => setActionError(null)} className="text-red-700 hover:text-red-900 font-bold">×</button>
+        </div>
+      )}
       
       {/* Bară Acțiuni */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm">

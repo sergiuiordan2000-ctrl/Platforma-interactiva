@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useMemo } from 'react';
+import React from 'react';
 import { 
   Building2, 
   AlertCircle, 
@@ -24,6 +24,7 @@ import { AppView } from '../types/navigation';
 import { announcementService } from '../services/announcementService';
 import { AnnouncementBadge } from '../components/announcements/AnnouncementBadge';
 import { formatDateRo } from '../utils/dateFormatter';
+import { useAsync } from '../hooks/useAsync';
 
 interface HomeViewProps {
   onNavigate: (view: AppView) => void;
@@ -32,8 +33,10 @@ interface HomeViewProps {
 
 export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onOpenAnnouncement }) => {
   // Preluare cel mai recent comunicat și cea mai recentă alertă urgentă (Etapa 1B)
-  const latestAnnouncement = useMemo(() => announcementService.getLatest(), []);
-  const urgentAlert = useMemo(() => announcementService.getUrgentAlert(), []);
+  // Faza 5.3: de la server; cât timp se încarcă (sau la eroare) cardurile nu apar, restul paginii funcționează
+  const { data: highlights } = useAsync(() => announcementService.getHighlights(), []);
+  const latestAnnouncement = highlights?.latest;
+  const urgentAlert = highlights?.urgentAlert;
 
   const handleOpenAnnouncement = (id: string) => {
     if (onOpenAnnouncement) {

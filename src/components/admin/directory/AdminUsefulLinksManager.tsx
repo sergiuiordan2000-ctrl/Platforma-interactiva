@@ -20,6 +20,8 @@ import { UsefulLink } from '../../../types/directory';
 import { directoryService } from '../../../services/directoryService';
 import { AdminUser } from '../../../services/authService';
 import { permissionService } from '../../../services/permissionService';
+import { ErrorBlock, LoadingBlock } from '../../common/LoadState';
+import { useAsync } from '../../../hooks/useAsync';
 
 interface AdminUsefulLinksManagerProps {
   onSuccess: (msg: string) => void;
@@ -37,7 +39,11 @@ export const AdminUsefulLinksManager: React.FC<AdminUsefulLinksManagerProps> = (
   // Etapa 5D: permisiunea `directory.links.manage` controlează CRUD-ul link-urilor utile.
   const canManage = permissionService.hasPermission(currentUser?.role, 'directory.links.manage');
 
-  const [links, setLinks] = useState<UsefulLink[]>(() => directoryService.getUsefulLinks(true));
+  // Faza 5.3: linkurile (inclusiv cele inactive) vin de la server; reîncărcare explicită după mutații
+  const data = useAsync(() => directoryService.getAdminCityHallInfo(), []);
+  const links: UsefulLink[] = data.data?.usefulLinks ?? [];
+  const [busy, setBusy] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [editingLink, setEditingLink] = useState<UsefulLink | null>(null);
 
@@ -51,7 +57,23 @@ export const AdminUsefulLinksManager: React.FC<AdminUsefulLinksManagerProps> = (
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   const refresh = () => {
-    setLinks(directoryService.getUsefulLinks(true));
+    void data.reload();
+  };
+
+  /** Rulează o operație pe server; succesul se afișează numai dacă serverul a acceptat-o. */
+  const run = async (op: () => Promise<{ success: boolean; error?: string }>, okMessage: string): Promise<boolean> => {
+    if (busy) return false;
+    setBusy(true);
+    const res = await op();
+    setBusy(false);
+    if (!res.success) {
+      setActionError(res.error ?? 'Operația a eșuat.');
+      return false;
+    }
+    setActionError(null);
+    onSuccess(okMessage);
+    refresh();
+    return true;
   };
 
   const handleStartCreate = () => {
@@ -104,49 +126,47 @@ export const AdminUsefulLinksManager: React.FC<AdminUsefulLinksManagerProps> = (
     return Object.keys(errs).length === 0;
   };
 
-  const handleSaveForm = (e: React.FormEvent) => {
+  const handleSaveForm = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canManage) return;
     if (!validate()) return;
 
     if (isCreating) {
-      directoryService.addUsefulLink({
+      const ok = await run(() => directoryService.addUsefulLink({
         title: formState.title.trim(),
         url: formState.url.trim(),
         category: formState.category,
         description: formState.description.trim(),
         isExternal: true,
         isActive: true,
-      });
-      onSuccess(`Link-ul util „${formState.title}” a fost adăugat!`);
+      }), `Link-ul util „${formState.title}” a fost adăugat!`);
+      if (!ok) return;
     } else if (editingLink) {
-      directoryService.updateUsefulLink(editingLink.id, {
+      const ok = await run(() => directoryService.updateUsefulLink(editingLink.id, {
         title: formState.title.trim(),
         url: formState.url.trim(),
         category: formState.category,
         description: formState.description.trim(),
-      });
-      onSuccess(`Link-ul util „${formState.title}” a fost actualizat cu succes!`);
+      }), `Link-ul util „${formState.title}” a fost actualizat cu succes!`);
+      if (!ok) return;
     }
 
     handleCancelForm();
-    refresh();
   };
 
   const handleToggleStatus = (link: UsefulLink) => {
     if (!canManage) return;
-    directoryService.toggleUsefulLinkStatus(link.id);
     const updatedStatus = !link.isActive;
-    onSuccess(`Link-ul „${link.title}” este acum ${updatedStatus ? 'ACTIV' : 'DEZACTIVAT'} în zona publică.`);
-    refresh();
+    void run(
+      () => directoryService.setUsefulLinkActive(link.id, updatedStatus),
+      `Link-ul „${link.title}” este acum ${updatedStatus ? 'ACTIV' : 'DEZACTIVAT'} în zona publică.`,
+    );
   };
 
   const handleDelete = (link: UsefulLink) => {
     if (!canManage) return;
     if (window.confirm(`Sigur doriți să ștergeți link-ul „${link.title}”?`)) {
-      directoryService.deleteUsefulLink(link.id);
-      onSuccess(`Link-ul „${link.title}” a fost șters.`);
-      refresh();
+      void run(() => directoryService.deleteUsefulLink(link.id), `Link-ul „${link.title}” a fost șters.`);
     }
   };
 
@@ -160,13 +180,22 @@ export const AdminUsefulLinksManager: React.FC<AdminUsefulLinksManagerProps> = (
     newOrder[index] = newOrder[targetIndex];
     newOrder[targetIndex] = temp;
 
-    directoryService.reorderUsefulLinks(newOrder.map(l => l.id));
-    onSuccess('Ordinea link-urilor a fost actualizată!');
-    refresh();
+    void run(() => directoryService.reorderUsefulLinks(newOrder.map(l => l.id)), 'Ordinea link-urilor a fost actualizată!');
   };
+
+  if (data.loading && !data.data) return <LoadingBlock label="Se încarcă link-urile…" />;
+  if (data.error && !data.data) return <ErrorBlock message={data.error} onRetry={data.reload} />;
 
   return (
     <div className="space-y-6">
+
+      {/* Faza 5.3: operație refuzată de server — nu se afișează succes */}
+      {actionError && (
+        <div role="alert" className="p-3.5 rounded-2xl bg-red-50 border border-red-200 text-xs text-red-800 font-semibold flex items-center justify-between gap-3">
+          <span>{actionError}</span>
+          <button type="button" onClick={() => setActionError(null)} className="text-red-700 hover:text-red-900 font-bold">×</button>
+        </div>
+      )}
       
       {/* Bară de Acțiuni */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm">

@@ -19,6 +19,8 @@ import { Announcement, AnnouncementType, AnnouncementFilterType } from '../../..
 import { announcementService } from '../../../services/announcementService';
 import { permissionService } from '../../../services/permissionService';
 import { formatDateTimeRo } from '../../../utils/dateFormatter';
+import { ErrorBlock, LoadingBlock } from '../../common/LoadState';
+import { useAsync } from '../../../hooks/useAsync';
 
 interface AdminAnnouncementsManagerProps {
   onSuccess: (msg: string) => void;
@@ -47,10 +49,16 @@ const emptyForm = {
   eventOrganizer: '',
 };
 
+/** Mesajele serverului pe câmp → mesajele formularului. */
+const fieldMessages = (fields: Record<string, string>): Record<string, string> =>
+  Object.fromEntries(Object.entries(fields).map(([k, v]) => [k, v === 'imagine nepublicată' ? 'Imaginea nu este publicată cu aplicația.' : 'Valoare invalidă.']));
+
 export const AdminAnnouncementsManager: React.FC<AdminAnnouncementsManagerProps> = ({ onSuccess }) => {
-  const [announcements, setAnnouncements] = useState<Announcement[]>(() =>
-    announcementService.getAll('all', 'published_desc', true)
-  );
+  // Faza 5.3: lista vine de la server (inclusiv ciornele și cele expirate); reîncărcare explicită după mutații
+  const list = useAsync(() => announcementService.getAllForAdmin(), []);
+  const announcements: Announcement[] = list.data ?? [];
+  const images = useAsync(() => announcementService.getPublishedImages().catch(() => [] as string[]), []);
+  const [saving, setSaving] = useState(false);
 
   const [activeFilter, setActiveFilter] = useState<AnnouncementFilterType>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -70,7 +78,7 @@ export const AdminAnnouncementsManager: React.FC<AdminAnnouncementsManagerProps>
   const DENIED_MESSAGE = 'Acțiunea nu a fost efectuată: nu aveți permisiunea necesară sau operația a fost refuzată.';
 
   const refresh = () => {
-    setAnnouncements(announcementService.getAll('all', 'published_desc', true));
+    void list.reload();
   };
 
   const visibleAnnouncements = announcements
@@ -131,9 +139,9 @@ export const AdminAnnouncementsManager: React.FC<AdminAnnouncementsManagerProps>
     return Object.keys(errs).length === 0;
   };
 
-  const handleSaveForm = (e: React.FormEvent) => {
+  const handleSaveForm = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validate()) return;
+    if (saving || !validate()) return;
 
     const basePayload = {
       type: formState.type,
@@ -143,6 +151,7 @@ export const AdminAnnouncementsManager: React.FC<AdminAnnouncementsManagerProps>
       author: formState.author.trim(),
       category: formState.category.trim(),
       imageUrl: formState.imageUrl.trim() || undefined,
+      status: undefined as undefined | 'published' | 'draft',
       isUrgent: formState.type === 'notification' ? formState.isUrgent : false,
       expiresAt: formState.expiresAt ? new Date(formState.expiresAt).toISOString() : undefined,
       eventDate: formState.type === 'event' ? formState.eventDate.trim() : undefined,
@@ -151,36 +160,37 @@ export const AdminAnnouncementsManager: React.FC<AdminAnnouncementsManagerProps>
       eventOrganizer: formState.type === 'event' ? formState.eventOrganizer.trim() || undefined : undefined,
     };
 
-    if (isCreating) {
-      if (!canCreate) { setActionError(DENIED_MESSAGE); return; }
-      const created = announcementService.create({
-        ...basePayload,
-        publishedAt: new Date().toISOString(),
-        status: 'published',
-        isDemo: false,
-      });
-      // ETAPA 6.5 (P6): succes afișat DOAR dacă serviciul a acceptat operația
-      if (!created) { setActionError(DENIED_MESSAGE); return; }
-      setActionError(null);
-      onSuccess(`Comunicatul „${formState.title}” a fost creat și publicat cu succes!`);
-    } else if (editingAnnouncement) {
-      if (!canEdit) { setActionError(DENIED_MESSAGE); return; }
-      const updated = announcementService.update(editingAnnouncement.id, basePayload);
-      if (!updated) { setActionError(DENIED_MESSAGE); return; }
-      setActionError(null);
-      onSuccess(`Comunicatul „${formState.title}” a fost actualizat cu succes!`);
+    setSaving(true);
+    try {
+      if (isCreating) {
+        if (!canCreate) { setActionError(DENIED_MESSAGE); return; }
+        const created = await announcementService.create({ ...basePayload, status: 'published' });
+        // ETAPA 6.5 (P6): succes afișat DOAR dacă serverul a acceptat operația
+        if (!created.success) { setActionError(created.error); if (created.fields) setFormErrors(fieldMessages(created.fields)); return; }
+        setActionError(null);
+        onSuccess(`Comunicatul „${formState.title}” a fost creat și publicat cu succes!`);
+      } else if (editingAnnouncement) {
+        if (!canEdit) { setActionError(DENIED_MESSAGE); return; }
+        const { status: _unused, ...patch } = basePayload;
+        const updated = await announcementService.update(editingAnnouncement.id, patch);
+        if (!updated.success) { setActionError(updated.error); if (updated.fields) setFormErrors(fieldMessages(updated.fields)); return; }
+        setActionError(null);
+        onSuccess(`Comunicatul „${formState.title}” a fost actualizat cu succes!`);
+      }
+    } finally {
+      setSaving(false);
     }
 
     handleCancelForm();
     refresh();
   };
 
-  const handleToggleStatus = (a: Announcement) => {
+  const handleToggleStatus = async (a: Announcement) => {
     const isCurrentlyPublished = (a.status ?? 'published') === 'published';
     // ETAPA 6.5 (P6): dezactivare → `announcements.disable`; publicare → `announcements.publish`
     if (isCurrentlyPublished ? !canDisable : !canPublish) { setActionError(DENIED_MESSAGE); return; }
-    const changed = announcementService.setStatus(a.id, isCurrentlyPublished ? 'draft' : 'published');
-    if (!changed) { setActionError(DENIED_MESSAGE); return; }
+    const changed = await announcementService.setStatus(a.id, isCurrentlyPublished ? 'draft' : 'published');
+    if (!changed.success) { setActionError(changed.error); return; }
     setActionError(null);
     onSuccess(
       `Comunicatul „${a.title}” este acum ${isCurrentlyPublished ? 'DEZACTIVAT (ciornă)' : 'PUBLICAT'} în zona publică.`
@@ -325,14 +335,27 @@ export const AdminAnnouncementsManager: React.FC<AdminAnnouncementsManagerProps>
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-700">Imagine (URL, opțional)</label>
-              <input
-                type="text"
+              <label className="text-xs font-bold text-slate-700">Imagine (opțional)</label>
+              {/* DN-19 / T-C9: numai imaginile publicate cu aplicația; fără adrese externe și fără încărcare */}
+              <select
                 value={formState.imageUrl}
                 onChange={(e) => setFormState({ ...formState, imageUrl: e.target.value })}
-                placeholder="https://..."
-                className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
-              />
+                className={`w-full p-2.5 bg-white border rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 ${
+                  formErrors.imageUrl ? 'border-red-400 focus:ring-red-200' : 'border-slate-200 focus:ring-blue-200'
+                }`}
+              >
+                <option value="">Fără imagine</option>
+                {formState.imageUrl && !(images.data ?? []).includes(formState.imageUrl) && (
+                  <option value={formState.imageUrl}>{formState.imageUrl} (nepublicată)</option>
+                )}
+                {(images.data ?? []).map((src) => (
+                  <option key={src} value={src}>{src.split('/').pop()}</option>
+                ))}
+              </select>
+              {(images.data ?? []).length === 0 && (
+                <p className="text-[11px] text-slate-500">Nu există încă imagini publicate cu aplicația.</p>
+              )}
+              {formErrors.imageUrl && <p className="text-[11px] text-red-600">{formErrors.imageUrl}</p>}
             </div>
 
             <div className="space-y-1 sm:col-span-2">
@@ -429,9 +452,10 @@ export const AdminAnnouncementsManager: React.FC<AdminAnnouncementsManagerProps>
             </button>
             <button
               type="submit"
-              className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-sm transition-all"
+              disabled={saving}
+              className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-sm transition-all disabled:opacity-60"
             >
-              {isCreating ? 'Salvează și Publică' : 'Actualizează Comunicatul'}
+              {saving ? 'Se salvează…' : isCreating ? 'Salvează și Publică' : 'Actualizează Comunicatul'}
             </button>
           </div>
         </form>
@@ -464,7 +488,9 @@ export const AdminAnnouncementsManager: React.FC<AdminAnnouncementsManagerProps>
 
       {/* Listă Comunicate */}
       <div className="space-y-3">
-        {visibleAnnouncements.length === 0 && (
+        {list.loading && !list.data && <LoadingBlock label="Se încarcă comunicatele…" />}
+        {list.error && <ErrorBlock message={list.error} onRetry={list.reload} />}
+        {list.data && visibleAnnouncements.length === 0 && (
           <div className="text-center py-10 bg-white rounded-2xl border border-slate-200 text-xs text-slate-500">
             Niciun comunicat nu corespunde filtrului selectat.
           </div>

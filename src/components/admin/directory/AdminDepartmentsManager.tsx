@@ -25,6 +25,8 @@ import { CityHallDepartment } from '../../../types/directory';
 import { directoryService } from '../../../services/directoryService';
 import { AdminUser } from '../../../services/authService';
 import { permissionService } from '../../../services/permissionService';
+import { ErrorBlock, LoadingBlock } from '../../common/LoadState';
+import { useAsync } from '../../../hooks/useAsync';
 
 interface AdminDepartmentsManagerProps {
   onSuccess: (msg: string) => void;
@@ -36,9 +38,11 @@ export const AdminDepartmentsManager: React.FC<AdminDepartmentsManagerProps> = (
   // reordonarea, activarea/dezactivarea și ștergerea direcțiilor. Verificare centrală.
   const canManage = permissionService.hasPermission(currentUser?.role, 'directory.departments.manage');
 
-  const [departments, setDepartments] = useState<CityHallDepartment[]>(() =>
-    directoryService.getDepartments(true)
-  );
+  // Faza 5.3: lista vine de la server (inclusiv direcțiile inactive); reîncărcare explicită după mutații
+  const data = useAsync(() => directoryService.getAdminCityHallInfo(), []);
+  const departments: CityHallDepartment[] = data.data?.departments ?? [];
+  const [busy, setBusy] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const [editingDept, setEditingDept] = useState<CityHallDepartment | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -57,7 +61,23 @@ export const AdminDepartmentsManager: React.FC<AdminDepartmentsManagerProps> = (
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   const refresh = () => {
-    setDepartments(directoryService.getDepartments(true));
+    void data.reload();
+  };
+
+  /** Rulează o operație pe server; succesul se afișează numai dacă serverul a acceptat-o. */
+  const run = async (op: () => Promise<{ success: boolean; error?: string }>, okMessage: string): Promise<boolean> => {
+    if (busy) return false;
+    setBusy(true);
+    const res = await op();
+    setBusy(false);
+    if (!res.success) {
+      setActionError(res.error ?? 'Operația a eșuat.');
+      return false;
+    }
+    setActionError(null);
+    onSuccess(okMessage);
+    refresh();
+    return true;
   };
 
   const handleStartCreate = () => {
@@ -115,54 +135,52 @@ export const AdminDepartmentsManager: React.FC<AdminDepartmentsManagerProps> = (
     return Object.keys(errs).length === 0;
   };
 
-  const handleSaveForm = (e: React.FormEvent) => {
+  const handleSaveForm = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canManage) return;
     if (!validate()) return;
 
     if (isCreating) {
-      directoryService.addDepartment({
+      const ok = await run(() => directoryService.addDepartment({
         name: formState.name.trim(),
         description: formState.description.trim(),
-        location: formState.location.trim() || undefined,
-        phone: formState.phone.trim() || undefined,
-        email: formState.email.trim() || undefined,
-        schedule: formState.schedule.trim() || undefined,
-        headOfDepartment: formState.headOfDepartment.trim() || undefined,
+        location: formState.location,
+        phone: formState.phone,
+        email: formState.email,
+        schedule: formState.schedule,
+        headOfDepartment: formState.headOfDepartment,
         isActive: true,
-      });
-      onSuccess(`Direcția „${formState.name}” a fost adăugată cu succes!`);
+      }), `Direcția „${formState.name}” a fost adăugată cu succes!`);
+      if (!ok) return;
     } else if (editingDept) {
-      directoryService.updateDepartment(editingDept.id, {
+      const ok = await run(() => directoryService.updateDepartment(editingDept.id, {
         name: formState.name.trim(),
         description: formState.description.trim(),
-        location: formState.location.trim() || undefined,
-        phone: formState.phone.trim() || undefined,
-        email: formState.email.trim() || undefined,
-        schedule: formState.schedule.trim() || undefined,
-        headOfDepartment: formState.headOfDepartment.trim() || undefined,
-      });
-      onSuccess(`Direcția „${formState.name}” a fost actualizată cu succes!`);
+        location: formState.location,
+        phone: formState.phone,
+        email: formState.email,
+        schedule: formState.schedule,
+        headOfDepartment: formState.headOfDepartment,
+      }), `Direcția „${formState.name}” a fost actualizată cu succes!`);
+      if (!ok) return;
     }
 
     handleCancelForm();
-    refresh();
   };
 
   const handleToggleStatus = (dept: CityHallDepartment) => {
     if (!canManage) return;
-    directoryService.toggleDepartmentStatus(dept.id);
     const updatedStatus = !dept.isActive;
-    onSuccess(`Direcția „${dept.name}” este acum ${updatedStatus ? 'ACTIVĂ' : 'DEZACTIVATĂ'} în zona publică.`);
-    refresh();
+    void run(
+      () => directoryService.setDepartmentActive(dept.id, updatedStatus),
+      `Direcția „${dept.name}” este acum ${updatedStatus ? 'ACTIVĂ' : 'DEZACTIVATĂ'} în zona publică.`,
+    );
   };
 
   const handleDelete = (dept: CityHallDepartment) => {
     if (!canManage) return;
     if (window.confirm(`Sigur doriți să ștergeți direcția „${dept.name}”?`)) {
-      directoryService.deleteDepartment(dept.id);
-      onSuccess(`Direcția „${dept.name}” a fost ștearsă.`);
-      refresh();
+      void run(() => directoryService.deleteDepartment(dept.id), `Direcția „${dept.name}” a fost ștearsă.`);
     }
   };
 
@@ -176,13 +194,22 @@ export const AdminDepartmentsManager: React.FC<AdminDepartmentsManagerProps> = (
     newOrder[index] = newOrder[targetIndex];
     newOrder[targetIndex] = temp;
 
-    directoryService.reorderDepartments(newOrder.map(d => d.id));
-    onSuccess('Ordinea direcțiilor a fost actualizată!');
-    refresh();
+    void run(() => directoryService.reorderDepartments(newOrder.map(d => d.id)), 'Ordinea direcțiilor a fost actualizată!');
   };
+
+  if (data.loading && !data.data) return <LoadingBlock label="Se încarcă direcțiile…" />;
+  if (data.error && !data.data) return <ErrorBlock message={data.error} onRetry={data.reload} />;
 
   return (
     <div className="space-y-6">
+
+      {/* Faza 5.3: operație refuzată de server (ex. direcție cu servicii) — nu se afișează succes */}
+      {actionError && (
+        <div role="alert" className="p-3.5 rounded-2xl bg-red-50 border border-red-200 text-xs text-red-800 font-semibold flex items-center justify-between gap-3">
+          <span>{actionError}</span>
+          <button type="button" onClick={() => setActionError(null)} className="text-red-700 hover:text-red-900 font-bold">×</button>
+        </div>
+      )}
       
       {/* Bară de Acțiuni */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm">

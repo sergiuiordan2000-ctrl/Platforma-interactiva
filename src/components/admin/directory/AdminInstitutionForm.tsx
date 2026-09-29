@@ -12,21 +12,34 @@ import {
   Globe, 
   Save, 
   Check, 
-  AlertCircle,
-  RotateCcw
+  AlertCircle
 } from 'lucide-react';
 import { CityHallInfo } from '../../../types/directory';
 import { directoryService } from '../../../services/directoryService';
 import { AdminUser } from '../../../services/authService';
 import { permissionService } from '../../../services/permissionService';
+import { ErrorBlock, LoadingBlock } from '../../common/LoadState';
+import { useAsync } from '../../../hooks/useAsync';
 
 interface AdminInstitutionFormProps {
   onSuccess: (msg: string) => void;
   currentUser: AdminUser | null;
 }
 
-export const AdminInstitutionForm: React.FC<AdminInstitutionFormProps> = ({ onSuccess, currentUser }) => {
-  const currentInfo = directoryService.getRawCityHallInfo();
+/** Faza 5.3: datele vin de la server; formularul apare după încărcare. */
+export const AdminInstitutionForm: React.FC<AdminInstitutionFormProps> = (props) => {
+  const info = useAsync(() => directoryService.getAdminCityHallInfo(), []);
+  if (info.loading && !info.data) return <LoadingBlock />;
+  if (info.error || !info.data) return <ErrorBlock message={info.error ?? 'Datele nu sunt disponibile.'} onRetry={info.reload} />;
+  return <InstitutionForm {...props} currentInfo={info.data} onSaved={info.reload} />;
+};
+
+const InstitutionForm: React.FC<AdminInstitutionFormProps & { currentInfo: CityHallInfo; onSaved: () => void }> = ({
+  onSuccess,
+  currentUser,
+  currentInfo,
+  onSaved,
+}) => {
 
   // Etapa 5D: doar utilizatorii cu permisiunea `directory.institution.edit` pot
   // modifica datele instituționale. Verificare centrală prin permissionService.
@@ -48,6 +61,8 @@ export const AdminInstitutionForm: React.FC<AdminInstitutionFormProps> = ({ onSu
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [savedRecently, setSavedRecently] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -85,37 +100,25 @@ export const AdminInstitutionForm: React.FC<AdminInstitutionFormProps> = ({ onSu
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!canEdit) return;
+    if (!canEdit || saving) return;
     if (!validate()) return;
 
-    directoryService.updateInstitutionInfo(formData);
+    setSaving(true);
+    const res = await directoryService.updateInstitutionInfo(formData);
+    setSaving(false);
+    // succes afișat numai dacă serverul a acceptat modificarea
+    if (!res.success) {
+      setSaveError(res.error);
+      if (res.fields) setErrors(Object.fromEntries(Object.keys(res.fields).map((k) => [k, 'Valoare invalidă.'])));
+      return;
+    }
+    setSaveError(null);
     setSavedRecently(true);
     onSuccess('Datele instituționale ale Primăriei au fost actualizate și salvate cu succes!');
     setTimeout(() => setSavedRecently(false), 3000);
-  };
-
-  const handleReset = () => {
-    if (!canEdit) return;
-    if (window.confirm('Sigur doriți să resetați toate datele Ghidului Primăriei la setul demonstrativ inițial?')) {
-      directoryService.resetToDemo();
-      const fresh = directoryService.getRawCityHallInfo();
-      setFormData({
-        institutionName: fresh.institutionName || '',
-        shortName: fresh.shortName || '',
-        county: fresh.county || '',
-        address: fresh.address || '',
-        postalCode: fresh.postalCode || '',
-        primaryPhone: fresh.primaryPhone || '',
-        secondaryPhone: fresh.secondaryPhone || '',
-        fax: fresh.fax || '',
-        primaryEmail: fresh.primaryEmail || '',
-        registryEmail: fresh.registryEmail || '',
-        websiteUrl: fresh.websiteUrl || '',
-      });
-      onSuccess('Datele Ghidului Primăriei au fost resetate la valorile demonstrative inițiale.');
-    }
+    onSaved();
   };
 
   return (
@@ -310,19 +313,13 @@ export const AdminInstitutionForm: React.FC<AdminInstitutionFormProps> = ({ onSu
 
       {/* Butoane de Acțiune — Etapa 5D: vizibile doar cu `directory.institution.edit` */}
       {canEdit && (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
-          <button
-            type="button"
-            onClick={handleReset}
-            className="text-xs font-semibold text-slate-500 hover:text-red-700 flex items-center gap-1.5 transition-colors"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-            <span>Resetează la valorile demonstrative inițiale</span>
-          </button>
-
+        <div className="flex flex-col sm:flex-row items-center justify-end gap-3 pt-2">
+          {/* D4: resetarea la datele demo nu mai există (datele sunt pe server) */}
+          {saveError && <p role="alert" className="text-xs font-semibold text-red-700">{saveError}</p>}
           <button
             type="submit"
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-blue-700 hover:bg-blue-800 text-white font-bold text-xs sm:text-sm shadow-md transition-all active:scale-[0.98]"
+            disabled={saving}
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-blue-700 hover:bg-blue-800 text-white font-bold text-xs sm:text-sm shadow-md transition-all active:scale-[0.98] disabled:opacity-60"
           >
             <Save className="w-4 h-4" />
             <span>Salvează Modificările Instituționale</span>

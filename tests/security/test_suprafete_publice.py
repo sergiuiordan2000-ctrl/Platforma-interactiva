@@ -2,7 +2,7 @@
 
 - D11 = B: nicio intrare publică spre Admin (public -> Admin = 0); ruta `#admin` rămâne accesibilă direct.
 - Datele cetățeanului (nume, e-mail, telefon) nu apar în DOM-ul niciunei pagini publice.
-- Un link util `javascript:` injectat în stocare nu se execută.
+- Un link util `javascript:` (rând corupt în DB, ocolind validarea API-ului) nu se execută.
 - A-06 / A-07 / A-08: afirmațiile neconforme nu mai apar.
 """
 import sys; sys.dont_write_bytecode = True
@@ -147,8 +147,11 @@ with backend_server(5499) as BACKEND, sync_playwright() as pw:
     res.check('PII-2 popup-ul sesizării private: vizibil, fără stadiu / preluare / responsabil',
               'TM-095' in popup and all(v not in popup for v in ['Status', 'Preluată', 'În lucru', 'Administrator Platformă']), '')
 
-    # 8. Link util javascript: injectat în stocare nu se execută
-    page.goto(URL + '/'); page.evaluate("""() => localStorage.setItem('turnu_civic_city_hall_directory', JSON.stringify({ usefulLinks: [{ id: 'x', title: 'LinkTest', category: 'test', url: 'javascript:window.__jsx=1', description: 'x', isActive: true, order: 0 }] }))""")
+    # 8. Link util `javascript:` nu se execută. Faza 5.3: linkurile vin din DB, iar API-ul respinge
+    # `javascript:` (422, server/test/integration/adminContent.test.ts); aici se simulează un rând corupt
+    # scris direct în DB, ocolind API-ul, pentru a verifica și randarea.
+    db_exec("INSERT INTO directory_links (id, title, description, url, category, is_external, is_active, sort_order, is_demo, created_at, updated_at) "
+            "VALUES ('01M3JMZC00Y9CTNMQ1MBDR4JSX', 'LinkTest', 'x', 'javascript:window.__jsx=1', 'Servicii Digitale', true, true, 0, true, NOW(3), NOW(3))")
     page.goto(URL + '/#ghid'); page.reload(); page.wait_for_load_state('networkidle')
     page.get_by_text('Link-uri Utile').first.click(); page.wait_for_timeout(300)
     lk = page.locator('a', has_text='LinkTest')
@@ -156,7 +159,7 @@ with backend_server(5499) as BACKEND, sync_playwright() as pw:
         try: lk.first.click(timeout=2000)
         except Exception: pass
         page.wait_for_timeout(300)
-    res.check('SEC-JS link `javascript:` injectat în stocare: randat, dar neexecutat', lk.count() == 1 and page.evaluate('window.__jsx !== 1'), '')
+    res.check('SEC-JS link `javascript:` (rând corupt în DB): randat, dar neexecutat', lk.count() == 1 and page.evaluate('window.__jsx !== 1'), '')
     b.close()
 
 ok = res.report()

@@ -356,10 +356,14 @@ class ReportService {
     // și complet izolat: orice eroare aici NU afectează în niciun fel sesizarea deja salvată
     // și returnată apelantului.
     try {
-      const registryEmail = directoryService.getCityHallInfo()?.registryEmail;
-      emailService.notifyNewReport(report, registryEmail).catch((err) => {
-        console.error(`Eroare la procesarea notificărilor de e-mail pentru ${report.referenceNumber}:`, err);
-      });
+      // Faza 5.3: adresa informativă a registraturii vine de la server (asincron); până la 5.4 fluxul rămâne local
+      directoryService
+        .getRegistryEmail()
+        .catch(() => undefined)
+        .then((registryEmail) => emailService.notifyNewReport(report, registryEmail))
+        .catch((err) => {
+          console.error(`Eroare la procesarea notificărilor de e-mail pentru ${report.referenceNumber}:`, err);
+        });
     } catch (err) {
       console.error(`Eroare la inițierea notificărilor de e-mail pentru ${report.referenceNumber}:`, err);
     }

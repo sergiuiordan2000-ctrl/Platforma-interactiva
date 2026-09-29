@@ -15,3 +15,23 @@ Detalii tehnice pe care B2 nu le fixează, alese în limitele designului înghe�
 | 7 | Instituția fără date (ex. producție fără demo) | prima completare prin `PATCH /admin/directory/institution` cere toate câmpurile obligatorii; programul și audiențele se pot salva numai după aceea (409). |
 | 8 | Regula publică pentru ghid și apel rapid | fiecare element apare dacă el însuși este activ (aceeași regulă ca frontend-ul actual). |
 | 9 | ID-uri invalide în URL | tratate ca inexistente (404), fără interogare. |
+
+## Frontend (5.3.5–5.3.6)
+
+| # | Subiect | Alegerea |
+|---|---|---|
+| 10 | Încărcarea datelor | un hook comun `useAsync` (încărcare / eroare / reîncărcare explicită); componente comune `LoadingBlock` și `ErrorBlock` („Încearcă din nou”). Aspectul ecranelor existente nu se schimbă. |
+| 11 | Validarea în frontend (T4) | aceleași scheme Zod ca serverul, înainte de trimitere; bundle-ul crește cu ~19 KB gzip. |
+| 12 | Apel rapid: filtrare și căutare | locale (lista e mică), aceleași reguli ca înainte; urgențele primele în zona publică. |
+| 13 | Reordonarea contactelor pe o listă filtrată | cele două contacte își schimbă locul în lista completă (serverul cere ordinea completă, nota 4). |
+| 14 | Mesajele de eroare în Admin | mesajul serverului (ex. 409 „Direcția are servicii…”) apare într-o bandă de eroare; `alert()` eliminat. |
+| 15 | Date demo în frontend | fișierele `src/data/mockAnnouncements.ts`, `mockDirectory.ts`, `mockQuickDial.ts` eliminate: sursa este seed-ul serverului. |
+
+## Teste (5.3.7)
+
+| # | Suită | Modificare |
+|---|---|---|
+| 16 | `dev:e2e-setup` | încarcă și datele demo (`seed:demo`), numai în dezvoltare, pe un DB de test. |
+| 17 | `tests/e2e/test_5_3_continut_public.py` (nou) | B10 §6: Acasă, Comunicate, Ghid, Apel rapid cu serverul real; Admin → public; operator numai vizualizare; eroare de rețea + reîncercare; nicio cheie `localStorage` pentru domeniile 5.3. |
+| 18 | `test_regresie_6_1_6_5.py` (R6.5a) | resetările la demo pentru comunicate / ghid / apel rapid nu mai există (D4); permisiunile acestor domenii se verifică pe server (`adminContent.test.ts`). Verificarea rămâne pentru moderare, rezolvare și sondaje (încă locale). |
+| 19 | `test_suprafete_publice.py` (SEC-JS) | linkul `javascript:` nu mai poate fi injectat prin `localStorage`; testul scrie un rând corupt direct în DB-ul de test (ocolind validarea API-ului, care îl respinge cu 422) și verifică randarea fără execuție. |

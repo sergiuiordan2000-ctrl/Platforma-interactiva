@@ -5,21 +5,36 @@
 
 import React, { useState } from 'react';
 import { Clock, CalendarCheck, Save, Plus, Trash2, Check, AlertCircle } from 'lucide-react';
-import { CityHallSchedule, CityHallAudience } from '../../../types/directory';
+import { CityHallSchedule, CityHallAudience, CityHallInfo } from '../../../types/directory';
 import { directoryService } from '../../../services/directoryService';
 import { AdminUser } from '../../../services/authService';
 import { permissionService } from '../../../services/permissionService';
+import { ErrorBlock, LoadingBlock } from '../../common/LoadState';
+import { useAsync } from '../../../hooks/useAsync';
 
 interface AdminScheduleManagerProps {
   onSuccess: (msg: string) => void;
   currentUser: AdminUser | null;
 }
 
-export const AdminScheduleManager: React.FC<AdminScheduleManagerProps> = ({ onSuccess, currentUser }) => {
+/** Faza 5.3: datele vin de la server; formularul apare după încărcare. */
+export const AdminScheduleManager: React.FC<AdminScheduleManagerProps> = (props) => {
+  const info = useAsync(() => directoryService.getAdminCityHallInfo(), []);
+  if (info.loading && !info.data) return <LoadingBlock />;
+  if (info.error || !info.data) return <ErrorBlock message={info.error ?? 'Datele nu sunt disponibile.'} onRetry={info.reload} />;
+  return <ScheduleForm {...props} currentInfo={info.data} onSaved={info.reload} />;
+};
+
+const ScheduleForm: React.FC<AdminScheduleManagerProps & { currentInfo: CityHallInfo; onSaved: () => void }> = ({
+  onSuccess,
+  currentUser,
+  currentInfo,
+  onSaved,
+}) => {
   // Etapa 5D: permisiunea `directory.schedule.manage` controlează editarea programului și audiențelor.
   const canManage = permissionService.hasPermission(currentUser?.role, 'directory.schedule.manage');
-
-  const currentInfo = directoryService.getRawCityHallInfo();
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const [schedules, setSchedules] = useState<CityHallSchedule[]>(() => [
     ...(currentInfo.schedule || []),
@@ -64,12 +79,21 @@ export const AdminScheduleManager: React.FC<AdminScheduleManagerProps> = ({ onSu
     setAudiences(audiences.filter((_, i) => i !== idx));
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!canManage) return;
-    directoryService.updateSchedule(schedules);
-    directoryService.updateAudienceSchedule(audiences);
+    if (!canManage || saving) return;
+    setSaving(true);
+    const a = await directoryService.updateSchedule(schedules);
+    const b = a.success ? await directoryService.updateAudienceSchedule(audiences) : a;
+    setSaving(false);
+    // succes afișat numai dacă serverul a acceptat ambele modificări
+    if (!b.success) {
+      setSaveError(b.error);
+      return;
+    }
+    setSaveError(null);
     onSuccess('Programul instituțional și calendarul audiențelor au fost salvate cu succes!');
+    onSaved();
   };
 
   return (
@@ -239,10 +263,12 @@ export const AdminScheduleManager: React.FC<AdminScheduleManagerProps> = ({ onSu
 
       {/* Salvare */}
       {canManage && (
-        <div className="flex justify-end pt-2">
+        <div className="flex items-center justify-end gap-3 pt-2">
+          {saveError && <p role="alert" className="text-xs font-semibold text-red-700">{saveError}</p>}
           <button
             type="submit"
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-blue-700 hover:bg-blue-800 text-white font-bold text-xs sm:text-sm shadow-md transition-all active:scale-[0.98]"
+            disabled={saving}
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-blue-700 hover:bg-blue-800 text-white font-bold text-xs sm:text-sm shadow-md transition-all active:scale-[0.98] disabled:opacity-60"
           >
             <Save className="w-4 h-4" />
             <span>Salvează Orarul și Audiențele</span>

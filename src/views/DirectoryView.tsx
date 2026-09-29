@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   Building2, 
   PhoneCall, 
@@ -23,6 +23,8 @@ import { DepartmentsList } from '../components/directory/DepartmentsList';
 import { ServicesList } from '../components/directory/ServicesList';
 import { UsefulLinksList } from '../components/directory/UsefulLinksList';
 import { QuickDialView } from '../components/quickdial/QuickDialView';
+import { ErrorBlock, LoadingBlock } from '../components/common/LoadState';
+import { useAsync } from '../hooks/useAsync';
 
 interface DirectoryViewProps {
   onNavigate: (view: AppView) => void;
@@ -37,18 +39,12 @@ export const DirectoryView: React.FC<DirectoryViewProps> = ({
 }) => {
   const [activeMode, setActiveMode] = useState<'ghid' | 'quickdial'>(initialMode);
   const [activeSection, setActiveSection] = useState<DirectorySection>('contact');
-  const [version, setVersion] = useState<number>(0);
-
-  useEffect(() => {
-    return directoryService.subscribe(() => {
-      setVersion((v) => v + 1);
-    });
-  }, []);
-
-  const cityHallInfo = useMemo(() => directoryService.getCityHallInfo(), [version]);
-  const departments = useMemo(() => directoryService.getDepartments(false), [version]);
-  const services = useMemo(() => directoryService.getServices(false), [version]);
-  const usefulLinks = useMemo(() => directoryService.getUsefulLinks(false), [version]);
+  // Faza 5.3: Ghidul vine de la server (numai elementele active, în ordinea stabilită în Admin)
+  const directory = useAsync(() => directoryService.getCityHallInfo(), []);
+  const cityHallInfo = directory.data;
+  const departments = cityHallInfo?.departments ?? [];
+  const services = cityHallInfo?.services ?? [];
+  const usefulLinks = cityHallInfo?.usefulLinks ?? [];
 
   const navTabs: Array<{
     id: DirectorySection;
@@ -161,6 +157,11 @@ export const DirectoryView: React.FC<DirectoryViewProps> = ({
           </div>
 
           {/* Conținutul Secțiunii Active */}
+          {directory.loading && !cityHallInfo ? (
+            <LoadingBlock label="Se încarcă Ghidul Primăriei…" />
+          ) : directory.error || !cityHallInfo ? (
+            <ErrorBlock message={directory.error ?? 'Datele nu sunt disponibile.'} onRetry={directory.reload} />
+          ) : (
           <div className="space-y-8 pt-2">
             {activeSection === 'contact' && (
               <ContactCard info={cityHallInfo} />
@@ -178,6 +179,7 @@ export const DirectoryView: React.FC<DirectoryViewProps> = ({
               <UsefulLinksList links={usefulLinks} />
             )}
           </div>
+          )}
         </div>
       )}
 

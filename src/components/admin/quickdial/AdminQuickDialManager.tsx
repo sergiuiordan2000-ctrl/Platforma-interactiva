@@ -21,9 +21,11 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { QuickDialContact } from '../../../types/quickDial';
-import { quickDialService } from '../../../services/quickDialService';
+import { filterContacts, quickDialService } from '../../../services/quickDialService';
 import { AdminUser } from '../../../services/authService';
 import { permissionService } from '../../../services/permissionService';
+import { ErrorBlock, LoadingBlock } from '../../common/LoadState';
+import { useAsync } from '../../../hooks/useAsync';
 
 interface AdminQuickDialManagerProps {
   onSuccess: (msg: string) => void;
@@ -34,13 +36,16 @@ export const AdminQuickDialManager: React.FC<AdminQuickDialManagerProps> = ({ on
   // Etapa 5D: permisiunea `quickDial.contacts.manage` controlează CRUD-ul contactelor.
   const canManage = permissionService.hasPermission(currentUser?.role, 'quickDial.contacts.manage');
 
-  const [contacts, setContacts] = useState<QuickDialContact[]>(() =>
-    quickDialService.getAllContacts('all', '', true)
-  );
-  const categories = quickDialService.getCategories(true);
+  // Faza 5.3: contactele și categoriile (inclusiv inactive) vin de la server; filtrarea este locală
+  const data = useAsync(() => quickDialService.getAdmin(), []);
+  const categories = data.data?.categories ?? [];
 
   const [activeFilterCat, setActiveFilterCat] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const allContacts = filterContacts(data.data?.contacts ?? [], 'all', '', false);
+  const contacts: QuickDialContact[] = filterContacts(data.data?.contacts ?? [], activeFilterCat, searchQuery, false);
+  const [busy, setBusy] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const [editingContact, setEditingContact] = useState<QuickDialContact | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -61,7 +66,23 @@ export const AdminQuickDialManager: React.FC<AdminQuickDialManagerProps> = ({ on
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   const refresh = () => {
-    setContacts(quickDialService.getAllContacts(activeFilterCat, searchQuery, true));
+    void data.reload();
+  };
+
+  /** Rulează o operație pe server; succesul se afișează numai dacă serverul a acceptat-o. */
+  const run = async (op: () => Promise<{ success: boolean; error?: string }>, okMessage: string): Promise<boolean> => {
+    if (busy) return false;
+    setBusy(true);
+    const res = await op();
+    setBusy(false);
+    if (!res.success) {
+      setActionError(res.error ?? 'Operația a eșuat.');
+      return false;
+    }
+    setActionError(null);
+    onSuccess(okMessage);
+    refresh();
+    return true;
   };
 
   const handleStartCreate = () => {
@@ -133,7 +154,7 @@ export const AdminQuickDialManager: React.FC<AdminQuickDialManagerProps> = ({ on
     return Object.keys(errs).length === 0;
   };
 
-  const handleSaveForm = (e: React.FormEvent) => {
+  const handleSaveForm = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canManage) return;
     if (!validate()) return;
@@ -141,54 +162,50 @@ export const AdminQuickDialManager: React.FC<AdminQuickDialManagerProps> = ({ on
     const formatted = formState.formattedPhone.trim() || formState.phone.trim();
 
     if (isCreating) {
-      quickDialService.addContact({
+      const ok = await run(() => quickDialService.addContact({
         name: formState.name.trim(),
         phone: formState.phone.trim(),
         formattedPhone: formatted,
         categoryId: formState.categoryId,
         categoryName: formState.categoryName,
-        shortDescription: formState.shortDescription.trim() || undefined,
+        shortDescription: formState.shortDescription,
         availability: formState.availability.trim() || '24/7 (Non-stop)',
-        address: formState.address.trim() || undefined,
+        address: formState.address,
         isEmergency: formState.isEmergency,
-        isDemo: formState.isDemo,
         isActive: true,
-      });
-      onSuccess(`Numărul util „${formState.name}” a fost adăugat cu succes!`);
+      }), `Numărul util „${formState.name}” a fost adăugat cu succes!`);
+      if (!ok) return;
     } else if (editingContact) {
-      quickDialService.updateContact(editingContact.id, {
+      const ok = await run(() => quickDialService.updateContact(editingContact.id, {
         name: formState.name.trim(),
         phone: formState.phone.trim(),
         formattedPhone: formatted,
         categoryId: formState.categoryId,
         categoryName: formState.categoryName,
-        shortDescription: formState.shortDescription.trim() || undefined,
+        shortDescription: formState.shortDescription,
         availability: formState.availability.trim() || '24/7 (Non-stop)',
-        address: formState.address.trim() || undefined,
+        address: formState.address,
         isEmergency: formState.isEmergency,
-        isDemo: formState.isDemo,
-      });
-      onSuccess(`Contactul „${formState.name}” a fost actualizat cu succes!`);
+      }), `Contactul „${formState.name}” a fost actualizat cu succes!`);
+      if (!ok) return;
     }
 
     handleCancelForm();
-    refresh();
   };
 
   const handleToggleStatus = (contact: QuickDialContact) => {
     if (!canManage) return;
-    quickDialService.toggleContactStatus(contact.id);
     const updatedStatus = !contact.isActive;
-    onSuccess(`Contactul „${contact.name}” este acum ${updatedStatus ? 'ACTIV' : 'DEZACTIVAT'} în zona publică.`);
-    refresh();
+    void run(
+      () => quickDialService.setContactActive(contact.id, updatedStatus),
+      `Contactul „${contact.name}” este acum ${updatedStatus ? 'ACTIV' : 'DEZACTIVAT'} în zona publică.`,
+    );
   };
 
   const handleDelete = (contact: QuickDialContact) => {
     if (!canManage) return;
     if (window.confirm(`Sigur doriți să ștergeți numărul util „${contact.name}”?`)) {
-      quickDialService.deleteContact(contact.id);
-      onSuccess(`Contactul „${contact.name}” a fost șters.`);
-      refresh();
+      void run(() => quickDialService.deleteContact(contact.id), `Contactul „${contact.name}” a fost șters.`);
     }
   };
 
@@ -197,18 +214,28 @@ export const AdminQuickDialManager: React.FC<AdminQuickDialManagerProps> = ({ on
     const targetIndex = direction === 'up' ? index - 1 : index + 1;
     if (targetIndex < 0 || targetIndex >= contacts.length) return;
 
-    const newOrder = [...contacts];
-    const temp = newOrder[index];
-    newOrder[index] = newOrder[targetIndex];
-    newOrder[targetIndex] = temp;
+    // serverul cere ordinea completă: cele două contacte își schimbă locul în lista întreagă (și când lista e filtrată)
+    const full = allContacts.map((c) => c.id);
+    const a = full.indexOf(contacts[index].id);
+    const b = full.indexOf(contacts[targetIndex].id);
+    [full[a], full[b]] = [full[b], full[a]];
 
-    quickDialService.reorderContacts(newOrder.map(c => c.id));
-    onSuccess('Ordinea contactelor a fost actualizată!');
-    refresh();
+    void run(() => quickDialService.reorderContacts(full), 'Ordinea contactelor a fost actualizată!');
   };
+
+  if (data.loading && !data.data) return <LoadingBlock label="Se încarcă numerele utile…" />;
+  if (data.error && !data.data) return <ErrorBlock message={data.error} onRetry={data.reload} />;
 
   return (
     <div className="space-y-6">
+
+      {/* Faza 5.3: operație refuzată de server — nu se afișează succes */}
+      {actionError && (
+        <div role="alert" className="p-3.5 rounded-2xl bg-red-50 border border-red-200 text-xs text-red-800 font-semibold flex items-center justify-between gap-3">
+          <span>{actionError}</span>
+          <button type="button" onClick={() => setActionError(null)} className="text-red-700 hover:text-red-900 font-bold">×</button>
+        </div>
+      )}
       
       {/* Bară Superioară: Titlu + Buton Adăugare */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm">
@@ -392,10 +419,7 @@ export const AdminQuickDialManager: React.FC<AdminQuickDialManagerProps> = ({ on
           <input
             type="text"
             value={searchQuery}
-            onChange={(e) => {
-              setSearchQuery(e.target.value);
-              setContacts(quickDialService.getAllContacts(activeFilterCat, e.target.value, true));
-            }}
+            onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Filtrează contacte după nume, telefon sau descriere..."
             className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-200"
           />
@@ -403,10 +427,7 @@ export const AdminQuickDialManager: React.FC<AdminQuickDialManagerProps> = ({ on
 
         <select
           value={activeFilterCat}
-          onChange={(e) => {
-            setActiveFilterCat(e.target.value);
-            setContacts(quickDialService.getAllContacts(e.target.value, searchQuery, true));
-          }}
+          onChange={(e) => setActiveFilterCat(e.target.value)}
           className="p-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-200 cursor-pointer"
         >
           <option value="all">Toate Categoriile</option>
