@@ -15,6 +15,8 @@ import { registerCsrf } from './auth/guards.ts';
 import { registerAdminAccountRoutes } from './routes/adminAccounts.ts';
 import { registerAuthRoutes } from './routes/auth.ts';
 import { registerCitizenRoutes } from './routes/citizens.ts';
+import { registerPublicContentRoutes } from './routes/publicContent.ts';
+import { registerAdminContentRoutes } from './routes/adminContent.ts';
 import { apiError } from './errors.ts';
 import { APP_VERSION } from './version.ts';
 
@@ -110,6 +112,8 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
         registerAuthRoutes(api, options.ctx);
         registerAdminAccountRoutes(api, options.ctx);
         registerCitizenRoutes(api, options.ctx);
+        registerPublicContentRoutes(api, options.ctx);
+        registerAdminContentRoutes(api, options.ctx);
       }
       api.get('/health', async (_request, reply) => {
         let status: HealthState;

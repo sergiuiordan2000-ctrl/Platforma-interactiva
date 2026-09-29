@@ -7,6 +7,8 @@ export type AppContext = {
   config: Config;
   pool: mysql.Pool;
   now: () => Date;
+  /** DN-19 / T-C9: căile imaginilor publicate cu aplicația (lipsă = nicio imagine). */
+  announcementImages?: ReadonlySet<string>;
 };
 
 /** Valorile numerice propuse în design (DN-15); configurabile ulterior. */
