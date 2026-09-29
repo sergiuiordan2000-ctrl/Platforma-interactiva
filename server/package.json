@@ -18,6 +18,8 @@
     "seed:config": "tsx --env-file=../.env src/main.ts seed:config",
     "seed:demo": "tsx --env-file=../.env src/main.ts seed:demo",
     "check:no-demo": "tsx --env-file=../.env src/main.ts check:no-demo",
+    "backup:db": "tsx --env-file=../.env src/main.ts backup:db",
+    "restore:db": "tsx --env-file=../.env src/main.ts restore:db",
     "test": "node test/run.mjs all",
     "test:unit": "node test/run.mjs unit",
     "test:api": "node test/run.mjs api",

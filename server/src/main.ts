@@ -61,7 +61,7 @@ async function startServer(config: Config): Promise<void> {
 }
 
 async function main(): Promise<void> {
-  const [command] = process.argv.slice(2);
+  const [command, ...args] = process.argv.slice(2);
 
   let config: Config;
   try {
@@ -78,7 +78,7 @@ async function main(): Promise<void> {
   if (!isCliCommand(command)) {
     fail(`Comandă necunoscută: ${command}. Comenzi: ${CLI_COMMANDS.join(', ')}`);
   }
-  process.exit(await runCli(command, config));
+  process.exit(await runCli(command, config, console, args));
 }
 
 main().catch((err: unknown) => {

@@ -107,6 +107,7 @@ const EnvSchema = z
     SMTP_SECURE: z.enum(['true', 'false']).optional().default('false'),
     SMTP_USER: optionalText,
     SMTP_PASS: optionalText,
+    BACKUP_DIR: optionalText,
     UAT_BOUNDARY_FILE: optionalText,
     GEOCODER_URL: optionalText,
     GEOCODER_USER_AGENT: optionalText,
@@ -171,6 +172,8 @@ export type Config = {
     civicMailDomain?: string;
     smtp: { host?: string; port: number; secure: boolean; user?: string; pass?: string };
   };
+  /** Directorul backup-urilor (în afara oricărui docroot); obligatoriu numai pentru backup:db / restore:db. */
+  backupDir?: string;
   uatBoundaryFile?: string;
   geocoder: { url?: string; userAgent?: string };
   retentionDays: number;
@@ -233,6 +236,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
         pass: e.SMTP_PASS,
       },
     },
+    backupDir: e.BACKUP_DIR,
     uatBoundaryFile: e.UAT_BOUNDARY_FILE,
     geocoder: { url: e.GEOCODER_URL, userAgent: e.GEOCODER_USER_AGENT },
     retentionDays: e.RETENTION_DAYS,

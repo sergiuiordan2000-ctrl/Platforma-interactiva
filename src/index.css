@@ -1,9 +1,9 @@
-@import "tailwindcss";
+@import "tailwindcss" source(none);
 @import "leaflet/dist/leaflet.css";
 
-/* Faza 5.1: codul serverului nu este sursă de clase pentru frontend */
-@source not "../server";
-@source not "../shared";
+/* Faza 5.1: clasele Tailwind se caută numai în codul frontend-ului (nu în server/, docs/, tests/, .github/) */
+@source "../index.html";
+@source "../src";
 
 @layer utilities {
   .safe-area-pb {
