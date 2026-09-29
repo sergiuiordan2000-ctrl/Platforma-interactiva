@@ -37,13 +37,15 @@ import { AdminQuickDialManager } from '../components/admin/quickdial/AdminQuickD
 import { AdminCategoriesManager } from '../components/admin/quickdial/AdminCategoriesManager';
 import { AdminReportsModeration } from '../components/admin/reports/AdminReportsModeration';
 import { AdminSurveysManager } from '../components/admin/surveys/AdminSurveysManager';
-import { Vote } from 'lucide-react';
+import { AdminAccountsManager } from '../components/admin/accounts/AdminAccountsManager';
+import { AdminAuthSteps } from '../components/admin/AdminAuthSteps';
+import { Users, Vote } from 'lucide-react';
 
 interface AdminViewProps {
   onNavigate: (view: AppView) => void;
 }
 
-type MainAdminTab = 'dashboard' | 'announcements' | 'directory' | 'quickdial' | 'reports' | 'surveys';
+type MainAdminTab = 'dashboard' | 'announcements' | 'directory' | 'quickdial' | 'reports' | 'surveys' | 'accounts';
 type DirectorySubTab = 'institution' | 'departments' | 'services' | 'schedule' | 'links';
 type QuickDialSubTab = 'contacts' | 'categories';
 
@@ -52,7 +54,7 @@ type QuickDialSubTab = 'contacts' | 'categories';
  * din Admin (Etapa 5G). SURSĂ UNICĂ pentru gating-ul taburilor — nicio componentă nu
  * verifică `currentUser.role` direct; totul trece prin `permissionService`.
  */
-const TAB_VIEW_PERMISSIONS: Record<MainAdminTab, Permission> = {
+const TAB_VIEW_PERMISSIONS: Record<Exclude<MainAdminTab, 'accounts'>, Permission> = {
   dashboard: 'dashboard.view',
   announcements: 'announcements.view',
   directory: 'directory.view',
@@ -78,6 +80,7 @@ const AccessDeniedPanel: React.FC<{ moduleName: string }> = ({ moduleName }) => 
 
 export const AdminView: React.FC<AdminViewProps> = ({ onNavigate }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => authService.isAuthenticated());
+  const [authStep, setAuthStep] = useState(() => authService.getStep());
   const [currentUser, setCurrentUser] = useState<AdminUser | null>(() => authService.getCurrentUser());
 
   const [activeMainTab, setActiveMainTab] = useState<MainAdminTab>('dashboard');
@@ -90,13 +93,16 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigate }) => {
   useEffect(() => {
     return authService.subscribe((isAuth) => {
       setIsAuthenticated(isAuth);
+      setAuthStep(authService.getStep());
       setCurrentUser(authService.getCurrentUser());
     });
   }, []);
 
   // Verificare centrală de autorizare (Etapa 5G) — sursă unică: permissionService.
   const canAccessTab = (tab: MainAdminTab): boolean =>
-    permissionService.hasPermission(currentUser?.role, TAB_VIEW_PERMISSIONS[tab]);
+    tab === 'accounts'
+      ? Boolean(currentUser?.permissions.includes('accounts.manage')) // permisiune nouă, de la server (5.2)
+      : permissionService.hasPermission(currentUser?.role, TAB_VIEW_PERMISSIONS[tab]);
 
   // Protecție reală (nu doar vizuală): dacă starea internă ar indica vreodată un tab
   // pentru care rolul curent nu are permisiune, comutăm automat pe primul tab accesibil.
@@ -118,20 +124,24 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigate }) => {
   };
 
   const handleLogout = () => {
-    authService.logout();
-    setIsAuthenticated(false);
-    setCurrentUser(null);
+    void authService.logout();
   };
+
+  if (authStep === 'loading') {
+    return <div className="max-w-md mx-auto my-16 text-center text-sm text-slate-500">Se verifică sesiunea...</div>;
+  }
+
+  // Pașii de după parolă (Faza 5.2): TOTP, schimbarea parolei temporare
+  if (authStep !== 'anonymous' && authStep !== 'ready') {
+    return <AdminAuthSteps step={authStep} />;
+  }
 
   // Dacă utilizatorul nu este autentificat, afișăm formularul de autentificare protejat
   if (!isAuthenticated) {
     return (
       <AdminLoginForm
         onSuccess={() => {
-          setIsAuthenticated(true);
-          setCurrentUser(authService.getCurrentUser());
           setActiveMainTab('dashboard');
-          showToast('V-ați autentificat cu succes în panoul de administrare!');
         }}
         onCancel={() => onNavigate('home')}
       />
@@ -285,6 +295,19 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigate }) => {
           >
             <Vote className={`w-4 h-4 ${activeMainTab === 'surveys' ? 'text-purple-700' : 'text-slate-400'}`} />
             <span>D. Sondaje Civice (4B)</span>
+          </button>
+        )}
+        {canAccessTab('accounts') && (
+          <button
+            onClick={() => setActiveMainTab('accounts')}
+            className={`flex-1 py-3 px-4 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all select-none whitespace-nowrap ${
+              activeMainTab === 'accounts'
+                ? 'bg-white text-slate-900 shadow-sm'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Users className={`w-4 h-4 ${activeMainTab === 'accounts' ? 'text-slate-700' : 'text-slate-400'}`} />
+            <span>Conturi</span>
           </button>
         )}
       </div>
@@ -469,6 +492,11 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigate }) => {
         )
       )}
 
+      {/* CONTURI ADMIN (Faza 5.2) */}
+      {activeMainTab === 'accounts' && (
+        canAccessTab('accounts') ? <AdminAccountsManager /> : <AccessDeniedPanel moduleName="Conturi" />
+      )}
+
       {/* 4. Notă de Subsol Metodologică */}
       <div className="mt-8 bg-slate-50 border border-slate-200 rounded-2xl p-5 flex flex-col sm:flex-row items-start justify-between gap-4 text-xs text-slate-600">
         <div className="space-y-1">
@@ -477,7 +505,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigate }) => {
             <span>Delimitare Etapa 3E (Moderare & Publicare Sesizări MVP)</span>
           </div>
           <p className="leading-relaxed">
-            Panoul permite evaluarea, aprobarea și respingerea sesizărilor cetățenești (3E), alături de gestionarea Ghidului Primăriei (2A) și Quick Dial (2B). Autentificarea server-side, rolurile RBAC avansate și trimiterea automată către Primărie aparțin etapelor ulterioare.
+            Panoul permite evaluarea, aprobarea și respingerea sesizărilor cetățenești (3E), alături de gestionarea Ghidului Primăriei (2A) și Quick Dial (2B). Autentificarea se verifică pe server (Faza 5.2); datele modulelor trec pe server treptat (5.3–5.6).
           </p>
         </div>
 

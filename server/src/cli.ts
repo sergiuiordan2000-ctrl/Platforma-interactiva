@@ -5,6 +5,9 @@
 
 import type { Config } from './config.ts';
 import { BootstrapRefusedError, bootstrapAdmin } from './accounts.ts';
+import { encryptSecret } from './auth/crypto.ts';
+import { hashPassword } from './auth/password.ts';
+import { newId } from './ids.ts';
 import { createBackup, listBackups, restoreBackup } from './db/backup.ts';
 import { createDb } from './db/client.ts';
 import { migrate, schemaStatus } from './db/migrations.ts';
@@ -22,6 +25,7 @@ export const CLI_COMMANDS = [
   'restore:db',
   'bootstrap-admin',
   'dev:show-code',
+  'dev:e2e-setup',
 ] as const;
 
 export type CliCommand = (typeof CLI_COMMANDS)[number];
@@ -42,6 +46,7 @@ export async function runCli(
   if (command === 'backup:db' || command === 'restore:db') return runBackupCommand(command, config, out, args);
   if (command === 'bootstrap-admin') return runBootstrap(config, out, args);
   if (command === 'dev:show-code') return runShowCode(config, out, args);
+  if (command === 'dev:e2e-setup') return runE2eSetup(config, out);
   const handle = createDb(config.databaseUrl, { connectionLimit: 2 });
   try {
     switch (command) {
@@ -189,6 +194,61 @@ async function runShowCode(config: Config, out: Out, args: string[]): Promise<nu
       return 1;
     }
     out.log(`Ultimul cod (${row!.c.toISOString()}): ${code}`);
+    return 0;
+  } finally {
+    await handle.close();
+  }
+}
+
+/**
+ * NUMAI pentru suita E2E (tests/, B10 §4): DB de test gol → schema, configurarea și 3 conturi Admin de test,
+ * cu parola și secretul TOTP primite din mediu (generate aleator de harness la fiecare rulare; nimic în Git).
+ * Refuzat în afara mediului `development` și pentru un DB al cărui nume nu conține „test”.
+ */
+async function runE2eSetup(config: Config, out: Out): Promise<number> {
+  const dbName = new URL(config.databaseUrl).pathname.replace(/^\//, '');
+  const password = process.env.CIVIC_E2E_PASSWORD ?? '';
+  const totpSecret = process.env.CIVIC_E2E_TOTP_SECRET ?? '';
+  if (config.appEnv !== 'development' || !/test/i.test(dbName)) {
+    out.error('dev:e2e-setup: permis numai cu APP_ENV=development și un DB de test.');
+    return 2;
+  }
+  if (password.length < 12 || !/^[A-Z2-7]{16,}$/.test(totpSecret)) {
+    out.error('dev:e2e-setup: lipsesc CIVIC_E2E_PASSWORD (≥ 12) sau CIVIC_E2E_TOTP_SECRET (base32).');
+    return 2;
+  }
+  const handle = createDb(config.databaseUrl, { connectionLimit: 3 }); // migrate() folosește două conexiuni
+  try {
+    const [tables] = await handle.pool.query(
+      "SELECT TABLE_NAME AS t FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_TYPE = 'BASE TABLE'",
+    );
+    const conn = await handle.pool.getConnection();
+    try {
+      await conn.query('SET FOREIGN_KEY_CHECKS = 0');
+      for (const { t } of tables as Array<{ t: string }>) await conn.query(`DROP TABLE \`${t}\``);
+      await conn.query('SET FOREIGN_KEY_CHECKS = 1');
+    } finally {
+      conn.release();
+    }
+    await migrate(handle.pool, MIGRATIONS_DIR);
+    await seedConfig(handle.pool, SEEDS_DIR);
+    const now = new Date();
+    const hash = await hashPassword(password);
+    const accounts = [
+      { email: 'e2e-admin@exemplu.test', name: 'Administrator Platformă', role: 'super_admin', totp: true },
+      { email: 'e2e-operator@exemplu.test', name: 'Operator Primărie', role: 'primarie_operator', totp: false },
+      { email: 'e2e-operator2@exemplu.test', name: 'Operator Primărie', role: 'primarie_operator', totp: false },
+    ];
+    for (const a of accounts) {
+      await handle.pool.query(
+        `INSERT INTO admin_users (id, email, display_name, role, status, password_hash, must_change_password,
+           failed_login_count, totp_secret_enc, totp_enabled_at, created_at, updated_at)
+         VALUES (?, ?, ?, ?, 'active', ?, 0, 0, ?, ?, ?, ?)`,
+        [newId(now), a.email, a.name, a.role, hash,
+          a.totp ? encryptSecret(config.secrets.totpEncKey, totpSecret) : null, a.totp ? now : null, now, now],
+      );
+    }
+    out.log(`dev:e2e-setup: DB de test pregătit, ${accounts.length} conturi Admin de test.`);
     return 0;
   } finally {
     await handle.close();

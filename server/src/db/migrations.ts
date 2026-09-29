@@ -81,7 +81,7 @@ export function readMigrationFiles(dir: string): MigrationFile[] {
   return result;
 }
 
-async function ensureMigrationsTable(pool: mysql.Pool): Promise<void> {
+async function ensureMigrationsTable(pool: mysql.Pool | mysql.PoolConnection): Promise<void> {
   await pool.query(
     `CREATE TABLE IF NOT EXISTS \`${MIGRATIONS_TABLE}\` (
       \`version\` int unsigned NOT NULL,
@@ -93,7 +93,7 @@ async function ensureMigrationsTable(pool: mysql.Pool): Promise<void> {
   );
 }
 
-async function migrationsTableExists(pool: mysql.Pool): Promise<boolean> {
+async function migrationsTableExists(pool: mysql.Pool | mysql.PoolConnection): Promise<boolean> {
   const [rows] = await pool.query(
     'SELECT COUNT(*) AS n FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?',
     [MIGRATIONS_TABLE],
@@ -101,7 +101,7 @@ async function migrationsTableExists(pool: mysql.Pool): Promise<boolean> {
   return Number((rows as Array<{ n: number }>)[0]?.n ?? 0) > 0;
 }
 
-export async function readApplied(pool: mysql.Pool): Promise<AppliedMigration[]> {
+export async function readApplied(pool: mysql.Pool | mysql.PoolConnection): Promise<AppliedMigration[]> {
   if (!(await migrationsTableExists(pool))) return [];
   const [rows] = await pool.query(
     `SELECT version, name, checksum FROM \`${MIGRATIONS_TABLE}\` ORDER BY version`,
@@ -155,8 +155,9 @@ export async function migrate(
       throw new Error('Altă rulare „migrate” este în curs (blocarea nu a putut fi obținută)');
     }
     try {
-      await ensureMigrationsTable(pool);
-      const status = compare(files, await readApplied(pool));
+      // aceeași conexiune: fără blocaj când pool-ul are o singură conexiune
+      await ensureMigrationsTable(conn);
+      const status = compare(files, await readApplied(conn));
       const blocking = status.problems.filter((p) => !p.startsWith('Schema DB este la versiunea'));
       if (blocking.length > 0) {
         throw new Error('Migrarea este oprită:\n' + blocking.map((p) => `  - ${p}`).join('\n'));

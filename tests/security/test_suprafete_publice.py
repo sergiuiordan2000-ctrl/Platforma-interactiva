@@ -10,7 +10,6 @@ from pathlib import Path; sys.path.insert(0, str(Path(__file__).resolve().parent
 from harness import *
 
 res = Results('SUPRAFETE PUBLICE (D11, confidentialitate, texte, build productie)')
-creds = credentials()
 ROUTES = ['home', 'comunicate', 'sesizari', 'harta', 'sondaje', 'ghid']
 ADMIN_RE = r'/(^|[^a-zăâîșț])(admin|panou administrare|panou cms|panou de administrare)([^a-zăâîșț]|$)|#admin/i'
 PRIVATE = {"id": "rep-sec-priv", "referenceNumber": "TM-095", "categoryId": "iluminat", "categoryName": "Iluminat public",
@@ -35,7 +34,8 @@ SCAN_JS = """(re) => {
   }).map(e => (e.innerText || e.getAttribute('title') || e.getAttribute('href') || '').trim().slice(0, 50));
 }"""
 
-with preview_server(5499) as URL, sync_playwright() as pw:
+with backend_server(5499) as BACKEND, sync_playwright() as pw:
+    URL = BACKEND['url']
     b = pw.chromium.launch()
 
     def fresh(page, extra=None):
@@ -97,8 +97,11 @@ with preview_server(5499) as URL, sync_playwright() as pw:
     # 3. Admin rămâne accesibil prin acces direct
     page.goto(URL + '/#admin'); page.wait_for_load_state('networkidle')
     has_form = page.locator('input[type="email"]').count() == 1 and page.locator('input[type="password"]').count() == 1
-    page.fill('input[type="email"]', 'admin@turnumagurele.ro'); page.fill('input[type="password"]', creds['admin@turnumagurele.ro'])
+    page.fill('input[type="email"]', BACKEND['admin']); page.fill('input[type="password"]', BACKEND['password'])
     page.click('button[type="submit"]'); page.wait_for_timeout(500)
+    # 5.2: super_admin cere TOTP (cont de test creat de `dev:e2e-setup`)
+    page.fill('input[aria-label="Cod de 6 cifre"]', totp_code(BACKEND['totp_secret']))
+    page.click('button[type="submit"]'); page.wait_for_timeout(800)
     in_admin = page.get_by_role('button', name='Ieșire (Logout)').count() == 1
     res.check('D11-c ruta #admin accesibilă direct: formular de login și autentificare funcționale', has_form and in_admin, f'form={has_form} admin={in_admin}')
 
@@ -112,7 +115,7 @@ with preview_server(5499) as URL, sync_playwright() as pw:
     page.goto(URL + '/#admin'); page.wait_for_load_state('networkidle')
     login_txt = page.inner_text('body')
     res.check('A-07 login Admin: fără promisiunea „programat conform Master Planului pentru Etapa 5”',
-              'programat conform Master Planului' not in login_txt and 'nu este implementat în această versiune' in login_txt, '')
+              'programat conform Master Planului' not in login_txt and 'Autentificare pe server' in login_txt, '')
 
     # 6. A-06: footer-ul public pe toate paginile
     bad_footer = []

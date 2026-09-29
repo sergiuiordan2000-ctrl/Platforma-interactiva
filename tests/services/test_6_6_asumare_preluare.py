@@ -4,13 +4,13 @@ from pathlib import Path; sys.path.insert(0, str(Path(__file__).resolve().parent
 from harness import *
 
 res = Results('E66 SERVICII (dupa modificare)')
-creds = credentials()
+creds = dev_users()  # Faza 5.2: utilizatori sintetici, fără parole (B10 §4)
 ADMIN = 'admin@turnumagurele.ro'
 OP = 'operator@turnumagurele.ro'
 OP2 = 'demo@turnumagurele.ro'
 
 LOGIN = """
-const login = (email) => { authService.logout(); const r = authService.login(email, arg.creds[email]); if (!r.success) throw new Error('login ' + email); };
+const login = (email) => { authService.setUserForDevTests(null); authService.setUserForDevTests(arg.creds[email]); if (!authService.getCurrentUser()) throw new Error('login ' + email); };
 const st = (id) => { const r = reportService.getReportById(id); const a = reportService.getAssumptionState(r); return { rs: reportService.getResolutionStatus(r), ids: a.assigneeIds, cityHall: a.takenOverByCityHall }; };
 const store = () => localStorage.getItem('turnu_civic_reports_store');
 const newReport = (pref) => { const r = reportService.submitReport({ categoryId: 'drumuri', categoryName: 'Drumuri', description: 'Test 6.6 ' + Math.random(), photos: [], location: { addressOrDetails: 'Str. Test', latitude: 43.75, longitude: 24.87, source: 'manual' }, contact: { name: 'Ion Test', email: 'ion.test@example.com' }, publicationPreference: pref || 'public' }); if (!r.success) throw new Error('submit'); return r.report.id; };
@@ -21,17 +21,17 @@ with dev_server(), sync_playwright() as pw:
     A = {'creds': creds}
 
     # --- Verificarea harness-ului: aceeasi instanta de authService ca aplicatia
-    h0 = run_js(page, LOGIN + "login(arg.admin); const c = permissionService.currentUserCan('reports.moderate'); authService.logout(); return c;", {**A, 'admin': ADMIN})
+    h0 = run_js(page, LOGIN + "login(arg.admin); const c = permissionService.currentUserCan('reports.moderate'); authService.setUserForDevTests(null); return c;", {**A, 'admin': ADMIN})
     res.check('H0 harness: sesiunea din test este vazuta de permissionService (instanta unica)', h0 is True, '')
 
     # --- Identitate unica (sectiunea 3)
     ids = run_js(page, LOGIN + """
-      const out = {}; for (const e of Object.keys(arg.creds)) { login(e); out[e] = authService.getCurrentUser().id; } authService.logout(); return out;
+      const out = {}; for (const e of Object.keys(arg.creds)) { login(e); out[e] = authService.getCurrentUser().id; } authService.setUserForDevTests(null); return out;
     """, A)
     res.check('ID1 fiecare cont Admin are ID unic', len(set(ids.values())) == 3, json.dumps(ids))
     res.check('ID2 ID-urile existente pastrate (admin-01, operator-01)', ids[ADMIN] == 'usr-admin-01' and ids[OP] == 'usr-operator-01', '')
     ids2 = run_js(page, LOGIN + """
-      const out = {}; for (const e of Object.keys(arg.creds)) { login(e); out[e] = authService.getCurrentUser().id; } authService.logout(); return out;
+      const out = {}; for (const e of Object.keys(arg.creds)) { login(e); out[e] = authService.getCurrentUser().id; } authService.setUserForDevTests(null); return out;
     """, A)
     res.check('ID3 ID stabil la re-autentificare', ids == ids2, '')
 
@@ -52,7 +52,7 @@ with dev_server(), sync_playwright() as pw:
       out.pub4 = typeof reportService.getPublicAssumption;
       login(arg.op);    out.opWithdraw = reportService.withdrawAssumption(id); out.s5 = st(id);
       out.hasCityHallUndo = Object.getOwnPropertyNames(Object.getPrototypeOf(reportService)).filter(n => /renun|release|undo|cancel|revoke|untake|removeCity/i.test(n));
-      authService.logout(); return out;
+      authService.setUserForDevTests(null); return out;
     """, {**A, 'admin': ADMIN, 'op': OP})
     res.check('S2 super_admin asuma: in_progress, super_admin responsabil', flow['r2'] == {'success': True, 'changed': True} and flow['s2'] == {'rs': 'in_progress', 'ids': ['usr-admin-01'], 'cityHall': False}, json.dumps(flow['s2']))
     res.check('S3 primarie_operator preia ulterior: in_progress, super_admin ramane, Primaria preluata', flow['r3'] == {'success': True, 'changed': True} and flow['s3'] == {'rs': 'in_progress', 'ids': ['usr-admin-01'], 'cityHall': True}, json.dumps(flow['s3']))
@@ -62,7 +62,7 @@ with dev_server(), sync_playwright() as pw:
 
     # --- Scenariul 6: Primaria preia prima
     s6 = run_js(page, LOGIN + """
-      const id = newReport(); login(arg.op); const r = reportService.takeOverByCityHall(id); const s = st(id); authService.logout(); return { r, s };
+      const id = newReport(); login(arg.op); const r = reportService.takeOverByCityHall(id); const s = st(id); authService.setUserForDevTests(null); return { r, s };
     """, {**A, 'op': OP})
     res.check('S6 Primaria preia prima: new -> in_progress, preluata', s6['r'] == {'success': True, 'changed': True} and s6['s'] == {'rs': 'in_progress', 'ids': [], 'cityHall': True}, json.dumps(s6))
 
@@ -71,24 +71,24 @@ with dev_server(), sync_playwright() as pw:
       const id = newReport(); login(arg.op); reportService.takeOverByCityHall(id); const before = store();
       login(arg.op2); const r = reportService.takeOverByCityHall(id); const after = store(); const s = st(id);
       const raw = JSON.parse(after).find(x => x.id === id);
-      authService.logout(); return { r, same: before === after, s, rawKeys: Object.keys(raw).filter(k => /city|assign/i.test(k)), rawCity: raw.cityHallTakenOver };
+      authService.setUserForDevTests(null); return { r, same: before === after, s, rawKeys: Object.keys(raw).filter(k => /city|assign/i.test(k)), rawCity: raw.cityHallTakenOver };
     """, {**A, 'op': OP, 'op2': OP2})
     res.check('S7 al doilea operator: fara a doua preluare, fara duplicare, stocare neschimbata', s7['r'] == {'success': True, 'changed': False} and s7['same'] and s7['rawCity'] is True and s7['s']['ids'] == [], json.dumps(s7))
 
     # --- Scenariul 8: ultimul responsabil renunta, Primaria nepreluata
     s8 = run_js(page, LOGIN + """
       const id = newReport(); login(arg.admin); reportService.assumeReport(id); const r = reportService.withdrawAssumption(id); const s = st(id);
-      const pub = undefined; authService.logout(); return { r, s, pub: pub ?? null };
+      const pub = undefined; authService.setUserForDevTests(null); return { r, s, pub: pub ?? null };
     """, {**A, 'admin': ADMIN})
     res.check('S8 ultimul responsabil renunta: ramane in_progress, lista goala, nimic public', s8['r'] == {'success': True, 'changed': True} and s8['s'] == {'rs': 'in_progress', 'ids': [], 'cityHall': False} and s8['pub'] is None, json.dumps(s8))
 
     # --- Scenariul 10: neautorizat (aplicat in serviciu)
     s10 = run_js(page, LOGIN + """
-      const id = newReport(); authService.logout(); const before = store();
+      const id = newReport(); authService.setUserForDevTests(null); const before = store();
       const anon = [reportService.assumeReport(id), reportService.withdrawAssumption(id), reportService.takeOverByCityHall(id)];
       login(arg.op); const opAssume = reportService.assumeReport(id);
       login(arg.admin); const adminCityHall = reportService.takeOverByCityHall(id);
-      authService.logout(); const after = store(); return { anon, opAssume, adminCityHall, same: before === after, s: st(id) };
+      authService.setUserForDevTests(null); const after = store(); return { anon, opAssume, adminCityHall, same: before === after, s: st(id) };
     """, {**A, 'op': OP, 'admin': ADMIN})
     denied = {'success': False, 'reason': 'denied'}
     res.check('S10a fara sesiune: toate cele 3 operatii refuzate', s10['anon'] == [denied, denied, denied], json.dumps(s10['anon']))
@@ -111,7 +111,7 @@ with dev_server(), sync_playwright() as pw:
       out.again = reportService.assumeReport(id); out.s2 = st(id);
       out.pubInd = [authService.getDisplayNameById('usr-admin-01'), authService.getDisplayNameById('usr-other-99')];
       out.w = reportService.withdrawAssumption(id); out.s3 = st(id);
-      authService.logout(); return out;
+      authService.setUserForDevTests(null); return out;
     """, {**A, 'id': multi, 'admin': ADMIN})
     res.check('M1 asumarea nu inlocuieste alt responsabil; status in_progress neschimbat', m['s1'] == {'rs': 'in_progress', 'ids': ['usr-other-99', 'usr-admin-01'], 'cityHall': False}, json.dumps(m['s1']))
     res.check('M2 asumare repetata idempotenta (fara duplicat)', m['again'] == {'success': True, 'changed': False} and m['s2']['ids'] == ['usr-other-99', 'usr-admin-01'], '')
@@ -124,11 +124,11 @@ with dev_server(), sync_playwright() as pw:
         const id = newReport(); login(arg.admin); reportService.updateResolutionStatus(id, target);
         reportService.assumeReport(id); const a = st(id).rs; login(arg.op); reportService.takeOverByCityHall(id); out[target] = [a, st(id).rs];
       }
-      authService.logout(); return out;
+      authService.setUserForDevTests(null); return out;
     """, {**A, 'admin': ADMIN, 'op': OP})
     res.check('M5 preluarea nu modifica resolved/closed', rc == {'resolved': ['resolved', 'resolved'], 'closed': ['closed', 'closed']}, json.dumps(rc))
 
-    nf = run_js(page, LOGIN + "login(arg.admin); const r = reportService.assumeReport('rep-inexistent'); authService.logout(); return r;", {**A, 'admin': ADMIN})
+    nf = run_js(page, LOGIN + "login(arg.admin); const r = reportService.assumeReport('rep-inexistent'); authService.setUserForDevTests(null); return r;", {**A, 'admin': ADMIN})
     res.check('M6 sesizare inexistenta -> not_found', nf == {'success': False, 'reason': 'not_found'}, json.dumps(nf))
 
     # --- Public: prioritate Primarie + fara date interne
@@ -140,7 +140,7 @@ with dev_server(), sync_playwright() as pw:
       const p2 = reportService.getPublicMapReports().find(p => p.referenceNumber === ref);
       login(arg.admin); reportService.withdrawAssumption(id); reportService.assumeReport(id);
       const p3 = reportService.getPublicMapReports().find(p => p.referenceNumber === ref);
-      authService.logout(); const fk = (p) => Object.keys(p).filter(k => /assum|status|assign|cityhall|respons|preluat|takenover/i.test(k)); return { p1: fk(p1), p2: fk(p2), p3: fk(p3), json: JSON.stringify([p1, p2, p3]) };
+      authService.setUserForDevTests(null); const fk = (p) => Object.keys(p).filter(k => /assum|status|assign|cityhall|respons|preluat|takenover/i.test(k)); return { p1: fk(p1), p2: fk(p2), p3: fk(p3), json: JSON.stringify([p1, p2, p3]) };
     """, {**A, 'admin': ADMIN, 'op': OP})
     res.check('P1 asumare super_admin: modelul public fara camp de flux intern', pub['p1'] == [], str(pub['p1']))
     res.check('P2 Primaria + super_admin: modelul public fara camp de flux intern', pub['p2'] == [], str(pub['p2']))
@@ -166,7 +166,7 @@ with dev_server(), sync_playwright() as pw:
       const orig = Storage.prototype.setItem;
       Storage.prototype.setItem = function () { const e = new DOMException('full', 'QuotaExceededError'); throw e; };
       let r; try { r = reportService.assumeReport(id); } finally { Storage.prototype.setItem = orig; }
-      const s = st(id); authService.logout(); return { r, s };
+      const s = st(id); authService.setUserForDevTests(null); return { r, s };
     """, {**A, 'admin': ADMIN})
     res.check('Q1 cota depasita: operatia raporteaza esec, memoria neschimbata', q['r'] == {'success': False, 'reason': 'quota_exceeded'} and q['s'] == {'rs': 'new', 'ids': [], 'cityHall': False}, json.dumps(q))
 
@@ -187,7 +187,7 @@ with dev_server(), sync_playwright() as pw:
       // Margine: Primaria deja preluata + readusa la new -> al doilea operator (preluare idempotenta, fara actiune noua)
       const id5 = newReport(); login(arg.op); reportService.takeOverByCityHall(id5); reportService.updateResolutionStatus(id5, 'new');
       login(arg.op2); out.idem = [reportService.takeOverByCityHall(id5), st(id5).rs];
-      authService.logout(); return out;
+      authService.setUserForDevTests(null); return out;
     """, {**A, 'admin': ADMIN, 'op': OP, 'op2': OP2})
     res.check('NEW-C1 sesizare noua, super_admin asuma: new -> in_progress', nw['c1'] == ['new', 'in_progress'], json.dumps(nw['c1']))
     res.check('NEW-C2a asumare istorica retrasa, readusa la new, noua asumare -> in_progress',
@@ -206,7 +206,7 @@ with dev_server(), sync_playwright() as pw:
       const a = mk(); const pa = find(a);
       const b = mk(); reportService.assumeReport(b); const pb = find(b);
       const c = mk(); login(arg.op); reportService.takeOverByCityHall(c); const pc = find(c);
-      authService.logout();
+      authService.setUserForDevTests(null);
       const fk = (p) => Object.keys(p).filter(k => /assum|status|assign|cityhall|respons|preluat|takenover/i.test(k)); return { none: fk(pa), ind: fk(pb), ch: fk(pc), same: JSON.stringify(Object.keys(pa).sort()) === JSON.stringify(Object.keys(pc).sort()) && JSON.stringify(Object.keys(pa).sort()) === JSON.stringify(Object.keys(pb).sort()),
                json: JSON.stringify(reportService.getPublicMapReports()) };
     """, {**A, 'admin': ADMIN, 'op': OP})
@@ -217,7 +217,7 @@ with dev_server(), sync_playwright() as pw:
     # --- Decizia finala 6.6: sesizarile 'private' nu mai sunt excluse de pe harta
     pv = run_js(page, LOGIN + """
       const id = newReport('private'); login(arg.op); reportService.updateModerationStatus(id, 'approved'); reportService.takeOverByCityHall(id);
-      const ref = reportService.getReportById(id).referenceNumber; authService.logout();
+      const ref = reportService.getReportById(id).referenceNumber; authService.setUserForDevTests(null);
       const p = reportService.getPublicMapReports().find(x => x.referenceNumber === ref);
       return { onMap: !!p, pub: p ?? null, json: JSON.stringify(reportService.getPublicMapReports()) };
     """, {**A, 'op': OP})
@@ -234,7 +234,7 @@ with dev_server(), sync_playwright() as pw:
       const mk = (pref, mod, gps) => { const r = reportService.submitReport({ categoryId: 'drumuri', categoryName: 'Drumuri', description: '3E ' + pref + mod,
           photos: [], location: gps ? { addressOrDetails: 'X', latitude: 43.75, longitude: 24.87, source: 'manual' } : { addressOrDetails: 'X', source: 'manual' },
           contact: { name: 'Ion Test', email: 'ion.test@example.com', phone: '0722000000' }, publicationPreference: pref });
-        const id = r.report.id; if (mod !== 'pending') { login(arg.admin); reportService.updateModerationStatus(id, mod); authService.logout(); }
+        const id = r.report.id; if (mod !== 'pending') { login(arg.admin); reportService.updateModerationStatus(id, mod); authService.setUserForDevTests(null); }
         const rep = reportService.getReportById(id); const pub = reportService.toPublicMapReport(rep);
         return { vis: reportService.isPubliclyVisible(rep), anon: pub ? pub.isAnonymous : null }; };
       const noPref = reportService.submitReport({ categoryId: 'drumuri', categoryName: 'Drumuri', description: 'fara pref', photos: [], location: { addressOrDetails: 'X', source: 'manual' } });
@@ -258,7 +258,7 @@ with dev_server(), sync_playwright() as pw:
       const mk = (pref) => { const r = reportService.submitReport({ categoryId: 'drumuri', categoryName: 'Drumuri', description: 'N1 ' + pref, photos: [],
           location: { addressOrDetails: 'Str. N1', latitude: 43.75, longitude: 24.87, source: 'manual' },
           contact: { name: 'Elena Autor', email: 'elena.autor@example.com', phone: '0755999888' }, publicationPreference: pref });
-        login(arg.admin); reportService.updateModerationStatus(r.report.id, 'approved'); authService.logout();
+        login(arg.admin); reportService.updateModerationStatus(r.report.id, 'approved'); authService.setUserForDevTests(null);
         return reportService.toPublicMapReport(reportService.getReportById(r.report.id)); };
       const a = mk('public'), b = mk('public_anonymous');
       return { ka: Object.keys(a).sort(), kb: Object.keys(b).sort(), json: JSON.stringify([a, b]) };

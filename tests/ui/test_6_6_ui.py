@@ -7,8 +7,10 @@ from harness import *
 PREVIEW_PORT = 5299
 URL = f'http://127.0.0.1:{PREVIEW_PORT}'
 res = Results('E66 UI (build productie)')
-creds = credentials()
-ADMIN, OP, OP2 = 'admin@turnumagurele.ro', 'operator@turnumagurele.ro', 'demo@turnumagurele.ro'
+# Faza 5.2: login real pe serverul Node (DB de test), conturi de test create de `dev:e2e-setup` (B10 §4)
+ADMIN, OP, OP2 = E2E_ACCOUNTS['admin'], E2E_ACCOUNTS['op'], E2E_ACCOUNTS['op2']
+BACKEND = {}
+_last_totp = {'step': -1}
 
 LEGACY = {"id": "rep-legacy-ui", "referenceNumber": "TM-090", "categoryId": "drumuri", "categoryName": "Drumuri",
           "description": "Sesizare veche fara campuri 6.6", "photos": [],
@@ -31,8 +33,16 @@ def login(page, email):
     if logout_btn.count():
         logout_btn.first.click(); page.wait_for_timeout(200)
     page.fill('input[type="email"]', email)
-    page.fill('input[type="password"]', creds[email])
-    page.click('button[type="submit"]'); page.wait_for_timeout(300)
+    page.fill('input[type="password"]', BACKEND['password'])
+    page.click('button[type="submit"]'); page.wait_for_timeout(500)
+    if email == ADMIN:
+        # TOTP: un cod se acceptă o singură dată (anti-reluare) -> se așteaptă pasul următor dacă e nevoie
+        while int(time.time() // 30) <= _last_totp['step']:
+            time.sleep(1)
+        _last_totp['step'] = int(time.time() // 30)
+        page.fill('input[aria-label="Cod de 6 cifre"]', totp_code(BACKEND['totp_secret']))
+        page.click('button[type="submit"]'); page.wait_for_timeout(500)
+    page.wait_for_selector('text=Panou de Administrare Informații')
     page.get_by_text('Moderare Sesizări').first.click(); page.wait_for_timeout(300)
 
 
@@ -56,9 +66,8 @@ def popup_text(page, ref):
 build = subprocess.run(['npm', 'run', 'build'], cwd=REPO, capture_output=True, text=True)
 res.check('BUILD npm run build', build.returncode == 0, '')
 import harness
-prev = harness._start_server(['npx', 'vite', 'preview', '--port', str(PREVIEW_PORT), '--strictPort', '--host', '127.0.0.1'], PREVIEW_PORT)
-try:
-    harness._wait_port(PREVIEW_PORT)
+with backend_server(PREVIEW_PORT) as backend:
+    BACKEND.update(backend)
     with sync_playwright() as pw:
         browser = pw.chromium.launch(); ctx = browser.new_context(viewport={'width': 1280, 'height': 1000}); page = ctx.new_page()
         errors = []; page.on('pageerror', lambda e: errors.append(str(e)))
@@ -144,8 +153,6 @@ try:
 
         res.check('UI12 fara erori JS in pagina', not errors, '; '.join(errors))
         browser.close()
-finally:
-    harness._stop_server(prev)
 
 ok = res.report()
 sys.exit(0 if ok else 1)

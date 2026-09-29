@@ -5,6 +5,14 @@
 
 import { AdminUser, authService } from './authService';
 
+/*
+ * Faza 5.2 — tranziție (FAZA_5_2_PLAN §2): rolul vine acum de la server (sesiune verificată), iar serverul
+ * impune matricea finală (`shared/src/permissions.ts`: 26 / 12, fără `reports.moderate`). Matricea locală
+ * de mai jos (24 / 13) rămâne numai pentru ecranele domeniilor încă stocate în browser (comunicate, Ghid,
+ * sesizări, sondaje) și se înlocuiește domeniu cu domeniu (5.3–5.6). Permisiunile noi (conturi, audit)
+ * se citesc din `authService.getCurrentUser().permissions`, primite de la server.
+ */
+
 /**
  * Serviciu central de autorizare (Etapa 5G).
  *

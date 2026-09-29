@@ -11,7 +11,12 @@ export default defineConfig(() => {
         '@': path.resolve(__dirname, '.'),
       },
     },
+    // Faza 5.2: API-ul serverului Node, pe aceeași origine în dezvoltare (proxy)
+    preview: {
+      proxy: { '/api': process.env.CIVIC_API_PROXY || 'http://127.0.0.1:3001' },
+    },
     server: {
+      proxy: { '/api': process.env.CIVIC_API_PROXY || 'http://127.0.0.1:3001' },
       // HMR is disabled in AI Studio via DISABLE_HMR env var.
       // Do not modify—file watching is disabled to prevent flickering during agent edits.
       hmr: process.env.DISABLE_HMR !== 'true',

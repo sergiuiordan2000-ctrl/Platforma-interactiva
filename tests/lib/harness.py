@@ -4,8 +4,10 @@
   reale din `src/` direct în pagină (aceeași instanță singleton ca aplicația).
 - `preview_server()` construiește aplicația (`npm run build`) și o servește cu `vite preview`,
   pentru testele pe build-ul de producție.
-- Credențialele conturilor Admin se citesc din `src/services/authService.ts`; nu sunt
-  duplicate în teste.
+- Faza 5.2: nu mai există conturi sau parole în frontend. Testele de serviciu (Vite dev) fixează
+  utilizatorul prin `authService.setUserForDevTests` (numai în modul dev); testele UI cu login real
+  pornesc serverul Node (`backend_server`) pe un DB de test, cu parolă și secret TOTP generate aleator
+  la fiecare rulare (B10 §4).
 
 Testele nu modifică fișierele urmărite de Git: `npm run build` scrie în `dist/` (ignorat),
 iar datele de test trăiesc doar în `localStorage`-ul browserului de test.
@@ -31,10 +33,71 @@ PORT = int(os.environ.get('E66_PORT', '5199'))
 BASE = f'http://127.0.0.1:{PORT}'
 
 
-def credentials():
-    src = open(os.path.join(REPO, 'src/services/authService.ts'), encoding='utf-8').read()
-    pairs = re.findall(r"trimmedEmail === '([^']+)' && password === '([^']+)'", src)
-    return {email: pw for email, pw in pairs}
+# Utilizatori sintetici pentru testele de serviciu (Vite dev; `setUserForDevTests`). ID-urile istorice
+# se păstrează ca testele 6.6 (identitate unică) să rămână comparabile. Fără parole.
+DEV_USERS = {
+    'admin@turnumagurele.ro': {'id': 'usr-admin-01', 'email': 'admin@turnumagurele.ro', 'name': 'Administrator Platformă',
+                               'role': 'super_admin', 'permissions': [], 'mfaEnabled': True},
+    'operator@turnumagurele.ro': {'id': 'usr-operator-01', 'email': 'operator@turnumagurele.ro', 'name': 'Operator Primărie',
+                                  'role': 'primarie_operator', 'permissions': [], 'mfaEnabled': False},
+    'demo@turnumagurele.ro': {'id': 'usr-operator-02', 'email': 'demo@turnumagurele.ro', 'name': 'Operator Primărie',
+                              'role': 'primarie_operator', 'permissions': [], 'mfaEnabled': False},
+}
+
+
+def dev_users():
+    return DEV_USERS
+
+
+def totp_code(secret_b32, at=None):
+    """RFC 6238 (SHA-1, 6 cifre, 30 s), ca aplicația de pe telefon."""
+    import base64, hashlib, hmac, struct
+    key = base64.b32decode(secret_b32 + '=' * ((8 - len(secret_b32) % 8) % 8))
+    counter = int((at if at is not None else time.time()) // 30)
+    digest = hmac.new(key, struct.pack('>Q', counter), hashlib.sha1).digest()
+    o = digest[-1] & 15
+    return '%06d' % ((struct.unpack('>I', digest[o:o + 4])[0] & 0x7fffffff) % 1000000)
+
+
+E2E_ACCOUNTS = {'admin': 'e2e-admin@exemplu.test', 'op': 'e2e-operator@exemplu.test', 'op2': 'e2e-operator2@exemplu.test'}
+
+
+@contextmanager
+def backend_server(port):
+    """Serverul Node (artefactul construit) pe DB-ul de test, servind build-ul frontend-ului.
+    Cere CIVIC_TEST_DATABASE_URL (un DB cu „test” în nume). Parola și secretul TOTP se generează aleator."""
+    import secrets, base64, tempfile
+    db = os.environ.get('CIVIC_TEST_DATABASE_URL')
+    if not db:
+        raise RuntimeError('Testele UI cu autentificare cer CIVIC_TEST_DATABASE_URL (MySQL, DB de test).')
+    password = secrets.token_urlsafe(18)
+    totp_secret = base64.b32encode(secrets.token_bytes(20)).decode().rstrip('=')
+    env = dict(os.environ, APP_ENV='development', HOST='127.0.0.1', PORT=str(port),
+               PUBLIC_BASE_URL=f'http://127.0.0.1:{port}', DATABASE_URL=db, STORAGE_DIR=tempfile.mkdtemp(),
+               IP_HASH_SECRET=secrets.token_hex(32), PARTICIPATION_HMAC_SECRET=secrets.token_hex(32),
+               FORM_TOKEN_SECRET=secrets.token_hex(32), POW_HMAC_KEY=secrets.token_hex(32), TOTP_ENC_KEY=secrets.token_hex(32),
+               LOG_LEVEL='warn', CIVIC_E2E_PASSWORD=password, CIVIC_E2E_TOTP_SECRET=totp_secret)
+    env.pop('CIVIC_ENV_FILE', None)
+    b = subprocess.run(['npm', 'run', 'build', '-w', 'server'], cwd=REPO, capture_output=True, text=True)
+    if b.returncode != 0:
+        raise RuntimeError('build server eșuat: ' + b.stderr[-500:])
+    s = subprocess.run(['node', 'server/dist/app.js', 'dev:e2e-setup'], cwd=REPO, env=env, capture_output=True, text=True)
+    if s.returncode != 0:
+        raise RuntimeError('dev:e2e-setup eșuat: ' + (s.stderr or s.stdout)[-500:])
+    if _port_in_use(port):
+        raise RuntimeError(f'Portul {port} este deja ocupat.')
+    proc = subprocess.Popen(['node', 'server/dist/app.js'], cwd=REPO, env=env, stdout=subprocess.DEVNULL,
+                            stderr=subprocess.DEVNULL, start_new_session=True)
+    try:
+        for _ in range(60):
+            if _port_in_use(port):
+                break
+            time.sleep(0.25)
+        else:
+            raise RuntimeError('serverul Node nu a pornit')
+        yield {'url': f'http://127.0.0.1:{port}', 'password': password, 'totp_secret': totp_secret, **E2E_ACCOUNTS}
+    finally:
+        _stop_server(proc)
 
 
 def _port_in_use(port):

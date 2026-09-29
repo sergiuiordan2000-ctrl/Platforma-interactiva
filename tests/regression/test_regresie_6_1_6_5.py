@@ -5,9 +5,9 @@ import subprocess, harness
 from harness import *
 
 res = Results('E66 REGRESIE 6.1-6.5')
-creds = credentials()
+creds = dev_users()  # Faza 5.2: utilizatori sintetici, fără parole (B10 §4)
 ADMIN, OP = 'admin@turnumagurele.ro', 'operator@turnumagurele.ro'
-LOGIN = "const login = (e) => { authService.logout(); if (!authService.login(e, arg.creds[e]).success) throw new Error('login'); };"
+LOGIN = "const login = (e) => { authService.setUserForDevTests(null); authService.setUserForDevTests(arg.creds[e]); if (!authService.getCurrentUser()) throw new Error('login'); };"
 SUB = "const sub = (d, pref) => reportService.submitReport({ categoryId: 'drumuri', categoryName: 'Drumuri', description: d, photos: [], location: { addressOrDetails: 'Str. R', latitude: 43.75, longitude: 24.87, source: 'manual' }, publicationPreference: pref || 'public' });"
 
 with dev_server(), sync_playwright() as pw:
@@ -34,7 +34,7 @@ with dev_server(), sync_playwright() as pw:
     # 6.3 — XSS pe harta (valori escapate, inclusiv noua linie de asumare)
     run_js(page, LOGIN + SUB + """
       const r = sub('<img src=x onerror="window.__xss=1">', 'public'); login(arg.admin); reportService.updateModerationStatus(r.report.id, 'approved');
-      reportService.assumeReport(r.report.id); authService.logout(); return r.report.referenceNumber;
+      reportService.assumeReport(r.report.id); authService.setUserForDevTests(null); return r.report.referenceNumber;
     """, A)
     page.goto(BASE + '/#harta'); page.wait_for_load_state('networkidle'); page.wait_for_timeout(700)
     markers = page.locator('.custom-civic-marker')
@@ -47,7 +47,7 @@ with dev_server(), sync_playwright() as pw:
     # 6.4
     page.goto(BASE + '/#admin'); page.wait_for_load_state('networkidle')
     body = page.inner_text('body')
-    res.check('R6.4a fara login DEMO si fara credentiale afisate', 'DEMO' not in body.upper().replace('DEMONSTR', '') and all(p not in body for p in creds.values()), '')
+    res.check('R6.4a fara login DEMO si fara credentiale afisate', 'DEMO' not in body.upper().replace('DEMONSTR', '') and all(u['email'] not in body for u in creds.values()) and 'password ===' not in open(os.path.join(REPO, 'src/services/authService.ts'), encoding='utf-8').read(), '')
     forged_bad = run_js(page, "localStorage.setItem('turnu_civic_admin_session', JSON.stringify({ role: 'super_admin' })); return 1;")
     page.reload(); page.wait_for_load_state('networkidle')
     r64 = run_js(page, "return { user: authService.getCurrentUser(), stored: localStorage.getItem('turnu_civic_admin_session') };")
@@ -56,7 +56,7 @@ with dev_server(), sync_playwright() as pw:
     # 6D-SES-01 (P7) — limitare cunoscuta, trebuie sa ramana documentata (nu se repara in 6.6)
     run_js(page, "localStorage.setItem('turnu_civic_admin_session', JSON.stringify({ id: 'usr-fals', email: 'x@y.z', name: 'Fals', role: 'super_admin', lastLogin: '' })); return 1;")
     page.reload(); page.wait_for_load_state('networkidle')
-    p7 = run_js(page, SUB + "const id = sub('p7').report.id; const r = reportService.assumeReport(id); const leak = JSON.stringify(reportService.getPublicMapReports()).includes('usr-fals') || JSON.stringify(reportService.getPublicMapReports()).includes('Fals'); authService.logout(); return { can: r.success, pub: leak ? 'LEAK' : null };")
+    p7 = run_js(page, SUB + "const id = sub('p7').report.id; const r = reportService.assumeReport(id); const leak = JSON.stringify(reportService.getPublicMapReports()).includes('usr-fals') || JSON.stringify(reportService.getPublicMapReports()).includes('Fals'); authService.setUserForDevTests(null); return { can: r.success, pub: leak ? 'LEAK' : null };")
     res.check('R6D-SES-01 (P7) ramane limitare: sesiune falsificata valida structural este acceptata [FAIL asteptat, neschimbat]', not p7['can'], json.dumps(p7))
     res.check('R6.6-P7 ID-ul/numele sesiunii falsificate nu apar in modelul public', p7['pub'] is None, json.dumps(p7))
 
@@ -70,7 +70,7 @@ with dev_server(), sync_playwright() as pw:
         survey: (await import(loaded('surveyService'))).surveyService,
       };
       for (const who of [null, arg.op, arg.admin]) {
-        authService.logout(); if (who) login(who);
+        authService.setUserForDevTests(null); if (who) login(who);
         const rid = reportService.getAllReports()[0].id;
         const before = localStorage.getItem('turnu_civic_city_hall_directory');
         out[who || 'public'] = {
@@ -82,7 +82,7 @@ with dev_server(), sync_playwright() as pw:
           annReset: svc.announcements.resetToDemo(),
         };
       }
-      authService.logout(); return out;
+      authService.setUserForDevTests(null); return out;
     """, A)
     exp = {'public': dict(moderate=False, resolve=False, dirReset=False, qdReset=False, surveyReset=False, annReset=False),
            OP: dict(moderate=True, resolve=True, dirReset=False, qdReset=False, surveyReset=False, annReset=True),

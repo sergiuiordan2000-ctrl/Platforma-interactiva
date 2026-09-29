@@ -33,15 +33,15 @@ export const AdminLoginForm: React.FC<AdminLoginFormProps> = ({ onSuccess, onCan
     }
 
     setIsLoading(true);
-    setTimeout(() => {
-      const res = authService.login(email, password);
+    void authService.login(email, password).then((res) => {
       setIsLoading(false);
       if (res.success) {
+        setPassword('');
         onSuccess();
       } else {
-        setError(res.error || 'Credențiale incorecte.');
+        setError(res.error || 'E-mail sau parolă incorecte.');
       }
-    }, 200);
+    });
   };
 
   return (
@@ -132,14 +132,14 @@ export const AdminLoginForm: React.FC<AdminLoginFormProps> = ({ onSuccess, onCan
 
       </div>
 
-      {/* Notă Transparentă de Arhitectură și Securitate (Cerință Etapa 2C) */}
-      <div className="bg-amber-50/80 border border-amber-200 rounded-2xl p-4 text-xs text-amber-900 space-y-1.5 shadow-sm">
-        <div className="font-bold flex items-center gap-1.5 text-amber-950">
-          <Info className="w-4 h-4 text-amber-700 shrink-0" />
-          <span>Notă de Transparență Arhitecturală (Etapa 2C)</span>
+      {/* Faza 5.2: autentificarea se verifică pe server */}
+      <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-xs text-slate-700 space-y-1.5 shadow-sm">
+        <div className="font-bold flex items-center gap-1.5 text-slate-900">
+          <Info className="w-4 h-4 text-slate-600 shrink-0" />
+          <span>Autentificare pe server</span>
         </div>
-        <p className="leading-relaxed text-[11px] text-amber-800">
-          Aceasta este o autentificare funcțională de sesiune de administrare (Client Session Guard), care rulează exclusiv în browser. Un sistem de conturi securizat pe server, cu sesiuni criptate, nu este implementat în această versiune.
+        <p className="leading-relaxed text-[11px] text-slate-600">
+          Parola și codul de autentificare (TOTP) sunt verificate pe server; sesiunea expiră după 60 de minute de inactivitate.
         </p>
       </div>
 
