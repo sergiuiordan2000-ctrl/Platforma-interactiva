@@ -1,6 +1,10 @@
 @import "tailwindcss";
 @import "leaflet/dist/leaflet.css";
 
+/* Faza 5.1: codul serverului nu este sursă de clase pentru frontend */
+@source not "../server";
+@source not "../shared";
+
 @layer utilities {
   .safe-area-pb {
     padding-bottom: env(safe-area-inset-bottom, 0.5rem);

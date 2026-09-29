@@ -8,6 +8,31 @@
     "node": ">=20.19"
   },
   "scripts": {
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "build": "node build.mjs",
+    "start": "node dist/app.js",
+    "dev": "tsx --env-file=../.env src/main.ts",
+    "cli": "tsx --env-file=../.env src/main.ts",
+    "migrate": "tsx --env-file=../.env src/main.ts migrate",
+    "migrate:status": "tsx --env-file=../.env src/main.ts migrate:status",
+    "seed:config": "tsx --env-file=../.env src/main.ts seed:config",
+    "seed:demo": "tsx --env-file=../.env src/main.ts seed:demo",
+    "check:no-demo": "tsx --env-file=../.env src/main.ts check:no-demo",
+    "test": "node test/run.mjs all",
+    "test:unit": "node test/run.mjs unit",
+    "test:api": "node test/run.mjs api",
+    "test:integration": "node test/run.mjs integration"
+  },
+  "dependencies": {
+    "@fastify/helmet": "13.1.1",
+    "@fastify/static": "10.1.5",
+    "drizzle-orm": "0.45.3",
+    "fastify": "5.12.5",
+    "mysql2": "3.24.4",
+    "ulid": "3.0.2",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2"
   }
 }

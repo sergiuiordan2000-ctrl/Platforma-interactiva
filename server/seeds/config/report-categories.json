@@ -1,0 +1,66 @@
+[
+  {
+    "id": "iluminat",
+    "name": "Iluminat public",
+    "description": "Lămpi arse pe stâlpi, cabluri neizolate, zone întunecate sau avarii ale rețelei de iluminat.",
+    "iconName": "Lightbulb",
+    "sortOrder": 1,
+    "isActive": true
+  },
+  {
+    "id": "drumuri",
+    "name": "Drumuri / carosabil",
+    "description": "Gropi în asfalt, tasări periculoase, capace de canalizare avariate sau lipsă.",
+    "iconName": "Car",
+    "sortOrder": 2,
+    "isActive": true
+  },
+  {
+    "id": "trotuare",
+    "name": "Trotuare & alei",
+    "description": "Dale dislocate, obstacole pietonale, borduri sparte sau acces blocat pentru pietoni.",
+    "iconName": "Footprints",
+    "sortOrder": 3,
+    "isActive": true
+  },
+  {
+    "id": "apa_canal",
+    "name": "Apă / canalizare",
+    "description": "Scurgeri de apă pe carosabil, conducte avariate, refulări sau guri de scurgere înfundate.",
+    "iconName": "Droplets",
+    "sortOrder": 4,
+    "isActive": true
+  },
+  {
+    "id": "salubritate",
+    "name": "Salubritate & deșeuri",
+    "description": "Puncte de colectare necurățate, resturi vegetale neridicate, depozitări clandestine de gunoi.",
+    "iconName": "Trash2",
+    "sortOrder": 5,
+    "isActive": true
+  },
+  {
+    "id": "spatii_verzi",
+    "name": "Spații verzi & parcuri",
+    "description": "Crengi uscate periculoase, arbori căzuți, iarbă netunsă sau bănci deteriorate în parcuri.",
+    "iconName": "Trees",
+    "sortOrder": 6,
+    "isActive": true
+  },
+  {
+    "id": "semnalizare",
+    "name": "Semnalizare rutieră",
+    "description": "Indicatoare rutiere lipsă sau deteriorate, semafoare nefuncționale, treceri de pietoni șterse.",
+    "iconName": "Signpost",
+    "sortOrder": 7,
+    "isActive": true
+  },
+  {
+    "id": "altele",
+    "name": "Alte probleme urbane",
+    "description": "Alte situații ce afectează siguranța sau confortul locuitorilor din municipiu.",
+    "iconName": "HelpCircle",
+    "sortOrder": 8,
+    "isActive": true
+  }
+]

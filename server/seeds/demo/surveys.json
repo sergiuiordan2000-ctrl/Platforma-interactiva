@@ -1,0 +1,170 @@
+[
+  {
+    "id": "01M3JMZC00Y9CTNMQ1MBDR40Y9",
+    "title": "[DEMO] Consultare privind amenajarea zonelor verzi din cartiere",
+    "description": "Sondaj demonstrativ pentru testarea modelului de date (Etapa 4A). Are ca scop colectarea de opinii exemplificative privind prioritățile de amenajare a parcurilor și spațiilor de recreere.",
+    "category": "Mediu & Spații Verzi",
+    "startAt": "2026-09-01T08:00:00.000Z",
+    "endAt": "2026-10-31T20:00:00.000Z",
+    "status": "active",
+    "resultsVisibility": "after_close",
+    "powEnabled": false,
+    "questions": [
+      {
+        "id": "01M3JMZC00Y9CTNMQ1MBDR40YA",
+        "ordinal": 1,
+        "text": "Cât de des frecventați parcurile sau spațiile verzi din municipiu?",
+        "type": "single_choice",
+        "isRequired": true,
+        "helpText": "Selectați o singură variantă care descrie cel mai bine rutina dumneavoastră.",
+        "options": [
+          {
+            "id": "01M3JMZC00Y9CTNMQ1MBDR40YB",
+            "ordinal": 1,
+            "text": "Zilnic sau aproape zilnic"
+          },
+          {
+            "id": "01M3JMZC00Y9CTNMQ1MBDR40YC",
+            "ordinal": 2,
+            "text": "De câteva ori pe săptămână"
+          },
+          {
+            "id": "01M3JMZC00Y9CTNMQ1MBDR40YD",
+            "ordinal": 3,
+            "text": "De câteva ori pe lună"
+          },
+          {
+            "id": "01M3JMZC00Y9CTNMQ1MBDR40YE",
+            "ordinal": 4,
+            "text": "Rar sau deloc"
+          }
+        ]
+      },
+      {
+        "id": "01M3JMZC00Y9CTNMQ1MBDR40YF",
+        "ordinal": 2,
+        "text": "Ce dotări considerați prioritare pentru modernizarea spațiilor verzi?",
+        "type": "multiple_choice",
+        "isRequired": false,
+        "helpText": "Puteți alege mai multe variante din lista de mai jos.",
+        "options": [
+          {
+            "id": "01M3JMZC00Y9CTNMQ1MBDR40YG",
+            "ordinal": 1,
+            "text": "Iluminat public ambiental eficient (LED)"
+          },
+          {
+            "id": "01M3JMZC00Y9CTNMQ1MBDR40YH",
+            "ordinal": 2,
+            "text": "Bănci noi și mobilier urban ergonomic"
+          },
+          {
+            "id": "01M3JMZC00Y9CTNMQ1MBDR40YJ",
+            "ordinal": 3,
+            "text": "Locuri de joacă sigure pentru copii"
+          },
+          {
+            "id": "01M3JMZC00Y9CTNMQ1MBDR40YK",
+            "ordinal": 4,
+            "text": "Piste sau trasee amenajate pentru biciclete/alergare"
+          },
+          {
+            "id": "01M3JMZC00Y9CTNMQ1MBDR40YM",
+            "ordinal": 5,
+            "text": "Coșuri de gunoi pentru colectare selectivă"
+          }
+        ]
+      },
+      {
+        "id": "01M3JMZC00Y9CTNMQ1MBDR40YN",
+        "ordinal": 3,
+        "text": "Ce sugestie sau propunere punctuală aveți pentru parcurile din oraș?",
+        "type": "free_text",
+        "isRequired": false,
+        "helpText": "Descrieți pe scurt o propunere sau o idee constructivă.",
+        "options": []
+      }
+    ]
+  },
+  {
+    "id": "01M3JMZC00Y9CTNMQ1MBDR40YP",
+    "title": "[DEMO] Proiect model: Modernizarea transportului public urban",
+    "description": "Sondaj demonstrativ în lucru (draft) destinat testării funcționalității de pregătire a consultărilor înainte de activarea publică.",
+    "category": "Mobilitate Urbană",
+    "startAt": "2026-11-01T08:00:00.000Z",
+    "endAt": "2026-12-15T20:00:00.000Z",
+    "status": "draft",
+    "resultsVisibility": "after_close",
+    "powEnabled": false,
+    "questions": [
+      {
+        "id": "01M3JMZC00Y9CTNMQ1MBDR40YQ",
+        "ordinal": 1,
+        "text": "Ce mijloc de transport utilizați cel mai frecvent pentru deplasarea în oraș?",
+        "type": "single_choice",
+        "isRequired": true,
+        "helpText": null,
+        "options": [
+          {
+            "id": "01M3JMZC00Y9CTNMQ1MBDR40YR",
+            "ordinal": 1,
+            "text": "Mersul pe jos"
+          },
+          {
+            "id": "01M3JMZC00Y9CTNMQ1MBDR40YS",
+            "ordinal": 2,
+            "text": "Bicicletă / Trotinetă"
+          },
+          {
+            "id": "01M3JMZC00Y9CTNMQ1MBDR40YT",
+            "ordinal": 3,
+            "text": "Autovehicul personal"
+          },
+          {
+            "id": "01M3JMZC00Y9CTNMQ1MBDR40YV",
+            "ordinal": 4,
+            "text": "Transport public / Microbuz"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "01M3JMZC00Y9CTNMQ1MBDR40YW",
+    "title": "[DEMO] Consultare încheiată: Evaluarea activităților culturale de vară",
+    "description": "Sondaj demonstrativ finalizat pentru verificarea stării de arhivare (closed). Nu mai acceptă voturi sau modificări.",
+    "category": "Cultură & Timp Liber",
+    "startAt": "2026-06-01T08:00:00.000Z",
+    "endAt": "2026-08-31T23:59:59.000Z",
+    "status": "closed",
+    "resultsVisibility": "after_close",
+    "powEnabled": false,
+    "questions": [
+      {
+        "id": "01M3JMZC00Y9CTNMQ1MBDR40YX",
+        "ordinal": 1,
+        "text": "Ați participat la evenimentele culturale organizate în perioada estivală?",
+        "type": "single_choice",
+        "isRequired": true,
+        "helpText": null,
+        "options": [
+          {
+            "id": "01M3JMZC00Y9CTNMQ1MBDR40YY",
+            "ordinal": 1,
+            "text": "Da, la mai multe evenimente"
+          },
+          {
+            "id": "01M3JMZC00Y9CTNMQ1MBDR40YZ",
+            "ordinal": 2,
+            "text": "Da, la un singur eveniment"
+          },
+          {
+            "id": "01M3JMZC00Y9CTNMQ1MBDR40Z0",
+            "ordinal": 3,
+            "text": "Nu am participat"
+          }
+        ]
+      }
+    ]
+  }
+]

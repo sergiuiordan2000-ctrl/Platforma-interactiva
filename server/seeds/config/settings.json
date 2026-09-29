@@ -1,0 +1,6 @@
+[
+  { "key": "registry.recipient_email", "value": null },
+  { "key": "registry.flow_enabled", "value": false },
+  { "key": "registry.agreement_reference", "value": null },
+  { "key": "registry.primaria_mode", "value": "none" }
+]
