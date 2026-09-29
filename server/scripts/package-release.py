@@ -6,14 +6,32 @@ package.json minimal. Fără .env, fără secrete, fără date.
 
 Rulare (din rădăcina repository-ului, după `npm run build` și `npm run build -w server`):
     python3 server/scripts/package-release.py
+    python3 server/scripts/package-release.py --bootstrap-email <adresă> [--bootstrap-name "Nume"]
+
+Cu --bootstrap-email, package.json din pachet primește scriptul `civic-bootstrap-admin`, rulat din
+cPanel → Node.js → „Run JS script” (care nu acceptă argumente). Parola temporară apare numai în
+ieșirea comenzii, nu într-un fișier (B3 §6). Adresa ajunge numai în pachet, nu în repository.
 """
-import hashlib, json, pathlib, subprocess, sys, zipfile
+import argparse, hashlib, json, pathlib, re, shlex, subprocess, sys, zipfile
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 INCLUDE = ['dist', 'server/dist', 'server/migrations', 'server/seeds']
 FORBIDDEN = ('.env', '.map')
 
 def main() -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument('--bootstrap-email')
+    ap.add_argument('--bootstrap-name')
+    a = ap.parse_args()
+    if a.bootstrap_name and not a.bootstrap_email:
+        print('--bootstrap-name cere --bootstrap-email', file=sys.stderr)
+        return 2
+    if a.bootstrap_email and not re.fullmatch(r'[^@\s"\'`$\\]+@[^@\s"\'`$\\]+\.[^@\s"\'`$\\]+', a.bootstrap_email):
+        print('adresă de e-mail invalidă', file=sys.stderr)
+        return 2
+    if a.bootstrap_name and re.search(r'["`$\\\n]', a.bootstrap_name):
+        print('numele nu poate conține ghilimele, `, $, \\ sau linii noi', file=sys.stderr)
+        return 2
     for d in INCLUDE:
         if not (ROOT / d).is_dir():
             print(f'lipsește {d}: rulați întâi build-ul', file=sys.stderr)
@@ -37,7 +55,11 @@ def main() -> int:
                         continue
                     z.write(p, rel)
                     files.append(rel)
-        z.writestr('package.json', json.dumps({'name': 'turnu-magurele-civic', 'private': True, 'version': sha}, indent=2) + '\n')
+        pkg = {'name': 'turnu-magurele-civic', 'private': True, 'version': sha}
+        if a.bootstrap_email:
+            cmd = ['node', 'server/dist/app.js', 'bootstrap-admin', '--email', a.bootstrap_email, '--name', a.bootstrap_name or 'Administrator']
+            pkg['scripts'] = {'civic-bootstrap-admin': ' '.join(shlex.quote(c) for c in cmd)}
+        z.writestr('package.json', json.dumps(pkg, indent=2, ensure_ascii=False) + '\n')
         z.writestr('RELEASE.txt', f'Turnu Magurele Civic\ncommit: {sha}{" (modificari necomise)" if dirty else ""}\nstartup: server/dist/app.js\n')
     digest = hashlib.sha256(out.read_bytes()).hexdigest()
     print(f'{out.relative_to(ROOT)}  ({len(files)} fișiere, {out.stat().st_size // 1024} KB)')
