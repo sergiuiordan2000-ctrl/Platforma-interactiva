@@ -106,7 +106,7 @@ jobs:
           # artefactul rulează fără node_modules (ca pe hosting)
           mkdir -p "$RUNNER_TEMP/deploy/server"
           cp -r dist "$RUNNER_TEMP/deploy/dist"
-          cp -r server/dist server/migrations server/seeds "$RUNNER_TEMP/deploy/server/"
+          cp -r server/dist server/migrations server/seeds server/data "$RUNNER_TEMP/deploy/server/"
           cd "$RUNNER_TEMP/deploy"
           node --env-file="$RUNNER_TEMP/civic.env" server/dist/app.js migrate
           node --env-file="$RUNNER_TEMP/civic.env" server/dist/app.js migrate
