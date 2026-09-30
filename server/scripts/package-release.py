@@ -8,7 +8,9 @@ Rulare (din rădăcina repository-ului, după `npm run build` și `npm run build
     python3 server/scripts/package-release.py
     python3 server/scripts/package-release.py --bootstrap-email <adresă> [--bootstrap-name "Nume"]
 
-Cu --bootstrap-email, package.json din pachet primește scriptul `civic-bootstrap-admin`, rulat din
+Scripturile npm din package.json (5.4: civic-seed-demo, civic-show-latest-code, civic-outbox-process,
+civic-purge-retention, civic-report-pow-*) se rulează din cPanel → Node.js → „Run JS script”.
+Cu --bootstrap-email, package.json din pachet primește și scriptul `civic-bootstrap-admin`, rulat din
 cPanel → Node.js → „Run JS script” (care nu acceptă argumente). Parola temporară apare numai în
 ieșirea comenzii, nu într-un fișier (B3 §6). Adresa ajunge numai în pachet, nu în repository.
 """
@@ -56,9 +58,21 @@ def main() -> int:
                     z.write(p, rel)
                     files.append(rel)
         pkg = {'name': 'turnu-magurele-civic', 'private': True, 'version': sha}
+        # 5.4: comenzile fără argumente pentru cPanel → Setup Node.js App → „Run JS script” (fără Terminal pe staging)
+        app = 'node server/dist/app.js'
+        pkg['scripts'] = {
+            'civic-migrate-status': f'{app} migrate:status',
+            'civic-seed-demo': f'{app} seed:demo',
+            'civic-show-latest-code': f'{app} dev:show-code --latest',
+            'civic-outbox-process': f'{app} outbox:process',
+            'civic-purge-retention': f'{app} purge:retention',
+            'civic-report-pow-status': f'{app} settings:report-pow status',
+            'civic-report-pow-on': f'{app} settings:report-pow on',
+            'civic-report-pow-off': f'{app} settings:report-pow off',
+        }
         if a.bootstrap_email:
             cmd = ['node', 'server/dist/app.js', 'bootstrap-admin', '--email', a.bootstrap_email, '--name', a.bootstrap_name or 'Administrator']
-            pkg['scripts'] = {'civic-bootstrap-admin': ' '.join(shlex.quote(c) for c in cmd)}
+            pkg['scripts']['civic-bootstrap-admin'] = ' '.join(shlex.quote(c) for c in cmd)
         z.writestr('package.json', json.dumps(pkg, indent=2, ensure_ascii=False) + '\n')
         z.writestr('RELEASE.txt', f'Turnu Magurele Civic\ncommit: {sha}{" (modificari necomise)" if dirty else ""}\nstartup: server/dist/app.js\n')
     digest = hashlib.sha256(out.read_bytes()).hexdigest()

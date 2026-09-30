@@ -286,6 +286,19 @@ describe('pornirea aplicației (DN-20, D10-3)', () => {
     assert.equal(run(['check:no-demo'], prod).status, 1);
   });
 
+  it('CLI: dev:show-code (inclusiv --latest, 5.4) refuzat în producție (T-A3); în dezvoltare citește ultimul cod', async () => {
+    const prod = { APP_ENV: 'production', PUBLIC_BASE_URL: 'https://exemplu.test' };
+    assert.equal(run(['dev:show-code', '--latest'], prod).status, 2);
+    assert.equal(run(['dev:show-code', '--email', 'x@exemplu.test'], prod).status, 2);
+    await h.pool.query(
+      "INSERT INTO email_outbox (id, kind, recipient, subject, body_text, status, created_at) VALUES (?, 'citizen_login_code', 'ultim@exemplu.test', 'Cod', 'Codul dumneavoastră este: 424242', 'simulated', NOW(3))",
+      [ulid(90)],
+    );
+    const dev = run(['dev:show-code', '--latest'], {});
+    assert.equal(dev.status, 0, dev.stderr);
+    assert.match(dev.stdout, /424242/);
+  });
+
   it('fără un secret → refuz la pornire, fără valoarea secretelor în mesaj', () => {
     const env = testEnv({ DATABASE_URL: testDatabaseUrl(), TOTP_ENC_KEY: undefined });
     const res = spawnSync(process.execPath, ['--import', 'tsx', join(APP_ROOT, 'server', 'src', 'main.ts'), 'migrate:status'], {

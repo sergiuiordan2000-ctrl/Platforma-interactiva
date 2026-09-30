@@ -220,16 +220,20 @@ async function runShowCode(config: Config, out: Out, args: string[]): Promise<nu
     return 2;
   }
   const email = argValue(args, '--email');
-  if (!email) {
-    out.error('Utilizare: dev:show-code --email <adresa cetățeanului>');
+  // 5.4: `--latest` = ultimul cod emis, fără adresă (pentru „Run JS script” din cPanel, care nu acceptă argumente;
+  // adresa testerului nu intră în pachet). Tot numai în afara producției.
+  const latest = args.includes('--latest');
+  if (!email && !latest) {
+    out.error('Utilizare: dev:show-code --email <adresa cetățeanului>   sau   dev:show-code --latest');
     return 2;
   }
   const handle = createDb(config.databaseUrl, { connectionLimit: 1 });
   try {
     const [rows] = await handle.pool.query(
       `SELECT body_text AS b, created_at AS c FROM email_outbox
-       WHERE kind = 'citizen_login_code' AND recipient = ? AND body_text IS NOT NULL ORDER BY created_at DESC LIMIT 1`,
-      [email.trim().toLowerCase()],
+       WHERE kind = 'citizen_login_code' ${latest ? '' : 'AND recipient = ?'} AND body_text IS NOT NULL
+       ORDER BY created_at DESC, id DESC LIMIT 1`,
+      latest ? [] : [email!.trim().toLowerCase()],
     );
     const row = (rows as Array<{ b: string; c: Date }>)[0];
     const code = row?.b.match(/\b(\d{6})\b/)?.[1];
