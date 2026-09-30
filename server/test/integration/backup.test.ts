@@ -83,6 +83,9 @@ before(async () => {
   await migrate(h.pool, MIGRATIONS_DIR);
   await seedConfig(h.pool, SEEDS_DIR);
   await seedDemo(h.pool, SEEDS_DIR, 'development');
+  // 5.4: seed:demo creează și 4 sesizări demo (TM-001…004); scenariul de mai jos își numerotează singur
+  // sesizările (TM-001…004), deci cele demo se scot aici (adaptare de test, raportată în FAZA_5_4_RAPORT).
+  await h.pool.query('DELETE FROM reports WHERE is_demo = TRUE');
   const root = mkdtempSync(join(tmpdir(), 'civic-backup-test-'));
   backupDir = join(root, 'backups');
   storageDir = join(root, 'storage');

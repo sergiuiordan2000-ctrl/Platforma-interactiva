@@ -16,6 +16,7 @@ import { schemaStatus } from './db/migrations.ts';
 import { checkNoDemo } from './db/noDemo.ts';
 import { FRONTEND_DIST_DIR, MIGRATIONS_DIR } from './paths.ts';
 import { loadAnnouncementImages } from './images.ts';
+import { DEFAULT_UAT_FILE, loadUatBoundary } from './uat.ts';
 import { APP_VERSION } from './version.ts';
 
 function fail(message: string): never {
@@ -51,7 +52,14 @@ async function startServer(config: Config): Promise<void> {
     config,
     health,
     frontendDir: FRONTEND_DIST_DIR,
-    ctx: { config, pool: handle.pool, now: () => new Date(), announcementImages: loadAnnouncementImages(FRONTEND_DIST_DIR) },
+    ctx: {
+      config,
+      pool: handle.pool,
+      now: () => new Date(),
+      announcementImages: loadAnnouncementImages(FRONTEND_DIST_DIR),
+      // 2.12: fără limita UAT aplicația nu pornește
+      uat: loadUatBoundary(config.uatBoundaryFile ?? DEFAULT_UAT_FILE),
+    },
   });
 
   const shutdown = async (signal: string) => {

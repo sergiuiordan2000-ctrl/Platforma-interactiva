@@ -1,0 +1,34 @@
+[
+  {
+    "id": "01M3REBZR0579XHF7797ZT8KWQ",
+    "categoryId": "iluminat",
+    "description": "[DEMO] Corp de iluminat public nefuncțional; zona rămâne întunecată seara.",
+    "locationText": "Str. 1 Mai, în dreptul blocului F25",
+    "lat": 43.750247,
+    "lng": 24.869761
+  },
+  {
+    "id": "01M3REBZR1J8SF7B5E3BPAST0S",
+    "categoryId": "drumuri",
+    "description": "[DEMO] Groapă adâncă pe banda de rulare, risc de avariere a autovehiculelor.",
+    "locationText": "Str. Chimiei, în fața Școlii nr. 4",
+    "lat": 43.757911,
+    "lng": 24.867503
+  },
+  {
+    "id": "01M3REBZR2877BGK76ZM25P148",
+    "categoryId": "spatii_verzi",
+    "description": "[DEMO] Creangă uscată de mari dimensiuni, cu risc de cădere peste aleea pietonală.",
+    "locationText": "Str. Pompierilor, la intrarea în Colegiul Unirea",
+    "lat": 43.744957,
+    "lng": 24.868004
+  },
+  {
+    "id": "01M3REBZR39DP15XECMD5BYHQZ",
+    "categoryId": "semnalizare",
+    "description": "[DEMO] Indicator rutier „Cedează trecerea” căzut, intersecția rămâne nesemnalizată.",
+    "locationText": "Str. Oltului, la intersecția cu Str. Neamului",
+    "lat": 43.767821,
+    "lng": 24.84645
+  }
+]

@@ -1,7 +1,8 @@
 // Comenzile CLI (B2 §2): același artefact, alt punct de intrare.
 //   node server/dist/app.js <comandă>
 // În 5.1: migrate, migrate:status, seed:config, seed:demo, check:no-demo, backup:db, restore:db.
-// Comenzile următoare (backup, purge, outbox…) se adaugă în subfazele lor.
+// 5.4: outbox:process, purge:retention (sesizări, audit administrativ, blocări expirate, fișiere temporare),
+// purge:pow, settings:report-pow (ALTCHA la sesizări, decizia A1 din 30.09.2026).
 
 import type { Config } from './config.ts';
 import { BootstrapRefusedError, bootstrapAdmin } from './accounts.ts';
@@ -14,6 +15,11 @@ import { migrate, schemaStatus } from './db/migrations.ts';
 import { checkNoDemo } from './db/noDemo.ts';
 import { SeedRefusedError, seedConfig, seedDemo } from './db/seeds.ts';
 import { MIGRATIONS_DIR, SEEDS_DIR } from './paths.ts';
+import type { AppContext } from './context.ts';
+import { purgePow, purgeRetention } from './maintenance.ts';
+import { processDue } from './reports/outbox.ts';
+import { REPORT_POW_KEY, isReportPowEnabled, setSetting } from './settings.ts';
+import { writeAudit } from './audit.ts';
 
 export const CLI_COMMANDS = [
   'migrate',
@@ -26,6 +32,10 @@ export const CLI_COMMANDS = [
   'bootstrap-admin',
   'dev:show-code',
   'dev:e2e-setup',
+  'outbox:process',
+  'purge:retention',
+  'purge:pow',
+  'settings:report-pow',
 ] as const;
 
 export type CliCommand = (typeof CLI_COMMANDS)[number];
@@ -73,6 +83,40 @@ export async function runCli(
       case 'seed:demo': {
         const res = await seedDemo(handle.pool, SEEDS_DIR, config.appEnv);
         out.log(`seed:demo (rânduri noi): ${JSON.stringify(res)}`);
+        return 0;
+      }
+      case 'outbox:process': {
+        const ctx: AppContext = { config, pool: handle.pool, now: () => new Date() };
+        const res = await processDue(ctx);
+        out.log(`outbox:process: ${JSON.stringify(res)}`);
+        return 0;
+      }
+      case 'purge:retention': {
+        const ctx: AppContext = { config, pool: handle.pool, now: () => new Date() };
+        const res = await purgeRetention(ctx);
+        out.log(`purge:retention: ${JSON.stringify(res)}`);
+        return 0;
+      }
+      case 'purge:pow': {
+        const n = await purgePow({ config, pool: handle.pool, now: () => new Date() });
+        out.log(`purge:pow: ${n} provocări expirate șterse`);
+        return 0;
+      }
+      case 'settings:report-pow': {
+        const arg = args[0];
+        if (arg !== 'on' && arg !== 'off' && arg !== 'status') {
+          out.error('Utilizare: settings:report-pow on|off|status');
+          return 2;
+        }
+        if (arg !== 'status') {
+          const now = new Date();
+          await setSetting(handle.pool, REPORT_POW_KEY, arg === 'on', now, null);
+          await writeAudit(handle.pool, now, {
+            actorType: 'system', action: 'settings.report_pow', targetType: 'settings', targetId: REPORT_POW_KEY,
+            details: { enabled: arg === 'on', via: 'cli' },
+          });
+        }
+        out.log(`ALTCHA la sesizări: ${(await isReportPowEnabled(handle.pool)) ? 'PORNIT' : 'OPRIT'}`);
         return 0;
       }
       case 'check:no-demo': {

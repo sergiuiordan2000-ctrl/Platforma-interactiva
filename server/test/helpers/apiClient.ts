@@ -16,16 +16,26 @@ export class Clock {
   }
 }
 
-export async function makeApp(h: DbHandle, clock: Clock, env: Record<string, string> = {}) {
+export async function makeApp(
+  h: DbHandle,
+  clock: Clock,
+  env: Record<string, string> = {},
+  extra: Partial<Omit<AppContext, 'config' | 'pool' | 'now'>> = {},
+) {
   const config: Config = loadConfig(testEnv({ DATABASE_URL: testDatabaseUrl(), ...env }));
-  const ctx: AppContext = { config, pool: h.pool, now: clock.now };
+  const ctx: AppContext = { config, pool: h.pool, now: clock.now, ...extra };
   const app = await buildApp({ config, health: async () => 'ok', logger: false, ctx });
   return { app, ctx, config };
 }
 
 export class Client {
   cookie: string | undefined;
-  constructor(private app: FastifyInstance, private origin = 'http://localhost:3000') {}
+  constructor(
+    private app: FastifyInstance,
+    private origin = 'http://localhost:3000',
+    /** IP-ul simulat al clientului (limitele pe IP, B7). */
+    public ip = '127.0.0.1',
+  ) {}
 
   private store(res: LightMyRequestResponse) {
     const set = res.headers['set-cookie'];
@@ -39,7 +49,9 @@ export class Client {
   }
 
   async get(url: string) {
-    return this.store(await this.app.inject({ method: 'GET', url, headers: this.cookie ? { cookie: this.cookie } : {} }));
+    return this.store(
+      await this.app.inject({ method: 'GET', url, remoteAddress: this.ip, headers: this.cookie ? { cookie: this.cookie } : {} }),
+    );
   }
 
   async send(method: 'POST' | 'PUT' | 'PATCH' | 'DELETE', url: string, body?: unknown, headers: Record<string, string> = {}) {
@@ -47,7 +59,8 @@ export class Client {
       await this.app.inject({
         method,
         url,
-        payload: body === undefined ? undefined : (body as object),
+        remoteAddress: this.ip,
+        payload: body === undefined ? undefined : Buffer.isBuffer(body) ? body : (body as object),
         headers: {
           'x-civic-request': '1',
           origin: this.origin,

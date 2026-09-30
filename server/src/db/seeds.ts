@@ -172,6 +172,23 @@ export async function seedDemo(
         }
       }
     }
+    // Sesizările demo (Faza 5.4, decizia A din 30.09.2026): poziții reale, verificate de proprietar.
+    // Retenția de 45 de zile li se aplică normal; după ștergere, seed:demo le recreează cu numere TM NOI
+    // (D25–D26: un număr nu se refolosește). Fără autor, fără fotografii, fără transmitere.
+    const reports = readJson<Row[]>(dir, 'reports.json');
+    for (const r of reports) {
+      const [exists] = await conn.query('SELECT id FROM reports WHERE id = ?', [r.id]);
+      if ((exists as unknown[]).length > 0) continue;
+      const [counter] = await conn.query('SELECT `last_value` AS v FROM report_counter WHERE id = 1 FOR UPDATE');
+      const next = Number((counter as Array<{ v: number }>)[0]!.v) + 1;
+      await conn.query('UPDATE report_counter SET `last_value` = ? WHERE id = 1', [next]);
+      await ins('reports', {
+        id: r.id, author_account_id: null, reference_number: `TM-${String(next).padStart(3, '0')}`,
+        category_id: r.categoryId, description: r.description, location_text: r.locationText,
+        lat: Number(r.lat).toFixed(6), lng: Number(r.lng).toFixed(6), location_source: 'pin',
+        location_approximate: false, resolution_status: 'new', is_demo: true, created_at: now, updated_at: now,
+      });
+    }
     await conn.commit();
     return counts;
   } catch (err) {

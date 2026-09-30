@@ -149,7 +149,7 @@ describe('seed-uri (B1 §5.3, D10)', () => {
     assert.ok((first.announcements ?? 0) > 0);
     const second = await seedDemo(h.pool, SEEDS_DIR, 'development');
     assert.deepEqual(second, {});
-    for (const t of ['announcements', 'directory_institution', 'directory_departments', 'directory_services', 'directory_links', 'quickdial_categories', 'quickdial_contacts', 'surveys']) {
+    for (const t of ['announcements', 'directory_institution', 'directory_departments', 'directory_services', 'directory_links', 'quickdial_categories', 'quickdial_contacts', 'surveys', 'reports']) {
       const notDemo = await q<{ n: number }>(`SELECT COUNT(*) AS n FROM \`${t}\` WHERE is_demo = FALSE`);
       assert.equal(Number(notDemo[0]!.n), 0, t);
     }
@@ -166,6 +166,11 @@ describe('seed-uri (B1 §5.3, D10)', () => {
 });
 
 describe('constrângeri (B1 §4)', () => {
+  // 5.4: seed:demo creează și sesizări demo (TM-001…004); testele de mai jos își numerotează singure
+  // sesizările, deci cele demo se scot (adaptare de test, raportată în FAZA_5_4_RAPORT).
+  before(async () => {
+    await h.pool.query('DELETE FROM reports WHERE is_demo = TRUE');
+  });
   const citizen = async (n: number, email: string) =>
     h.pool.query(
       "INSERT INTO citizen_accounts (id, email, email_normalized, status, policy_version, policy_accepted_at, created_at) VALUES (?, ?, ?, 'active', 'v1', ?, ?)",

@@ -16,7 +16,7 @@ export const sha256Hex = (data: string | Buffer) => createHash('sha256').update(
 export const hmacHex = (key: Buffer | string, data: string) => createHmac('sha256', key).update(data).digest('hex');
 
 /** Chei derivate (HKDF) din TOTP_ENC_KEY, câte una per scop: fără variabile de mediu noi. */
-export function deriveKey(master: Buffer, purpose: 'recovery-codes' | 'citizen-codes' | 'email-hash'): Buffer {
+export function deriveKey(master: Buffer, purpose: 'recovery-codes' | 'citizen-codes' | 'email-hash' | 'unsubscribe'): Buffer {
   return Buffer.from(hkdfSync('sha256', master, Buffer.alloc(0), `civic:${purpose}`, 32));
 }
 

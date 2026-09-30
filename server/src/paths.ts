@@ -15,3 +15,5 @@ export const FRONTEND_DIST_DIR = resolve(APP_ROOT, 'dist');
 export const MIGRATIONS_DIR = resolve(APP_ROOT, 'server', 'migrations');
 /** Seed-urile (config / demo). */
 export const SEEDS_DIR = resolve(APP_ROOT, 'server', 'seeds');
+/** Datele de referință livrate cu aplicația (de ex. limita UAT, 5.4.2). */
+export const DATA_DIR = resolve(APP_ROOT, 'server', 'data');

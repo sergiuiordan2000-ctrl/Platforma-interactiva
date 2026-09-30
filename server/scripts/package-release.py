@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Pachetul de deploy (staging): o arhivă .zip cu tot ce rulează pe server, fără node_modules.
 
-Conținut: dist/ (frontend), server/dist/ (artefactul app.js), server/migrations/, server/seeds/,
+Conținut: dist/ (frontend), server/dist/ (artefactul app.js), server/migrations/, server/seeds/, server/data/,
 package.json minimal. Fără .env, fără secrete, fără date.
 
 Rulare (din rădăcina repository-ului, după `npm run build` și `npm run build -w server`):
@@ -15,7 +15,7 @@ ieșirea comenzii, nu într-un fișier (B3 §6). Adresa ajunge numai în pachet,
 import argparse, hashlib, json, pathlib, re, shlex, subprocess, sys, zipfile
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
-INCLUDE = ['dist', 'server/dist', 'server/migrations', 'server/seeds']
+INCLUDE = ['dist', 'server/dist', 'server/migrations', 'server/seeds', 'server/data']
 FORBIDDEN = ('.env', '.map')
 
 def main() -> int:
