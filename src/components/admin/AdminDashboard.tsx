@@ -62,8 +62,8 @@ const MODULE_CARDS: ModuleCardConfig[] = [
   },
   {
     tab: 'reports',
-    title: 'Moderare Sesizări',
-    description: 'Evaluarea, aprobarea și respingerea sesizărilor cetățenești (Etapa 3E).',
+    title: 'Sesizări',
+    description: 'Stadiile, asumarea / preluarea și notele interne ale sesizărilor (fără moderare, 2.3).',
     icon: <Layers className="w-5 h-5" />,
     accentClasses: 'bg-blue-50 text-blue-700 border-blue-200',
     viewPermission: 'reports.view',

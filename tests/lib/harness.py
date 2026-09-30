@@ -116,6 +116,79 @@ def db_exec(sql, params=None):
         raise RuntimeError('db_exec: ' + r.stderr[-300:])
 
 
+def db_query(sql, params=None):
+    """Faza 5.4: o interogare pe DB-ul de test; întoarce rândurile (listă de dicționare, valori JSON)."""
+    import json as _json
+    db = os.environ.get('CIVIC_TEST_DATABASE_URL')
+    if not db or 'test' not in db.rsplit('/', 1)[-1].lower():
+        raise RuntimeError('db_query cere CIVIC_TEST_DATABASE_URL (un DB cu „test” în nume).')
+    script = ("const m=require('mysql2/promise');(async()=>{const c=await m.createConnection(process.env.DBURL);"
+              "const [r]=await c.query(process.env.SQL, JSON.parse(process.env.PARAMS));console.log(JSON.stringify(r));await c.end();})()"
+              ".catch(e=>{console.error(e.message);process.exit(1)})")
+    r = subprocess.run(['node', '-e', script], cwd=REPO, capture_output=True, text=True,
+                       env=dict(os.environ, DBURL=db, SQL=sql, PARAMS=_json.dumps(params or [])))
+    if r.returncode != 0:
+        raise RuntimeError('db_query: ' + r.stderr[-300:])
+    return _json.loads(r.stdout)
+
+
+# ——— Faza 5.4: conturi și sesizări prin API / interfață (serverul real) ———
+
+CSRF = {'X-Civic-Request': '1'}
+_LAST_TOTP = {'step': 0}
+
+
+def citizen_code(email):
+    """Ultimul cod de cont trimis (modul `simulated`: se citește din coadă, ca `dev:show-code`)."""
+    rows = db_query("SELECT body_text AS b FROM email_outbox WHERE kind = 'citizen_login_code' AND recipient = ? "
+                    "ORDER BY created_at DESC, id DESC LIMIT 1", [email.lower()])
+    return re.search(r'\b(\d{6})\b', rows[0]['b']).group(1)
+
+
+def citizen_login_api(context, url, email):
+    """Autentificarea cetățeanului prin API (cookie-ul rămâne în contextul browserului)."""
+    r = context.request.post(url + '/api/v1/citizen/auth/start', headers=CSRF,
+                             data={'email': email, 'policyAccepted': True, 'policyVersion': '2026-10'})
+    assert r.status == 202, r.text()
+    r = context.request.post(url + '/api/v1/citizen/auth/verify', headers=CSRF, data={'email': email, 'code': citizen_code(email)})
+    assert r.status == 200, r.text()
+
+
+def form_token(context, url):
+    """Jetonul „timp minim” (B7): se așteaptă 8,5 s după emitere; jetonul se poate refolosi 24 h."""
+    r = context.request.get(url + '/api/v1/citizen/reports/form-token')
+    assert r.status == 200, r.text()
+    time.sleep(8.5)
+    return r.json()['formStartedAt']
+
+
+def submit_report_api(context, url, token, description, location, transmit=False, notify=False, category='iluminat'):
+    import uuid
+    data = {'categoryId': category, 'description': description, 'location': location, 'notifyOptIn': notify,
+            'transmitToCityHall': transmit, 'hp': '', 'formStartedAt': token}
+    r = context.request.post(url + '/api/v1/citizen/reports', headers={**CSRF, 'Idempotency-Key': str(uuid.uuid4())},
+                             multipart={'data': json.dumps(data)})
+    return r
+
+
+def admin_login(page, url, backend, email):
+    """Autentificarea Admin în interfață; super_admin cere TOTP (un cod nou pentru fiecare autentificare)."""
+    page.goto(url + '/#admin'); page.wait_for_load_state('networkidle')
+    out = page.get_by_role('button', name='Ieșire (Logout)')
+    if out.count():
+        out.first.click(); page.wait_for_timeout(300)
+    page.fill('input[type="email"]', email)
+    page.fill('input[type="password"]', backend['password'])
+    page.click('button[type="submit"]'); page.wait_for_timeout(600)
+    if email == backend['admin']:
+        while int(time.time() // 30) <= _LAST_TOTP['step']:
+            time.sleep(1)
+        _LAST_TOTP['step'] = int(time.time() // 30)
+        page.fill('input[aria-label="Cod de 6 cifre"]', totp_code(backend['totp_secret']))
+        page.click('button[type="submit"]'); page.wait_for_timeout(600)
+    page.wait_for_selector('text=Panou de Administrare Informații')
+
+
 def _port_in_use(port):
     with socket.socket() as s:
         return s.connect_ex(('127.0.0.1', port)) == 0
@@ -156,8 +229,13 @@ def _wait_port(port, timeout=60):
 
 
 @contextmanager
-def dev_server():
-    proc = _start_server(['npx', 'vite', '--port', str(PORT), '--strictPort', '--host', '127.0.0.1'], PORT)
+def dev_server(api_proxy=None):
+    """Vite dev. Faza 5.4: `api_proxy` = URL-ul serverului Node (backend_server), pentru `/api` prin proxy."""
+    env = dict(os.environ, CIVIC_API_PROXY=api_proxy) if api_proxy else None
+    if _port_in_use(PORT):
+        raise RuntimeError(f'Portul {PORT} este deja ocupat (posibil un server Vite rămas dintr-o rulare anterioară).')
+    proc = subprocess.Popen(['npx', 'vite', '--port', str(PORT), '--strictPort', '--host', '127.0.0.1'], cwd=REPO,
+                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True, env=env)
     try:
         if not _wait_port(PORT):
             raise RuntimeError('Vite nu a pornit')

@@ -21,8 +21,14 @@ import {
   AlertTriangle
 } from 'lucide-react';
 import { AppView } from '../types/navigation';
-import { PublicMapReport, ReportCategory } from '../types/report';
-import { reportService, TURNU_MAGURELE_CENTER } from '../services/reportService';
+import {
+  APPROX_ZONE_RADIUS_M,
+  STATUS_LABELS,
+  TURNU_MAGURELE_CENTER,
+  reportService,
+  type PublicMapReport,
+  type ReportCategory,
+} from '../services/reportService';
 
 interface MapViewProps {
   onNavigate: (view: AppView) => void;
@@ -30,7 +36,7 @@ interface MapViewProps {
 
 // Mapare de culori vibrante pentru fiecare categorie de sesizare
 const CATEGORY_COLORS: Record<string, { bg: string; text: string; hex: string; ring: string }> = {
-  // A-10: cheile corespund exact ID-urilor din src/data/mockReportCategories.ts (8 categorii, culori distincte).
+  // A-10: cheile corespund ID-urilor categoriilor (server/seeds/config/report-categories.json; 8 categorii).
   iluminat: { bg: 'bg-amber-500', text: 'text-amber-900', hex: '#f59e0b', ring: 'ring-amber-200' },
   drumuri: { bg: 'bg-rose-500', text: 'text-rose-900', hex: '#f43f5e', ring: 'ring-rose-200' },
   trotuare: { bg: 'bg-orange-500', text: 'text-orange-900', hex: '#ea580c', ring: 'ring-orange-200' },
@@ -67,32 +73,50 @@ const escapeHtml = (value: unknown): string =>
   String(value ?? '').replace(/[&<>"']/g, (ch) => HTML_ESCAPES[ch]);
 
 /**
- * ETAPA 6.3 (C3) — Sursa fotografiei este acceptată DOAR ca imagine inline base64 în formatele
- * produse de compresia aplicației (JPEG/PNG/WebP). Orice altă valoare este ignorată (popup fără foto).
+ * ETAPA 6.3 (C3), actualizat la 5.4 — Sursa fotografiei este acceptată DOAR ca URL al endpoint-ului
+ * public al aplicației (`/api/v1/public/photos/<ULID>`, aceeași origine). Orice altă valoare este ignorată.
  */
-const SAFE_IMAGE_DATA_URL = /^data:image\/(?:jpeg|png|webp);base64,[A-Za-z0-9+/]+={0,2}$/;
+const SAFE_PHOTO_URL = /^\/api\/v1\/public\/photos\/[0-9A-HJKMNP-TV-Z]{26}$/;
 
 const getSafeImageSrc = (url: unknown): string | null =>
-  typeof url === 'string' && SAFE_IMAGE_DATA_URL.test(url) ? url : null;
+  typeof url === 'string' && SAFE_PHOTO_URL.test(url) ? url : null;
+
+const STATUS_BADGE: Record<PublicMapReport['status'], string> = {
+  new: 'bg-blue-50 text-blue-800 border-blue-200',
+  in_analysis: 'bg-amber-50 text-amber-800 border-amber-200',
+  resolved: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+};
 
 export const MapView: React.FC<MapViewProps> = ({ onNavigate }) => {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const markersLayerRef = useRef<L.LayerGroup | null>(null);
 
-  const [publicReports, setPublicReports] = useState<PublicMapReport[]>(() => 
-    reportService.getPublicMapReports()
-  );
-  const [categories] = useState<ReportCategory[]>(() => reportService.getCategories());
+  // Faza 5.4: datele vin de la server (B2 §3); reîncărcare explicită
+  const [publicReports, setPublicReports] = useState<PublicMapReport[]>([]);
+  const [categories, setCategories] = useState<ReportCategory[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [mapLoaded, setMapLoaded] = useState<boolean>(false);
   const [tileError, setTileError] = useState<boolean>(false);
 
-  // Ascultare modificări din reportService pentru sincronizare automată
+  const load = async () => {
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const [reports, cats] = await Promise.all([reportService.getPublicMapReports(), reportService.getCategories()]);
+      setPublicReports(reports);
+      setCategories(cats);
+    } catch (err) {
+      setLoadError(err instanceof Error ? err.message : 'Sesizările nu au putut fi încărcate.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    return reportService.subscribe(() => {
-      setPublicReports(reportService.getPublicMapReports());
-    });
+    void load();
   }, []);
 
   // Filtrare sesizări publice
@@ -165,10 +189,10 @@ export const MapView: React.FC<MapViewProps> = ({ onNavigate }) => {
     markersLayer.clearLayers();
 
     filteredReports.forEach((report) => {
-      const lat = report.publicLocation.latitude;
-      const lng = report.publicLocation.longitude;
+      const lat = report.publicLocation.lat;
+      const lng = report.publicLocation.lng;
 
-      if (!lat || !lng) return;
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
 
       const color = CATEGORY_COLORS[report.categoryId] || DEFAULT_CATEGORY_COLOR;
 
@@ -177,8 +201,10 @@ export const MapView: React.FC<MapViewProps> = ({ onNavigate }) => {
       const safeReferenceNumber = escapeHtml(report.referenceNumber);
       const safeCategoryName = escapeHtml(report.categoryName);
       const safeDescription = escapeHtml(report.publicDescription);
-      const safeAddress = escapeHtml(report.publicLocation.addressOrDetails);
-      const safePhotoSrc = report.photo ? getSafeImageSrc(report.photo.dataUrl) : null;
+      const safeAddress = escapeHtml(report.publicLocation.text);
+      const safePhotoSrc = getSafeImageSrc(report.photoUrl);
+      const safeStatus = escapeHtml(STATUS_LABELS[report.status] ?? '');
+      const statusClass = STATUS_BADGE[report.status] ?? STATUS_BADGE.new;
 
       // Creare pin HTML personalizat cu iconiță și identificator civic
       const markerHtml = `
@@ -224,9 +250,7 @@ export const MapView: React.FC<MapViewProps> = ({ onNavigate }) => {
                   alt="${safeReferenceNumber}"
                   class="w-full h-full object-cover"
                 />
-                <div class="absolute top-2 right-2 bg-slate-950/80 backdrop-blur-sm text-white text-[9px] px-1.5 py-0.5 rounded font-mono font-bold">
-                  Foto optimizată (3C)
-                </div>
+
               </div>
             `
               : ''
@@ -240,6 +264,10 @@ export const MapView: React.FC<MapViewProps> = ({ onNavigate }) => {
                 ${safeCategoryName}
               </span>
             </div>
+            <div class="flex items-center gap-1.5">
+              <span class="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full border ${statusClass}">${safeStatus}</span>
+              ${report.locationApproximate ? '<span class="text-[10px] text-amber-700 font-semibold">Zonă aproximativă (după adresă)</span>' : ''}
+            </div>
 
             <p class="text-xs text-slate-700 leading-snug line-clamp-3">
               ${safeDescription}
@@ -252,7 +280,7 @@ export const MapView: React.FC<MapViewProps> = ({ onNavigate }) => {
               </div>
               <div class="flex items-center justify-between text-[10px] text-slate-400">
                 <span>Data: ${formattedDate}</span>
-                <span class="font-mono">${report.publicLocation.latitude.toFixed(4)}, ${report.publicLocation.longitude.toFixed(4)}</span>
+                <span class="font-mono">${lat.toFixed(4)}, ${lng.toFixed(4)}</span>
               </div>
             </div>
 
@@ -263,6 +291,19 @@ export const MapView: React.FC<MapViewProps> = ({ onNavigate }) => {
         </div>
       `;
 
+      // 2.4: adresa geocodată apare ca ZONĂ (cerc), nu ca punct
+      if (report.locationApproximate) {
+        const zone = L.circle([lat, lng], {
+          radius: APPROX_ZONE_RADIUS_M,
+          color: color.hex,
+          weight: 2,
+          fillColor: color.hex,
+          fillOpacity: 0.18,
+        });
+        zone.bindPopup(popupHtml, { maxWidth: 300, minWidth: 260 });
+        zone.addTo(markersLayer);
+        return;
+      }
       const marker = L.marker([lat, lng], { icon: customIcon });
       marker.bindPopup(popupHtml, { maxWidth: 300, minWidth: 260 });
       marker.addTo(markersLayer);
@@ -286,7 +327,7 @@ export const MapView: React.FC<MapViewProps> = ({ onNavigate }) => {
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-2 text-emerald-700 text-xs font-bold uppercase tracking-wider">
             <MapIcon className="w-4 h-4" />
-            <span>Modul Funcțional • Etapa 3D (Harta Sesizărilor Civice)</span>
+            <span>Harta Sesizărilor Civice</span>
           </div>
 
           <div className="flex items-center gap-2">
@@ -313,7 +354,7 @@ export const MapView: React.FC<MapViewProps> = ({ onNavigate }) => {
         <div className="flex items-center gap-2.5">
           <ShieldCheck className="w-5 h-5 text-emerald-700 shrink-0" />
           <span className="leading-relaxed">
-            <strong>Garanție de confidențialitate:</strong> Harta afișează exclusiv categoria, descrierea problemei și fotografiile optimizate. Numele, telefonul și datele de contact ale cetățenilor <strong>nu sunt afișate public</strong>.
+            <strong>Garanție de confidențialitate:</strong> Harta afișează categoria, descrierea, locul, prima fotografie și stadiul fiecărei sesizări. Contul și adresa de e-mail ale autorului <strong>nu sunt afișate public</strong>. Adresele căutate apar ca zonă aproximativă.
           </span>
         </div>
 
@@ -377,6 +418,17 @@ export const MapView: React.FC<MapViewProps> = ({ onNavigate }) => {
           style={{ minHeight: '400px' }}
         />
 
+        {(loading || loadError) && (
+          <div className="absolute top-4 left-4 right-4 z-30 p-3 rounded-2xl bg-white/95 border border-slate-300 text-xs text-slate-800 flex items-center justify-between gap-2 shadow-md">
+            <span>{loading ? 'Se încarcă sesizările...' : `Sesizările nu au putut fi încărcate: ${loadError}`}</span>
+            {loadError && (
+              <button type="button" onClick={() => void load()} className="font-bold text-blue-700 underline">
+                Reîncearcă
+              </button>
+            )}
+          </div>
+        )}
+
         {/* Eroare încărcare tile-uri (dacă nu e conexiune la internet) */}
         {tileError && (
           <div className="absolute top-4 left-4 right-4 z-30 p-3 rounded-2xl bg-amber-50/95 border border-amber-300 text-xs text-amber-900 flex items-center gap-2 shadow-md">
@@ -423,10 +475,10 @@ export const MapView: React.FC<MapViewProps> = ({ onNavigate }) => {
         <div className="space-y-1">
           <div className="font-bold text-slate-900 flex items-center gap-1.5">
             <Info className="w-4 h-4 text-blue-600" />
-            <span>Delimitare Modul Hartă & Moderare (Etapele 3D & 3E)</span>
+            <span>Cum se completează harta</span>
           </div>
           <p className="leading-relaxed">
-            Harta afișează sesizările aprobate de moderatorul platformei, fără identitatea sau datele de contact ale autorilor. Sesizările neaprobate sau respinse sunt excluse. Trimiterea automată de e-mailuri către Primărie și backend-ul centralizat aparțin etapelor ulterioare.
+            Orice sesizare cu poziție în municipiu apare imediat după depunere, fără moderare. Sesizările fără poziție apar după ce administratorul le stabilește locul. Sesizările se păstrează 45 de zile; autorul le poate șterge oricând. Stadiul („nouă”, „în analiză”, „rezolvată”) este public.
           </p>
         </div>
 

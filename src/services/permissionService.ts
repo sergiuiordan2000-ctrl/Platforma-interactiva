@@ -8,8 +8,8 @@ import { AdminUser, authService } from './authService';
 /*
  * Faza 5.2 — tranziție (FAZA_5_2_PLAN §2): rolul vine acum de la server (sesiune verificată), iar serverul
  * impune matricea finală (`shared/src/permissions.ts`: 26 / 12, fără `reports.moderate`). Matricea locală
- * de mai jos (24 / 13) rămâne numai pentru ecranele domeniilor încă stocate în browser (comunicate, Ghid,
- * sesizări, sondaje) și se înlocuiește domeniu cu domeniu (5.3–5.6). Permisiunile noi (conturi, audit)
+ * de mai jos (23 / 12; `reports.moderate` eliminat la 5.4, odată cu sesizările, 2.3) rămâne numai pentru
+ * afișarea butoanelor și se înlocuiește domeniu cu domeniu (5.3–5.6). Permisiunile noi (conturi, audit)
  * se citesc din `authService.getCurrentUser().permissions`, primite de la server.
  */
 
@@ -35,7 +35,6 @@ export type Permission =
   | 'announcements.disable'
   // Sesizări (Etapele 3E, 5C)
   | 'reports.view'
-  | 'reports.moderate'
   | 'reports.resolve'
   | 'reports.reply'
   // Ghidul Primăriei (Etapa 2C / 5D)
@@ -69,7 +68,6 @@ const ALL_PERMISSIONS: Permission[] = [
   'announcements.publish',
   'announcements.disable',
   'reports.view',
-  'reports.moderate',
   'reports.resolve',
   'reports.reply',
   'directory.view',
@@ -94,7 +92,7 @@ const ALL_PERMISSIONS: Permission[] = [
  * - Dashboard: doar vizualizare.
  * - Comunicate: acces complet (view/create/edit/publish/disable) — fără diferență
  *   față de `super_admin`, deoarece nu există o permisiune de ștergere fizică.
- * - Sesizări: acces complet (view/moderate/resolve/reply) — identic cu `super_admin`.
+ * - Sesizări: view/resolve/reply (fără moderare, 2.3); drepturile exclusive super_admin rămân pe server.
  * - Ghidul Primăriei: doar vizualizare — fără nicio permisiune de modificare
  *   (instituție, direcții, servicii, program, link-uri utile).
  * - Quick Dial: doar vizualizare — fără administrarea contactelor sau categoriilor.
@@ -111,7 +109,6 @@ const PRIMARIE_OPERATOR_PERMISSIONS: Permission[] = [
   'announcements.publish',
   'announcements.disable',
   'reports.view',
-  'reports.moderate',
   'reports.resolve',
   'reports.reply',
   'directory.view',

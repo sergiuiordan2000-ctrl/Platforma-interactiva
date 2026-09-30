@@ -22,17 +22,19 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
-  const headers: Record<string, string> = { Accept: 'application/json' };
+async function request<T>(method: string, path: string, body?: unknown, extraHeaders: Record<string, string> = {}): Promise<T> {
+  const headers: Record<string, string> = { Accept: 'application/json', ...extraHeaders };
   if (method !== 'GET') headers['X-Civic-Request'] = '1';
-  if (body !== undefined) headers['Content-Type'] = 'application/json';
+  const isForm = typeof FormData !== 'undefined' && body instanceof FormData;
+  // multipart: browserul pune singur Content-Type (cu boundary)
+  if (body !== undefined && !isForm) headers['Content-Type'] = 'application/json';
   let res: Response;
   try {
     res = await fetch(API_BASE + path, {
       method,
       headers,
       credentials: 'same-origin',
-      body: body === undefined ? undefined : JSON.stringify(body),
+      body: body === undefined ? undefined : isForm ? (body as FormData) : JSON.stringify(body),
     });
   } catch {
     throw new ApiError(0, 'NETWORK', 'Serverul nu poate fi contactat. Verificați conexiunea și încercați din nou.');
@@ -57,4 +59,6 @@ export const api = {
   patch: <T>(path: string, body: unknown) => request<T>('PATCH', path, body),
   put: <T>(path: string, body: unknown) => request<T>('PUT', path, body),
   del: <T>(path: string) => request<T>('DELETE', path),
+  /** Faza 5.4: formular multipart (sesizarea cu fotografii), cu antete suplimentare (Idempotency-Key). */
+  postForm: <T>(path: string, form: FormData, headers: Record<string, string> = {}) => request<T>('POST', path, form, headers),
 };

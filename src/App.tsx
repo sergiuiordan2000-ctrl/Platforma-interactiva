@@ -14,6 +14,7 @@ import { SurveysView } from './views/SurveysView';
 import { DirectoryView } from './views/DirectoryView';
 import { AdminView } from './views/AdminView';
 import { ErrorBoundary } from './components/layout/ErrorBoundary';
+import { UnsubscribeNotice } from './components/report/UnsubscribeNotice';
 
 export default function App() {
   // Stare pentru comunicatul selectat (dacă se navighează direct pe detaliu din Home)
@@ -30,6 +31,7 @@ export default function App() {
         return 'announcements';
       case 'sesizari':
       case 'issues':
+      case 'contul-meu':
         return 'issues';
       case 'harta':
       case 'map':
@@ -50,11 +52,25 @@ export default function App() {
   };
 
   const [currentView, setCurrentView] = useState<AppView>(getViewFromHash);
+  // Faza 5.4: `#contul-meu` = sesizările proprii; `#dezabonare?token=…` = linkul din notificările D9
+  const hashName = () => window.location.hash.replace('#', '').toLowerCase().split('?')[0];
+  const [issuesTab, setIssuesTab] = useState<'new' | 'mine'>(() => (hashName() === 'contul-meu' ? 'mine' : 'new'));
+  /** Citește jetonul de dezabonare din adresă și îl scoate imediat din bara de adrese. */
+  const takeUnsubscribeToken = (): string | null => {
+    if (hashName() !== 'dezabonare') return null;
+    const token = new URLSearchParams(window.location.hash.split('?')[1] ?? '').get('token');
+    history.replaceState(null, '', window.location.pathname);
+    return token ?? '';
+  };
+  const [unsubscribeToken, setUnsubscribeToken] = useState<string | null>(takeUnsubscribeToken);
 
   // Sincronizare cu hash-ul din URL și suport pentru butoanele Back/Forward din browser
   useEffect(() => {
     const handleHashChange = () => {
+      const token = takeUnsubscribeToken(); // linkul deschis cu aplicația deja încărcată
+      if (token !== null) setUnsubscribeToken(token);
       setCurrentView(getViewFromHash());
+      setIssuesTab(hashName() === 'contul-meu' ? 'mine' : 'new');
     };
 
     window.addEventListener('hashchange', handleHashChange);
@@ -99,10 +115,13 @@ export default function App() {
     switch (currentView) {
       case 'home':
         return (
-          <HomeView 
-            onNavigate={handleNavigate} 
-            onOpenAnnouncement={handleOpenAnnouncement} 
-          />
+          <>
+            {unsubscribeToken !== null && <UnsubscribeNotice token={unsubscribeToken} />}
+            <HomeView
+              onNavigate={handleNavigate}
+              onOpenAnnouncement={handleOpenAnnouncement}
+            />
+          </>
         );
       case 'announcements':
         return (
@@ -113,7 +132,7 @@ export default function App() {
           />
         );
       case 'issues':
-        return <IssuesView onNavigate={handleNavigate} />;
+        return <IssuesView onNavigate={handleNavigate} initialTab={issuesTab} />;
       case 'map':
         return <MapView onNavigate={handleNavigate} />;
       case 'surveys':

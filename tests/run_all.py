@@ -16,12 +16,13 @@ from pathlib import Path
 
 TESTS = Path(__file__).resolve().parent
 SUITES = [
-    'services/test_6_6_asumare_preluare.py',
-    'ui/test_6_6_ui.py',
+    # Faza 5.4: services/test_6_6_asumare_preluare.py și ui/test_6_6_ui.py (modelul din `localStorage`) sunt înlocuite de
+    # server/test/integration/reports.test.ts și e2e/test_5_4_sesizari.py (corespondența: docs/faza5/FAZA_5_4_RAPORT.md)
     'ui/test_robustete_stocare.py',
     'security/test_suprafete_publice.py',
     'regression/test_regresie_6_1_6_5.py',
     'e2e/test_5_3_continut_public.py',
+    'e2e/test_5_4_sesizari.py',
 ]
 # Limitări cunoscute, documentate în PROJECT_HANDOFF_CURRENT.md (G.4 / P7). Nu sunt bug-uri de regresie.
 # P7 / R6D-SES-01 închis formal la Faza 5.2 (sesiune validată pe server); orice FAIL al lui este acum regresie.

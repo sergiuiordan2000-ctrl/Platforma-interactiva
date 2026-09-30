@@ -15,13 +15,16 @@ import {
   ArrowRight, 
   PlusCircle, 
   ShieldAlert, 
-  FileText 
+  FileText,
+  Building2,
+  Bell,
+  Eye
 } from 'lucide-react';
-import { CivicReport } from '../../types/report';
+import type { SubmittedReport } from './ReportForm';
 import { AppView } from '../../types/navigation';
 
 interface ReportConfirmationProps {
-  report: CivicReport;
+  report: SubmittedReport;
   onReset: () => void;
   onNavigate: (view: AppView) => void;
 }
@@ -72,10 +75,10 @@ export const ReportConfirmation: React.FC<ReportConfirmationProps> = ({
         {/* Mesaje Principale de Confirmare */}
         <div className="space-y-2">
           <h2 className="text-2xl font-black text-slate-900 tracking-tight">
-            Sesizarea a fost transmisă platformei
+            Sesizarea a fost înregistrată
           </h2>
           <p className="text-xs sm:text-sm text-slate-600 max-w-lg mx-auto leading-relaxed">
-            Datele au fost preluate pentru procesarea fluxului aplicației. Vă mulțumim pentru implicarea civică în comunitatea Turnu Măgurele!
+            Sesizarea a fost salvată pe server{report.position ? ' și apare deja pe harta publică' : ''}. O găsiți oricând în „Contul meu”. Vă mulțumim pentru implicarea civică în comunitatea Turnu Măgurele!
           </p>
         </div>
 
@@ -163,31 +166,30 @@ export const ReportConfirmation: React.FC<ReportConfirmationProps> = ({
               <span className="text-slate-500 font-medium">Locație indicată:</span>
               <div className="font-semibold text-slate-900 flex items-start gap-1.5">
                 <MapPin className="w-3.5 h-3.5 text-red-600 shrink-0 mt-0.5" />
-                <span>{report.location.addressOrDetails}</span>
+                <span>{report.locationText}</span>
               </div>
-              {report.location.latitude && report.location.longitude && (
+              {report.position ? (
                 <div className="text-[10px] text-slate-500 font-mono pl-5">
-                  Coordonate GPS: {report.location.latitude.toFixed(6)}, {report.location.longitude.toFixed(6)}
+                  {report.position.approximate ? 'Zonă aproximativă (după adresă)' : 'Punct pe hartă'}: {report.position.lat.toFixed(5)}, {report.position.lng.toFixed(5)}
+                </div>
+              ) : (
+                <div className="text-[10px] text-amber-700 pl-5">
+                  Fără poziție pe hartă: sesizarea nu apare pe hartă până când administratorul îi stabilește poziția.
                 </div>
               )}
             </div>
 
             <div className="space-y-1 sm:col-span-2">
-              <span className="text-slate-500 font-medium">Opțiune publicare aleasă:</span>
-              <div className="font-semibold text-slate-800 flex items-center gap-2">
-                <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${
-                  report.publicationPreference === 'private'
-                    ? 'bg-slate-100 text-slate-700 border border-slate-200'
-                    : report.publicationPreference === 'public_anonymous'
-                    ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                    : 'bg-blue-50 text-blue-800 border border-blue-200'
-                }`}>
-                  {report.publicationPreference === 'private' && 'Privată (opțiune istorică, tratată ca anonimă)'}
-                  {report.publicationPreference === 'public_anonymous' && 'Publică Anonim (Fără date personale pe hartă)'}
-                  {report.publicationPreference === 'public' && 'Publică (În așteptarea moderării)'}
+              <span className="text-slate-500 font-medium">Opțiunile alese:</span>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 inline-flex items-center gap-1">
+                  <Eye className="w-3.5 h-3.5" /> Publică imediat, fără datele contului
                 </span>
-                <span className="text-[11px] text-slate-400">
-                  • Necesită aprobarea administratorului
+                <span className={`px-2.5 py-1 rounded-lg text-xs font-bold border inline-flex items-center gap-1 ${report.transmitToCityHall ? 'bg-blue-50 text-blue-800 border-blue-200' : 'bg-slate-100 text-slate-600 border-slate-200'}`}>
+                  <Building2 className="w-3.5 h-3.5" /> {report.transmitToCityHall ? 'Transmitere către Primărie cerută' : 'Fără transmitere către Primărie'}
+                </span>
+                <span className={`px-2.5 py-1 rounded-lg text-xs font-bold border inline-flex items-center gap-1 ${report.notifyOptIn ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-slate-100 text-slate-600 border-slate-200'}`}>
+                  <Bell className="w-3.5 h-3.5" /> {report.notifyOptIn ? 'Notificări pe e-mail' : 'Fără notificări'}
                 </span>
               </div>
             </div>

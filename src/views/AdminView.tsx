@@ -35,7 +35,7 @@ import { AdminScheduleManager } from '../components/admin/directory/AdminSchedul
 import { AdminUsefulLinksManager } from '../components/admin/directory/AdminUsefulLinksManager';
 import { AdminQuickDialManager } from '../components/admin/quickdial/AdminQuickDialManager';
 import { AdminCategoriesManager } from '../components/admin/quickdial/AdminCategoriesManager';
-import { AdminReportsModeration } from '../components/admin/reports/AdminReportsModeration';
+import { AdminReports } from '../components/admin/reports/AdminReports';
 import { AdminSurveysManager } from '../components/admin/surveys/AdminSurveysManager';
 import { AdminAccountsManager } from '../components/admin/accounts/AdminAccountsManager';
 import { AdminAuthSteps } from '../components/admin/AdminAuthSteps';
@@ -280,7 +280,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigate }) => {
             }`}
           >
             <Layers className={`w-4 h-4 ${activeMainTab === 'reports' ? 'text-blue-700' : 'text-slate-400'}`} />
-            <span>C. Moderare Sesizări (3E)</span>
+            <span>C. Sesizări</span>
           </button>
         )}
 
@@ -470,14 +470,14 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigate }) => {
         </div>
       )}
 
-      {/* SUB-MODUL PENTRU MODERARE SESIZĂRI (ETAPA 3E) */}
+      {/* SUB-MODUL SESIZĂRI (FAZA 5.4: fără moderare, 2.3) */}
       {activeMainTab === 'reports' && (
         canAccessTab('reports') ? (
           <div className="space-y-6">
-            <AdminReportsModeration onSuccess={showToast} />
+            <AdminReports onSuccess={showToast} />
           </div>
         ) : (
-          <AccessDeniedPanel moduleName="Moderare Sesizări" />
+          <AccessDeniedPanel moduleName="Sesizări" />
         )
       )}
 
@@ -502,10 +502,10 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigate }) => {
         <div className="space-y-1">
           <div className="font-bold text-slate-900 flex items-center gap-1.5">
             <Info className="w-4 h-4 text-blue-600" />
-            <span>Delimitare Etapa 3E (Moderare & Publicare Sesizări MVP)</span>
+            <span>Delimitarea panoului de administrare</span>
           </div>
           <p className="leading-relaxed">
-            Panoul permite evaluarea, aprobarea și respingerea sesizărilor cetățenești (3E), alături de gestionarea Ghidului Primăriei (2A) și Quick Dial (2B). Autentificarea se verifică pe server (Faza 5.2); datele modulelor trec pe server treptat (5.3–5.6).
+            Panoul gestionează comunicatele, sesizările (stadii, asumare / preluare, note interne; fără moderare), Ghidul Primăriei și Apelul rapid. Autentificarea și regulile se verifică pe server; sondajele trec pe server la 5.6.
           </p>
         </div>
 

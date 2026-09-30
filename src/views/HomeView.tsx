@@ -368,10 +368,10 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onOpenAnnounceme
         <Info className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
         <div className="space-y-1">
            <p className="font-semibold text-slate-900">
-            Status Dezvoltare: Etapa 3E (Moderarea și Publicarea Sesizărilor Cetățenești ACTIVĂ)
+            Status Dezvoltare: Faza 5 (versiune de test pe server)
           </p>
           <p className="leading-relaxed">
-            Modulele Comunicate (1B), Evenimente (1C), Ghidul Primăriei (2A), Quick Dial (2B), Panoul CMS (2C), Formularul de Sesizare (3A), Alocarea Identificatorului Intern TM-XXX (3B), Compresia/Optimizarea Fotografiilor (3C), Harta Geospațială (3D) și Moderarea/Controlul Publicării (3E) sunt complet operaționale. Administratorul evaluează și aprobă sesizările înainte ca acestea să apară pe hartă, iar identitatea și datele de contact ale autorilor nu sunt afișate public.
+            Comunicatele, Ghidul Primăriei, Apelul rapid și sesizările funcționează pe server. Sesizările se depun dintr-un cont confirmat prin e-mail și apar imediat pe hartă, fără moderare; contul și adresa de e-mail a autorului nu sunt afișate public. Sondajele trec pe server într-o etapă următoare.
           </p>
         </div>
       </section>

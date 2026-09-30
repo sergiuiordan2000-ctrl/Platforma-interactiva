@@ -4,23 +4,23 @@
 - Datele cetățeanului (nume, e-mail, telefon) nu apar în DOM-ul niciunei pagini publice.
 - Un link util `javascript:` (rând corupt în DB, ocolind validarea API-ului) nu se execută.
 - A-06 / A-07 / A-08: afirmațiile neconforme nu mai apar.
+
+Faza 5.4: sesizarea de test nu se mai injectează în `localStorage`; se creează prin API, dintr-un cont de cetățean,
+apoi este preluată de Primărie și asumată de super_admin. PII-2 urmează A-7: stadiul este public; preluarea,
+responsabilii și autorul nu sunt. A-08: ecranul Admin „Sesizări” nu mai are moderare (2.3).
 """
 import sys; sys.dont_write_bytecode = True
 from pathlib import Path; sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'lib'))
+import harness
 from harness import *
 
 res = Results('SUPRAFETE PUBLICE (D11, confidentialitate, texte, build productie)')
 ROUTES = ['home', 'comunicate', 'sesizari', 'harta', 'sondaje', 'ghid']
 ADMIN_RE = r'/(^|[^a-zăâîșț])(admin|panou administrare|panou cms|panou de administrare)([^a-zăâîșț]|$)|#admin/i'
-PRIVATE = {"id": "rep-sec-priv", "referenceNumber": "TM-095", "categoryId": "iluminat", "categoryName": "Iluminat public",
-           "description": "Sesizare de test pentru confidentialitate", "photos": [],
-           "location": {"addressOrDetails": "Str. Test 5", "latitude": 43.7489, "longitude": 24.8701, "source": "manual"},
-           "contact": {"name": "Radu Confidential", "email": "radu.confidential@example.com", "phone": "0766123456"},
-           "createdAt": "2026-01-07T10:00:00.000Z", "status": "transmis", "publicationPreference": "private", "moderationStatus": "approved",
-           "resolutionStatus": "in_progress", "cityHallTakenOver": True, "assigneeIds": ["usr-admin-01"]}
-# date de contact din seed (TM-001 / TM-002) și din sesizarea injectată
-PII = ['Cetățean Demo', 'cetatean@exemplu.ro', '0700000001', 'Anonim Demo',
-       'Radu Confidential', 'radu.confidential@example.com', '0766123456', 'usr-admin-01', 'usr-operator']
+CITIZEN = 'radu.confidential@example.com'
+# datele care nu au voie să apară public: e-mailul contului autorului, e-mailurile și numele operatorilor,
+# ID-urile interne (ale sesizării și ale conturilor Admin) — completate după crearea sesizării
+PII = [CITIZEN, 'e2e-admin@exemplu.test', 'e2e-operator@exemplu.test', 'Administrator Platformă', 'Operator Primărie']
 
 SCAN_JS = """(re) => {
   const rx = new RegExp(re.slice(1, re.lastIndexOf('/')), re.slice(re.lastIndexOf('/') + 1));
@@ -38,11 +38,8 @@ with backend_server(5499) as BACKEND, sync_playwright() as pw:
     URL = BACKEND['url']
     b = pw.chromium.launch()
 
-    def fresh(page, extra=None):
+    def fresh(page):
         page.goto(URL + '/'); page.evaluate('localStorage.clear(); sessionStorage.clear()'); page.reload(); page.wait_for_load_state('networkidle')
-        if extra:
-            page.evaluate("r => { const s = JSON.parse(localStorage.getItem('turnu_civic_reports_store')); s.push(r); localStorage.setItem('turnu_civic_reports_store', JSON.stringify(s)); }", extra)
-            page.reload(); page.wait_for_load_state('networkidle')
 
     # 1. D11: scanare text/title/href a elementelor clicabile, mobil + desktop
     found = {}
@@ -102,13 +99,15 @@ with backend_server(5499) as BACKEND, sync_playwright() as pw:
     # 5.2: super_admin cere TOTP (cont de test creat de `dev:e2e-setup`)
     page.fill('input[aria-label="Cod de 6 cifre"]', totp_code(BACKEND['totp_secret']))
     page.click('button[type="submit"]'); page.wait_for_timeout(800)
+    harness._LAST_TOTP['step'] = int(time.time() // 30)  # anti-reluare TOTP: următoarea autentificare așteaptă un cod nou
     in_admin = page.get_by_role('button', name='Ieșire (Logout)').count() == 1
     res.check('D11-c ruta #admin accesibilă direct: formular de login și autentificare funcționale', has_form and in_admin, f'form={has_form} admin={in_admin}')
 
-    # 4. A-08: textul din Admin Moderare
-    page.get_by_text('Moderare Sesizări').first.click(); page.wait_for_timeout(300)
+    # 4. A-08 (actualizat la 5.4): ecranul Admin „Sesizări”, fără moderare (2.3) și fără „Cetățeanul alege”
+    page.get_by_text('C. Sesizări').first.click(); page.wait_for_timeout(800)
     mod = page.inner_text('body')
-    res.check('A-08 Admin Moderare: fără „Cetățeanul alege dacă dorește publicarea”', 'Cetățeanul alege' not in mod and 'Administratorul aprobă sau respinge publicarea' in mod, '')
+    res.check('A-08 Admin Sesizări: fără moderare (2.3) și fără „Cetățeanul alege dacă dorește publicarea”',
+              'Cetățeanul alege' not in mod and 'fără moderare' in mod and 'Aprobă' not in mod and 'Respinge' not in mod, '')
     page.get_by_role('button', name='Ieșire (Logout)').click(); page.wait_for_timeout(300)
 
     # 5. A-07: nota de pe pagina de login
@@ -126,8 +125,21 @@ with backend_server(5499) as BACKEND, sync_playwright() as pw:
             bad_footer.append(route)
     res.check('A-06 footer: fără „redirecționate pe e-mail”, cu mențiunea că trimiterea automată nu e activă (6 pagini)', bad_footer == [], str(bad_footer))
 
-    # 7. Date personale: DOM complet al tuturor paginilor publice, cu o sesizare private + preluată + asumată
-    fresh(page, PRIVATE)
+    # 7. Date personale: DOM complet al tuturor paginilor publice, cu o sesizare preluată + asumată (5.4: prin API)
+    cctx = b.new_context()
+    citizen_login_api(cctx, URL, CITIZEN)
+    tok = form_token(cctx, URL)
+    rr = submit_report_api(cctx, URL, tok, 'Sesizare de test pentru confidentialitate',
+                           {'text': 'Str. Test 5', 'lat': 43.7489, 'lng': 24.8701, 'source': 'pin'}, transmit=True, notify=True)
+    ref = rr.json().get('referenceNumber', 'TM-???')
+    rid = db_query('SELECT id FROM reports WHERE reference_number = ?', [ref])[0]['id']
+    ids = [r['id'] for r in db_query('SELECT id FROM admin_users')]
+    PII += [rid] + ids
+    op = b.new_context(); opage = op.new_page(); admin_login(opage, URL, BACKEND, BACKEND['op'])
+    assert op.request.post(URL + f'/api/v1/admin/reports/{rid}/takeover', headers=CSRF).status == 200
+    sa = b.new_context(); spage = sa.new_page(); admin_login(spage, URL, BACKEND, BACKEND['admin'])
+    assert sa.request.post(URL + f'/api/v1/admin/reports/{rid}/assume', headers=CSRF).status == 200
+    fresh(page)
     # DOM-ul complet, cu excepția atributelor `placeholder` (textul de exemplu al câmpului de e-mail din
     # formular, „cetatean@exemplu.ro”, coincide cu adresa demo din seed și nu reprezintă date ale unei sesizări).
     DOM_JS = "() => { const c = document.documentElement.cloneNode(true); c.querySelectorAll('[placeholder]').forEach(e => e.removeAttribute('placeholder')); return c.outerHTML; }"
@@ -135,17 +147,18 @@ with backend_server(5499) as BACKEND, sync_playwright() as pw:
     for route in ROUTES:
         page.goto(URL + '/#' + route); page.wait_for_load_state('networkidle'); page.wait_for_timeout(400)
         if route == 'harta':
-            m = page.locator('.custom-civic-marker', has_text='TM-095')
+            page.wait_for_timeout(500)
+            m = page.locator('.custom-civic-marker', has_text=ref)
             if m.count():
-                m.first.click(force=True); page.wait_for_timeout(400)
+                m.first.scroll_into_view_if_needed(); m.first.locator('div').first.click(force=True); page.wait_for_timeout(500)
                 if page.locator('.leaflet-popup-content').count():
                     popup = page.locator('.leaflet-popup-content').first.inner_html()
         html = page.evaluate(DOM_JS)
         f = [v for v in PII if v in html]
         if f: leaks[route] = f
     res.check('PII-1 date de contact și ID-uri interne absente din DOM-ul complet al celor 6 pagini publice (inclusiv popup deschis)', leaks == {}, json.dumps(leaks, ensure_ascii=False))
-    res.check('PII-2 popup-ul sesizării private: vizibil, fără stadiu / preluare / responsabil',
-              'TM-095' in popup and all(v not in popup for v in ['Status', 'Preluată', 'În lucru', 'Administrator Platformă']), '')
+    res.check('PII-2 popup-ul sesizării preluate și asumate: vizibil, cu stadiul public (A-7), fără preluare / responsabil / autor',
+              ref in popup and 'Nouă' in popup and all(v not in popup for v in ['Preluată', 'Administrator Platformă', 'Operator Primărie', CITIZEN]), popup[:120])
 
     # 8. Link util `javascript:` nu se execută. Faza 5.3: linkurile vin din DB, iar API-ul respinge
     # `javascript:` (422, server/test/integration/adminContent.test.ts); aici se simulează un rând corupt

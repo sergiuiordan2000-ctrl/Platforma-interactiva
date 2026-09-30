@@ -3,39 +3,62 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useRef } from 'react';
-import { 
-  Lightbulb, 
-  Car, 
-  Footprints, 
-  Droplets, 
-  Trash2, 
-  Trees, 
-  Signpost, 
+/**
+ * Formularul de sesizare (Faza 5.4; B5 §1, B2 §7): trimis serverului, din contul confirmat al cetățeanului (A-9).
+ * - fără date de contact: singura dată este e-mailul contului (A-9, D29);
+ * - fără alegerea „Public / Public anonim” (2.8): sesizarea este publică imediat, fără moderare (2.3, D9);
+ * - locația: text obligatoriu + pin pe hartă / poziția mea / adresă (2.4, D6-2); numai în UAT (2.12);
+ * - „Transmite către Primărie” (pct. 7) și notificările pe e-mail (D9), la alegerea cetățeanului;
+ * - confirmarea apare numai după salvarea efectivă pe server (6.2).
+ */
+
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  Lightbulb,
+  Car,
+  Footprints,
+  Droplets,
+  Trash2,
+  Trees,
+  Signpost,
   HelpCircle,
-  Camera, 
-  MapPin, 
-  Navigation, 
-  User, 
-  Phone, 
-  Mail, 
-  Send, 
-  AlertCircle, 
-  Check, 
-  X, 
-  Info, 
+  Camera,
+  MapPin,
+  Send,
+  AlertCircle,
+  Check,
+  X,
   ShieldAlert,
   Loader2,
   Sparkles,
   Eye,
-  UserCheck
+  Bell,
+  Building2,
 } from 'lucide-react';
-import { CivicReport, ReportCategory, ReportPhoto, PublicationPreference } from '../../types/report';
-import { reportService, ReportSaveFailureReason } from '../../services/reportService';
+import type { ReportCategory } from '@tmc/shared';
+import { ReportPhoto } from '../../types/report';
+import { reportService, type FormSession } from '../../services/reportService';
 import { imageCompressionService } from '../../services/imageCompressionService';
+import { LocationPicker, type PickedPosition } from './LocationPicker';
+
+/** Ce afișează confirmarea (datele trimise + răspunsul serverului). */
+export interface SubmittedReport {
+  referenceNumber: string;
+  createdAt: string;
+  categoryName: string;
+  description: string;
+  locationText: string;
+  position: PickedPosition | null;
+  photos: ReportPhoto[];
+  transmitToCityHall: boolean;
+  notifyOptIn: boolean;
+}
 
 interface ReportFormProps {
-  onSuccess: (report: CivicReport) => void;
+  accountEmail: string;
+  onSuccess: (report: SubmittedReport) => void;
+  /** Sesiunea a expirat (401): se cere o nouă autentificare, fără a pierde formularul. */
+  onSessionExpired: () => void;
 }
 
 const CATEGORY_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -54,99 +77,87 @@ const MAX_PHOTO_SIZE_MB = 15;
 const MAX_DESCRIPTION_LENGTH = 1000;
 const MIN_DESCRIPTION_LENGTH = 15;
 
-export const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
-  const categories = reportService.getCategories();
+/**
+ * Imaginea comprimată (data URL base64) → fișier pentru multipart. Fără `fetch('data:…')`:
+ * CSP-ul aplicației (`connect-src 'self'`, B2 §1) blochează, corect, cererile către `data:`.
+ */
+function dataUrlToBlob(dataUrl: string): Blob {
+  const comma = dataUrl.indexOf(',');
+  const mime = /^data:([^;,]+)/.exec(dataUrl)?.[1] ?? 'application/octet-stream';
+  const bin = atob(dataUrl.slice(comma + 1));
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new Blob([bytes], { type: mime });
+}
+
+export const ReportForm: React.FC<ReportFormProps> = ({ accountEmail, onSuccess, onSessionExpired }) => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Stare formular
+  const [categories, setCategories] = useState<ReportCategory[] | null>(null);
+  const [categoriesError, setCategoriesError] = useState<string | null>(null);
+  const [session, setSession] = useState<FormSession | null>(null);
+
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
   const [description, setDescription] = useState<string>('');
   const [photos, setPhotos] = useState<ReportPhoto[]>([]);
-  
-  // Stare procesare și compresie foto (Etapa 3C)
   const [isProcessingPhotos, setIsProcessingPhotos] = useState<boolean>(false);
-  const [processingProgress, setProcessingProgress] = useState<{
-    current: number;
-    total: number;
-    fileName: string;
-  } | null>(null);
+  const [processingProgress, setProcessingProgress] = useState<{ current: number; total: number } | null>(null);
   const [photoError, setPhotoError] = useState<string | null>(null);
-  const [addressOrDetails, setAddressOrDetails] = useState<string>('');
-  
-  // Stare GPS
-  const [gpsCoordinates, setGpsCoordinates] = useState<{
-    latitude: number;
-    longitude: number;
-    accuracy?: number;
-  } | null>(null);
-  const [isGettingGps, setIsGettingGps] = useState(false);
-  const [gpsError, setGpsError] = useState<string | null>(null);
+  const [locationText, setLocationText] = useState<string>('');
+  const [position, setPosition] = useState<PickedPosition | null>(null);
+  const [notifyOptIn, setNotifyOptIn] = useState(false);
+  const [transmitToCityHall, setTransmitToCityHall] = useState(false);
+  const [hp, setHp] = useState(''); // capcana anti-robot (B7): câmp invizibil, rămâne gol
 
-  // Date de contact opționale
-  const [contactName, setContactName] = useState<string>('');
-  const [contactPhone, setContactPhone] = useState<string>('');
-  const [contactEmail, setContactEmail] = useState<string>('');
-
-  // Preferința de afișare (Etapa 6.6: fără opțiune de ascundere de pe hartă). Implicit
-  // 'public_anonymous' — varianta cea mai protectoare dintre cele rămase (N1 rămâne deschis).
-  const [publicationPreference, setPublicationPreference] = useState<PublicationPreference>('public_anonymous');
-
-  // Validare și trimitere
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // ETAPA 6.2 (C1): eroare la salvarea efectivă a sesizării (ex. spațiu de stocare plin).
-  // Când este setată, sesizarea NU a fost înregistrată, iar datele din formular rămân neschimbate.
   const [submitError, setSubmitError] = useState<string | null>(null);
   const submitErrorRef = useRef<HTMLDivElement | null>(null);
 
-  const buildSubmitErrorMessage = (reason: ReportSaveFailureReason, photoCount: number): string => {
-    if (reason === 'quota_exceeded') {
-      return photoCount > 0
-        ? `Sesizarea NU a fost înregistrată: spațiul de stocare al acestui browser este plin. Fotografiile atașate (${photoCount}) ocupă mult spațiu — eliminați una sau mai multe fotografii și trimiteți din nou. Datele completate au fost păstrate.`
-        : 'Sesizarea NU a fost înregistrată: spațiul de stocare al acestui browser este plin. Datele completate au fost păstrate; vă rugăm să încercați din nou mai târziu.';
-    }
-    return 'Sesizarea NU a fost înregistrată din cauza unei erori de salvare în browser. Datele completate au fost păstrate; vă rugăm să încercați din nou.';
+  const loadCategories = () => {
+    setCategoriesError(null);
+    reportService
+      .getCategories()
+      .then(setCategories)
+      .catch((err: Error) => setCategoriesError(err.message));
   };
 
-  // 1. Gestiune Fotografii cu Compresie și Redimensionare Automată (Etapa 3C)
+  useEffect(() => {
+    loadCategories();
+    reportService
+      .startForm()
+      .then(setSession)
+      .catch(() => setSession(null));
+  }, []);
+
+  const clearError = (key: string) =>
+    setErrors((prev) => {
+      if (!prev[key]) return prev;
+      const copy = { ...prev };
+      delete copy[key];
+      return copy;
+    });
+
+  // Fotografiile: compresie în browser (3C) → JPEG / WebP (singurele formate acceptate de server, B5 §2)
   const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
-
     setPhotoError(null);
-
-    const currentCount = photos.length;
-    const remainingSlots = MAX_PHOTOS - currentCount;
-
+    const remainingSlots = MAX_PHOTOS - photos.length;
     if (remainingSlots <= 0) {
       setPhotoError(`Puteți atașa maximum ${MAX_PHOTOS} fotografii.`);
       return;
     }
-
     const filesToProcess = Array.from(files).slice(0, remainingSlots);
-
-    // Resetare valoare input pentru a permite reselectarea aceluiași fișier dacă e necesar
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-
+    if (fileInputRef.current) fileInputRef.current.value = '';
     setIsProcessingPhotos(true);
-
     try {
-      const compressedResults = await imageCompressionService.compressPhotos(
+      const compressed = await imageCompressionService.compressPhotos(
         filesToProcess,
-        (current, total, fileName) => {
-          setProcessingProgress({ current, total, fileName });
-        },
-        {
-          maxDimension: 1920,
-          quality: 0.82,
-          maxOriginalSizeMB: MAX_PHOTO_SIZE_MB,
-        }
+        (current, total) => setProcessingProgress({ current, total }),
+        { maxDimension: 1920, quality: 0.82, maxOriginalSizeMB: MAX_PHOTO_SIZE_MB },
       );
-
-      const newPhotos: ReportPhoto[] = compressedResults.map((res) => ({
+      const newPhotos: ReportPhoto[] = compressed.map((res) => ({
         id: `img-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
         dataUrl: res.dataUrl,
         name: res.name,
@@ -159,12 +170,12 @@ export const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
         originalHeight: res.originalHeight,
         compressionRatio: res.reductionPercent,
       }));
-
       setPhotos((prev) => [...prev, ...newPhotos].slice(0, MAX_PHOTOS));
-    } catch (err: any) {
-      console.error('Eroare la optimizarea fotografiilor:', err);
+    } catch (err: unknown) {
       setPhotoError(
-        err?.message || 'Una dintre fotografii nu a putut fi procesată. Vă rugăm să încercați o altă imagine (JPEG, PNG sau WebP).'
+        err instanceof Error && err.message
+          ? err.message
+          : 'Una dintre fotografii nu a putut fi procesată. Încercați o altă imagine (JPEG, PNG sau WebP).',
       );
     } finally {
       setIsProcessingPhotos(false);
@@ -172,161 +183,93 @@ export const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
     }
   };
 
-  const handleRemovePhoto = (id: string) => {
-    setPhotos((prev) => prev.filter((p) => p.id !== id));
-  };
-
-  // 2. Gestiune GPS la Cererea Utilizatorului (Opțional)
-  const handleRequestGps = () => {
-    if (!navigator.geolocation) {
-      setGpsError('Geolocalizarea nu este suportată de acest browser.');
-      return;
-    }
-
-    setIsGettingGps(true);
-    setGpsError(null);
-
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setGpsCoordinates({
-          latitude: pos.coords.latitude,
-          longitude: pos.coords.longitude,
-          accuracy: pos.coords.accuracy,
-        });
-        setIsGettingGps(false);
-        // Dacă adresa manuală este goală, putem adăuga un text orientativ
-        if (!addressOrDetails.trim()) {
-          setAddressOrDetails('Locație determinată prin GPS');
-        }
-      },
-      (err) => {
-        setIsGettingGps(false);
-        if (err.code === err.PERMISSION_DENIED) {
-          setGpsError('Accesul la locația GPS a fost refuzat. Vă rugăm să introduceți adresa manual.');
-        } else {
-          setGpsError('Nu s-a putut prelua poziția GPS. Introduceți adresa manual.');
-        }
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 30000,
-      }
-    );
-  };
-
-  // 3. Validare Riguroasă a Formularului
   const validate = (): boolean => {
     const errs: Record<string, string> = {};
-
-    // Categorie
-    if (!selectedCategoryId) {
-      errs.category = 'Vă rugăm să selectați o categorie pentru problema semnalată.';
-    }
-
-    // Descriere
-    const trimmedDesc = description.trim();
-    if (!trimmedDesc) {
-      errs.description = 'Descrierea problemei este obligatorie.';
-    } else if (trimmedDesc.length < MIN_DESCRIPTION_LENGTH) {
-      errs.description = `Vă rugăm să oferiți mai multe detalii (minim ${MIN_DESCRIPTION_LENGTH} caractere).`;
-    } else if (trimmedDesc.length > MAX_DESCRIPTION_LENGTH) {
-      errs.description = `Descrierea depășește limita de ${MAX_DESCRIPTION_LENGTH} de caractere.`;
-    }
-
-    // Locație
-    if (!addressOrDetails.trim()) {
-      errs.location = 'Vă rugăm să introduceți strada, numărul sau un reper al problemei.';
-    }
-
-    // Date de contact (Opționale, dar validate dacă sunt completate)
-    if (contactEmail.trim()) {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(contactEmail.trim())) {
-        errs.contactEmail = 'Formatul adresei de e-mail nu este valid (ex: nume@domeniu.ro).';
-      }
-    }
-
-    if (contactPhone.trim()) {
-      const phoneDigits = contactPhone.replace(/\D/g, '');
-      if (phoneDigits.length < 7) {
-        errs.contactPhone = 'Introduceți un număr de telefon valid (minim 7 cifre).';
-      }
-    }
-
+    if (!selectedCategoryId) errs.category = 'Vă rugăm să selectați o categorie pentru problema semnalată.';
+    const d = description.trim();
+    if (!d) errs.description = 'Descrierea problemei este obligatorie.';
+    else if (d.length < MIN_DESCRIPTION_LENGTH) errs.description = `Vă rugăm să oferiți mai multe detalii (minim ${MIN_DESCRIPTION_LENGTH} caractere).`;
+    else if (d.length > MAX_DESCRIPTION_LENGTH) errs.description = `Descrierea depășește limita de ${MAX_DESCRIPTION_LENGTH} de caractere.`;
+    if (locationText.trim().length < 3) errs.location = 'Vă rugăm să introduceți strada, numărul sau un reper al problemei.';
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
 
-  // 4. Trimitere Sesizare
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // A-13: nu se trimite cât timp fotografiile se comprimă (altfel ar lipsi din sesizare), nici prin Enter.
-    if (isProcessingPhotos) return;
+    if (isProcessingPhotos || isSubmitting) return; // A-13
     setSubmitError(null);
-
     if (!validate()) {
-      // Scroll lin la prima eroare
       window.scrollTo({ top: 180, behavior: 'smooth' });
       return;
     }
-
     setIsSubmitting(true);
-
-    const selectedCategory = categories.find((c) => c.id === selectedCategoryId);
-
-    const hasContact = contactName.trim() || contactPhone.trim() || contactEmail.trim();
-
-    setTimeout(() => {
-      const result = reportService.submitReport({
-        categoryId: selectedCategoryId,
-        categoryName: selectedCategory ? selectedCategory.name : 'Sesizare Generală',
-        description: description.trim(),
-        photos,
-        location: {
-          addressOrDetails: addressOrDetails.trim(),
-          latitude: gpsCoordinates?.latitude,
-          longitude: gpsCoordinates?.longitude,
-          accuracy: gpsCoordinates?.accuracy,
-          source: gpsCoordinates ? 'both' : 'manual',
+    try {
+      const form = session ?? (await reportService.startForm());
+      if (!session) setSession(form);
+      const blobs = photos.map((p) => dataUrlToBlob(p.dataUrl));
+      const result = await reportService.submit(
+        {
+          categoryId: selectedCategoryId,
+          description: description.trim(),
+          location: position
+            ? { text: locationText.trim(), lat: position.lat, lng: position.lng, source: position.source, approximate: position.approximate }
+            : { text: locationText.trim(), source: 'text' },
+          notifyOptIn,
+          transmitToCityHall,
         },
-        contact: hasContact
-          ? {
-              name: contactName.trim() || undefined,
-              phone: contactPhone.trim() || undefined,
-              email: contactEmail.trim() || undefined,
-            }
-          : undefined,
-        publicationPreference,
-      });
-
-      setIsSubmitting(false);
-
-      // ETAPA 6.2 (C1): confirmarea se afișează DOAR dacă sesizarea a fost salvată efectiv.
+        blobs,
+        form,
+        hp,
+      );
       if (!result.success) {
-        setSubmitError(buildSubmitErrorMessage(result.reason, photos.length));
-        setTimeout(() => {
-          submitErrorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }, 0);
+        if (result.status === 401) {
+          onSessionExpired();
+          return;
+        }
+        // 422 generic (timp minim / jeton expirat): un jeton nou pentru următoarea încercare
+        if (result.status === 422 && !result.fields) {
+          reportService.startForm().then(setSession).catch(() => undefined);
+        }
+        if (result.fields?.location) setErrors((prev) => ({ ...prev, location: result.error }));
+        setSubmitError(`Sesizarea NU a fost înregistrată. ${result.error} Datele completate au fost păstrate.`);
+        setTimeout(() => submitErrorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 0);
         return;
       }
-
-      onSuccess(result.report);
-    }, 250);
+      const category = categories?.find((c) => c.id === selectedCategoryId);
+      onSuccess({
+        referenceNumber: result.created.referenceNumber,
+        createdAt: result.created.createdAt,
+        categoryName: category?.name ?? '',
+        description: description.trim(),
+        locationText: locationText.trim(),
+        position,
+        photos,
+        transmitToCityHall,
+        notifyOptIn,
+      });
+    } catch {
+      setSubmitError('Sesizarea NU a fost înregistrată: serverul nu a răspuns. Datele completate au fost păstrate; încercați din nou.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      
-      {/* 1. SECȚIUNEA CATEGORIE */}
+    <form onSubmit={handleSubmit} className="space-y-6" noValidate>
+      {/* capcana anti-robot (B7): invizibilă pentru oameni și pentru cititoarele de ecran */}
+      <div aria-hidden="true" style={{ position: 'absolute', left: '-10000px', width: 1, height: 1, overflow: 'hidden' }}>
+        <label>
+          Site web
+          <input type="text" name="website" tabIndex={-1} autoComplete="off" value={hp} onChange={(e) => setHp(e.target.value)} />
+        </label>
+      </div>
+
+      {/* 1. CATEGORIE */}
       <div className="bg-white rounded-3xl border border-slate-200 p-5 sm:p-6 shadow-sm space-y-4">
         <div>
-          <label className="block text-sm font-extrabold text-slate-900">
-            1. Selectează categoria problemei *
-          </label>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Alege domeniul cel mai apropiat de incidentul observat în oraș
-          </p>
+          <label className="block text-sm font-extrabold text-slate-900">1. Selectează categoria problemei *</label>
+          <p className="text-xs text-slate-500 mt-0.5">Alege domeniul cel mai apropiat de incidentul observat în oraș</p>
         </div>
 
         {errors.category && (
@@ -336,74 +279,69 @@ export const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
           </div>
         )}
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-          {categories.map((cat) => {
-            const isSelected = selectedCategoryId === cat.id;
-            const Icon = CATEGORY_ICONS[cat.id] || HelpCircle;
-
-            return (
-              <button
-                key={cat.id}
-                type="button"
-                onClick={() => {
-                  setSelectedCategoryId(cat.id);
-                  if (errors.category) {
-                    setErrors((prev) => {
-                      const copy = { ...prev };
-                      delete copy.category;
-                      return copy;
-                    });
-                  }
-                }}
-                className={`p-3.5 rounded-2xl border text-left flex flex-col justify-between min-h-[92px] transition-all select-none active:scale-[0.98] ${
-                  isSelected
-                    ? 'border-blue-600 bg-blue-50/80 ring-2 ring-blue-500/20 shadow-sm'
-                    : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/60'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div className={`p-2 rounded-xl ${isSelected ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700'}`}>
-                    <Icon className="w-4 h-4" />
-                  </div>
-                  {isSelected && (
-                    <div className="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center">
-                      <Check className="w-3 h-3 stroke-[3]" />
+        {categoriesError ? (
+          <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 flex items-center justify-between gap-2">
+            <span>Categoriile nu au putut fi încărcate: {categoriesError}</span>
+            <button type="button" onClick={loadCategories} className="font-bold underline">
+              Reîncearcă
+            </button>
+          </div>
+        ) : !categories ? (
+          <div className="flex items-center gap-2 text-xs text-slate-500">
+            <Loader2 className="w-4 h-4 animate-spin" /> Se încarcă categoriile...
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+            {categories.map((cat) => {
+              const isSelected = selectedCategoryId === cat.id;
+              const Icon = CATEGORY_ICONS[cat.id] || HelpCircle;
+              return (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => {
+                    setSelectedCategoryId(cat.id);
+                    clearError('category');
+                  }}
+                  className={`p-3.5 rounded-2xl border text-left flex flex-col justify-between min-h-[92px] transition-all select-none active:scale-[0.98] ${
+                    isSelected
+                      ? 'border-blue-600 bg-blue-50/80 ring-2 ring-blue-500/20 shadow-sm'
+                      : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/60'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className={`p-2 rounded-xl ${isSelected ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700'}`}>
+                      <Icon className="w-4 h-4" />
                     </div>
-                  )}
-                </div>
-
-                <div className="mt-2">
-                  <div className={`text-xs font-bold leading-tight ${isSelected ? 'text-blue-900' : 'text-slate-800'}`}>
-                    {cat.name}
+                    {isSelected && (
+                      <div className="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center">
+                        <Check className="w-3 h-3 stroke-[3]" />
+                      </div>
+                    )}
                   </div>
-                </div>
-              </button>
-            );
-          })}
-        </div>
+                  <div className="mt-2">
+                    <div className={`text-xs font-bold leading-tight ${isSelected ? 'text-blue-900' : 'text-slate-800'}`}>{cat.name}</div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
-      {/* 2. SECȚIUNEA DESCRIERE */}
+      {/* 2. DESCRIERE */}
       <div className="bg-white rounded-3xl border border-slate-200 p-5 sm:p-6 shadow-sm space-y-3">
         <div className="flex items-center justify-between">
           <div>
             <label htmlFor="report-desc" className="block text-sm font-extrabold text-slate-900">
               2. Descrierea problemei *
             </label>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Descrie problema cât mai clar: ce s-a întâmplat, unde și ce ai observat
-            </p>
+            <p className="text-xs text-slate-500 mt-0.5">Descrie problema cât mai clar: ce s-a întâmplat, unde și ce ai observat</p>
           </div>
-
-          {/* Contor de caractere */}
           <div className="text-[11px] font-mono font-semibold text-slate-400">
-            <span className={description.length > MAX_DESCRIPTION_LENGTH ? 'text-red-600 font-bold' : ''}>
-              {description.length}
-            </span>
-            /{MAX_DESCRIPTION_LENGTH}
+            <span className={description.length > MAX_DESCRIPTION_LENGTH ? 'text-red-600 font-bold' : ''}>{description.length}</span>/{MAX_DESCRIPTION_LENGTH}
           </div>
         </div>
-
         <div className="space-y-1">
           <textarea
             id="report-desc"
@@ -411,65 +349,46 @@ export const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
             value={description}
             onChange={(e) => {
               setDescription(e.target.value);
-              if (errors.description) {
-                setErrors((prev) => {
-                  const copy = { ...prev };
-                  delete copy.description;
-                  return copy;
-                });
-              }
+              clearError('description');
             }}
             placeholder="Descrie problema cât mai clar: ce s-a întâmplat, unde și ce ai observat."
             className={`w-full p-3.5 bg-slate-50 border rounded-2xl text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 transition-all ${
-              errors.description
-                ? 'border-red-400 focus:ring-red-200'
-                : 'border-slate-200 focus:ring-blue-200 focus:border-blue-500'
+              errors.description ? 'border-red-400 focus:ring-red-200' : 'border-slate-200 focus:ring-blue-200 focus:border-blue-500'
             }`}
           />
-          {errors.description && (
-            <p className="text-xs text-red-600 font-medium pt-0.5">{errors.description}</p>
-          )}
+          {errors.description && <p className="text-xs text-red-600 font-medium pt-0.5">{errors.description}</p>}
+          <p className="text-[11px] text-slate-500">Descrierea apare public pe hartă. Nu includeți date personale (nume, telefoane).</p>
         </div>
       </div>
 
-      {/* 3. SECȚIUNEA FOTOGRAFII (COMPRESIE ȘI REDIMENSIONARE AUTOMATĂ - ETAPA 3C) */}
+      {/* 3. FOTOGRAFII */}
       <div className="bg-white rounded-3xl border border-slate-200 p-5 sm:p-6 shadow-sm space-y-4">
         <div>
           <div className="flex items-center gap-2">
-            <label className="block text-sm font-extrabold text-slate-900">
-              3. Fotografii de la fața locului (Opțional, max {MAX_PHOTOS})
-            </label>
+            <label className="block text-sm font-extrabold text-slate-900">3. Fotografii de la fața locului (Opțional, max {MAX_PHOTOS})</label>
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
               <Sparkles className="w-3 h-3 text-blue-600" />
               <span>Optimizare automată</span>
             </span>
           </div>
           <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
-            Formate acceptate: JPG, PNG, WebP (max {MAX_PHOTO_SIZE_MB}MB per fișier). Imaginile sunt redimensionate automat (max 1920px) și comprimate eficient în browser înainte de salvare.
+            Formate acceptate: JPG, PNG, WebP (max {MAX_PHOTO_SIZE_MB}MB per fișier). Imaginile sunt redimensionate automat (max 1920px) și comprimate în browser. <strong>Prima fotografie apare public pe hartă</strong>, imediat; evitați persoane sau numere de înmatriculare.
           </p>
         </div>
 
-        {/* Mesaj de eroare procesare dacă e cazul */}
         {photoError && (
           <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-xs text-amber-900 flex items-start gap-2.5">
             <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
             <div className="flex-1">
               <p className="font-bold text-amber-950">{photoError}</p>
-              <p className="text-[11px] text-amber-800 mt-0.5">
-                Formularul rămâne complet utilizabil. Puteți încerca cu o altă fotografie.
-              </p>
+              <p className="text-[11px] text-amber-800 mt-0.5">Formularul rămâne complet utilizabil. Puteți încerca cu o altă fotografie.</p>
             </div>
-            <button
-              type="button"
-              onClick={() => setPhotoError(null)}
-              className="text-amber-700 hover:text-amber-950 p-1"
-            >
+            <button type="button" onClick={() => setPhotoError(null)} className="text-amber-700 hover:text-amber-950 p-1" aria-label="Închide mesajul">
               <X className="w-4 h-4" />
             </button>
           </div>
         )}
 
-        {/* Input ascuns */}
         <input
           type="file"
           ref={fileInputRef}
@@ -481,38 +400,27 @@ export const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
           id="photo-upload-input"
         />
 
-        {/* Grilă poze atașate + Stare procesare + Buton adăugare */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {photos.map((photo) => (
-            <div
-              key={photo.id}
-              className="relative aspect-square rounded-2xl overflow-hidden border border-slate-200 bg-slate-900 group shadow-sm flex flex-col justify-end"
-            >
-              <img
-                src={photo.dataUrl}
-                alt={photo.name}
-                className="w-full h-full object-cover absolute inset-0"
-              />
-
-              {/* Bandă informativă discretă cu statisticile optimizării */}
+          {photos.map((photo, i) => (
+            <div key={photo.id} className="relative aspect-square rounded-2xl overflow-hidden border border-slate-200 bg-slate-900 group shadow-sm flex flex-col justify-end">
+              <img src={photo.dataUrl} alt={photo.name} className="w-full h-full object-cover absolute inset-0" />
+              {i === 0 && (
+                <span className="absolute top-2 left-2 z-20 px-1.5 py-0.5 rounded-md bg-emerald-600 text-white text-[9px] font-bold flex items-center gap-1">
+                  <Eye className="w-3 h-3" /> Publică
+                </span>
+              )}
               <div className="relative z-10 bg-gradient-to-t from-slate-950/90 via-slate-900/60 to-transparent p-2 pt-4 text-white text-[10px] space-y-0.5">
                 <div className="font-mono font-bold truncate text-[10px] text-slate-100">
                   {photo.width && photo.height ? `${photo.width}×${photo.height}` : 'Optimizat'}
                 </div>
                 <div className="flex items-center justify-between text-[9px] text-slate-300">
                   <span>{(photo.size / 1024).toFixed(0)} KB</span>
-                  {photo.compressionRatio !== undefined && (
-                    <span className="font-bold text-emerald-400">
-                      -{photo.compressionRatio}%
-                    </span>
-                  )}
+                  {photo.compressionRatio !== undefined && <span className="font-bold text-emerald-400">-{photo.compressionRatio}%</span>}
                 </div>
               </div>
-
-              {/* Buton eliminare fotografie */}
               <button
                 type="button"
-                onClick={() => handleRemovePhoto(photo.id)}
+                onClick={() => setPhotos((prev) => prev.filter((p) => p.id !== photo.id))}
                 className="absolute top-2 right-2 z-20 p-1.5 rounded-full bg-slate-900/80 hover:bg-red-600 text-white transition-colors shadow-md active:scale-95"
                 title="Elimină fotografia"
                 aria-label="Elimină fotografia"
@@ -522,13 +430,10 @@ export const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
             </div>
           ))}
 
-          {/* Indicator vizual în timpul procesării / compresiei */}
           {isProcessingPhotos && (
             <div className="aspect-square rounded-2xl border-2 border-dashed border-blue-400 bg-blue-50/80 flex flex-col items-center justify-center p-3 text-center space-y-2 animate-pulse">
               <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
-              <div className="text-[11px] font-bold text-blue-900 leading-tight">
-                Se optimizează...
-              </div>
+              <div className="text-[11px] font-bold text-blue-900 leading-tight">Se optimizează...</div>
               {processingProgress && (
                 <div className="text-[9px] text-blue-700 font-medium">
                   {processingProgress.current} din {processingProgress.total}
@@ -537,7 +442,6 @@ export const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
             </div>
           )}
 
-          {/* Buton Adăugare Poză (dacă mai e loc și nu se procesează) */}
           {photos.length < MAX_PHOTOS && !isProcessingPhotos && (
             <button
               type="button"
@@ -547,282 +451,110 @@ export const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
               <div className="p-2.5 rounded-full bg-white shadow-sm border border-slate-200">
                 <Camera className="w-5 h-5 text-slate-600" />
               </div>
-              <span className="text-[11px] font-bold">
-                {photos.length === 0 ? 'Încarcă foto' : 'Mai adaugă'}
-              </span>
+              <span className="text-[11px] font-bold">{photos.length === 0 ? 'Încarcă foto' : 'Mai adaugă'}</span>
             </button>
           )}
         </div>
       </div>
 
-      {/* 4. SECȚIUNEA LOCAȚIE (MANUALĂ + GPS LA CERERE) */}
+      {/* 4. LOCAȚIE */}
       <div className="bg-white rounded-3xl border border-slate-200 p-5 sm:p-6 shadow-sm space-y-4">
         <div>
           <label htmlFor="report-location" className="block text-sm font-extrabold text-slate-900">
             4. Locația incidentului *
           </label>
           <p className="text-xs text-slate-500 mt-0.5">
-            Indică strada, numărul, intersecția sau un reper binecunoscut din oraș
+            Descrie locul (stradă, număr, reper) și, opțional, pune pinul pe hartă. Sunt acceptate numai locuri din municipiul Turnu Măgurele.
           </p>
         </div>
 
-        {/* Câmp text locație manuală */}
         <div className="space-y-1">
           <div className="relative">
             <MapPin className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               id="report-location"
               type="text"
-              value={addressOrDetails}
+              value={locationText}
+              maxLength={300}
               onChange={(e) => {
-                setAddressOrDetails(e.target.value);
-                if (errors.location) {
-                  setErrors((prev) => {
-                    const copy = { ...prev };
-                    delete copy.location;
-                    return copy;
-                  });
-                }
+                setLocationText(e.target.value);
+                clearError('location');
               }}
-              placeholder="ex: Str. Portului nr. 12, lângă parcul central"
+              placeholder="ex: Str. 1 Mai, în dreptul blocului F25"
               className={`w-full pl-10 pr-3.5 py-3 bg-slate-50 border rounded-2xl text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 transition-all ${
-                errors.location
-                  ? 'border-red-400 focus:ring-red-200'
-                  : 'border-slate-200 focus:ring-blue-200 focus:border-blue-500'
+                errors.location ? 'border-red-400 focus:ring-red-200' : 'border-slate-200 focus:ring-blue-200 focus:border-blue-500'
               }`}
             />
           </div>
-          {errors.location && (
-            <p className="text-xs text-red-600 font-medium pt-0.5">{errors.location}</p>
-          )}
+          {errors.location && <p className="text-xs text-red-600 font-medium pt-0.5">{errors.location}</p>}
+          <p className="text-[11px] text-slate-500">Textul locației apare public, ca descrierea.</p>
         </div>
 
-        {/* Buton Activare GPS (Opțional la cererea utilizatorului) */}
-        <div className="pt-1 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <button
-            type="button"
-            onClick={handleRequestGps}
-            disabled={isGettingGps}
-            className="inline-flex items-center gap-2 px-4 py-2.5 min-h-[44px] rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-800 font-bold text-xs transition-colors border border-blue-200 select-none active:scale-[0.98]"
-          >
-            {isGettingGps ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
-                <span>Se preia poziția GPS...</span>
-              </>
-            ) : (
-              <>
-                <Navigation className="w-4 h-4 text-blue-600" />
-                <span>Folosește locația mea (GPS)</span>
-              </>
-            )}
-          </button>
-
-          {/* Confirmare coordonate preluate */}
-          {gpsCoordinates && (
-            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-semibold">
-              <Check className="w-3.5 h-3.5 text-emerald-600" />
-              <span>
-                Coordonate GPS salvate ({gpsCoordinates.latitude.toFixed(4)}, {gpsCoordinates.longitude.toFixed(4)})
-              </span>
-            </div>
-          )}
-        </div>
-
-        {/* Mesaj de eroare GPS prietenos (fără blocarea formularului) */}
-        {gpsError && (
-          <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 flex items-start gap-2">
-            <Info className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-            <span>{gpsError}</span>
-          </div>
-        )}
+        <LocationPicker value={position} onChange={(p) => { setPosition(p); clearError('location'); }} addressHint={locationText} />
       </div>
 
-      {/* 5. SECȚIUNEA DATE DE CONTACT (OPȚIONALE) */}
+      {/* 5. NOTIFICĂRI ȘI TRANSMITERE */}
       <div className="bg-white rounded-3xl border border-slate-200 p-5 sm:p-6 shadow-sm space-y-4">
         <div>
-          <div className="flex items-center gap-2">
-            <label className="text-sm font-extrabold text-slate-900">
-              5. Date de contact
-            </label>
-            <span className="px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-slate-100 text-slate-600">
-              Opțional
-            </span>
-          </div>
+          <label className="text-sm font-extrabold text-slate-900">5. Notificări și transmitere către Primărie</label>
           <p className="text-xs text-slate-500 mt-0.5">
-            Puteți lăsa date de contact pentru eventuale clarificări. Sesizarea poate fi trimisă și fără acestea.
+            Sesizarea se trimite din contul <strong className="text-slate-700">{accountEmail}</strong>. Adresa nu apare public.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div className="space-y-1">
-            <label htmlFor="contact-name" className="text-[11px] font-bold text-slate-700">
-              Nume și prenume
-            </label>
-            <div className="relative">
-              <User className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                id="contact-name"
-                type="text"
-                value={contactName}
-                onChange={(e) => setContactName(e.target.value)}
-                placeholder="Anonim sau Nume"
-                className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200"
-              />
+        <label
+          className={`flex items-start gap-3 p-3.5 rounded-2xl border-2 cursor-pointer transition-all ${
+            transmitToCityHall ? 'border-blue-600 bg-blue-50/60 ring-2 ring-blue-100' : 'border-slate-200 hover:border-slate-300 bg-white'
+          }`}
+        >
+          <input
+            type="checkbox"
+            checked={transmitToCityHall}
+            onChange={(e) => setTransmitToCityHall(e.target.checked)}
+            className="mt-1 text-blue-600 focus:ring-blue-500"
+          />
+          <div className="space-y-0.5">
+            <div className="flex items-center gap-2 font-bold text-xs sm:text-sm text-slate-900">
+              <Building2 className="w-4 h-4 text-blue-600 shrink-0" />
+              <span>Transmite sesizarea către Primărie</span>
             </div>
+            <p className="text-[11px] text-slate-500 leading-relaxed">
+              Platforma trimite pe e-mail sesizarea către Primărie: descrierea, locul, coordonatele, fotografiile și <strong>adresa de e-mail a contului</strong> (pentru eventuale clarificări). Maximum 3 transmiteri în 24 de ore.
+            </p>
           </div>
+        </label>
 
-          <div className="space-y-1">
-            <label htmlFor="contact-phone" className="text-[11px] font-bold text-slate-700">
-              Număr telefon
-            </label>
-            <div className="relative">
-              <Phone className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                id="contact-phone"
-                type="tel"
-                value={contactPhone}
-                onChange={(e) => {
-                  setContactPhone(e.target.value);
-                  if (errors.contactPhone) {
-                    setErrors((prev) => {
-                      const copy = { ...prev };
-                      delete copy.contactPhone;
-                      return copy;
-                    });
-                  }
-                }}
-                placeholder="07xxxxxxxx"
-                className={`w-full pl-9 pr-3 py-2.5 bg-slate-50 border rounded-xl text-xs text-slate-900 focus:bg-white focus:outline-none focus:ring-2 ${
-                  errors.contactPhone ? 'border-red-400 focus:ring-red-200' : 'border-slate-200 focus:ring-blue-200'
-                }`}
-              />
+        <label
+          className={`flex items-start gap-3 p-3.5 rounded-2xl border-2 cursor-pointer transition-all ${
+            notifyOptIn ? 'border-emerald-600 bg-emerald-50/60 ring-2 ring-emerald-100' : 'border-slate-200 hover:border-slate-300 bg-white'
+          }`}
+        >
+          <input type="checkbox" checked={notifyOptIn} onChange={(e) => setNotifyOptIn(e.target.checked)} className="mt-1 text-emerald-600 focus:ring-emerald-500" />
+          <div className="space-y-0.5">
+            <div className="flex items-center gap-2 font-bold text-xs sm:text-sm text-slate-900">
+              <Bell className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>Anunță-mă pe e-mail când se schimbă stadiul</span>
             </div>
-            {errors.contactPhone && (
-              <p className="text-[10px] text-red-600 font-medium">{errors.contactPhone}</p>
-            )}
+            <p className="text-[11px] text-slate-500 leading-relaxed">
+              Primiți un mesaj când sesizarea devine „în analiză” (transmisă Primăriei) și când devine „rezolvată”. Vă puteți dezabona din orice mesaj.
+            </p>
           </div>
-
-          <div className="space-y-1">
-            <label htmlFor="contact-email" className="text-[11px] font-bold text-slate-700">
-              Adresă e-mail
-            </label>
-            <div className="relative">
-              <Mail className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                id="contact-email"
-                type="email"
-                value={contactEmail}
-                onChange={(e) => {
-                  setContactEmail(e.target.value);
-                  if (errors.contactEmail) {
-                    setErrors((prev) => {
-                      const copy = { ...prev };
-                      delete copy.contactEmail;
-                      return copy;
-                    });
-                  }
-                }}
-                placeholder="cetatean@exemplu.ro"
-                className={`w-full pl-9 pr-3 py-2.5 bg-slate-50 border rounded-xl text-xs text-slate-900 focus:bg-white focus:outline-none focus:ring-2 ${
-                  errors.contactEmail ? 'border-red-400 focus:ring-red-200' : 'border-slate-200 focus:ring-blue-200'
-                }`}
-              />
-            </div>
-            {errors.contactEmail && (
-              <p className="text-[10px] text-red-600 font-medium">{errors.contactEmail}</p>
-            )}
-          </div>
-        </div>
+        </label>
       </div>
 
-      {/* 6. SECȚIUNEA AFIȘARE PE HARTĂ (ETAPA 6.6: fără opțiune de ascundere; identitatea autorului nu e publică) */}
-      <div className="bg-white rounded-3xl border border-slate-200 p-5 sm:p-6 shadow-sm space-y-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <label className="text-sm font-extrabold text-slate-900">
-              6. Afișarea sesizării pe harta sesizărilor *
-            </label>
-            <span className="px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-blue-100 text-blue-800">
-              Alegere Cetățean
-            </span>
-          </div>
-          <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-            După aprobarea moderatorului, sesizarea poate fi afișată pe harta orașului, pentru ca ceilalți cetățeni să vadă problema semnalată. <strong>Numele, telefonul și e-mailul dumneavoastră nu sunt afișate public.</strong>
-          </p>
-        </div>
-
-        <div className="space-y-2.5">
-          {/* Opțiunea 2: PUBLIC ANONIM */}
-          <label
-            className={`flex items-start gap-3 p-3.5 rounded-2xl border-2 cursor-pointer transition-all ${
-              publicationPreference === 'public_anonymous'
-                ? 'border-emerald-600 bg-emerald-50/60 ring-2 ring-emerald-100'
-                : 'border-slate-200 hover:border-slate-300 bg-white'
-            }`}
-          >
-            <input
-              type="radio"
-              name="publicationPreference"
-              value="public_anonymous"
-              checked={publicationPreference === 'public_anonymous'}
-              onChange={() => setPublicationPreference('public_anonymous')}
-              className="mt-1 text-emerald-600 focus:ring-emerald-500"
-            />
-            <div className="space-y-0.5">
-              <div className="flex items-center gap-2 font-bold text-xs sm:text-sm text-slate-900">
-                <UserCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>Afișare publică anonimă</span>
-              </div>
-              <p className="text-[11px] text-slate-500 leading-relaxed">
-                După aprobarea moderatorului, problema apare pe hartă. <strong>Datele dumneavoastră personale (nume, telefon, e-mail) sunt 100% protejate și NU vor fi afișate public</strong>.
-              </p>
-            </div>
-          </label>
-
-          {/* Opțiunea 3: PUBLIC */}
-          <label
-            className={`flex items-start gap-3 p-3.5 rounded-2xl border-2 cursor-pointer transition-all ${
-              publicationPreference === 'public'
-                ? 'border-blue-600 bg-blue-50/60 ring-2 ring-blue-100'
-                : 'border-slate-200 hover:border-slate-300 bg-white'
-            }`}
-          >
-            <input
-              type="radio"
-              name="publicationPreference"
-              value="public"
-              checked={publicationPreference === 'public'}
-              onChange={() => setPublicationPreference('public')}
-              className="mt-1 text-blue-600 focus:ring-blue-500"
-            />
-            <div className="space-y-0.5">
-              <div className="flex items-center gap-2 font-bold text-xs sm:text-sm text-slate-900">
-                <Eye className="w-4 h-4 text-blue-600 shrink-0" />
-                <span>Afișare publică</span>
-              </div>
-              <p className="text-[11px] text-slate-500 leading-relaxed">
-                Sesizarea intră în fluxul de moderare și, după aprobare, devine vizibilă pe hartă.
-              </p>
-            </div>
-          </label>
-        </div>
-      </div>
-
-      {/* 7. INFORMAREA OBLIGATORIE A CETĂȚEANULUI PRIVIND NATURA PLATFORMEI */}
+      {/* 6. INFORMARE */}
       <div className="bg-amber-50/90 border border-amber-200 rounded-3xl p-5 text-xs text-amber-900 space-y-2 shadow-sm">
         <div className="font-bold flex items-center gap-2 text-amber-950">
           <ShieldAlert className="w-4 h-4 text-amber-700 shrink-0" />
           <span>Informare esențială înainte de trimitere</span>
         </div>
         <p className="leading-relaxed text-[11px] text-amber-900">
-          Platforma este un demers civic independent și <strong>nu reprezintă registrul oficial al Primăriei Municipiului Turnu Măgurele</strong>. Formularul transmite sesizarea către platformă pentru procesarea fluxului civic. Platforma nu emite în această etapă un număr oficial de înregistrare, iar transmiterea formală către Primărie va fi activată conform Master Planului.
+          Platforma este un demers civic independent și <strong>nu reprezintă registrul oficial al Primăriei Municipiului Turnu Măgurele</strong>. Sesizarea apare <strong>imediat</strong> pe harta publică (categoria, descrierea, locul, prima fotografie și stadiul), fără verificare prealabilă; responsabilitatea conținutului vă aparține. Numărul <code>TM-XXX</code> este intern, nu un număr oficial de înregistrare. Sesizarea se păstrează 45 de zile; o puteți șterge oricând din „Contul meu”.
         </p>
       </div>
 
-      {/* 8. BUTONUL DE TRIMITERE */}
+      {/* 7. TRIMITERE */}
       <div className="pt-2 space-y-3">
-        {/* ETAPA 6.2 (C1): eroare de salvare — sesizarea NU a fost înregistrată */}
         {submitError && (
           <div
             ref={submitErrorRef}
@@ -836,7 +568,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
         )}
         <button
           type="submit"
-          disabled={isSubmitting || isProcessingPhotos}
+          disabled={isSubmitting || isProcessingPhotos || !categories}
           className="w-full py-4 px-6 min-h-[52px] rounded-2xl bg-blue-700 hover:bg-blue-800 text-white font-extrabold text-sm sm:text-base shadow-lg shadow-blue-700/25 transition-all flex items-center justify-center gap-2.5 active:scale-[0.99] disabled:opacity-50 select-none"
         >
           {isSubmitting ? (
@@ -852,7 +584,6 @@ export const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
           )}
         </button>
       </div>
-
     </form>
   );
 };
