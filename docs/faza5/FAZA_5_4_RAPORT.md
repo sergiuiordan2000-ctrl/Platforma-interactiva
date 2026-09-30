@@ -12,7 +12,8 @@
 | 5.4.6–5.4.7 | frontend pe API: „Contul meu”, formularul nou (pin / poziția mea / adresă), harta cu zone și stadiu, Admin „Sesizări” fără moderare, setările fluxului, dezabonarea | acest commit |
 | 5.4.8 | teste: server 165/165 (31 noi); E2E nou `e2e/test_5_4_sesizari.py` 25/25 (după P-2); suita Python revizuită 70/70 (§4) | acest commit |
 | — | pinul hărții publice (§5, nota 5) | `a6aee5f` |
-| — | sesiunea de cetățean: 120 de zile fără folosire, cookie persistent (§3); server 168/168 (2 teste noi, cu probă de control), suita Python 71/71 | acest commit |
+| — | sesiunea de cetățean: 120 de zile fără folosire, cookie persistent (§3) | `b2eb198` |
+| — | sesiunea de cetățean fără expirare (varianta B, §3); scriptul de pachet refuză un `server/dist` vechi (§5, nota 6) | acest commit |
 | 5.4.9 | staging: pachet, deploy, `GEOCODER_URL`, test „Strada 1 Mai”, poziții demo, T-ISO | în curs |
 
 ## 2. Criteriile (B10 §6, rândul 5.4)
@@ -36,7 +37,7 @@
 | ALTCHA la sesizări | A + A1: implementat, oprit implicit, pornit numai prin CLI; extindere explicită B2 (plan §5) |
 | limita UAT | poligonul OSM (relația 10664112) verificat vizual de proprietar (T-B6) |
 | pinul propus prin adresă și mutat | devine punct exact (`pin`); nemutat rămâne zonă (`geocoded`) |
-| sesiunea de cetățean (observație pe staging: codul cerut din nou) | expiră după **120 de zile fără folosire**, cookie persistent reînnoit la fiecare cerere autentificată; înlocuiește numai pentru cetățeni valorile 60 min / 12 h (propunere DN-15). Admin neschimbat: cookie de sesiune, 60 min / 12 h |
+| sesiunea de cetățean (observație pe staging: codul cerut din nou) | întâi 120 de zile fără folosire (`b2eb198`), apoi **varianta B**: fără expirare pe server; se încheie numai prin ieșire, ștergerea contului sau revocare; cookie persistent de 400 de zile (limita browserelor), reînnoit la fiecare folosire. Admin neschimbat: cookie de sesiune, 60 min / 12 h. Risc acceptat: telefon pierdut → rămâne autentificat până la ștergerea contului |
 
 ## 4. Testele vechi: ce s-a păstrat, ce s-a schimbat și de ce (B10 §7)
 
@@ -75,6 +76,7 @@ Nicio verificare nu a fost slăbită ca să treacă. R6.3 (XSS) a fost întărit
 3. **Harta din formular cu înălțimea 0:** stilul global `.leaflet-container { height: 100% }` anula clasa Tailwind; înălțimea e pusă direct pe element, ca în harta publică.
 4. **Linkul de dezabonare** era citit numai la încărcarea paginii; acum și la schimbarea adresei cu aplicația deschisă. Jetonul se scoate imediat din bara de adrese.
 5. **Pinul de pe harta publică desenat la ~25–30 m nord de punct** (moștenit din Etapa 3D, observat de proprietar pe staging la TM-003): iconița era deplasată de două ori (ancorarea Leaflet + clasele `-translate-x-1/2 -translate-y-full`). Reparat în `MapView`, cu aspectul neschimbat; testul E2E P-2 compară vârful pinului cu centrul zonei desenate de Leaflet în aceeași coordonată (cod vechi: −16 / −26,5 px; reparat: < 1,5 px). Datele din DB erau corecte.
+6. **Pachetul de staging `civic-b2eb198` construit cu un `server/dist/app.js` vechi** (greșeala lui Claude: build-ul serverului nu fusese refăcut; `health` arăta `a6aee5f` după deploy). Pachetul a fost refăcut și redeployat de proprietar; `package-release.py` refuză acum un `app.js` care nu provine din `HEAD` (probă de control: refuz cu `app.js` vechi).
 
 ## 6. Constatări și limitări
 
@@ -83,6 +85,8 @@ Nicio verificare nu a fost slăbită ca să treacă. R6.3 (XSS) a fost întărit
 - `reports.gps_accuracy_m` rămâne nefolosit: contractul B2 nu transmite precizia GPS (D6-6 cere oricum să nu se păstreze după mutarea pinului).
 - Coordonatele din „Corectează poziția” (Admin) se introduc ca text (lat / lng), copiate de pe openstreetmap.org; o hartă de alegere în Admin poate veni ulterior, dacă se decide.
 - Sesizările salvate anterior în browser nu se mută pe server.
+- După o restaurare din backup, cetățenii se autentifică din nou: tabelul `sessions` nu intră în backup (tabel efemer, 5.1).
+- Pe staging, fereastra de parolă a subdomeniului (protecția cPanel) reapare după încărcarea paginii; ține numai de staging. Cauza probabilă: răspunsurile 401 ale API-ului („nu ești autentificat”). De investigat separat.
 - Cookie-ul de sesiune este **comun** pentru Admin și cetățean (`__Host-civic_sid`, B3 §3): autentificarea în Admin în același browser înlocuiește sesiunea de cetățean (probabil cauza codului cerut din nou pe staging). Comportament neschimbat; se testează cu browsere sau profiluri separate.
 - Sesizările despre probleme între vecini (de exemplu, zgomotul) apar public cu descriere și loc, chiar fără transmitere către Primărie. Este o întrebare de produs și juridică (2.9, E-6), nu o eroare tehnică; o semnalez pentru decizie separată.
 - Feedbackul auditului ChatGPT la 5.1: încă neprimit.

@@ -100,7 +100,7 @@ export function requireCitizen(ctx: AppContext) {
     const account = (rows as CitizenPrincipal['account'][])[0];
     if (!account || account.status !== 'active') return unauthorized(reply);
     request.citizen = { session, account };
-    // cookie persistent reînnoit la folosire (120 de zile de la ultima folosire, decizia din 30.09.2026)
+    // cookie persistent reînnoit la folosire (decizia din 30.09.2026, varianta B)
     const token = tokenFromRequest(ctx, request);
     if (token) setSessionCookie(ctx, reply, token, true);
   };

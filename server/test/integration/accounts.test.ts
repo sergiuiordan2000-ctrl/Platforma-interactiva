@@ -228,38 +228,48 @@ describe('conturile cetățenilor (B3 §8)', () => {
     assert.equal((await q("SELECT id FROM email_outbox WHERE recipient = 'rau@exemplu.test'")).length, 1, 'cel mult un mesaj pe zi');
   });
 
-  // Decizia proprietarului (30.09.2026): sesiunea de cetățean expiră după 120 de zile fără folosire; cookie persistent.
-  it('sesiunea de cetățean: cookie persistent 120 de zile, reînnoit la folosire; expiră numai după 120 de zile fără folosire', async () => {
+  // Decizia proprietarului (30.09.2026, varianta B): sesiunea de cetățean nu expiră; se încheie numai prin ieșire,
+  // ștergerea contului sau revocare. Cookie persistent de 400 de zile (limita browserelor), reînnoit la folosire.
+  it('sesiunea de cetățean: fără expirare pe server; cookie persistent 400 de zile, reînnoit la folosire; ieșirea o încheie', async () => {
     const DAY = 24 * 60;
+    const COOKIE = String(400 * 86_400);
     const maxAge = (res: { headers: Record<string, unknown> }) => {
       const set = res.headers['set-cookie'];
       const line = (Array.isArray(set) ? set : [set]).find((s) => typeof s === 'string' && s.includes('civic_sid')) as string | undefined;
       return line?.match(/Max-Age=(\d+)/i)?.[1];
     };
 
-    // la confirmarea codului: Max-Age = 120 de zile
     await new Client(app).post(`${V1}/citizen/auth/start`, { email: 'lung@exemplu.test', policyAccepted: true, policyVersion: CITIZEN_POLICY_VERSION });
     const [row] = await q<{ b: string }>("SELECT body_text AS b FROM email_outbox WHERE recipient = 'lung@exemplu.test' ORDER BY created_at DESC, id DESC LIMIT 1");
     const c = new Client(app);
     const v = await c.post(`${V1}/citizen/auth/verify`, { email: 'lung@exemplu.test', code: row!.b.match(/\b(\d{6})\b/)![1]! });
     assert.equal(v.statusCode, 200);
-    assert.equal(maxAge(v), String(120 * 86_400));
+    assert.equal(maxAge(v), COOKIE, 'la confirmarea codului');
 
-    // peste 13 h (dincolo de vechile 60 min / 12 h): încă valabilă, iar cookie-ul se reînnoiește
+    // dincolo de vechile 60 min / 12 h: valabilă, cookie reînnoit
     clock.advanceMinutes(13 * 60);
     const me1 = await c.get(`${V1}/citizen/me`);
     assert.equal(me1.statusCode, 200);
-    assert.equal(maxAge(me1), String(120 * 86_400), 'cookie reînnoit la folosire');
+    assert.equal(maxAge(me1), COOKIE, 'cookie reînnoit la folosire');
 
-    // 119 zile fără folosire → valabilă; folosirea prelungește termenul
-    clock.advanceMinutes(119 * DAY);
+    // 3 ani fără folosire → tot valabilă pe server (cookie-ul e păstrat de client)
+    clock.advanceMinutes(3 * 365 * DAY);
     assert.equal((await c.get(`${V1}/citizen/me`)).statusCode, 200);
-    clock.advanceMinutes(119 * DAY);
-    assert.equal((await c.get(`${V1}/citizen/me`)).statusCode, 200, 'la 238 de zile de la autentificare, dar folosită la ziua 119');
+    const [sess] = await q<{ l: Date }>(
+      "SELECT s.last_seen_at AS l FROM sessions s JOIN citizen_accounts a ON a.id = s.citizen_account_id WHERE a.email_normalized = 'lung@exemplu.test'",
+    );
+    assert.equal(sess!.l.getTime(), clock.now().getTime(), 'ultima folosire se notează');
 
-    // 121 de zile fără folosire → expirată
-    clock.advanceMinutes(121 * DAY);
-    assert.equal((await c.get(`${V1}/citizen/me`)).statusCode, 401);
+    // ieșirea încheie sesiunea: cookie-ul e șters (ultimul Set-Cookie) și jetonul e revocat pe server
+    const token = c.cookie;
+    const out = await c.post(`${V1}/citizen/auth/logout`);
+    assert.equal(out.statusCode, 204);
+    const set = out.headers['set-cookie'];
+    const lines = (Array.isArray(set) ? set : [set]).filter((x) => typeof x === 'string' && x.includes('civic_sid')) as string[];
+    assert.match(lines.at(-1)!, /civic_sid=;/, 'ultimul Set-Cookie șterge cookie-ul');
+    assert.equal(c.cookie, undefined);
+    c.cookie = token;
+    assert.equal((await c.get(`${V1}/citizen/me`)).statusCode, 401, 'jetonul vechi nu mai e valabil');
   });
 
   it('sesiunea Admin rămâne neschimbată: cookie fără Max-Age, expiră după 60 min de inactivitate', async () => {

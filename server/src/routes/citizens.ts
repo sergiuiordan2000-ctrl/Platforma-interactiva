@@ -172,7 +172,7 @@ export function registerCitizenRoutes(api: FastifyInstance, ctx: AppContext): vo
       [now, now, account.id],
     );
     const token = await createSession(ctx, ctx.pool, { type: 'citizen', accountId: account.id }, request);
-    setSessionCookie(ctx, reply, token, true); // cetățean: cookie persistent (120 de zile)
+    setSessionCookie(ctx, reply, token, true); // cetățean: cookie persistent (varianta B)
     return { ok: true };
   });
 

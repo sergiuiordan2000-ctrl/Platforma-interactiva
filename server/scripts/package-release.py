@@ -42,6 +42,10 @@ def main() -> int:
         print('build incomplet', file=sys.stderr)
         return 1
     sha = subprocess.run(['git', 'rev-parse', '--short', 'HEAD'], cwd=ROOT, capture_output=True, text=True).stdout.strip() or 'unknown'
+    # 30.09.2026: un pachet a ieșit cu server/dist/app.js dintr-un build vechi → versiunea compilată trebuie să fie HEAD
+    if f'+{sha}' not in (ROOT / 'server/dist/app.js').read_text(encoding='utf-8', errors='replace'):
+        print(f'server/dist/app.js nu este construit din {sha}: rulați `npm run build -w server`', file=sys.stderr)
+        return 1
     dirty = subprocess.run(['git', 'status', '--porcelain'], cwd=ROOT, capture_output=True, text=True).stdout.strip()
     out_dir = ROOT / 'server' / 'release'
     out_dir.mkdir(exist_ok=True)

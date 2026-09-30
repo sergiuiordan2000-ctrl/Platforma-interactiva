@@ -37,8 +37,12 @@ export const LIMITS = {
   citizenBlockedNoticePerDay: 1,
   recoveryCodes: 10,
   temporaryBlockDays: 15,
-  /** Decizia proprietarului (30.09.2026): sesiunea de cetățean expiră după 120 de zile fără folosire; cookie persistent. */
-  citizenSessionIdleDays: 120,
+  /**
+   * Decizia proprietarului (30.09.2026, varianta B): sesiunea de cetățean nu expiră pe server (numai ieșire,
+   * ștergerea contului sau revocare). Cookie-ul persistent are durata maximă acceptată de browsere (400 de zile,
+   * RFC 6265bis) și se reînnoiește la fiecare folosire.
+   */
+  citizenCookieMaxAgeDays: 400,
   // ——— sesizări (B7 §2, B5 §2, 2.14; propuneri DN-15) ———
   reportMinFormSeconds: 8,
   /** Jetonul formularului expiră după 24 h (propunere tehnică). */
