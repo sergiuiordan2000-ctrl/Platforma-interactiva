@@ -208,7 +208,7 @@ export const MapView: React.FC<MapViewProps> = ({ onNavigate }) => {
 
       // Creare pin HTML personalizat cu iconiță și identificator civic
       const markerHtml = `
-        <div class="relative group cursor-pointer -translate-x-1/2 -translate-y-full">
+        <div class="relative group cursor-pointer">
           <div class="w-8 h-8 rounded-full ${color.bg} text-white flex items-center justify-center shadow-lg border-2 border-white ring-2 ring-slate-900/10 transition-transform group-hover:scale-110">
             <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
@@ -225,9 +225,11 @@ export const MapView: React.FC<MapViewProps> = ({ onNavigate }) => {
       const customIcon = L.divIcon({
         className: 'custom-civic-marker',
         html: markerHtml,
+        // Faza 5.4: vârful pinului (romb, sub cerc) = punctul exact. Înainte, clasele `-translate-x-1/2 -translate-y-full`
+        // mutau încă o dată iconița (16 px stânga, 32 px sus, ≈ 25–30 m la zoom 17), peste ancorarea Leaflet.
         iconSize: [32, 32],
-        iconAnchor: [16, 32],
-        popupAnchor: [0, -32],
+        iconAnchor: [16, 36],
+        popupAnchor: [0, -36],
       });
 
       const formattedDate = escapeHtml(

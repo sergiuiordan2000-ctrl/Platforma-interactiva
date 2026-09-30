@@ -105,6 +105,27 @@ with backend_server(5699) as BACKEND, sync_playwright() as pw:
         dom = ppage.content()
         res.check('H-3 DOM-ul hărții: fără e-mailul autorului și fără ID-ul intern al sesizării', email not in dom and report_id not in dom, '')
 
+        # ——— 2b. Poziția desenată: vârful pinului = punctul (reper independent: centrul zonei, desenat de Leaflet) ———
+        tok_p = form_token(cctx, URL)
+        SPOT = {'lat': 43.7460, 'lng': 24.8745}
+        rp = submit_report_api(cctx, URL, tok_p, 'Sesizare pentru verificarea poziției pinului.', {'text': 'Punct de control', **SPOT, 'source': 'pin'})
+        rz = submit_report_api(cctx, URL, tok_p, 'Sesizare pentru verificarea centrului zonei.', {'text': 'Punct de control', **SPOT, 'source': 'geocoded', 'approximate': True})
+        ref_pin = rp.json().get('referenceNumber') if rp.status == 201 else None
+        goto(ppage, 'harta'); ppage.reload(); ppage.wait_for_load_state('networkidle')
+        ppage.wait_for_selector('.custom-civic-marker', timeout=5000); ppage.wait_for_timeout(500)
+        geo = ppage.evaluate("""(ref) => {
+          const m = [...document.querySelectorAll('.custom-civic-marker')].find(e => e.textContent.includes(ref));
+          const tip = m && m.querySelector('.rotate-45'); const zone = document.querySelector('.leaflet-overlay-pane path.leaflet-interactive');
+          if (!tip || !zone) return null;
+          const t = tip.getBoundingClientRect(); const z = zone.getBoundingClientRect();
+          return { dx: (t.left + t.width / 2) - (z.left + z.width / 2), dy: t.bottom - (z.top + z.height / 2) };
+        }""", ref_pin)
+        res.check('P-2 vârful pinului cade pe punct (față de centrul zonei din aceeași coordonată): abatere ≤ 4 px',
+                  bool(geo) and abs(geo['dx']) <= 4 and abs(geo['dy']) <= 4, json.dumps(geo))
+        for r_ in (rp, rz):  # curățenie: nu influențează restul scenariului
+            if r_.status == 201:
+                cctx.request.delete(URL + f"/api/v1/citizen/reports/{r_.json()['referenceNumber']}", headers=CSRF)
+
         # ——— 3. Admin: super_admin asumă; operatorii preiau; fără schimbarea stadiului (C-3) ———
         actx = b.new_context(viewport={'width': 1280, 'height': 900}); apage = actx.new_page(); apage.on('pageerror', lambda e: errors.append(str(e)[:160]))
 

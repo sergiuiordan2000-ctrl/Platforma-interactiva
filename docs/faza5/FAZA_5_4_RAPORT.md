@@ -10,7 +10,7 @@
 | 5.4.1–5.4.5 | scheme Zod; limita UAT din OSM (verificată de proprietar); depunerea (multipart, fotografii fără EXIF, contor TM, idempotență, anti-abuz, 2.14); API public / cetățean / Admin; coada e-mail `simulated`; CLI; sesizările demo | `640dd5b` |
 | — | CI: pasul „Artefactul” copiază și `server/data` (§5, nota 1); CI #17 verde | `d33fc7b` |
 | 5.4.6–5.4.7 | frontend pe API: „Contul meu”, formularul nou (pin / poziția mea / adresă), harta cu zone și stadiu, Admin „Sesizări” fără moderare, setările fluxului, dezabonarea | acest commit |
-| 5.4.8 | teste: server 165/165 (31 noi); E2E nou `e2e/test_5_4_sesizari.py` 24/24; suita Python revizuită 70/70 (§4) | acest commit |
+| 5.4.8 | teste: server 165/165 (31 noi); E2E nou `e2e/test_5_4_sesizari.py` 25/25 (după P-2); suita Python revizuită 70/70 (§4) | acest commit |
 | 5.4.9 | staging: pachet, deploy, `GEOCODER_URL`, test „Strada 1 Mai”, poziții demo, T-ISO | urmează |
 
 ## 2. Criteriile (B10 §6, rândul 5.4)
@@ -71,6 +71,7 @@ Nicio verificare nu a fost slăbită ca să treacă. R6.3 (XSS) a fost întărit
 2. **Fotografia blocată de CSP:** conversia imaginii folosea `fetch('data:…')`, blocat de `connect-src 'self'`; orice sesizare cu fotografie ar fi eșuat. Conversie directă, fără `fetch`. Prins de E2E C-4.
 3. **Harta din formular cu înălțimea 0:** stilul global `.leaflet-container { height: 100% }` anula clasa Tailwind; înălțimea e pusă direct pe element, ca în harta publică.
 4. **Linkul de dezabonare** era citit numai la încărcarea paginii; acum și la schimbarea adresei cu aplicația deschisă. Jetonul se scoate imediat din bara de adrese.
+5. **Pinul de pe harta publică desenat la ~25–30 m nord de punct** (moștenit din Etapa 3D, observat de proprietar pe staging la TM-003): iconița era deplasată de două ori (ancorarea Leaflet + clasele `-translate-x-1/2 -translate-y-full`). Reparat în `MapView`, cu aspectul neschimbat; testul E2E P-2 compară vârful pinului cu centrul zonei desenate de Leaflet în aceeași coordonată (cod vechi: −16 / −26,5 px; reparat: < 1,5 px). Datele din DB erau corecte.
 
 ## 6. Constatări și limitări
 
