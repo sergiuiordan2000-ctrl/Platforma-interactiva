@@ -11,7 +11,9 @@
 | — | CI: pasul „Artefactul” copiază și `server/data` (§5, nota 1); CI #17 verde | `d33fc7b` |
 | 5.4.6–5.4.7 | frontend pe API: „Contul meu”, formularul nou (pin / poziția mea / adresă), harta cu zone și stadiu, Admin „Sesizări” fără moderare, setările fluxului, dezabonarea | acest commit |
 | 5.4.8 | teste: server 165/165 (31 noi); E2E nou `e2e/test_5_4_sesizari.py` 25/25 (după P-2); suita Python revizuită 70/70 (§4) | acest commit |
-| 5.4.9 | staging: pachet, deploy, `GEOCODER_URL`, test „Strada 1 Mai”, poziții demo, T-ISO | urmează |
+| — | pinul hărții publice (§5, nota 5) | `a6aee5f` |
+| — | sesiunea de cetățean: 120 de zile fără folosire, cookie persistent (§3); server 168/168 (2 teste noi, cu probă de control), suita Python 71/71 | acest commit |
+| 5.4.9 | staging: pachet, deploy, `GEOCODER_URL`, test „Strada 1 Mai”, poziții demo, T-ISO | în curs |
 
 ## 2. Criteriile (B10 §6, rândul 5.4)
 
@@ -34,6 +36,7 @@
 | ALTCHA la sesizări | A + A1: implementat, oprit implicit, pornit numai prin CLI; extindere explicită B2 (plan §5) |
 | limita UAT | poligonul OSM (relația 10664112) verificat vizual de proprietar (T-B6) |
 | pinul propus prin adresă și mutat | devine punct exact (`pin`); nemutat rămâne zonă (`geocoded`) |
+| sesiunea de cetățean (observație pe staging: codul cerut din nou) | expiră după **120 de zile fără folosire**, cookie persistent reînnoit la fiecare cerere autentificată; înlocuiește numai pentru cetățeni valorile 60 min / 12 h (propunere DN-15). Admin neschimbat: cookie de sesiune, 60 min / 12 h |
 
 ## 4. Testele vechi: ce s-a păstrat, ce s-a schimbat și de ce (B10 §7)
 
@@ -80,6 +83,8 @@ Nicio verificare nu a fost slăbită ca să treacă. R6.3 (XSS) a fost întărit
 - `reports.gps_accuracy_m` rămâne nefolosit: contractul B2 nu transmite precizia GPS (D6-6 cere oricum să nu se păstreze după mutarea pinului).
 - Coordonatele din „Corectează poziția” (Admin) se introduc ca text (lat / lng), copiate de pe openstreetmap.org; o hartă de alegere în Admin poate veni ulterior, dacă se decide.
 - Sesizările salvate anterior în browser nu se mută pe server.
+- Cookie-ul de sesiune este **comun** pentru Admin și cetățean (`__Host-civic_sid`, B3 §3): autentificarea în Admin în același browser înlocuiește sesiunea de cetățean (probabil cauza codului cerut din nou pe staging). Comportament neschimbat; se testează cu browsere sau profiluri separate.
+- Sesizările despre probleme între vecini (de exemplu, zgomotul) apar public cu descriere și loc, chiar fără transmitere către Primărie. Este o întrebare de produs și juridică (2.9, E-6), nu o eroare tehnică; o semnalez pentru decizie separată.
 - Feedbackul auditului ChatGPT la 5.1: încă neprimit.
 
 ## 7. Cerere

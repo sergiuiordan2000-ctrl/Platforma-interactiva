@@ -37,6 +37,8 @@ export const LIMITS = {
   citizenBlockedNoticePerDay: 1,
   recoveryCodes: 10,
   temporaryBlockDays: 15,
+  /** Decizia proprietarului (30.09.2026): sesiunea de cetățean expiră după 120 de zile fără folosire; cookie persistent. */
+  citizenSessionIdleDays: 120,
   // ——— sesizări (B7 §2, B5 §2, 2.14; propuneri DN-15) ———
   reportMinFormSeconds: 8,
   /** Jetonul formularului expiră după 24 h (propunere tehnică). */

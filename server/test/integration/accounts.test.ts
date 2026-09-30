@@ -227,4 +227,55 @@ describe('conturile cetățenilor (B3 §8)', () => {
     await new Client(app).post(`${V1}/citizen/auth/start`, { email: 'rau@exemplu.test', policyAccepted: true, policyVersion: CITIZEN_POLICY_VERSION });
     assert.equal((await q("SELECT id FROM email_outbox WHERE recipient = 'rau@exemplu.test'")).length, 1, 'cel mult un mesaj pe zi');
   });
+
+  // Decizia proprietarului (30.09.2026): sesiunea de cetățean expiră după 120 de zile fără folosire; cookie persistent.
+  it('sesiunea de cetățean: cookie persistent 120 de zile, reînnoit la folosire; expiră numai după 120 de zile fără folosire', async () => {
+    const DAY = 24 * 60;
+    const maxAge = (res: { headers: Record<string, unknown> }) => {
+      const set = res.headers['set-cookie'];
+      const line = (Array.isArray(set) ? set : [set]).find((s) => typeof s === 'string' && s.includes('civic_sid')) as string | undefined;
+      return line?.match(/Max-Age=(\d+)/i)?.[1];
+    };
+
+    // la confirmarea codului: Max-Age = 120 de zile
+    await new Client(app).post(`${V1}/citizen/auth/start`, { email: 'lung@exemplu.test', policyAccepted: true, policyVersion: CITIZEN_POLICY_VERSION });
+    const [row] = await q<{ b: string }>("SELECT body_text AS b FROM email_outbox WHERE recipient = 'lung@exemplu.test' ORDER BY created_at DESC, id DESC LIMIT 1");
+    const c = new Client(app);
+    const v = await c.post(`${V1}/citizen/auth/verify`, { email: 'lung@exemplu.test', code: row!.b.match(/\b(\d{6})\b/)![1]! });
+    assert.equal(v.statusCode, 200);
+    assert.equal(maxAge(v), String(120 * 86_400));
+
+    // peste 13 h (dincolo de vechile 60 min / 12 h): încă valabilă, iar cookie-ul se reînnoiește
+    clock.advanceMinutes(13 * 60);
+    const me1 = await c.get(`${V1}/citizen/me`);
+    assert.equal(me1.statusCode, 200);
+    assert.equal(maxAge(me1), String(120 * 86_400), 'cookie reînnoit la folosire');
+
+    // 119 zile fără folosire → valabilă; folosirea prelungește termenul
+    clock.advanceMinutes(119 * DAY);
+    assert.equal((await c.get(`${V1}/citizen/me`)).statusCode, 200);
+    clock.advanceMinutes(119 * DAY);
+    assert.equal((await c.get(`${V1}/citizen/me`)).statusCode, 200, 'la 238 de zile de la autentificare, dar folosită la ziua 119');
+
+    // 121 de zile fără folosire → expirată
+    clock.advanceMinutes(121 * DAY);
+    assert.equal((await c.get(`${V1}/citizen/me`)).statusCode, 401);
+  });
+
+  it('sesiunea Admin rămâne neschimbată: cookie fără Max-Age, expiră după 60 min de inactivitate', async () => {
+    const c = new Client(app);
+    const res = await c.post(`${V1}/auth/login`, { email: 'sa1@exemplu.test', password: PW });
+    assert.equal(res.statusCode, 200);
+    const set = res.headers['set-cookie'];
+    const line = (Array.isArray(set) ? set : [set]).find((s) => typeof s === 'string' && s.includes('civic_sid')) as string;
+    assert.ok(line && !/Max-Age|Expires/i.test(line), 'cookie de sesiune (dispare la închiderea browserului)');
+    const [sa] = await q<{ s: Buffer }>("SELECT totp_secret_enc AS s FROM admin_users WHERE email = 'sa1@exemplu.test'");
+    const mfa = await c.post(`${V1}/auth/mfa/verify`, { code: totpCodeAt(decryptSecret(ctx.config.secrets.totpEncKey, sa!.s), clock.now()) });
+    const mfaSet = mfa.headers['set-cookie'];
+    const mfaLine = (Array.isArray(mfaSet) ? mfaSet : [mfaSet]).find((s) => typeof s === 'string' && s.includes('civic_sid')) as string;
+    assert.ok(mfaLine && !/Max-Age|Expires/i.test(mfaLine));
+    assert.equal((await c.get(`${V1}/auth/me`)).statusCode, 200);
+    clock.advanceMinutes(61);
+    assert.equal((await c.get(`${V1}/auth/me`)).statusCode, 401);
+  });
 });

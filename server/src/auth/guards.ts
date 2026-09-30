@@ -5,7 +5,7 @@ import { hasPermission, isSuperAdmin, type AdminRole, type Permission } from '@t
 import type { AppContext } from '../context.ts';
 import { apiError } from '../errors.ts';
 import { ipHash } from './crypto.ts';
-import { loadSession, type SessionRow } from './sessions.ts';
+import { loadSession, setSessionCookie, tokenFromRequest, type SessionRow } from './sessions.ts';
 
 export type AdminUserRow = {
   id: string;
@@ -100,5 +100,8 @@ export function requireCitizen(ctx: AppContext) {
     const account = (rows as CitizenPrincipal['account'][])[0];
     if (!account || account.status !== 'active') return unauthorized(reply);
     request.citizen = { session, account };
+    // cookie persistent reînnoit la folosire (120 de zile de la ultima folosire, decizia din 30.09.2026)
+    const token = tokenFromRequest(ctx, request);
+    if (token) setSessionCookie(ctx, reply, token, true);
   };
 }
