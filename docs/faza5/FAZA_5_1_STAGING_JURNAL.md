@@ -126,3 +126,23 @@ Aprobare separată a proprietarului pentru deploy. T-ISO înainte (22:27, Claude
 | 11 | 29.09.2026 22:40–22:50 | verificare de către proprietar: Comunicate (7; Notificări 1, Anunțuri 1, Știri 2, Evenimente 3), Ghid (instituție, direcții, link-uri), Apel rapid (contacte, căutare), Admin | datele vin de la server | **OK** |
 
 **Constatare (5.3.8):** după deploy, browserul a afișat inițial versiunea veche a paginii, cu datele vechi din `localStorage` (imagini externe blocate, comunicate „dezactivate” numai local). După **Ctrl + F5** s-a încărcat versiunea nouă, cu datele serverului. Recomandare: după fiecare deploy, reîncărcare completă a paginii.
+
+## 8. Faza 5.4.9: sesizările pe server (30.09.2026)
+
+Fiecare deploy a avut aprobarea separată a proprietarului. T-ISO înainte și după fiecare intervenție. Referința este cea din §3.
+
+| # | Data | Pas | T-ISO după | Rezultat |
+|---|---|---|---|---|
+| 12 | 30.09.2026, dimineața | deploy `civic-93326f5.zip` în `civic-test-app` (Upload + Extract, Restart); `GEOCODER_URL` și `GEOCODER_USER_AGENT` adăugate de proprietar în `civic.env` (valorile nu apar în repository) | `health` → `0.0.0+93326f5` (proprietarul); T-ISO: identice | **OK** |
+| 13 | 30.09.2026 | `civic-seed-demo` („Run JS script”): 4 sesizări demo (TM-001…TM-004), cu pozițiile reale date de proprietar | ieșirea: `reports: 4`; pozițiile verificate de proprietar pe hartă („aproape”, vezi #14) | **OK** |
+| 14 | 30.09.2026, după-amiaza | deploy `civic-a6aee5f.zip`: pinul hărții publice pe punctul exact (raport 5.4, §5, nota 5) | `health` → `0.0.0+a6aee5f`; proprietarul: „este mult mai bine”; T-ISO: identice | **OK** |
+| 15 | 30.09.2026 | proba de cetățean (proprietarul): cont, cod prin `civic-show-latest-code`, sesizare depusă → apare imediat pe hartă (fără moderare, 2.3) | observație: codul cerut din nou → decizia privind sesiunea de cetățean (plan 5.4, §5) | **OK** |
+| 16 | 30.09.2026 ~21:10 | deploy `civic-b2eb198.zip` (sesiunea de 120 de zile). **Prima încercare:** pachetul avea `server/dist/app.js` vechi (greșeala lui Claude), iar `health` arăta tot `a6aee5f`, deși `RELEASE.txt` arăta `b2eb198`. Pachetul a fost refăcut și redeployat | `health` → `0.0.0+b2eb198` (proprietarul); T-ISO-1, 2, 4, 6 (Claude, înainte ~20:52 și după ~21:12): identice | **OK** |
+| 17 | 30.09.2026 ~21:37 | deploy `civic-7723f33.zip` (sesiunea de cetățean fără expirare, varianta B; scriptul de pachet verifică versiunea) | `health` → `0.0.0+7723f33` (proprietarul, „totul este ok”); T-ISO-5, 7 (proprietarul, 21:43): identice | **OK** |
+| 18 | urmează (01.10.2026) | testul de geocodare „Strada 1 Mai, Turnu Măgurele” → pin propus pe Strada 1 Mai. Amânat: adresa de test a proprietarului a atins limita de 3 coduri pe zi (B7 / DN-15) | — | în așteptare |
+
+**Constatări (5.4.9):**
+- **Limita de 3 coduri pe zi pe adresă este silențioasă.** Serverul răspunde la fel (202), fără cod nou, ca să nu se poată afla ce adrese au cont. Pentru utilizator e derutant: `civic-show-latest-code` arată codul anterior, deja expirat. Comportamentul e corect conform designului. Un mesaj generic în formular („se pot cere cel mult 3 coduri pe zi”) ar putea fi decis separat.
+- **Sesiunea este comună pentru Admin și cetățean** (același cookie, B3 §3). Intrarea în Admin în același browser scoate cetățeanul din cont. La teste se folosesc browsere diferite.
+- **Fereastra de parolă a subdomeniului** (protecția cPanel a staging-ului) reapare după încărcarea paginii. Ține numai de staging. Cauza probabilă sunt răspunsurile 401 ale API-ului pentru „neautentificat”. Se investighează separat.
+- Recomandarea din 5.3.8 rămâne valabilă: după fiecare deploy, pagina se reîncarcă cu **Ctrl + F5**.
