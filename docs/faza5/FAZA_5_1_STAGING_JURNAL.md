@@ -147,3 +147,18 @@ Fiecare deploy a avut aprobarea separată a proprietarului. T-ISO înainte și d
 - **Fereastra de parolă a subdomeniului** (protecția cPanel a staging-ului) reapare după încărcarea paginii. Ține numai de staging. Cauza probabilă sunt răspunsurile 401 ale API-ului pentru „neautentificat”. Se investighează separat.
 - **Două câmpuri de adresă în formular** („Locație”, text obligatoriu, și „Caută adresa”, deasupra hărții): proprietarul a scris adresa întâi numai în câmpul text, deci sesizarea nu a primit poziție. Observație de interfață, pentru o decizie separată (designul ecranului este înghețat).
 - Recomandarea din 5.3.8 rămâne valabilă: după fiecare deploy, pagina se reîncarcă cu **Ctrl + F5**.
+
+## 9. Rotirea secretelor de pe staging (01.10.2026, varianta A)
+
+Plan: `FAZA_5_4_ROTIRE_SECRETE_PLAN.md`, aprobat de proprietar. Motivul: capturi ale fișierului `civic.env` ajunse în conversație la 30.09. T-ISO înainte (Claude, ~18:00: T-ISO-1, 2, 4, 6): identice cu referința din §3.
+
+| # | Data | Pas | T-ISO după / verificare | Rezultat |
+|---|---|---|---|---|
+| 19 | 01.10.2026 ~18:04 | deploy `civic-06781bf.zip` (comanda `rotate:keys`), Upload + Extract + Restart | `health` → `0.0.0+06781bf` (proprietarul) | **OK** |
+| 20 | 01.10.2026 ~18:06 | „Run JS script” → `civic-rotate-keys`: `returncode 0`, „4 chei schimbate (IP_HASH_SECRET, PARTICIPATION_HMAC_SECRET, FORM_TOKEN_SECRET, POW_HMAC_KEY). Valorile nu se afișează.”; fără avertisment de audit | nicio valoare afișată | **OK** |
+| 21 | 01.10.2026 ~18:10 | parola utilizatorului DB schimbată de proprietar (cPanel → Manage My Databases, generator: litere și cifre, 24 de caractere) și pusă în `DATABASE_URL` din `civic.env` (editorul File Manager, fără capturi); Restart | Comunicate, Hartă (5 sesizări), Sondaje se încarcă din DB (proprietarul, capturi); T-ISO-1, 2, 4, 6 (Claude, ~18:18): identice | **OK** |
+| 22 | 01.10.2026 18:19–18:26 | proba variantei B în Chrome: autentificare cetățean o dată → browser închis și redeschis → „Sesizări” afișează direct contul, fără cod | sesiunea de cetățean persistă | **OK** |
+
+**Rămâne neschimbat (planificat):** `TOTP_ENC_KEY` (după al doilea `super_admin`, cu migrarea datelor derivate) și parola de protecție a subdomeniului (cPanel → Directory Privacy), care nu apărea în capturi.
+
+**Constatare (fereastra „Sign in” a staging-ului):** după redeschiderea browserului, lacătul cPanel al subdomeniului se cere o dată pentru pagină și încă o dată la prima cerere API care răspunde 401 („neautentificat”). Ipoteza: serverul web (LiteSpeed), care protejează subdomeniul cu parolă, tratează un 401 venit de la aplicație ca pe o cerere de autentificare HTTP. Ipoteza nu e verificată din afară, pentru că protecția blochează și verificările lui Claude. Ține numai de staging; în producție nu există protecție cu parolă pe site.
