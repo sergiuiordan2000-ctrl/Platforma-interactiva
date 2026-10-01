@@ -130,24 +130,7 @@ const EnvSchema = z
         message: 'trebuie să folosească https în afara mediului de dezvoltare',
       });
     }
-    if (env.EMAIL_MODE === 'allowlist' && !env.EMAIL_ALLOWLIST) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['EMAIL_ALLOWLIST'],
-        message: 'este obligatorie când EMAIL_MODE = allowlist',
-      });
-    }
-    if (env.EMAIL_MODE !== 'simulated') {
-      for (const key of ['SMTP_HOST', 'SMTP_USER', 'SMTP_PASS', 'MAIL_FROM'] as const) {
-        if (!env[key]) {
-          ctx.addIssue({
-            code: 'custom',
-            path: [key],
-            message: `este obligatorie când EMAIL_MODE = ${env.EMAIL_MODE}`,
-          });
-        }
-      }
-    }
+    // E-mailul (B6 §2): o configurație incompletă / invalidă NU oprește aplicația → `simulated` (emailProblems)
   });
 
 export type Config = {
@@ -166,7 +149,12 @@ export type Config = {
     totpEncKey: Buffer;
   };
   email: {
+    /** Modul efectiv: `simulated` dacă modul cerut are probleme de configurare (B6 §2). */
     mode: 'simulated' | 'allowlist' | 'live';
+    /** Modul din EMAIL_MODE, înainte de verificare. */
+    requestedMode: 'simulated' | 'allowlist' | 'live';
+    /** Problemele care au dus la `simulated` (numai nume de variabile și motive, niciodată valori). */
+    problems: string[];
     allowlist: string[];
     mailFrom?: string;
     civicMailDomain?: string;
@@ -180,6 +168,35 @@ export type Config = {
   adminRetentionMonths: number;
   logLevel: string;
 };
+
+const ELECTROVOLT = 'electrovolt.ro';
+const isElectrovolt = (domain: string) => domain === ELECTROVOLT || domain.endsWith(`.${ELECTROVOLT}`);
+
+/** B6 §2, N3-4: verificările modului `allowlist` / `live`. Lista goală = modul cerut se poate folosi. */
+export function emailProblems(e: Record<string, unknown>): string[] {
+  const mode = e.EMAIL_MODE;
+  if (mode !== 'allowlist' && mode !== 'live') return [];
+  const out: string[] = [];
+  const str = (k: string) => (typeof e[k] === 'string' ? (e[k] as string).trim() : '');
+  if (mode === 'allowlist' && !str('EMAIL_ALLOWLIST')) out.push(`EMAIL_ALLOWLIST: este obligatorie când EMAIL_MODE = ${mode}`);
+  for (const k of ['SMTP_HOST', 'SMTP_USER', 'SMTP_PASS', 'MAIL_FROM', 'CIVIC_MAIL_DOMAIN']) {
+    if (!str(k)) out.push(`${k}: este obligatorie când EMAIL_MODE = ${mode}`);
+  }
+  const civic = str('CIVIC_MAIL_DOMAIN').toLowerCase();
+  const from = str('MAIL_FROM');
+  const fromDomain = /^[^@\s<>"]+@([a-z0-9.-]+\.[a-z]{2,})$/i.exec(from)?.[1]?.toLowerCase();
+  if (from && !fromDomain) out.push('MAIL_FROM: trebuie să fie o adresă simplă (nume@domeniu)');
+  if (civic && isElectrovolt(civic)) out.push('CIVIC_MAIL_DOMAIN: nu poate fi electrovolt.ro sau un subdomeniu al lui (N3-4)');
+  if (fromDomain && isElectrovolt(fromDomain)) out.push('MAIL_FROM: nu poate fi pe electrovolt.ro (N3-4)');
+  if (fromDomain && civic && fromDomain !== civic) out.push('MAIL_FROM: domeniul adresei trebuie să fie CIVIC_MAIL_DOMAIN (N3-4)');
+  if (e.SMTP_PORT === 465 && e.SMTP_SECURE !== 'true') out.push('SMTP_SECURE: portul 465 cere SMTP_SECURE=true');
+  return out;
+}
+
+function emailModeFrom(e: { EMAIL_MODE: 'simulated' | 'allowlist' | 'live' } & Record<string, unknown>) {
+  const problems = emailProblems(e);
+  return { mode: problems.length ? ('simulated' as const) : e.EMAIL_MODE, requestedMode: e.EMAIL_MODE, problems };
+}
 
 export class ConfigError extends Error {
   /** Numai numele variabilelor și motivul; niciodată valorile. */
@@ -221,7 +238,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
       totpEncKey: e.TOTP_ENC_KEY,
     },
     email: {
-      mode: e.EMAIL_MODE,
+      ...emailModeFrom(e),
       allowlist: (e.EMAIL_ALLOWLIST ?? '')
         .split(',')
         .map((s) => s.trim().toLowerCase())

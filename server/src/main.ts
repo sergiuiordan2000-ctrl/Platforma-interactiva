@@ -18,6 +18,7 @@ import { FRONTEND_DIST_DIR, MIGRATIONS_DIR } from './paths.ts';
 import { loadAnnouncementImages } from './images.ts';
 import { DEFAULT_UAT_FILE, loadUatBoundary } from './uat.ts';
 import { APP_VERSION } from './version.ts';
+import { emailDowngradeMessage, mailTransportFor } from './reports/smtp.ts';
 
 function fail(message: string): never {
   console.error(message);
@@ -59,8 +60,12 @@ async function startServer(config: Config): Promise<void> {
       announcementImages: loadAnnouncementImages(FRONTEND_DIST_DIR),
       // 2.12: fără limita UAT aplicația nu pornește
       uat: loadUatBoundary(config.uatBoundaryFile ?? DEFAULT_UAT_FILE),
+      // 5.5a: SMTP numai în `allowlist` / `live` cu configurație validă (B6 §2)
+      mailTransport: mailTransportFor(config),
     },
   });
+  const emailWarning = emailDowngradeMessage(config);
+  if (emailWarning) app.log.error(emailWarning);
 
   const shutdown = async (signal: string) => {
     app.log.info({ signal }, 'oprire');

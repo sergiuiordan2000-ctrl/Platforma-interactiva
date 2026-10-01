@@ -3,6 +3,7 @@
 //   auditul administrativ la 6 luni (A04-4); blocările temporare expirate (rândul se șterge, informația
 //   rămâne în audit, actor `system`, T-E1). Textele libere ale sondajelor: la 5.6.
 // - fișierele temporare orfane ale fotografiilor (> 1 h, B5 §1);
+// - 5.5a: e-mailurile fără sesizare (codurile de cont) la 45 de zile (B6 §6, N3-8);
 // - provocările proof-of-work expirate.
 
 import { readdir, rm, stat } from 'node:fs/promises';
@@ -17,6 +18,8 @@ export interface RetentionResult {
   adminAudit: number;
   expiredBlocks: number;
   tmpFiles: number;
+  /** 5.5a (B6 §6, N3-8): e-mailurile fără sesizare (codurile de cont), corp și metadate, la RETENTION_DAYS. */
+  accountEmails: number;
 }
 
 export async function purgeRetention(ctx: AppContext): Promise<RetentionResult> {
@@ -46,12 +49,17 @@ export async function purgeRetention(ctx: AppContext): Promise<RetentionResult> 
   const [audit] = await ctx.pool.query('DELETE FROM audit_log WHERE occurred_at < ?', [cutoff]);
   // 4. fișierele temporare orfane
   const tmpFiles = await purgeTmpFiles(ctx);
+  // 5. e-mailurile fără sesizare (B6 §6, N3-8): rândul întreg, la RETENTION_DAYS (45) de la creare;
+  //    cele legate de o sesizare dispar odată cu ea (pasul 1, A05-4)
+  const mailCutoff = new Date(now.getTime() - ctx.config.retentionDays * 86_400_000);
+  const [mails] = await ctx.pool.query('DELETE FROM email_outbox WHERE report_id IS NULL AND created_at < ?', [mailCutoff]);
   return {
     reports: ids.length,
     photoFiles,
     adminAudit: (audit as { affectedRows: number }).affectedRows,
     expiredBlocks: (blocks as unknown[]).length,
     tmpFiles,
+    accountEmails: (mails as { affectedRows: number }).affectedRows,
   };
 }
 

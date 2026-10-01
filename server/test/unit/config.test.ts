@@ -71,11 +71,50 @@ describe('configurare (00 §5): validare la pornire', () => {
     assert.equal(loadConfig(testEnv({ RETENTION_DAYS: '45' })).retentionDays, 45);
   });
 
-  it('EMAIL_MODE = allowlist cere lista și datele SMTP', () => {
-    const p = problems(testEnv({ EMAIL_MODE: 'allowlist' }));
-    for (const k of ['EMAIL_ALLOWLIST', 'SMTP_HOST', 'SMTP_USER', 'SMTP_PASS', 'MAIL_FROM']) {
-      assert.ok(p.some((x) => x.startsWith(k)), k);
+  // 5.5a (B6 §2, decizia din 01.10.2026): o configurație de e-mail incompletă nu mai oprește aplicația
+  // (înainte: ConfigError); modul devine `simulated`, iar problemele se raportează numai prin nume.
+  it('EMAIL_MODE = allowlist fără listă și fără SMTP → aplicația pornește în `simulated`, cu problemele numite', () => {
+    const c = loadConfig(testEnv({ EMAIL_MODE: 'allowlist' }));
+    assert.equal(c.email.mode, 'simulated');
+    assert.equal(c.email.requestedMode, 'allowlist');
+    for (const k of ['EMAIL_ALLOWLIST', 'SMTP_HOST', 'SMTP_USER', 'SMTP_PASS', 'MAIL_FROM', 'CIVIC_MAIL_DOMAIN']) {
+      assert.ok(c.email.problems.some((x) => x.startsWith(k)), k);
     }
+  });
+
+  const smtpOk = {
+    EMAIL_MODE: 'live', SMTP_HOST: 'smtp.exemplu.test', SMTP_PORT: '587', SMTP_USER: 'u', SMTP_PASS: 'parola-smtp-secreta',
+    MAIL_FROM: 'notificari@civic.exemplu', CIVIC_MAIL_DOMAIN: 'civic.exemplu',
+  };
+
+  it('configurație SMTP completă și coerentă → modul cerut rămâne activ', () => {
+    const c = loadConfig(testEnv(smtpOk));
+    assert.equal(c.email.mode, 'live');
+    assert.deepEqual(c.email.problems, []);
+    const a = loadConfig(testEnv({ ...smtpOk, EMAIL_MODE: 'allowlist', EMAIL_ALLOWLIST: 'Test@Exemplu.test, b@exemplu.test' }));
+    assert.equal(a.email.mode, 'allowlist');
+    assert.deepEqual(a.email.allowlist, ['test@exemplu.test', 'b@exemplu.test']);
+  });
+
+  it('N3-4: expeditorul niciodată pe electrovolt.ro (nici subdomenii); domeniul MAIL_FROM = CIVIC_MAIL_DOMAIN', () => {
+    const cases: Array<[Record<string, string>, string]> = [
+      [{ MAIL_FROM: 'civic@electrovolt.ro', CIVIC_MAIL_DOMAIN: 'electrovolt.ro' }, 'electrovolt'],
+      [{ MAIL_FROM: 'civic@civic-test.electrovolt.ro', CIVIC_MAIL_DOMAIN: 'civic-test.electrovolt.ro' }, 'electrovolt'],
+      [{ MAIL_FROM: 'civic@alt-domeniu.ro' }, 'CIVIC_MAIL_DOMAIN'],
+      [{ MAIL_FROM: 'Civic <civic@civic.exemplu>' }, 'adresă simplă'],
+      [{ SMTP_PORT: '465', SMTP_SECURE: 'false' }, 'SMTP_SECURE'],
+    ];
+    for (const [over, needle] of cases) {
+      const c = loadConfig(testEnv({ ...smtpOk, ...over }));
+      assert.equal(c.email.mode, 'simulated', JSON.stringify(over));
+      assert.ok(c.email.problems.some((p) => p.includes(needle)), `${JSON.stringify(over)} → ${c.email.problems.join(' | ')}`);
+    }
+  });
+
+  it('problemele de e-mail nu conțin valori (parole, adrese)', () => {
+    const c = loadConfig(testEnv({ ...smtpOk, MAIL_FROM: 'civic@electrovolt.ro' }));
+    const text = c.email.problems.join(' ');
+    assert.ok(!text.includes('parola-smtp-secreta') && !text.includes('civic@electrovolt.ro'));
   });
 
   it('TRUST_PROXY: număr de hop-uri sau listă de adrese', () => {

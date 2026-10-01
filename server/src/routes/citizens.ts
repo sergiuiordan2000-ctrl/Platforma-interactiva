@@ -19,6 +19,7 @@ import { requestIpHash, requireAdmin, requireCitizen } from '../auth/guards.ts';
 import { hitRateLimit, peekRateLimit, recordRejected } from '../auth/rateLimit.ts';
 import { clearSessionCookie, createSession, revokeSession, setSessionCookie } from '../auth/sessions.ts';
 import { parseBody } from '../validation.ts';
+import { kickOutbox } from '../reports/outbox.ts';
 
 const DAY_MIN = 24 * 60;
 
@@ -45,7 +46,10 @@ export async function activeBlock(
   return (rows as ActiveBlock[])[0] ?? null;
 }
 
-/** Pune e-mailul în coadă: în modul `simulated` rândul este `simulated` (niciodată `sent`); altfel `queued` (5.5). */
+/**
+ * Pune e-mailul în coadă: în modul `simulated` rândul este `simulated` (niciodată `sent`); altfel `queued`,
+ * cu încercare imediată (5.5a: codurile de cont sunt prioritare, B6 §3), iar cron-ul rămâne garanția.
+ */
 async function enqueueAccountEmail(
   ctx: AppContext,
   kind: 'citizen_login_code' | 'citizen_account_blocked',
@@ -56,13 +60,15 @@ async function enqueueAccountEmail(
   const mode = ctx.config.email.mode;
   if (mode === 'allowlist' && !ctx.config.email.allowlist.includes(recipient)) return; // G3-c5: nimic în afara listei
   const simulated = mode === 'simulated';
+  const id = newId(ctx.now());
   await ctx.pool.query(
     `INSERT INTO email_outbox (id, kind, report_id, dedupe_key, recipient, subject, body_text, status, attempts,
        mode_at_send, transport, created_at)
      VALUES (?, ?, NULL, NULL, ?, ?, ?, ?, 0, ?, ?, ?)`,
-    [newId(ctx.now()), kind, recipient, subject, body, simulated ? 'simulated' : 'queued', mode,
+    [id, kind, recipient, subject, body, simulated ? 'simulated' : 'queued', mode,
       simulated ? 'simulated' : 'smtp', ctx.now()],
   );
+  if (!simulated) kickOutbox(ctx, [id]);
 }
 
 const ACCEPTED = { accepted: true, message: 'Dacă adresa poate fi folosită, veți primi un cod pe e-mail.' };

@@ -334,6 +334,14 @@ describe('pornirea aplicației (DN-20, D10-3)', () => {
     assert.equal(noFile.status, 2);
   });
 
+  it('CLI: outbox:process cu EMAIL_MODE=live incomplet → rulează în `simulated` și numește problema (B6 §2, 5.5a)', () => {
+    const res = run(['outbox:process'], { EMAIL_MODE: 'live', SMTP_PASS: 'parola-smtp-nu-apare' });
+    assert.equal(res.status, 0, res.stderr);
+    assert.match(res.stderr, /EMAIL_MODE=live nu se poate folosi; se lucrează în „simulated”/);
+    assert.match(res.stderr, /SMTP_HOST/);
+    assert.ok(!res.stderr.includes('parola-smtp-nu-apare') && !res.stdout.includes('parola-smtp-nu-apare'));
+  });
+
   it('fără un secret → refuz la pornire, fără valoarea secretelor în mesaj', () => {
     const env = testEnv({ DATABASE_URL: testDatabaseUrl(), TOTP_ENC_KEY: undefined });
     const res = spawnSync(process.execPath, ['--import', 'tsx', join(APP_ROOT, 'server', 'src', 'main.ts'), 'migrate:status'], {

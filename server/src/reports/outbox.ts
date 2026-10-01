@@ -1,7 +1,7 @@
 // Coada e-mailurilor legate de sesizări (B6): punerea în coadă în tranzacția de domeniu, procesarea
 // cu lease și reîncercări, starea derivată a transmiterii (A17-7) și notificările D9.
 //
-// 5.4: transportul `simulated` (nicio rețea; niciodată `sent`). SMTP: 5.5 (`ctx.mailTransport`);
+// 5.4: transportul `simulated` (nicio rețea; niciodată `sent`). 5.5a: SMTP (`ctx.mailTransport`, reports/smtp.ts);
 // fără el, mesajele care ar cere SMTP rămân `queued`, neatinse.
 // 2.1: la trimiterea efectivă a mesajului către Primărie (`sent`), în aceeași tranzacție:
 // sesizarea `new` → `in_analysis` + notificarea autorului (opt-in, 2.2).
@@ -101,7 +101,9 @@ export function statusTemplate(
   return {
     subject: `Sesizarea ${referenceNumber} — ${categoryName}: ${STATUS_TEXT[status]}`,
     text,
-    headers: { 'List-Unsubscribe': `<${link}>`, 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' },
+    // 5.5a (decizia din 01.10.2026): numai `List-Unsubscribe`; fără `List-Unsubscribe-Post` (dezabonarea „cu un clic”
+    // ar cere un POST la adresa cu jetonul, care stă intenționat după `#` și nu ajunge la server)
+    headers: { 'List-Unsubscribe': `<${link}>` },
   };
 }
 
@@ -247,7 +249,7 @@ export async function processOne(ctx: AppContext, id: string): Promise<ProcessOu
   const msg: MailMessage = { to: recipient, subject: row.subject, text: row.body_text ?? '' };
   if (row.kind === 'citizen_status_update' && row.report_id) {
     const link = unsubscribeUrl(ctx, row.report_id);
-    msg.headers = { 'List-Unsubscribe': `<${link}>`, 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' };
+    msg.headers = { 'List-Unsubscribe': `<${link}>` };
   }
   if (row.kind === 'registry_notification' && row.report_id) {
     const ids = (typeof row.attachment_photo_ids === 'string' ? JSON.parse(row.attachment_photo_ids) : row.attachment_photo_ids) as string[] | null;

@@ -23,6 +23,7 @@ import { REPORT_POW_KEY, isReportPowEnabled, setSetting } from './settings.ts';
 import { writeAudit } from './audit.ts';
 import { ENV_FILE_VAR } from './envFile.ts';
 import { RotateKeysError, rotateKeysInFile } from './rotateKeys.ts';
+import { emailDowngradeMessage, mailTransportFor } from './reports/smtp.ts';
 
 export const CLI_COMMANDS = [
   'migrate',
@@ -91,7 +92,9 @@ export async function runCli(
         return 0;
       }
       case 'outbox:process': {
-        const ctx: AppContext = { config, pool: handle.pool, now: () => new Date() };
+        const warning = emailDowngradeMessage(config);
+        if (warning) out.error(warning);
+        const ctx: AppContext = { config, pool: handle.pool, now: () => new Date(), mailTransport: mailTransportFor(config) };
         const res = await processDue(ctx);
         out.log(`outbox:process: ${JSON.stringify(res)}`);
         return 0;
