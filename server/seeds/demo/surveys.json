@@ -5,7 +5,7 @@
     "description": "Sondaj demonstrativ pentru testarea modelului de date (Etapa 4A). Are ca scop colectarea de opinii exemplificative privind prioritățile de amenajare a parcurilor și spațiilor de recreere.",
     "category": "Mediu & Spații Verzi",
     "startAt": "2026-09-01T08:00:00.000Z",
-    "endAt": "2026-10-31T20:00:00.000Z",
+    "endAt": "2027-06-30T17:00:00.000Z",
     "status": "active",
     "resultsVisibility": "after_close",
     "powEnabled": false,
@@ -164,6 +164,20 @@
             "text": "Nu am participat"
           }
         ]
+      }
+    ],
+    "demoVotes": [
+      {
+        "optionId": "01M3JMZC00Y9CTNMQ1MBDR40YY",
+        "count": 14
+      },
+      {
+        "optionId": "01M3JMZC00Y9CTNMQ1MBDR40YZ",
+        "count": 9
+      },
+      {
+        "optionId": "01M3JMZC00Y9CTNMQ1MBDR40Z0",
+        "count": 4
       }
     ]
   }

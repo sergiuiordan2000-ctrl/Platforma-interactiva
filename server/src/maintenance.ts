@@ -1,7 +1,7 @@
 // Operațiile periodice legate de sesizări (B2 §2), rulate prin CLI / cron:
 // - retenția (K-A02-3, B1 §3.9): sesizările și toate datele lor la RETENTION_DAYS (45) de la depunere;
 //   auditul administrativ la 6 luni (A04-4); blocările temporare expirate (rândul se șterge, informația
-//   rămâne în audit, actor `system`, T-E1). Textele libere ale sondajelor: la 5.6.
+//   rămâne în audit, actor `system`, T-E1); 5.6: textele libere ale sondajelor la 6 luni de la închidere (T-7).
 // - fișierele temporare orfane ale fotografiilor (> 1 h, B5 §1);
 // - 5.5a: e-mailurile fără sesizare (codurile de cont) la 45 de zile (B6 §6, N3-8);
 // - provocările proof-of-work expirate.
@@ -11,6 +11,7 @@ import { join } from 'node:path';
 import type { AppContext } from './context.ts';
 import { writeAudit } from './audit.ts';
 import { deleteReportsHard, expiredReportIds } from './db/reportDeletion.ts';
+import { purgeSurveyFreeTexts } from './surveys.ts';
 
 export interface RetentionResult {
   reports: number;
@@ -20,6 +21,8 @@ export interface RetentionResult {
   tmpFiles: number;
   /** 5.5a (B6 §6, N3-8): e-mailurile fără sesizare (codurile de cont), corp și metadate, la RETENTION_DAYS. */
   accountEmails: number;
+  /** 5.6 (A05-2, A06-1, T-7): răspunsurile libere golite la 6 luni de la închiderea sondajului. */
+  surveyFreeTexts: number;
 }
 
 export async function purgeRetention(ctx: AppContext): Promise<RetentionResult> {
@@ -53,6 +56,8 @@ export async function purgeRetention(ctx: AppContext): Promise<RetentionResult> 
   //    cele legate de o sesizare dispar odată cu ea (pasul 1, A05-4)
   const mailCutoff = new Date(now.getTime() - ctx.config.retentionDays * 86_400_000);
   const [mails] = await ctx.pool.query('DELETE FROM email_outbox WHERE report_id IS NULL AND created_at < ?', [mailCutoff]);
+  // 6. textele libere ale sondajelor (T-7): text_value = NULL; numărul răspunsurilor rămâne
+  const surveyFreeTexts = await purgeSurveyFreeTexts(ctx);
   return {
     reports: ids.length,
     photoFiles,
@@ -60,6 +65,7 @@ export async function purgeRetention(ctx: AppContext): Promise<RetentionResult> 
     expiredBlocks: (blocks as unknown[]).length,
     tmpFiles,
     accountEmails: (mails as { affectedRows: number }).affectedRows,
+    surveyFreeTexts,
   };
 }
 

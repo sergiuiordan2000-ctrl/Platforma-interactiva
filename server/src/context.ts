@@ -59,5 +59,10 @@ export const LIMITS = {
   unsubscribePerIpPerHour: 30,
   /** B6 §1: pauzele între încercări (minute); după ultima → `failed`. */
   emailRetryMinutes: [1, 5, 30, 120, 720],
+  // ——— sondaje (B7 §2; P-7, decizia proprietarului din 01.10.2026; configurabile, DN-15) ———
+  surveyMinFormSeconds: 6,
+  surveyFormTokenMaxHours: 24,
+  surveyVotesPerIpPerSurveyPerHour: 10,
+  surveyVotesPerIpPerHour: 300,
   emailLeaseMinutes: 2,
 } as const;

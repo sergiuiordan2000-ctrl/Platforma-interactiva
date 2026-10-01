@@ -19,6 +19,8 @@ import { registerPublicContentRoutes } from './routes/publicContent.ts';
 import { registerAdminContentRoutes } from './routes/adminContent.ts';
 import { registerReportRoutes } from './routes/reports.ts';
 import { registerAdminReportRoutes } from './routes/adminReports.ts';
+import { registerSurveyRoutes } from './routes/surveys.ts';
+import { registerAdminSurveyRoutes } from './routes/adminSurveys.ts';
 import { apiError } from './errors.ts';
 import { APP_VERSION } from './version.ts';
 
@@ -64,6 +66,16 @@ export function contentSecurityPolicy(appEnv: Config['appEnv']) {
   };
 }
 
+type LoggedRequest = { method: string; url: string; hostname?: string; ip?: string; socket?: { remoteAddress?: string } };
+
+/** T-5 (5.6): jurnalul cererilor fără IP pe rutele sondajelor (N4-7: fără IP lângă vot; decizia de anonimat 4C3). */
+export function requestLogSerializer(req: LoggedRequest): Record<string, unknown> {
+  const url = req.url ?? '';
+  const out: Record<string, unknown> = { method: req.method, url, hostname: req.hostname };
+  if (!url.startsWith('/api/v1/public/surveys')) out.remoteAddress = req.ip ?? req.socket?.remoteAddress;
+  return out;
+}
+
 export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   const { config } = options;
 
@@ -77,6 +89,8 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
               paths: ['req.headers.cookie', 'req.headers.authorization', 'res.headers["set-cookie"]'],
               remove: true,
             },
+            // T-5 (5.6): pe rutele sondajelor, jurnalul nu conține IP-ul (N4-7: fără IP lângă vot)
+            serializers: { req: requestLogSerializer },
           },
     // Fastify acceptă la rulare și un număr de hop-uri, deși tipurile nu îl declară
     trustProxy: config.trustProxy as boolean | string | string[],
@@ -118,6 +132,8 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
         registerAdminContentRoutes(api, options.ctx);
         await registerReportRoutes(api, options.ctx);
         registerAdminReportRoutes(api, options.ctx);
+        registerSurveyRoutes(api, options.ctx);
+        registerAdminSurveyRoutes(api, options.ctx);
       }
       api.get('/health', async (_request, reply) => {
         let status: HealthState;

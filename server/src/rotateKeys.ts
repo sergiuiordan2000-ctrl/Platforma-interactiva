@@ -13,7 +13,11 @@ export class RotateKeysError extends Error {}
 const lineKey = (line: string): string | undefined => line.match(/^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=/)?.[1];
 
 /** Înlocuiește cele 4 chei în fișier (scriere atomică, drepturi 600). Întoarce numele cheilor schimbate. */
-export function rotateKeysInFile(file: string, gen: () => string = () => randomBytes(32).toString('base64url')): string[] {
+export function rotateKeysInFile(
+  file: string,
+  gen: () => string = () => randomBytes(32).toString('base64url'),
+  keys: readonly string[] = ROTATED_KEYS,
+): string[] {
   let mode: number;
   try {
     mode = statSync(file).mode;
@@ -39,7 +43,7 @@ export function rotateKeysInFile(file: string, gen: () => string = () => randomB
   }
 
   const used = new Set<string>();
-  for (const k of ROTATED_KEYS) {
+  for (const k of keys) {
     let v = gen();
     while (used.has(v)) v = gen();
     used.add(v);
@@ -55,5 +59,5 @@ export function rotateKeysInFile(file: string, gen: () => string = () => randomB
     rmSync(tmp, { force: true });
     throw new RotateKeysError(`Scrierea fișierului a eșuat (${(e as NodeJS.ErrnoException).code ?? 'eroare'}). Fișierul vechi a rămas neschimbat.`);
   }
-  return [...ROTATED_KEYS];
+  return [...keys];
 }

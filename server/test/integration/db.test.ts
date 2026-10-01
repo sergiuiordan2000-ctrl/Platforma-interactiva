@@ -159,6 +159,23 @@ describe('seed-uri (B1 §5.3, D10)', () => {
     assert.equal(Number(ext[0]!.n), 0, 'DN-19: fără URL-uri externe de imagini');
   });
 
+  it('seed:demo, sondaje (P-4, 01.10.2026): sondajul activ până la 30.06.2027; voturi demo numai la sondajul închis, o singură dată', async () => {
+    const [act] = await q<{ e: Date }>("SELECT end_at AS e FROM surveys WHERE id = '01M3JMZC00Y9CTNMQ1MBDR40Y9'");
+    assert.equal(act!.e.toISOString(), '2027-06-30T17:00:00.000Z');
+    const [n1] = await q<{ n: number }>("SELECT COUNT(*) AS n FROM survey_submissions WHERE survey_id = '01M3JMZC00Y9CTNMQ1MBDR40YW' AND is_demo = TRUE");
+    assert.equal(Number(n1!.n), 27);
+    await seedDemo(h.pool, SEEDS_DIR, 'development');
+    const [n2] = await q<{ n: number }>("SELECT COUNT(*) AS n FROM survey_submissions WHERE survey_id = '01M3JMZC00Y9CTNMQ1MBDR40YW'");
+    assert.equal(Number(n2!.n), 27, 'idempotent');
+    const [other] = await q<{ n: number }>("SELECT COUNT(*) AS n FROM survey_submissions WHERE survey_id <> '01M3JMZC00Y9CTNMQ1MBDR40YW'");
+    assert.equal(Number(other!.n), 0, 'sondajul deschis rămâne fără voturi demo');
+    // un sondaj demo activ existent, cu data veche, se prelungește la reluarea seed-ului (staging)
+    await h.pool.query("UPDATE surveys SET end_at = '2026-10-31 20:00:00' WHERE id = '01M3JMZC00Y9CTNMQ1MBDR40Y9'");
+    await seedDemo(h.pool, SEEDS_DIR, 'staging');
+    const [ext] = await q<{ e: Date }>("SELECT end_at AS e FROM surveys WHERE id = '01M3JMZC00Y9CTNMQ1MBDR40Y9'");
+    assert.equal(ext!.e.toISOString(), '2027-06-30T17:00:00.000Z');
+  });
+
   it('check:no-demo: cu date demo → refuz, cu tabelele numite', async () => {
     const res = await checkNoDemo(h.pool);
     assert.equal(res.ok, false);
@@ -301,7 +318,7 @@ describe('pornirea aplicației (DN-20, D10-3)', () => {
     assert.match(dev.stdout, /424242/);
   });
 
-  it('CLI: rotate:keys (varianta A, 01.10.2026) — schimbă cele 4 chei în CIVIC_ENV_FILE, fără valori în ieșire; audit; aplicația pornește cu fișierul nou', { skip: process.platform === 'win32' }, async () => {
+  it('CLI: rotate:keys (varianta A, 01.10.2026) — schimbă cele 4 chei în CIVIC_ENV_FILE, fără valori în ieșire; audit; aplicația pornește cu fișierul nou; 5.6: cheia de participare protejată cât timp există sondaje deschise (T-6)', { skip: process.platform === 'win32' }, async () => {
     const base = testEnv({ DATABASE_URL: testDatabaseUrl() });
     const keys = ['IP_HASH_SECRET', 'PARTICIPATION_HMAC_SECRET', 'FORM_TOKEN_SECRET', 'POW_HMAC_KEY'];
     const file = join(mkdtempSync(join(tmpdir(), 'civic-rot-')), 'civic.env');
@@ -313,6 +330,22 @@ describe('pornirea aplicației (DN-20, D10-3)', () => {
         encoding: 'utf8',
         timeout: 30_000,
       });
+    // 5.6, T-6: cu un sondaj deschis, PARTICIPATION_HMAC_SECRET rămâne neschimbată; celelalte 3 se schimbă
+    const SID = '01M3JMZC00Y9CTNMQROTATE000';
+    await h.pool.query(
+      `INSERT INTO surveys (id, title, description, start_at, end_at, status, created_at, updated_at)
+       VALUES (?, 'Sondaj deschis pentru rotire', 'Test rotate:keys', NOW(3) - INTERVAL 1 DAY, NOW(3) + INTERVAL 1 DAY, 'active', NOW(3), NOW(3))`,
+      [SID],
+    );
+    const partial = cli(['rotate:keys']);
+    assert.equal(partial.status, 0, partial.stderr);
+    assert.match(partial.stdout, /PARTICIPATION_HMAC_SECRET rămâne neschimbată/);
+    assert.match(partial.stdout, /3 chei schimbate/);
+    const mid = Object.fromEntries(readFileSync(file, 'utf8').trim().split('\n').map((l) => [l.slice(0, l.indexOf('=')), l.slice(l.indexOf('=') + 1)]));
+    assert.equal(mid.PARTICIPATION_HMAC_SECRET, base.PARTICIPATION_HMAC_SECRET);
+    assert.notEqual(mid.IP_HASH_SECRET, base.IP_HASH_SECRET);
+    // fără sondaje deschise: toate cele 4 (inclusiv sondajele demo active din seed, închise aici)
+    await h.pool.query("UPDATE surveys SET status = 'closed' WHERE status = 'active'");
     const res = cli(['rotate:keys']);
     assert.equal(res.status, 0, res.stderr);
     assert.match(res.stdout, /4 chei schimbate/);

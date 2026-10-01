@@ -74,6 +74,7 @@ def main() -> int:
             'civic-report-pow-on': f'{app} settings:report-pow on',
             'civic-report-pow-off': f'{app} settings:report-pow off',
             'civic-rotate-keys': f'{app} rotate:keys',
+            'civic-surveys-close-expired': f'{app} surveys:close-expired',
         }
         if a.bootstrap_email:
             cmd = ['node', 'server/dist/app.js', 'bootstrap-admin', '--email', a.bootstrap_email, '--name', a.bootstrap_name or 'Administrator']

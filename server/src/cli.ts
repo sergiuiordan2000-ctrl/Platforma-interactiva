@@ -4,6 +4,7 @@
 // 5.4: outbox:process, purge:retention (sesizări, audit administrativ, blocări expirate, fișiere temporare),
 // purge:pow, settings:report-pow (ALTCHA la sesizări, decizia A1 din 30.09.2026).
 // rotate:keys: cele 4 chei „ușoare” din CIVIC_ENV_FILE, fără afișarea valorilor (varianta A din 30.09.2026).
+// 5.6: surveys:close-expired (E-3, cron la 5 min); rotate:keys păstrează PARTICIPATION_HMAC_SECRET cât timp există sondaje deschise (T-6).
 
 import type { Config } from './config.ts';
 import { BootstrapRefusedError, bootstrapAdmin } from './accounts.ts';
@@ -22,7 +23,8 @@ import { processDue } from './reports/outbox.ts';
 import { REPORT_POW_KEY, isReportPowEnabled, setSetting } from './settings.ts';
 import { writeAudit } from './audit.ts';
 import { ENV_FILE_VAR } from './envFile.ts';
-import { RotateKeysError, rotateKeysInFile } from './rotateKeys.ts';
+import { ROTATED_KEYS, RotateKeysError, rotateKeysInFile } from './rotateKeys.ts';
+import { closeExpiredSurveys, hasOpenSurveys } from './surveys.ts';
 import { emailDowngradeMessage, mailTransportFor } from './reports/smtp.ts';
 
 export const CLI_COMMANDS = [
@@ -41,6 +43,7 @@ export const CLI_COMMANDS = [
   'purge:pow',
   'settings:report-pow',
   'rotate:keys',
+  'surveys:close-expired',
 ] as const;
 
 export type CliCommand = (typeof CLI_COMMANDS)[number];
@@ -103,6 +106,15 @@ export async function runCli(
         const ctx: AppContext = { config, pool: handle.pool, now: () => new Date() };
         const res = await purgeRetention(ctx);
         out.log(`purge:retention: ${JSON.stringify(res)}`);
+        return 0;
+      }
+      case 'surveys:close-expired': {
+        const now = new Date();
+        const ids = await closeExpiredSurveys({ config, pool: handle.pool, now: () => now });
+        for (const id of ids) {
+          await writeAudit(handle.pool, now, { actorType: 'system', action: 'survey.status.closed', targetType: 'survey', targetId: id, details: { via: 'cron', reason: 'end_at' } });
+        }
+        out.log(`surveys:close-expired: ${ids.length} sondaje închise`);
         return 0;
       }
       case 'purge:pow': {
@@ -320,9 +332,19 @@ async function runRotateKeys(config: Config, out: Out, env: NodeJS.ProcessEnv = 
     out.error(`rotate:keys: variabila ${ENV_FILE_VAR} lipsește; comanda lucrează numai cu fișierul de setări.`);
     return 2;
   }
+  // T-6: cheia de participare nu se rotește cât timp există sondaje deschise (altfel unicitatea votului se rupe, R-9)
+  let open = false;
+  const check = createDb(config.databaseUrl, { connectionLimit: 1 });
+  try {
+    open = await hasOpenSurveys(check.pool, new Date());
+  } finally {
+    await check.close();
+  }
+  const wanted = open ? ROTATED_KEYS.filter((k) => k !== 'PARTICIPATION_HMAC_SECRET') : ROTATED_KEYS;
+  if (open) out.log('rotate:keys: PARTICIPATION_HMAC_SECRET rămâne neschimbată: există sondaje deschise (se rotește după închiderea lor).');
   let keys: string[];
   try {
-    keys = rotateKeysInFile(file);
+    keys = rotateKeysInFile(file, undefined, wanted);
   } catch (e) {
     if (e instanceof RotateKeysError) {
       out.error(`rotate:keys: ${e.message}`);

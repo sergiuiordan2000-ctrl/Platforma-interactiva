@@ -3,10 +3,12 @@
 // - seed:demo: date demonstrative, toate cu is_demo = true; REFUZAT în producție (D10-4); idempotent
 //   (ID-uri fixe în fișierele JSON).
 
+import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type mysql from 'mysql2/promise';
 import type { AppEnv } from '../config.ts';
+import { newId } from '../ids.ts';
 
 type Row = Record<string, unknown>;
 
@@ -169,6 +171,33 @@ export async function seedDemo(
         });
         for (const o of q.options) {
           await ins('survey_options', { id: o.id, question_id: q.id, ordinal: o.ordinal, text: o.text });
+        }
+      }
+      // P-4 (01.10.2026): un sondaj demo activ existent se prelungește (numai spre viitor), fără alte modificări
+      await conn.query(
+        "UPDATE surveys SET end_at = ?, updated_at = ? WHERE id = ? AND is_demo = TRUE AND status = 'active' AND end_at < ?",
+        [toDate(s.endAt as string), now, s.id, toDate(s.endAt as string)],
+      );
+      // P-4: voturi demo (numai la un sondaj demo fără voturi), ca arhiva să arate rezultate; amprente
+      // deterministe, fără legătură cu vreun cookie real
+      const votes = (s as { demoVotes?: Array<{ optionId: string; count: number }> }).demoVotes;
+      if (votes?.length) {
+        const [[c]] = (await conn.query('SELECT COUNT(*) AS n FROM survey_submissions WHERE survey_id = ?', [s.id])) as unknown as [[{ n: number }]];
+        if (Number(c.n) === 0) {
+          const q0 = s.questions[0]!;
+          let i = 0;
+          for (const v of votes) {
+            for (let k = 0; k < v.count; k++) {
+              const sid = newId(now);
+              await conn.query(
+                'INSERT INTO survey_submissions (id, survey_id, participation_fingerprint, submitted_at, is_demo) VALUES (?, ?, ?, ?, TRUE)',
+                [sid, s.id, createHash('sha256').update(`demo:${s.id}:${i++}`).digest('hex'), toDate(s.endAt as string)],
+              );
+              await conn.query('INSERT INTO survey_answers (submission_id, question_id, option_id, text_value) VALUES (?, ?, ?, NULL)', [sid, q0.id, v.optionId]);
+              add('survey_submissions');
+            }
+          }
+          await conn.query('UPDATE surveys SET first_submission_at = COALESCE(first_submission_at, ?) WHERE id = ?', [toDate(s.endAt as string), s.id]);
         }
       }
     }
