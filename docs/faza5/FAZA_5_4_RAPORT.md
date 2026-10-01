@@ -1,6 +1,6 @@
-# FAZA 5.4 — RAPORT (în lucru: pașii 5.4.1–5.4.8; staging 5.4.9 urmează)
+# FAZA 5.4 — RAPORT FINAL (5.4.1–5.4.9)
 
-**Proiect:** Turnu Măgurele Civic · **Branch:** `faza-5-backend` · **Data:** 30.09.2026
+**Proiect:** Turnu Măgurele Civic · **Branch:** `faza-5-backend` · **Data:** 30.09–01.10.2026
 **Plan:** `FAZA_5_4_PLAN.md` (aprobat 30.09.2026) · **Design:** B5, B6 §7, B7, B8, B2 §3, §4, §6.1, §6.5, §7 (înghețat; o singură extindere, decisă explicit: ALTCHA la sesizări, plan §5)
 
 ## 1. Pașii
@@ -14,7 +14,7 @@
 | — | pinul hărții publice (§5, nota 5) | `a6aee5f` |
 | — | sesiunea de cetățean: 120 de zile fără folosire, cookie persistent (§3) | `b2eb198` |
 | — | sesiunea de cetățean fără expirare (varianta B, §3); scriptul de pachet refuză un `server/dist` vechi (§5, nota 6) | acest commit |
-| 5.4.9 | staging: pachet, deploy, `GEOCODER_URL`, test „Strada 1 Mai”, poziții demo, T-ISO | în curs |
+| 5.4.9 | staging: 4 deploy-uri (`93326f5`, `a6aee5f`, `b2eb198`, `7723f33`), `GEOCODER_URL`, sesizările demo cu pozițiile verificate de proprietar, proba de cetățean, geocodarea („str. Castanilor” → pin propus, mutat → punct exact), T-ISO înainte și după: identice. Jurnal: `FAZA_5_1_STAGING_JURNAL.md` §8 | `7844161` + acest commit |
 
 ## 2. Criteriile (B10 §6, rândul 5.4)
 
@@ -89,8 +89,17 @@ Nicio verificare nu a fost slăbită ca să treacă. R6.3 (XSS) a fost întărit
 - Pe staging, fereastra de parolă a subdomeniului (protecția cPanel) reapare după încărcarea paginii; ține numai de staging. Cauza probabilă: răspunsurile 401 ale API-ului („nu ești autentificat”). De investigat separat.
 - Cookie-ul de sesiune este **comun** pentru Admin și cetățean (`__Host-civic_sid`, B3 §3): autentificarea în Admin în același browser înlocuiește sesiunea de cetățean (probabil cauza codului cerut din nou pe staging). Comportament neschimbat; se testează cu browsere sau profiluri separate.
 - Sesizările despre probleme între vecini (de exemplu, zgomotul) apar public cu descriere și loc, chiar fără transmitere către Primărie. Este o întrebare de produs și juridică (2.9, E-6), nu o eroare tehnică; o semnalez pentru decizie separată.
+- Limita de 3 coduri pe zi pe adresă (B7 / DN-15) este silențioasă (202, fără cod nou), ca să nu se poată afla ce adrese au cont. Pentru utilizator e derutant; un mesaj generic în formular ar putea fi decis separat.
+- Formularul are două câmpuri de adresă (text „Locație” și „Caută adresa” deasupra hărții); o adresă scrisă numai în text nu pune pin (observat pe staging). Observație de interfață, pentru o decizie separată.
 - Feedbackul auditului ChatGPT la 5.1: încă neprimit.
 
-## 7. Cerere
+## 7. Cerere de checkpoint
 
-După 5.4.9 (staging), acest raport se completează cu jurnalul de staging și cu cererea de checkpoint.
+Faza 5.4 este încheiată: criteriile B10 §6 (§2) sunt îndeplinite local, în CI (#21 verde pe `b2eb198`; `7723f33` și ulterioarele: CI la push) și pe staging (§1, jurnal §8). Se cere checkpoint-ul 5.4 (audit ChatGPT), cu atenție la:
+
+1. extinderea explicită a contractelor B2 pentru ALTCHA (plan §5);
+2. sesiunea de cetățean fără expirare (varianta B, plan §5): riscul acceptat de proprietar (telefon pierdut) și cookie-ul de 400 de zile;
+3. testele vechi înlocuite sau rescrise (§4), fără slăbirea verificărilor;
+4. decizia de produs deschisă: sesizările despre vecini sunt publice cu descriere și loc (§6, 2.9 / E-6).
+
+După checkpoint: varianta A din 30.09 (schimbarea parolei DB și a celor 4 chei pe staging, cu valori generate pe server), apoi 5.5 (SMTP).
