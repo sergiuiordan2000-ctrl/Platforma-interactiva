@@ -620,6 +620,10 @@ describe('ALTCHA la sesizări (decizia A1, 30.09.2026)', () => {
     const c = await citizen('pow@exemplu.test');
     assert.equal((await c.get(`${V1}/citizen/reports/pow-challenge`)).statusCode, 404);
     assert.equal((await submit(c)).statusCode, 201);
+    // altcha-lib verifică expirarea după ceasul real (Date.now()), nu după ceasul aplicației: partea „pornit”
+    // rulează cu ceasul testului adus la ora reală (altfel testul depinde de data calendaristică; picat la 01.10.2026)
+    const saved = clock.current;
+    clock.current = new Date();
     await setSetting(h.pool, REPORT_POW_KEY, true, clock.now(), null);
     try {
       assert.equal((await submit(c)).statusCode, 422);
@@ -633,6 +637,7 @@ describe('ALTCHA la sesizări (decizia A1, 30.09.2026)', () => {
       assert.equal((await submit(c, { pow: Buffer.from(JSON.stringify({ challenge: foreign, solution: fsol })).toString('base64') })).statusCode, 422, 'semnătură străină');
     } finally {
       await setSetting(h.pool, REPORT_POW_KEY, false, clock.now(), null);
+      clock.current = saved;
     }
   });
 });

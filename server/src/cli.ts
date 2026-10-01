@@ -3,6 +3,7 @@
 // În 5.1: migrate, migrate:status, seed:config, seed:demo, check:no-demo, backup:db, restore:db.
 // 5.4: outbox:process, purge:retention (sesizări, audit administrativ, blocări expirate, fișiere temporare),
 // purge:pow, settings:report-pow (ALTCHA la sesizări, decizia A1 din 30.09.2026).
+// rotate:keys: cele 4 chei „ușoare” din CIVIC_ENV_FILE, fără afișarea valorilor (varianta A din 30.09.2026).
 
 import type { Config } from './config.ts';
 import { BootstrapRefusedError, bootstrapAdmin } from './accounts.ts';
@@ -20,6 +21,8 @@ import { purgePow, purgeRetention } from './maintenance.ts';
 import { processDue } from './reports/outbox.ts';
 import { REPORT_POW_KEY, isReportPowEnabled, setSetting } from './settings.ts';
 import { writeAudit } from './audit.ts';
+import { ENV_FILE_VAR } from './envFile.ts';
+import { RotateKeysError, rotateKeysInFile } from './rotateKeys.ts';
 
 export const CLI_COMMANDS = [
   'migrate',
@@ -36,6 +39,7 @@ export const CLI_COMMANDS = [
   'purge:retention',
   'purge:pow',
   'settings:report-pow',
+  'rotate:keys',
 ] as const;
 
 export type CliCommand = (typeof CLI_COMMANDS)[number];
@@ -57,6 +61,7 @@ export async function runCli(
   if (command === 'bootstrap-admin') return runBootstrap(config, out, args);
   if (command === 'dev:show-code') return runShowCode(config, out, args);
   if (command === 'dev:e2e-setup') return runE2eSetup(config, out);
+  if (command === 'rotate:keys') return runRotateKeys(config, out);
   const handle = createDb(config.databaseUrl, { connectionLimit: 2 });
   try {
     switch (command) {
@@ -303,4 +308,36 @@ async function runE2eSetup(config: Config, out: Out): Promise<number> {
   } finally {
     await handle.close();
   }
+}
+
+/** rotate:keys — valorile noi se scriu numai în fișier; nu se afișează niciuna. */
+async function runRotateKeys(config: Config, out: Out, env: NodeJS.ProcessEnv = process.env): Promise<number> {
+  const file = env[ENV_FILE_VAR]?.trim();
+  if (!file) {
+    out.error(`rotate:keys: variabila ${ENV_FILE_VAR} lipsește; comanda lucrează numai cu fișierul de setări.`);
+    return 2;
+  }
+  let keys: string[];
+  try {
+    keys = rotateKeysInFile(file);
+  } catch (e) {
+    if (e instanceof RotateKeysError) {
+      out.error(`rotate:keys: ${e.message}`);
+      return 1;
+    }
+    throw e;
+  }
+  out.log(`rotate:keys: ${keys.length} chei schimbate (${keys.join(', ')}). Valorile nu se afișează.`);
+  const handle = createDb(config.databaseUrl, { connectionLimit: 1 });
+  try {
+    await writeAudit(handle.pool, new Date(), {
+      actorType: 'system', action: 'system.keys.rotate', targetType: 'settings', targetId: 'env-file', details: { keys, via: 'cli' },
+    });
+  } catch {
+    out.log('rotate:keys: atenție — rândul de audit nu a putut fi scris (cheile au fost totuși schimbate).');
+  } finally {
+    await handle.close();
+  }
+  out.log('rotate:keys: reporniți aplicația (Setup Node.js App → Restart) ca să folosească noile chei.');
+  return 0;
 }

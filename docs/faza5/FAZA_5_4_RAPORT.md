@@ -77,6 +77,7 @@ Nicio verificare nu a fost slăbită ca să treacă. R6.3 (XSS) a fost întărit
 4. **Linkul de dezabonare** era citit numai la încărcarea paginii; acum și la schimbarea adresei cu aplicația deschisă. Jetonul se scoate imediat din bara de adrese.
 5. **Pinul de pe harta publică desenat la ~25–30 m nord de punct** (moștenit din Etapa 3D, observat de proprietar pe staging la TM-003): iconița era deplasată de două ori (ancorarea Leaflet + clasele `-translate-x-1/2 -translate-y-full`). Reparat în `MapView`, cu aspectul neschimbat; testul E2E P-2 compară vârful pinului cu centrul zonei desenate de Leaflet în aceeași coordonată (cod vechi: −16 / −26,5 px; reparat: < 1,5 px). Datele din DB erau corecte.
 6. **Pachetul de staging `civic-b2eb198` construit cu un `server/dist/app.js` vechi** (greșeala lui Claude: build-ul serverului nu fusese refăcut; `health` arăta `a6aee5f` după deploy). Pachetul a fost refăcut și redeployat de proprietar; `package-release.py` refuză acum un `app.js` care nu provine din `HEAD` (probă de control: refuz cu `app.js` vechi).
+7. **Testul ALTCHA dependent de data calendaristică** (găsit la 01.10.2026): `altcha-lib` verifică expirarea provocării după ceasul real (`Date.now()`), iar testul folosea ceasul fix al testelor (01.10.2026 09:00 UTC). După 09:10 UTC din 01.10.2026, testul pica local și în CI. Producția nu e afectată (acolo ceasul aplicației este ora reală). Reparat în test: partea „ALTCHA pornit” rulează cu ceasul adus la ora reală; verificările au rămas aceleași.
 
 ## 6. Constatări și limitări
 

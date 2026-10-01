@@ -3,6 +3,8 @@
 
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
+import { chmodSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { after, before, describe, it } from 'node:test';
 import { getTableConfig } from 'drizzle-orm/mysql-core';
@@ -297,6 +299,39 @@ describe('pornirea aplicației (DN-20, D10-3)', () => {
     const dev = run(['dev:show-code', '--latest'], {});
     assert.equal(dev.status, 0, dev.stderr);
     assert.match(dev.stdout, /424242/);
+  });
+
+  it('CLI: rotate:keys (varianta A, 01.10.2026) — schimbă cele 4 chei în CIVIC_ENV_FILE, fără valori în ieșire; audit; aplicația pornește cu fișierul nou', { skip: process.platform === 'win32' }, async () => {
+    const base = testEnv({ DATABASE_URL: testDatabaseUrl() });
+    const keys = ['IP_HASH_SECRET', 'PARTICIPATION_HMAC_SECRET', 'FORM_TOKEN_SECRET', 'POW_HMAC_KEY'];
+    const file = join(mkdtempSync(join(tmpdir(), 'civic-rot-')), 'civic.env');
+    writeFileSync(file, Object.entries(base).filter(([, v]) => v !== undefined).map(([k, v]) => `${k}=${v}`).join('\n') + '\n');
+    chmodSync(file, 0o600);
+    const cli = (args: string[]) =>
+      spawnSync(process.execPath, ['--import', 'tsx', join(APP_ROOT, 'server', 'src', 'main.ts'), ...args], {
+        env: { CIVIC_ENV_FILE: file, PATH: process.env.PATH ?? '' },
+        encoding: 'utf8',
+        timeout: 30_000,
+      });
+    const res = cli(['rotate:keys']);
+    assert.equal(res.status, 0, res.stderr);
+    assert.match(res.stdout, /4 chei schimbate/);
+    const rotated = Object.fromEntries(readFileSync(file, 'utf8').trim().split('\n').map((l) => [l.slice(0, l.indexOf('=')), l.slice(l.indexOf('=') + 1)]));
+    for (const k of keys) {
+      assert.notEqual(rotated[k], base[k], k);
+      assert.ok(!res.stdout.includes(base[k]!) && !res.stdout.includes(rotated[k]!), `${k}: nicio valoare în ieșire`);
+      assert.ok(!res.stderr.includes(base[k]!) && !res.stderr.includes(rotated[k]!));
+    }
+    for (const k of ['DATABASE_URL', 'TOTP_ENC_KEY', 'APP_ENV']) assert.equal(rotated[k], base[k], `${k} neschimbat`);
+    const [audit] = (await h.pool.query("SELECT details FROM audit_log WHERE action = 'system.keys.rotate' ORDER BY id DESC LIMIT 1"))[0] as Array<{ details: unknown }>;
+    const details = typeof audit!.details === 'string' ? JSON.parse(audit!.details) : audit!.details;
+    assert.deepEqual(details, { keys, via: 'cli' });
+    assert.equal(cli(['migrate:status']).status, 0, 'configurația cu cheile noi este validă');
+    // fără CIVIC_ENV_FILE → refuz (comanda lucrează numai cu fișierul)
+    const noFile = spawnSync(process.execPath, ['--import', 'tsx', join(APP_ROOT, 'server', 'src', 'main.ts'), 'rotate:keys'], {
+      env: { ...base, PATH: process.env.PATH ?? '' }, encoding: 'utf8', timeout: 30_000,
+    });
+    assert.equal(noFile.status, 2);
   });
 
   it('fără un secret → refuz la pornire, fără valoarea secretelor în mesaj', () => {

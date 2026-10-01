@@ -9,7 +9,7 @@ Rulare (din rădăcina repository-ului, după `npm run build` și `npm run build
     python3 server/scripts/package-release.py --bootstrap-email <adresă> [--bootstrap-name "Nume"]
 
 Scripturile npm din package.json (5.4: civic-seed-demo, civic-show-latest-code, civic-outbox-process,
-civic-purge-retention, civic-report-pow-*) se rulează din cPanel → Node.js → „Run JS script”.
+civic-purge-retention, civic-report-pow-*, civic-rotate-keys) se rulează din cPanel → Node.js → „Run JS script”.
 Cu --bootstrap-email, package.json din pachet primește și scriptul `civic-bootstrap-admin`, rulat din
 cPanel → Node.js → „Run JS script” (care nu acceptă argumente). Parola temporară apare numai în
 ieșirea comenzii, nu într-un fișier (B3 §6). Adresa ajunge numai în pachet, nu în repository.
@@ -73,6 +73,7 @@ def main() -> int:
             'civic-report-pow-status': f'{app} settings:report-pow status',
             'civic-report-pow-on': f'{app} settings:report-pow on',
             'civic-report-pow-off': f'{app} settings:report-pow off',
+            'civic-rotate-keys': f'{app} rotate:keys',
         }
         if a.bootstrap_email:
             cmd = ['node', 'server/dist/app.js', 'bootstrap-admin', '--email', a.bootstrap_email, '--name', a.bootstrap_name or 'Administrator']
