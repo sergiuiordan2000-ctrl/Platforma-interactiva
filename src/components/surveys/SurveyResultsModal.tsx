@@ -3,46 +3,43 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useMemo } from 'react';
+import React from 'react';
 import { 
   X, 
   BarChart3, 
   Users, 
-  Calendar, 
-  HelpCircle, 
   Info, 
-  CheckCircle2, 
-  FileText, 
-  ShieldCheck, 
-  AlertCircle 
+  AlertTriangle,
+  ShieldCheck
 } from 'lucide-react';
-import { Survey } from '../../types/survey';
-import { SurveyStatisticsReport } from '../../types/surveyStatistics';
-import { surveyService } from '../../services/surveyService';
+import { surveyService, SURVEY_ADVISORY_TEXT, type SurveyResults } from '../../services/surveyService';
+import { useAsync } from '../../hooks/useAsync';
+import { ErrorBlock, LoadingBlock } from '../common/LoadState';
+import { formatRoDateTime } from '../../utils/roTime';
 
 interface SurveyResultsModalProps {
-  survey: Survey;
+  /** Elementul din lista publică sau din lista Admin. */
+  survey: {
+    id: string;
+    title: string;
+    category: string | null;
+    startAt: string;
+    endAt: string;
+    integrityFlag: boolean;
+    integrityNote: string | null;
+  };
+  /** Admin: rezultatele se văd indiferent de vizibilitatea publică (B2 §6.4). */
+  admin?: boolean;
   onClose: () => void;
 }
 
-export const SurveyResultsModal: React.FC<SurveyResultsModalProps> = ({ survey, onClose }) => {
-  // Calcul agregat bazat pe stocarea locală MVP (Etapa 4D)
-  const report: SurveyStatisticsReport | null = useMemo(() => {
-    return surveyService.calculateSurveyStatistics(survey.id);
-  }, [survey.id]);
-
-  const formatDate = (dateStr: string) => {
-    try {
-      const d = new Date(dateStr);
-      return d.toLocaleDateString('ro-RO', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-      });
-    } catch {
-      return dateStr;
-    }
-  };
+export const SurveyResultsModal: React.FC<SurveyResultsModalProps> = ({ survey, admin = false, onClose }) => {
+  // Faza 5.6: agregatele se calculează pe server (D3; procentele: T-8). Textele libere nu ajung aici.
+  const results = useAsync<SurveyResults>(
+    () => (admin ? surveyService.adminResults(survey.id) : surveyService.getResults(survey.id)),
+    [survey.id, admin],
+  );
+  const report = results.data;
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200">
@@ -87,7 +84,7 @@ export const SurveyResultsModal: React.FC<SurveyResultsModalProps> = ({ survey, 
                 <span>Statut Consultare</span>
               </div>
               <p className="text-xs text-slate-600 leading-relaxed">
-                Perioada desfășurării: <strong>{formatDate(survey.period.startDate)} — {formatDate(survey.period.endDate)}</strong>
+                Perioada desfășurării: <strong>{formatRoDateTime(survey.startAt)} — {formatRoDateTime(survey.endAt)}</strong>
               </p>
             </div>
 
@@ -98,14 +95,29 @@ export const SurveyResultsModal: React.FC<SurveyResultsModalProps> = ({ survey, 
               <div>
                 <div className="text-[10px] font-bold text-slate-400 uppercase">Total Participări</div>
                 <div className="text-base font-black text-slate-900">
-                  {report ? report.totalSubmissions : 0} răspunsuri
+                  {report ? report.totalSubmissions : 0} {report?.totalSubmissions === 1 ? 'răspuns' : 'răspunsuri'}
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Cazul 1: Nu există participări înregistrate local */}
-          {(!report || report.totalSubmissions === 0) ? (
+          {/* P-2: marcajul „rezultate posibil afectate” (public numai în arhivă; în Admin oricând) */}
+          {survey.integrityFlag && (
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-[11px] text-amber-800 flex items-start gap-2.5">
+              <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+              <div className="space-y-0.5">
+                <span className="font-bold">Rezultate posibil afectate</span>
+                {survey.integrityNote && <p className="leading-relaxed">{survey.integrityNote}</p>}
+              </div>
+            </div>
+          )}
+
+          {/* Cazul 1: Nu există participări înregistrate */}
+          {results.loading && !report ? (
+            <LoadingBlock label="Se încarcă rezultatele…" />
+          ) : results.error || !report ? (
+            <ErrorBlock message={results.error ?? 'Rezultatele nu sunt disponibile.'} onRetry={() => void results.reload()} />
+          ) : report.totalSubmissions === 0 ? (
             <div className="text-center py-12 px-4 space-y-3 bg-slate-50/60 border border-dashed border-slate-200 rounded-3xl">
               <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
                 <BarChart3 className="w-6 h-6" />
@@ -115,7 +127,7 @@ export const SurveyResultsModal: React.FC<SurveyResultsModalProps> = ({ survey, 
                   Nu există încă participări înregistrate
                 </h3>
                 <p className="text-xs text-slate-500 leading-relaxed">
-                  Pentru acest sondaj nu au fost înregistrate încă opțiuni în stocarea locală. Rezultatele vor fi calculate și afișate imediat ce primii cetățeni își vor trimite votul.
+                  Pentru acest sondaj nu au fost înregistrate încă opțiuni. Rezultatele vor fi calculate și afișate imediat ce primii cetățeni își vor trimite votul.
                 </p>
               </div>
             </div>
@@ -124,7 +136,7 @@ export const SurveyResultsModal: React.FC<SurveyResultsModalProps> = ({ survey, 
             <div className="space-y-6">
               
               {/* Afișare rezultate per întrebare */}
-              {report.questionsResults.map((qResult, idx) => (
+              {report.questions.map((qResult, idx) => (
                 <div
                   key={qResult.questionId}
                   className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 space-y-4 shadow-xs"
@@ -135,30 +147,30 @@ export const SurveyResultsModal: React.FC<SurveyResultsModalProps> = ({ survey, 
                       <span className="text-purple-700 font-black mr-1.5">
                         #{idx + 1}.
                       </span>
-                      {qResult.questionText}
+                      {qResult.text}
                     </h3>
 
                     <div className="shrink-0 flex items-center gap-1.5">
                       <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-slate-100 text-slate-600">
-                        {qResult.questionType === 'single_choice' && 'Alegere unică'}
-                        {qResult.questionType === 'multiple_choice' && 'Alegere multiplă'}
-                        {qResult.questionType === 'free_text' && 'Răspuns liber'}
+                        {qResult.type === 'single_choice' && 'Alegere unică'}
+                        {qResult.type === 'multiple_choice' && 'Alegere multiplă'}
+                        {qResult.type === 'free_text' && 'Răspuns liber'}
                       </span>
                       <span className="text-[10px] font-semibold text-slate-400">
-                        ({qResult.totalAnswersCount} {qResult.totalAnswersCount === 1 ? 'răspuns' : 'răspunsuri'})
+                        ({qResult.respondents} {qResult.respondents === 1 ? 'răspuns' : 'răspunsuri'})
                       </span>
                     </div>
                   </div>
 
                   {/* 1. TIP: SINGLE CHOICE (Bare procentuale, suma = 100%) */}
-                  {qResult.questionType === 'single_choice' && qResult.optionsResults && (
+                  {qResult.type === 'single_choice' && (
                     <div className="space-y-3 pt-1">
-                      {qResult.optionsResults.map((opt) => (
+                      {qResult.options.map((opt) => (
                         <div key={opt.optionId} className="space-y-1">
                           <div className="flex items-center justify-between text-xs">
                             <span className="font-semibold text-slate-700">{opt.text}</span>
                             <span className="font-bold text-slate-900 flex items-center gap-1.5">
-                              <span>{opt.votesCount} voturi</span>
+                              <span>{opt.count} voturi</span>
                               <span className="text-purple-700 font-black min-w-[45px] text-right">
                                 {opt.percentage}%
                               </span>
@@ -178,18 +190,18 @@ export const SurveyResultsModal: React.FC<SurveyResultsModalProps> = ({ survey, 
                   )}
 
                   {/* 2. TIP: MULTIPLE CHOICE (Bare procentuale raportate la numărul de respondenți) */}
-                  {qResult.questionType === 'multiple_choice' && qResult.optionsResults && (
+                  {qResult.type === 'multiple_choice' && (
                     <div className="space-y-3 pt-1">
                       <div className="text-[11px] text-slate-500 italic pb-1">
                         Notă: La alegerea multiplă, procentul indică proporția de respondenți care au bifat fiecare opțiune (suma procentelor poate depăși 100%).
                       </div>
 
-                      {qResult.optionsResults.map((opt) => (
+                      {qResult.options.map((opt) => (
                         <div key={opt.optionId} className="space-y-1">
                           <div className="flex items-center justify-between text-xs">
                             <span className="font-semibold text-slate-700">{opt.text}</span>
                             <span className="font-bold text-slate-900 flex items-center gap-1.5">
-                              <span>{opt.votesCount} selecții</span>
+                              <span>{opt.count} selecții</span>
                               <span className="text-indigo-700 font-black min-w-[45px] text-right">
                                 {opt.percentage}%
                               </span>
@@ -209,12 +221,12 @@ export const SurveyResultsModal: React.FC<SurveyResultsModalProps> = ({ survey, 
                   )}
 
                   {/* 3. TIP: FREE TEXT (Răspunsuri text deschise - confidențialitate civică) */}
-                  {qResult.questionType === 'free_text' && (
+                  {qResult.type === 'free_text' && (
                     <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-2">
                       <div className="flex items-center justify-between text-xs font-semibold text-slate-700">
                         <span>Total propuneri și opinii transmise:</span>
                         <span className="font-bold text-slate-900">
-                          {qResult.freeTextEntriesCount || 0} mesaje înregistrate
+                          {qResult.freeTextCount} mesaje înregistrate
                         </span>
                       </div>
                       <p className="text-[11px] text-slate-500 leading-relaxed italic">
@@ -225,6 +237,12 @@ export const SurveyResultsModal: React.FC<SurveyResultsModalProps> = ({ survey, 
 
                 </div>
               ))}
+
+              {/* N4-1: mesajul public obligatoriu */}
+              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-[11px] text-slate-500 flex items-start gap-2.5">
+                <Info className="w-4 h-4 text-purple-600 shrink-0 mt-0.5" />
+                <p className="leading-relaxed">{SURVEY_ADVISORY_TEXT}</p>
+              </div>
 
               {/* Notă explicativă privind caracterul anonim și agregat */}
               <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-[11px] text-slate-500 flex items-start gap-2.5">

@@ -505,7 +505,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigate }) => {
             <span>Delimitarea panoului de administrare</span>
           </div>
           <p className="leading-relaxed">
-            Panoul gestionează comunicatele, sesizările (stadii, asumare / preluare, note interne; fără moderare), Ghidul Primăriei și Apelul rapid. Autentificarea și regulile se verifică pe server; sondajele trec pe server la 5.6.
+            Panoul gestionează comunicatele, sesizările (stadii, asumare / preluare, note interne; fără moderare), Ghidul Primăriei, Apelul rapid și sondajele. Autentificarea și regulile se verifică pe server.
           </p>
         </div>
 

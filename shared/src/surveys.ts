@@ -27,6 +27,9 @@ export const SURVEY_LIMITS = {
   maxOptions: 20,
 } as const;
 
+/** B7, P-7 (01.10.2026): timpul minim de completare a formularului de vot; interfața așteaptă atât înainte de trimitere. */
+export const SURVEY_MIN_FORM_SECONDS = 6;
+
 /** N4-1 (textul aprobat de proprietar la 01.10.2026, P-3). */
 export const SURVEY_ADVISORY_TEXT =
   'Consultare orientativă: rezultatele arată opinia celor care au participat. Platforma limitează votul repetat, dar nu poate garanta că fiecare persoană votează o singură dată.';

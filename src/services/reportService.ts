@@ -23,6 +23,7 @@ import {
   type ReportStatus,
 } from '@tmc/shared';
 import { api, ApiError } from './apiClient';
+import { solvePow } from './powSolver';
 
 export type { AdminReportDetail, AdminReportListItem, CitizenReport, PublicMapReport, ReportCategory, ReportStatus } from '@tmc/shared';
 
@@ -63,17 +64,6 @@ const newKey = (): string =>
         const r = (Math.random() * 16) | 0;
         return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
       });
-
-/** Rezolvarea provocării ALTCHA în browser (numai când super_admin a pornit-o; decizia A1). */
-async function solvePow(challenge: PowChallenge): Promise<string | undefined> {
-  const [{ solveChallenge }, { deriveKey }] = await Promise.all([
-    import('altcha-lib'),
-    import('altcha-lib/algorithms/sha'),
-  ]);
-  const solution = await solveChallenge({ challenge, deriveKey });
-  if (!solution) return undefined;
-  return btoa(JSON.stringify({ challenge, solution: { counter: solution.counter, derivedKey: solution.derivedKey } }));
-}
 
 function submitErrorMessage(err: ApiError): string {
   switch (err.status) {

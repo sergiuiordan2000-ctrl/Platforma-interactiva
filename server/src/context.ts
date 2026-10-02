@@ -1,6 +1,7 @@
 // Contextul comun al rutelor: configurare, DB, ceas (înlocuibil în teste).
 
 import type mysql from 'mysql2/promise';
+import { SURVEY_MIN_FORM_SECONDS } from '@tmc/shared';
 import type { Config } from './config.ts';
 import type { UatBoundary } from './uat.ts';
 import type { GeocodeFn } from './reports/geocoder.ts';
@@ -60,7 +61,7 @@ export const LIMITS = {
   /** B6 §1: pauzele între încercări (minute); după ultima → `failed`. */
   emailRetryMinutes: [1, 5, 30, 120, 720],
   // ——— sondaje (B7 §2; P-7, decizia proprietarului din 01.10.2026; configurabile, DN-15) ———
-  surveyMinFormSeconds: 6,
+  surveyMinFormSeconds: SURVEY_MIN_FORM_SECONDS,
   surveyFormTokenMaxHours: 24,
   surveyVotesPerIpPerSurveyPerHour: 10,
   surveyVotesPerIpPerHour: 300,

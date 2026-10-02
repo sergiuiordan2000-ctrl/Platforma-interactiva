@@ -15,17 +15,39 @@ import {
   FileText, 
   AlertCircle 
 } from 'lucide-react';
-import { 
-  SurveyQuestion, 
-  SurveyQuestionType, 
-  SurveyAnswerOption 
-} from '../../../types/survey';
+import { SURVEY_LIMITS, type SurveyQuestionType } from '../../../services/surveyService';
+
+/**
+ * Faza 5.6: starea formularului de Admin. `key` = cheia locală a rândului; `id` = ID-ul de pe server
+ * (lipsă la întrebările și opțiunile noi). Ordinea este cea din listă.
+ */
+export interface SurveyFormOption {
+  key: string;
+  id?: string;
+  text: string;
+}
+
+export interface SurveyFormQuestion {
+  key: string;
+  id?: string;
+  text: string;
+  type: SurveyQuestionType;
+  isRequired: boolean;
+  helpText: string;
+  options: SurveyFormOption[];
+}
+
+let localKeySeq = 0;
+/** Cheie locală pentru un rând nou din formular (nu ajunge la server). */
+export const newLocalKey = (prefix: string): string => `${prefix}-${Date.now()}-${++localKeySeq}`;
 
 interface SurveyQuestionEditorProps {
-  question: SurveyQuestion;
+  question: SurveyFormQuestion;
   index: number;
   totalQuestions: number;
-  onChange: (updatedQuestion: SurveyQuestion) => void;
+  /** T-4: după primul vot, structura nu se mai modifică; rămâne editabil numai textul de ajutor. */
+  locked?: boolean;
+  onChange: (updatedQuestion: SurveyFormQuestion) => void;
   onDelete: () => void;
   onMoveUp: () => void;
   onMoveDown: () => void;
@@ -35,6 +57,7 @@ export const SurveyQuestionEditor: React.FC<SurveyQuestionEditorProps> = ({
   question,
   index,
   totalQuestions,
+  locked = false,
   onChange,
   onDelete,
   onMoveUp,
@@ -48,12 +71,12 @@ export const SurveyQuestionEditor: React.FC<SurveyQuestionEditorProps> = ({
 
     // Dacă se trece la free_text, opțiunile nu sunt necesare
     if (newType === 'free_text') {
-      updatedOptions = undefined;
-    } else if (!updatedOptions || updatedOptions.length === 0) {
+      updatedOptions = [];
+    } else if (updatedOptions.length === 0) {
       // Dacă se trece la single_choice sau multiple_choice, inițializăm 2 opțiuni implicite
       updatedOptions = [
-        { id: `opt-${Date.now()}-1`, text: 'Opțiunea 1', order: 1 },
-        { id: `opt-${Date.now()}-2`, text: 'Opțiunea 2', order: 2 },
+        { key: newLocalKey('opt'), text: 'Opțiunea 1' },
+        { key: newLocalKey('opt'), text: 'Opțiunea 2' },
       ];
     }
 
@@ -69,11 +92,10 @@ export const SurveyQuestionEditor: React.FC<SurveyQuestionEditorProps> = ({
     if (e) e.preventDefault();
     if (!newOptionText.trim()) return;
 
-    const currentOptions = question.options || [];
-    const newOption: SurveyAnswerOption = {
-      id: `opt-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+    const currentOptions = question.options;
+    const newOption: SurveyFormOption = {
+      key: newLocalKey('opt'),
       text: newOptionText.trim(),
-      order: currentOptions.length + 1,
     };
 
     onChange({
@@ -84,10 +106,9 @@ export const SurveyQuestionEditor: React.FC<SurveyQuestionEditorProps> = ({
   };
 
   // Modificare text opțiune
-  const handleUpdateOptionText = (optId: string, text: string) => {
-    const currentOptions = question.options || [];
-    const updated = currentOptions.map((opt) => 
-      opt.id === optId ? { ...opt, text } : opt
+  const handleUpdateOptionText = (optKey: string, text: string) => {
+    const updated = question.options.map((opt) =>
+      opt.key === optKey ? { ...opt, text } : opt
     );
     onChange({
       ...question,
@@ -96,20 +117,16 @@ export const SurveyQuestionEditor: React.FC<SurveyQuestionEditorProps> = ({
   };
 
   // Ștergere opțiune
-  const handleDeleteOption = (optId: string) => {
-    const currentOptions = question.options || [];
-    const filtered = currentOptions.filter((opt) => opt.id !== optId);
-    // Re-ordonare
-    const reordered = filtered.map((opt, idx) => ({ ...opt, order: idx + 1 }));
+  const handleDeleteOption = (optKey: string) => {
     onChange({
       ...question,
-      options: reordered,
+      options: question.options.filter((opt) => opt.key !== optKey),
     });
   };
 
   // Reordonare opțiuni sus/jos
   const handleMoveOption = (optIndex: number, direction: 'up' | 'down') => {
-    const currentOptions = question.options || [];
+    const currentOptions = question.options;
     if (direction === 'up' && optIndex === 0) return;
     if (direction === 'down' && optIndex === currentOptions.length - 1) return;
 
@@ -118,10 +135,9 @@ export const SurveyQuestionEditor: React.FC<SurveyQuestionEditorProps> = ({
     const [moved] = reordered.splice(optIndex, 1);
     reordered.splice(targetIndex, 0, moved);
 
-    const updated = reordered.map((opt, idx) => ({ ...opt, order: idx + 1 }));
     onChange({
       ...question,
-      options: updated,
+      options: reordered,
     });
   };
 
@@ -138,8 +154,8 @@ export const SurveyQuestionEditor: React.FC<SurveyQuestionEditorProps> = ({
           </span>
         </div>
 
-        {/* Butoane Ordonare & Ștergere */}
-        <div className="flex items-center gap-1">
+        {/* Butoane Ordonare & Ștergere (T-4: ascunse după primul vot) */}
+        <div className={locked ? 'hidden' : 'flex items-center gap-1'}>
           <button
             type="button"
             onClick={onMoveUp}
@@ -191,7 +207,9 @@ export const SurveyQuestionEditor: React.FC<SurveyQuestionEditorProps> = ({
             value={question.text}
             onChange={(e) => onChange({ ...question, text: e.target.value })}
             placeholder="Ex: Cât de des frecventați parcurile din oraș?"
-            className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white outline-none"
+            maxLength={SURVEY_LIMITS.question}
+            disabled={locked}
+            className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white outline-none disabled:bg-slate-100 disabled:text-slate-500"
           />
         </div>
 
@@ -203,7 +221,8 @@ export const SurveyQuestionEditor: React.FC<SurveyQuestionEditorProps> = ({
           <select
             value={question.type}
             onChange={(e) => handleTypeChange(e.target.value as SurveyQuestionType)}
-            className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white font-medium outline-none"
+            disabled={locked}
+            className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white font-medium outline-none disabled:bg-slate-100 disabled:text-slate-500"
           >
             <option value="single_choice">Alegere unică (Radio)</option>
             <option value="multiple_choice">Alegere multiplă (Checkbox)</option>
@@ -220,9 +239,10 @@ export const SurveyQuestionEditor: React.FC<SurveyQuestionEditorProps> = ({
           </label>
           <input
             type="text"
-            value={question.helpText || ''}
+            value={question.helpText}
             onChange={(e) => onChange({ ...question, helpText: e.target.value })}
             placeholder="Ex: Puteți bifa mai multe opțiuni din listă."
+            maxLength={SURVEY_LIMITS.helpText}
             className="w-full px-3 py-1.5 text-xs rounded-xl border border-slate-200 focus:ring-2 focus:ring-purple-500 bg-white outline-none"
           />
         </div>
@@ -233,6 +253,7 @@ export const SurveyQuestionEditor: React.FC<SurveyQuestionEditorProps> = ({
               type="checkbox"
               checked={question.isRequired}
               onChange={(e) => onChange({ ...question, isRequired: e.target.checked })}
+              disabled={locked}
               className="w-4 h-4 rounded text-purple-600 focus:ring-purple-500 border-slate-300"
             />
             <span>Răspuns obligatoriu</span>
@@ -256,15 +277,15 @@ export const SurveyQuestionEditor: React.FC<SurveyQuestionEditorProps> = ({
               </span>
             </div>
             <span className="text-[11px] font-semibold text-slate-500">
-              {question.options?.length || 0} variante definite
+              {question.options.length} variante definite
             </span>
           </div>
 
           {/* Listă Opțiuni Existente */}
           <div className="space-y-1.5">
-            {question.options?.map((opt, optIdx) => (
+            {question.options.map((opt, optIdx) => (
               <div 
-                key={opt.id}
+                key={opt.key}
                 className="flex items-center gap-2 bg-white p-2 rounded-xl border border-slate-200 shadow-xs"
               >
                 <span className="w-5 h-5 rounded-md bg-slate-100 text-slate-500 text-[10px] font-bold flex items-center justify-center shrink-0">
@@ -274,12 +295,14 @@ export const SurveyQuestionEditor: React.FC<SurveyQuestionEditorProps> = ({
                 <input
                   type="text"
                   value={opt.text}
-                  onChange={(e) => handleUpdateOptionText(opt.id, e.target.value)}
+                  onChange={(e) => handleUpdateOptionText(opt.key, e.target.value)}
                   placeholder="Text variantă de răspuns..."
-                  className="flex-1 px-2.5 py-1 text-xs rounded-lg border border-slate-200 focus:ring-2 focus:ring-purple-500 outline-none"
+                  maxLength={SURVEY_LIMITS.option}
+                  disabled={locked}
+                  className="flex-1 px-2.5 py-1 text-xs rounded-lg border border-slate-200 focus:ring-2 focus:ring-purple-500 outline-none disabled:bg-slate-100 disabled:text-slate-500"
                 />
 
-                <div className="flex items-center gap-1 shrink-0">
+                <div className={locked ? 'hidden' : 'flex items-center gap-1 shrink-0'}>
                   <button
                     type="button"
                     onClick={() => handleMoveOption(optIdx, 'up')}
@@ -295,9 +318,9 @@ export const SurveyQuestionEditor: React.FC<SurveyQuestionEditorProps> = ({
                   <button
                     type="button"
                     onClick={() => handleMoveOption(optIdx, 'down')}
-                    disabled={optIdx === (question.options?.length || 0) - 1}
+                    disabled={optIdx === question.options.length - 1}
                     className={`p-1 rounded text-slate-500 hover:text-slate-900 ${
-                      optIdx === (question.options?.length || 0) - 1 ? 'opacity-30 cursor-not-allowed' : 'hover:bg-slate-100'
+                      optIdx === question.options.length - 1 ? 'opacity-30 cursor-not-allowed' : 'hover:bg-slate-100'
                     }`}
                     title="Mută varianta mai jos"
                   >
@@ -306,7 +329,7 @@ export const SurveyQuestionEditor: React.FC<SurveyQuestionEditorProps> = ({
 
                   <button
                     type="button"
-                    onClick={() => handleDeleteOption(opt.id)}
+                    onClick={() => handleDeleteOption(opt.key)}
                     className="p-1 rounded text-red-500 hover:text-red-700 hover:bg-red-50 ml-1"
                     title="Șterge varianta"
                   >
@@ -317,8 +340,8 @@ export const SurveyQuestionEditor: React.FC<SurveyQuestionEditorProps> = ({
             ))}
           </div>
 
-          {/* Adăugare Variantă Nouă */}
-          <div className="flex items-center gap-2 pt-1">
+          {/* Adăugare Variantă Nouă (T-4: ascunsă după primul vot) */}
+          <div className={locked ? 'hidden' : 'flex items-center gap-2 pt-1'}>
             <input
               type="text"
               value={newOptionText}
@@ -330,6 +353,7 @@ export const SurveyQuestionEditor: React.FC<SurveyQuestionEditorProps> = ({
                 }
               }}
               placeholder="Adaugă o variantă nouă și apasă Enter..."
+              maxLength={SURVEY_LIMITS.option}
               className="flex-1 px-3 py-1.5 text-xs rounded-xl border border-slate-300 focus:ring-2 focus:ring-purple-500 bg-white outline-none"
             />
             <button
@@ -348,7 +372,7 @@ export const SurveyQuestionEditor: React.FC<SurveyQuestionEditorProps> = ({
           </div>
 
           {/* Alertă dacă sunt mai puțin de 2 variante */}
-          {(!question.options || question.options.length < 2) && (
+          {question.options.length < 2 && (
             <div className="flex items-center gap-2 text-[11px] text-amber-700 bg-amber-50 p-2 rounded-xl border border-amber-200">
               <AlertCircle className="w-3.5 h-3.5 shrink-0 text-amber-600" />
               <span>Întrebarea necesită cel puțin 2 variante de răspuns pentru a putea fi validată.</span>

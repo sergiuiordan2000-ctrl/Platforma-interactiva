@@ -371,7 +371,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onOpenAnnounceme
             Status Dezvoltare: Faza 5 (versiune de test pe server)
           </p>
           <p className="leading-relaxed">
-            Comunicatele, Ghidul Primăriei, Apelul rapid și sesizările funcționează pe server. Sesizările se depun dintr-un cont confirmat prin e-mail și apar imediat pe hartă, fără moderare; contul și adresa de e-mail a autorului nu sunt afișate public. Sondajele trec pe server într-o etapă următoare.
+            Comunicatele, Ghidul Primăriei, Apelul rapid, sesizările și sondajele funcționează pe server. Sesizările se depun dintr-un cont confirmat prin e-mail și apar imediat pe hartă, fără moderare; contul și adresa de e-mail a autorului nu sunt afișate public. Sondajele sunt consultări orientative, fără cont.
           </p>
         </div>
       </section>
