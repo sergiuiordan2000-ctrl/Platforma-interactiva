@@ -42,7 +42,7 @@ Codul de ieșire al `run_all.py` este 0 doar dacă nu există FAIL-uri neaștept
 | E2E 5.3 conținut public | 16/16 |
 | E2E 5.4 sesizări | 25/25 |
 | E2E 5.4 ALTCHA la sesizări | 4/4 |
-| E2E 5.6 sondaje | 32/32 |
+| E2E 5.6 sondaje | 36/36 |
 
 Nu există FAIL-uri cunoscute: `R6D-SES-01` / P7 a fost închis la Faza 5.2 (sesiunea se validează pe server).
 Suitele `services/test_6_6_asumare_preluare.py` și `ui/test_6_6_ui.py` au fost înlocuite la 5.4 (sesizările pe server);

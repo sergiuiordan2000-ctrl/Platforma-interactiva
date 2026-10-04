@@ -129,3 +129,11 @@ Suită nouă: `tests/e2e/test_5_4_altcha_sesizari.py` (4 verificări, server și
 Probă de control: cu varianta veche a algoritmului în `powSolver.ts` (cea pentru Node), `AS-2` și `AS-3` pică („Sesizarea NU a fost înregistrată”). Asta confirmă defectul din 5.4 și corecția din 5.6.5 și la sesizări. Codul a fost restaurat.
 
 Suita Python: 108/108.
+
+## 11. Stare (04.10.2026, 5.6.7 partea 2c: ecranele 422 / 429 ale votului)
+
+`tests/e2e/test_5_6_sondaje.py` are 4 verificări în plus (36 în total): `S-17` (429: mesajul despre prea multe voturi din aceeași rețea, fără confirmare, răspunsurile păstrate), `S-18` (422 cu câmpuri: eroarea apare la întrebarea indicată de server), `S-19` (422 fără câmpuri: formularul se reînnoiește de la server, răspunsurile rămân), `S-20` (niciun vot în plus în DB). Răspunsurile serverului la trimitere sunt simulate în aceste verificări; regulile reale (limite, timp minim, validare) sunt testate pe server, în `integration/surveys.test.ts`.
+
+Probă de control (cod stricat intenționat, apoi restaurat): fără ramura 429, fără maparea câmpurilor și fără reînnoirea formularului, pică `S-17`, `S-18` și `S-19`.
+
+Suita Python: 112/112. **5.6.7 este încheiat.** Urmează 5.6.8 (staging).

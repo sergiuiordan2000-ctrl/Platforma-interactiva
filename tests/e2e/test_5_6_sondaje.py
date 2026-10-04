@@ -1,7 +1,7 @@
 """Faza 5.6 — E2E (B10 §6): sondajele pe server, în interfață, cu serverul real și DB-ul de test.
 
 Public: lista deschisă și arhiva (D3), „Rezultate” numai când e permis, textul N4-1, ora României (P-5),
-votul (validare, timpul minim, confirmare), indiciul „Ai participat deja” (N4-12), 409 și 403 în interfață,
+votul (validare, timpul minim, confirmare), indiciul „Ai participat deja” (N4-12), 409, 403, 422 și 429 în interfață,
 votul cu ALTCHA pornită (N4-5), marcajul de integritate numai în arhivă (P-2), textele libere niciodată publice.
 Admin: fără „Reset Demo” (D4), creare, blocarea după primul vot (T-4, P-6), ALTCHA și marcajul de integritate,
 ștergerea cu voturi refuzată (409), închis = definitiv (P-1), textele libere după închidere, cu audit (N4-9).
@@ -184,6 +184,47 @@ with backend_server(5899) as B, sync_playwright() as pw:
 
         p3.reload(); p3.wait_for_load_state('networkidle'); p3.wait_for_timeout(300); t = p3.inner_text('[data-testid=surveys-archive]')
         res.check('S-15 arhiva: sondajul închis, cu marcajul și nota de integritate', 'E2E 5.6' in t and 'Rezultate posibil afectate' in t and 'aceeași rețea' in t, t[:400])
+
+        # 422 / 429 în interfață. Răspunsurile serverului la POST sunt simulate aici (regulile reale: integration/surveys.test.ts);
+        # se verifică numai ce afișează formularul și că răspunsurile completate rămân.
+        c5 = b.new_context(); p5 = c5.new_page(); p5.on('pageerror', lambda e: errs.append('p5: ' + str(e)[:200]))
+        mode = {'status': 429, 'fields': None}
+        detail_calls = []
+
+        def fake_submit(route):
+            if route.request.method != 'POST':
+                return route.continue_()
+            err = {'code': 'RATE_LIMITED' if mode['status'] == 429 else 'VALIDATION', 'message': 'mesaj de test al serverului'}
+            if mode['fields']:
+                err['fields'] = mode['fields']
+            route.fulfill(status=mode['status'], content_type='application/json', body=json.dumps({'error': err}),
+                          headers={'Retry-After': '3600'} if mode['status'] == 429 else {})
+
+        p5.route('**/api/v1/public/surveys/*/submissions', fake_submit)
+        p5.on('requestfinished', lambda r: detail_calls.append(1) if r.url.endswith('/api/v1/public/surveys/' + DEMO_OPEN) else None)
+        goto(p5, URL, 'sondaje')
+        p5.locator('[data-testid=surveys-open-list] > div.grid > div').filter(has_text='zonelor verzi').get_by_role('button', name='Participă').click(); p5.wait_for_timeout(700)
+        qid = p5.evaluate("document.querySelector('[id^=question-card-]').id.replace('question-card-', '')")
+        p5.locator('#question-card-' + qid + ' label').first.click(); p5.fill('textarea', 'Răspuns păstrat după eroare.')
+        submit = p5.get_by_role('button', name='Trimite Răspunsurile')
+        submit.click(); p5.wait_for_selector('.bg-red-50', timeout=15000)
+        t = ' | '.join(p5.locator('.bg-red-50').all_inner_texts())
+        res.check('S-17 429 în interfață: mesajul „prea multe voturi din această rețea”, fără confirmare, răspunsurile păstrate',
+                  'Prea multe voturi' in t and 'au fost înregistrate' not in p5.inner_text('body') and p5.input_value('textarea') == 'Răspuns păstrat după eroare.', t[:160])
+        mode.update(status=422, fields={qid: 'răspuns obligatoriu'})
+        submit.click(); p5.wait_for_timeout(1200)
+        card = p5.inner_text('#question-card-' + qid); t = ' | '.join(p5.locator('.bg-red-50').all_inner_texts())
+        res.check('S-18 422 cu câmpuri: eroarea apare la întrebarea indicată de server, cu mesajul general de corectare',
+                  'răspuns obligatoriu' in card and 'corectați răspunsurile marcate' in t, (card[-120:] + ' || ' + t[:120]))
+        before = len(detail_calls)
+        mode.update(status=422, fields=None)
+        submit.click(); p5.wait_for_timeout(1500)
+        t = ' | '.join(p5.locator('.bg-red-50').all_inner_texts())
+        res.check('S-19 422 fără câmpuri (formular expirat): formularul se reînnoiește de la server, răspunsurile rămân',
+                  'Formularul a fost reîmprospătat' in t and len(detail_calls) == before + 1 and p5.input_value('textarea') == 'Răspuns păstrat după eroare.',
+                  f'{t[:140]} detalii={before}->{len(detail_calls)}')
+        n = db_query("SELECT COUNT(*) AS n FROM survey_submissions WHERE survey_id = ? AND is_demo = FALSE", [DEMO_OPEN])[0]['n']
+        res.check('S-20 după erori: niciun vot în plus în DB', n == 1, str(n))
 
         # 403 în interfață: sondajul deschis în formular, închis între timp (simulat în DB)
         goto(p2, URL, 'sondaje')
