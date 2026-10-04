@@ -94,3 +94,18 @@ Implementat: `surveyService` este client al API-ului (fără date în `localStor
 - **Fără ecran (în afara listei 5.6.5):** respingerile agregate (`GET /admin/surveys/:id/rejections`) și contoarele din `/admin/dashboard`.
 
 Verificări: `tsc`, `typecheck` server, build, `git diff --check`: trec; server 202/202. Probă în browser pe serverul real (32 de verificări: listă, arhivă, vot, 409, 403, ALTCHA, Admin, operator): trec. Suita Python: 66/68; cele două FAIL sunt cele prevăzute la 5.6.7 și se adaptează acolo, cu explicație: `R-00` din `test_robustete_stocare` (rulează fără server, deci lista de sondaje nu mai are ce afișa) și `R6.5a` (apelează `resetToDemo`, eliminat prin D4; excepția oprește și verificările de după ea).
+
+## 8. Stare (04.10.2026, 5.6.7 partea 1: suitele vechi adaptate)
+
+Cele două verificări vechi care picau după 5.6.5 sunt adaptate. Nu a fost slăbită niciuna; regulile verificate sunt aceleași, mutate acolo unde stau acum datele (pe server).
+
+| Verificare | De ce pica | Adaptarea |
+|---|---|---|
+| `R-00` (`tests/ui/test_robustete_stocare.py`) | suita rula pe `vite preview`, fără server; sondajele nu mai sunt în `localStorage`, deci lista era goală | build-ul de producție este servit de serverul Node, pe DB-ul de test cu datele demo. Verificarea este aceeași: pagina se randează și oferă „Participă”. Verificările `R-A05` (cheia veche coruptă) și `R-ALL` rămân neschimbate. |
+| `R6.5a`, partea de sondaje (`tests/regression/test_regresie_6_1_6_5.py`) | apela `surveyService.resetToDemo()`, eliminat prin D4 | aceeași matrice de permisiuni, pe server: lista Admin fără sesiune → 401; operatorul listează (200), dar nu creează (403); D4: endpoint de resetare inexistent (404, chiar pentru `super_admin`) și funcția inexistentă în interfață. Restul lui `R6.5a` este neschimbat. |
+
+Verificare nouă: `R-HINT` (indiciul „Ai participat deja” corupt în `localStorage`: fără ecran alb, „Participă” rămâne disponibil; 7 forme corupte).
+
+Probe de control (cod stricat intenționat, apoi restaurat): fără protecția din `readHint`, `R-HINT` pică (ecran de eroare, 4 din 7 forme); cu `POST /admin/surveys` deschis operatorului (`surveys.view`), `R6.5a` pică (`op_create` = 422 în loc de 403).
+
+Suita Python: 72/72 (71 + `R-HINT`). Rămâne din 5.6.7: E2E pentru sondaje (vot → rezultate, arhivă, 409 / 422 în interfață, Admin) și ALTCHA la sesizări în browser.

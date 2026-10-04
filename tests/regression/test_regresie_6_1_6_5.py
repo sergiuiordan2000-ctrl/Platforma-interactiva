@@ -6,6 +6,11 @@
 - R6.2 (cota `localStorage`) → echivalentul pe server: o eroare la salvare nu afișează confirmarea și păstrează formularul (6.2).
 - R6.3 XSS pe hartă, R6.4 sesiunea Admin, R6.5 gărzi și modelul public: aceleași reguli, verificate pe serverul real.
 Corespondența completă: docs/faza5/FAZA_5_4_RAPORT.md.
+
+Adaptare la Faza 5.6.5 (docs/faza5/FAZA_5_6_PLAN.md §8): R6.5a verifica și „Reset Demo” pentru sondaje, în browser
+(`surveyService.resetToDemo()`: public și operator refuzați, super_admin permis). Prin D4, „Reset Demo” nu mai există.
+Partea despre sondaje verifică acum aceeași matrice pe server: lista Admin fără sesiune 401; operatorul listează (200),
+dar nu creează (403); iar D4: nu există endpoint de resetare (404 chiar pentru super_admin) și nici funcția în interfață.
 """
 import sys; sys.dont_write_bytecode = True
 from pathlib import Path; sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'lib'))
@@ -14,8 +19,6 @@ from harness import *
 
 res = Results('REGRESIE 6.1-6.5 (revizuită 5.4)')
 creds = dev_users()
-ADMIN, OP = 'admin@turnumagurele.ro', 'operator@turnumagurele.ro'
-LOGIN = "const login = (e) => { authService.setUserForDevTests(null); authService.setUserForDevTests(arg.creds[e]); if (!authService.getCurrentUser()) throw new Error('login'); };"
 PIN = {'text': 'Str. R', 'lat': 43.7518, 'lng': 24.8692, 'source': 'pin'}
 XSS = '<img src=x onerror="window.__xss=1">'
 
@@ -98,13 +101,16 @@ with backend_server(5799) as BACKEND, dev_server(api_proxy=f'http://127.0.0.1:57
         op_list = opc.request.get(URL + '/api/v1/admin/reports').status
         sa_resolve = sa.request.patch(URL + f'/api/v1/admin/reports/{ridx}/resolution', headers=CSRF, data={'status': 'resolved'}).status
         moderation = sa.request.patch(URL + f'/api/v1/admin/reports/{ridx}/moderation', headers=CSRF, data={'status': 'approved'}).status
-        survey = run_js(page, LOGIN + """
-          const s = (await import(loaded('surveyService'))).surveyService; const out = {};
-          for (const who of [null, arg.op, arg.admin]) { authService.setUserForDevTests(null); if (who) login(who); out[who || 'public'] = s.resetToDemo(); }
-          authService.setUserForDevTests(null); return out;""", {'creds': creds, 'op': OP, 'admin': ADMIN})
+        survey = dict(
+            anon_list=anon.request.get(URL + '/api/v1/admin/surveys').status,
+            op_list=opc.request.get(URL + '/api/v1/admin/surveys').status,
+            op_create=opc.request.post(URL + '/api/v1/admin/surveys', headers=CSRF, data={}).status,
+            sa_reset=sa.request.post(URL + '/api/v1/admin/surveys/reset-demo', headers=CSRF, data={}).status,
+            fn=run_js(page, "const s = (await import(loaded('surveyService'))).surveyService; return typeof s.resetToDemo;"),
+        )
         g = dict(public_list=pub_list, operator_list=op_list, super_resolved=sa_resolve, moderation=moderation, survey=survey)
-        res.check('R6.5a gărzi: Admin fără sesiune 401; operator listează; super_admin nu marchează „rezolvată” (403, P-9); moderarea nu există (404); sondaje locale conforme matricei',
-                  (pub_list, op_list, sa_resolve, moderation) == (401, 200, 403, 404) and survey == {'public': False, OP: False, ADMIN: True}, json.dumps(g))
+        res.check('R6.5a gărzi: Admin fără sesiune 401; operator listează; super_admin nu marchează „rezolvată” (403, P-9); moderarea nu există (404); sondaje: matricea pe server, fără „Reset Demo” (D4)',
+                  (pub_list, op_list, sa_resolve, moderation) == (401, 200, 403, 404) and survey == dict(anon_list=401, op_list=200, op_create=403, sa_reset=404, fn='undefined'), json.dumps(g))
         pm = anon.request.get(URL + '/api/v1/public/map-reports').json()
         keys = sorted({k for x in pm for k in x.keys()})
         res.check('R6.5b PublicMapReport: numai câmpurile B5 §3 (fără id, contact, autor, asumare, preluare)',
