@@ -23,6 +23,7 @@ SUITES = [
     'regression/test_regresie_6_1_6_5.py',
     'e2e/test_5_3_continut_public.py',
     'e2e/test_5_4_sesizari.py',
+    'e2e/test_5_4_altcha_sesizari.py',
     'e2e/test_5_6_sondaje.py',
 ]
 # Limitări cunoscute, documentate în PROJECT_HANDOFF_CURRENT.md (G.4 / P7). Nu sunt bug-uri de regresie.

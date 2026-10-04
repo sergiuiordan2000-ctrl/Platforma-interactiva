@@ -121,3 +121,11 @@ Suită nouă: `tests/e2e/test_5_6_sondaje.py` (32 de verificări, server real, D
 Probe de control (cod stricat intenționat, apoi restaurat): cu butonul „Rezultate” afișat mereu, pică `S-2` și `S-11`; cu blocarea de după primul vot dezactivată în formular, pică `SA-6`.
 
 Suita Python: 104/104. Rămâne din 5.6.7: ALTCHA la sesizări, în browser (corecția din 5.6.5 este verificată deocamdată numai la vot), și ecranele 422 / 429 din formularul de vot, care nu au încă verificare în interfață (pe server sunt acoperite de `integration/surveys.test.ts`).
+
+## 10. Stare (04.10.2026, 5.6.7 partea 2b: ALTCHA la sesizări, în browser)
+
+Suită nouă: `tests/e2e/test_5_4_altcha_sesizari.py` (4 verificări, server și DB proprii). Cu ALTCHA pornită: o depunere fără soluție este refuzată (422 generic, motivul `pow_invalid` înregistrat); depunerea din interfață cere provocarea, o rezolvă în browser și primește confirmarea cu TM-XXX; în DB, sesizarea apare o singură dată, iar soluția este marcată ca folosită.
+
+Probă de control: cu varianta veche a algoritmului în `powSolver.ts` (cea pentru Node), `AS-2` și `AS-3` pică („Sesizarea NU a fost înregistrată”). Asta confirmă defectul din 5.4 și corecția din 5.6.5 și la sesizări. Codul a fost restaurat.
+
+Suita Python: 108/108.
