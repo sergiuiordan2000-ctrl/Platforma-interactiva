@@ -41,6 +41,7 @@ Codul de ieșire al `run_all.py` este 0 doar dacă nu există FAIL-uri neaștept
 | regresie 6.1–6.5 (revizuită 5.4) | 12/12 |
 | E2E 5.3 conținut public | 16/16 |
 | E2E 5.4 sesizări | 25/25 |
+| E2E 5.6 sondaje | 32/32 |
 
 Nu există FAIL-uri cunoscute: `R6D-SES-01` / P7 a fost închis la Faza 5.2 (sesiunea se validează pe server).
 Suitele `services/test_6_6_asumare_preluare.py` și `ui/test_6_6_ui.py` au fost înlocuite la 5.4 (sesizările pe server);
@@ -48,7 +49,7 @@ regulile lor încă valabile sunt verificate de `server/test/integration/reports
 
 ## Limitări ale testelor
 
-- Porturi folosite: 5199 (dev), 5399, 5499, 5599, 5699, 5799 (server Node / preview). Dacă un port este ocupat, testul se oprește cu
+- Porturi folosite: 5199 (dev), 5399, 5499, 5599, 5699, 5799, 5899 (server Node). Dacă un port este ocupat, testul se oprește cu
   un mesaj explicit, în loc să se conecteze la un server vechi.
 - `npm run build` scrie în `dist/` (ignorat de Git); datele de test trăiesc în DB-ul de test (numele conține „test”), golit la fiecare pornire a serverului de test.
 - Suita de regresie 6.1–6.5 este o rescriere compactă: suita originală a Etapei 6 (61+ verificări) și

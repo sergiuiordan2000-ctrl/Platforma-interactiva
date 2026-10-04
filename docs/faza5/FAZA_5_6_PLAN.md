@@ -109,3 +109,15 @@ Verificare nouă: `R-HINT` (indiciul „Ai participat deja” corupt în `localS
 Probe de control (cod stricat intenționat, apoi restaurat): fără protecția din `readHint`, `R-HINT` pică (ecran de eroare, 4 din 7 forme); cu `POST /admin/surveys` deschis operatorului (`surveys.view`), `R6.5a` pică (`op_create` = 422 în loc de 403).
 
 Suita Python: 72/72 (71 + `R-HINT`). Rămâne din 5.6.7: E2E pentru sondaje (vot → rezultate, arhivă, 409 / 422 în interfață, Admin) și ALTCHA la sesizări în browser.
+
+## 9. Stare (04.10.2026, 5.6.7 partea 2a: E2E pentru sondaje)
+
+Suită nouă: `tests/e2e/test_5_6_sondaje.py` (32 de verificări, server real, DB de test), adăugată în `tests/run_all.py`.
+
+- **Public (S-1…S-16):** lista deschisă și arhiva, „Rezultate” numai când D3 permite (`after_close` și `live`), textul N4-1, ora României, nimic în `localStorage` la simpla deschidere, validarea în browser, votul cu timpul minim, indiciul „Ai participat deja”, un singur vot în DB, 409 în interfață (fără indiciu, cu același cookie), rezultatele `live` fără textul liber, votul cu ALTCHA pornită, marcajul de integritate numai în arhivă (P-2), 403 în interfață (sondaj închis între timp).
+- **Admin (SA-1…SA-13):** fără „Reset Demo”, validarea formularului, data și ora, crearea, blocarea după primul vot, modificarea titlului după vot, ALTCHA și marcajul de integritate, ștergerea cu voturi refuzată, închis = definitiv, textele libere după închidere cu audit, rezultatele Admin.
+- **Operator (SO-1, SO-2):** numai vizualizare; fără secțiunea de protecție și fără texte libere.
+
+Probe de control (cod stricat intenționat, apoi restaurat): cu butonul „Rezultate” afișat mereu, pică `S-2` și `S-11`; cu blocarea de după primul vot dezactivată în formular, pică `SA-6`.
+
+Suita Python: 104/104. Rămâne din 5.6.7: ALTCHA la sesizări, în browser (corecția din 5.6.5 este verificată deocamdată numai la vot), și ecranele 422 / 429 din formularul de vot, care nu au încă verificare în interfață (pe server sunt acoperite de `integration/surveys.test.ts`).
