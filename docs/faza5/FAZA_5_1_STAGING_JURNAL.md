@@ -180,3 +180,13 @@ T-ISO după (Claude, ~20:52: T-ISO-1, 2, 4, 6): identice cu referința. T-ISO-5 
 - `civic-seed-demo` a raportat și `"reports":2`: două dintre cele patru sesizări demo nu mai existau în DB, iar comanda le-a recreat, cu numere TM noi (comportament proiectat la 5.4: datele demo lipsă se refac; D25–D26). Înainte de rulare, Claude îi spusese proprietarului că sesizările rămân neatinse; formularea corectă este: sesizările existente și conturile rămân neatinse, cele demo lipsă se recreează.
 - Staging rulează acum corecția ALTCHA din browser (5.6.5), deci ALTCHA poate fi pornită pe staging la nevoie (la sesizări și per sondaj).
 - Jobul de backup este singurul job cron vechi; `purge:retention` și `outbox:process` nu sunt programate pe staging (al doilea vine la 5.5b).
+
+## 11. Faza 5.7: curățarea cheilor vechi din browser (05.10.2026)
+
+Aprobat de proprietar împreună cu commit-ul 5.7. T-ISO înainte (Claude, 21:19: T-ISO-1, 2, 4, 6): identice cu referința din §3.
+
+| # | Data | Pas | T-ISO după / verificare | Rezultat |
+|---|---|---|---|---|
+| 27 | 05.10.2026 ~21:28 | deploy `civic-1604472.zip` în `civic-test-app` (Upload + Extract, Restart): la pornire, aplicația șterge din browser cheile vechi ale prototipului (B1 §5.1) | `health` → `0.0.0+1604472` (proprietarul); Sondaje: „Ai participat deja” a rămas la sondajul votat la #25 (indiciul de vot nu este șters) | **OK** |
+
+T-ISO după (Claude, ~21:33): T-ISO-2, 4, 6 identice; T-ISO-1 identic pentru A, AAAA, MX, TXT, `_dmarc`, `www`, `mail`. **Înregistrarea NS nu a putut fi citită după deploy** (serviciul de interogare DNS a refuzat cererea, limită de frecvență); la 21:19 era identică. T-ISO-5 și 7 nu au fost refăcute la acest deploy.

@@ -31,4 +31,4 @@ Verificări: `tsc`, `typecheck` server, build, `git diff --check`: trec; server 
 
 - Curățarea rulează la fiecare pornire a aplicației; după prima rulare nu mai are ce șterge.
 - Cine a votat în prototip (în browser) apare ca nevotat: voturile vechi nu au fost mutate pe server (plan 5.6, §5), iar marcajul vechi „am votat” se șterge acum.
-- Pe staging, curățarea ajunge la următorul deploy (staging rulează `79a1b2a`, dinainte de 5.7).
+- Staging rulează 5.7 din 05.10.2026 (`1604472`; jurnal: `FAZA_5_1_STAGING_JURNAL.md` §11).
