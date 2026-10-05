@@ -32,15 +32,15 @@ python3 tests/security/test_suprafete_publice.py   # o singură suită
 
 Codul de ieșire al `run_all.py` este 0 doar dacă nu există FAIL-uri neașteptate.
 
-## Rezultate de referință (Faza 5.6.5)
+## Rezultate de referință (Faza 5.7)
 
 | Suită | Rezultat |
 |---|---|
-| robustețe stocare (A-05; servită de serverul Node din 5.6.5) | 10/10 |
+| robustețe stocare (A-05; servită de serverul Node din 5.6.5; curățarea 5.7) | 12/12 |
 | suprafețe publice (D11, confidențialitate) | 9/9 |
 | regresie 6.1–6.5 (revizuită 5.4) | 12/12 |
 | E2E 5.3 conținut public | 16/16 |
-| E2E 5.4 sesizări | 25/25 |
+| E2E 5.4 sesizări | 26/26 |
 | E2E 5.4 ALTCHA la sesizări | 4/4 |
 | E2E 5.6 sondaje | 36/36 |
 

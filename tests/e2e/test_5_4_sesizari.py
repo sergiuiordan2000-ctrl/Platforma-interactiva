@@ -93,6 +93,9 @@ with backend_server(5699) as BACKEND, sync_playwright() as pw:
         page.click('text=Sesizările mele'); page.wait_for_timeout(800)
         mine = page.locator('[data-testid=my-reports]').inner_text() if page.locator('[data-testid=my-reports]').count() else ''
         res.check('C-6 „Sesizările mele”: sesizarea proprie, cu stadiul „Nouă” (D28)', bool(ref) and ref in mine and 'NOUĂ' in mine.upper(), mine[:160])
+        stor = page.evaluate("({ local: Object.keys(localStorage), session: Object.keys(sessionStorage) })")
+        res.check('C-7 după cont și sesizare: nimic în localStorage / sessionStorage (B8 §2.4; Faza 5.7)',
+                  stor == {'local': [], 'session': []}, json.dumps(stor))
 
         # ——— 2. Harta publică: imediat, fără date personale; stadiul public ———
         pub = b.new_context(viewport={'width': 1280, 'height': 900}); pub.route('https://*.tile.openstreetmap.org/**', lambda r: r.abort())

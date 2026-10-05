@@ -12,6 +12,10 @@ Adaptare la Faza 5.6.5 (sondajele pe server; docs/faza5/FAZA_5_6_PLAN.md §8):
   coruptă rămasă în browser nu trebuie să strice pagina.
 - R-HINT (nou): singura cheie de sondaje din `localStorage` este indiciul „Ai participat deja” (N4-12).
   O valoare coruptă nu trebuie să producă ecran alb și nici să ascundă butonul „Participă”.
+
+Faza 5.7 (B10 §6: „nicio dependență de `localStorage` pentru date; curățarea cheilor vechi verificată”):
+- R-5.7a: cheile vechi din inventarul B1 §5.1 se șterg la pornire; indiciul de vot și cheile străine rămân.
+- R-5.7b: în sursă, stocarea browserului se folosește numai în cele trei locuri permise.
 """
 import sys; sys.dont_write_bytecode = True
 from pathlib import Path; sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'lib'))
@@ -21,6 +25,12 @@ res = Results('ROBUSTETE STOCARE (A-05, build productie)')
 ROUTES = ['home', 'comunicate', 'sesizari', 'harta', 'sondaje', 'ghid']
 SURVEY_VARIANTS = ['{"x":1}', '"text"', 'null', '123', '[{"id":"x"}]', '[null]', 'nu-e-json']
 HINT_KEY = 'tmc_survey_participation_hint'
+DEMO_OPEN = '01M3JMZC00Y9CTNMQ1MBDR40Y9'  # sondajul demo deschis (server/seeds/demo/surveys.json)
+# Inventarul din B1 §5.1, scris aici independent de codul aplicației
+LEGACY_KEYS = ['turnu_civic_reports_store', 'turnu_civic_reports_counter', 'turnu_civic_email_log_store',
+               'turnu_civic_announcements', 'turnu_civic_city_hall_directory', 'turnu_civic_quickdial_contacts',
+               'turnu_civic_quickdial_categories', 'turnu_civic_surveys_store', 'turnu_civic_survey_submissions_store',
+               'turnu_civic_user_participated_surveys', 'turnu_civic_admin_session']
 HINT_VARIANTS = ['{"x":1}', '"text"', 'null', '123', '[null]', '[{"id":"x"}]', 'nu-e-json']
 OTHER_KEYS = ['turnu_civic_announcements', 'turnu_civic_reports_store', 'turnu_civic_survey_submissions_store',
               'turnu_civic_quickdial_contacts', 'turnu_civic_quickdial_categories', 'turnu_civic_city_hall_directory']
@@ -78,6 +88,35 @@ with backend_server(5399) as BACKEND, sync_playwright() as pw:
             if root_text(page) < 20 or errs:
                 bad[f'{key}@{route}'] = errs[:1]
     res.check('R-ALL celelalte chei corupte ({"x":1}) nu produc ecran alb sau erori pe paginile publice', bad == {}, json.dumps(bad, ensure_ascii=False))
+    # 4. Faza 5.7 (B1 §5.1, D10-5, A-19): cheile vechi ale prototipului se șterg la pornirea aplicației.
+    #    Indiciul de vot (N4-12) și orice altă cheie care nu e în inventar rămân neatinse.
+    page.goto(URL + '/'); page.evaluate('localStorage.clear(); sessionStorage.clear()')
+    page.evaluate("""([keys, hint, demo]) => {
+      for (const k of keys) localStorage.setItem(k, '[{"nume":"Persoană de test","telefon":"0700000000"}]');
+      sessionStorage.setItem('turnu_civic_admin_session', '{"role":"super_admin"}');
+      localStorage.setItem(hint, JSON.stringify([demo]));
+      localStorage.setItem('alta_cheie_din_browser', 'x');
+    }""", [LEGACY_KEYS, HINT_KEY, DEMO_OPEN])
+    errs.clear()
+    page.goto(URL + '/#sondaje'); page.reload(); page.wait_for_load_state('networkidle'); page.wait_for_timeout(300)
+    left = page.evaluate("({ local: Object.keys(localStorage).sort(), session: Object.keys(sessionStorage) })")
+    res.check('R-5.7a cele 11 chei vechi (și sesiunea Admin din sessionStorage) sunt șterse la pornire; indiciul de vot și cheile străine rămân',
+              left == {'local': ['alta_cheie_din_browser', HINT_KEY], 'session': []} and 'Ai participat deja' in page.inner_text('body') and not errs,
+              json.dumps(left, ensure_ascii=False) + ' ' + '; '.join(errs))
+
+    # 5. Faza 5.7 (B10 §6): nicio dependență de `localStorage` pentru date. În sursă, stocarea browserului se
+    #    folosește numai în: curățarea cheilor vechi, eliminarea sesiunii vechi (5.2) și indiciul de vot (N4-12).
+    used = {}
+    for f in sorted(Path(REPO, 'src').rglob('*.ts*')):
+        hits = [l.strip() for l in f.read_text(encoding='utf-8').splitlines() if re.search(r'\b(localStorage|sessionStorage)\s*[.\[]', l)]
+        if hits:
+            used[str(f.relative_to(REPO))] = hits
+    allowed = {'src/services/legacyStorageCleanup.ts', 'src/services/authService.ts', 'src/services/surveyService.ts'}
+    survey_ok = all('PARTICIPATION_HINT_KEY' in l for l in used.get('src/services/surveyService.ts', []))
+    auth_ok = all('removeItem(LEGACY_SESSION_KEY)' in l for l in used.get('src/services/authService.ts', []))
+    res.check('R-5.7b în sursă, stocarea browserului apare numai în curățare, în eliminarea sesiunii vechi și în indiciul de vot',
+              set(used) == allowed and survey_ok and auth_ok, json.dumps({k: v for k, v in used.items() if k not in allowed} or sorted(used), ensure_ascii=False)[:300])
+
     b.close()
 
 ok = res.report()

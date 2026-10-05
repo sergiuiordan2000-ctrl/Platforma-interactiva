@@ -7,7 +7,7 @@
  * Sondajele (Faza 5.6): client al API-ului (B2 §3, §6.4). Sursa datelor este serverul; în `localStorage`
  * rămâne numai indiciul „Ai participat deja”, pentru experiența utilizatorului (N4-12). Unicitatea votului
  * o asigură serverul (409), nu browserul. D4: „Reset Demo” nu mai există. Cheile vechi din `localStorage`
- * nu se mai citesc și nu se mai scriu (T-9); ștergerea lor se face la 5.7.
+ * nu se mai citesc și nu se mai scriu (T-9); le șterge `legacyStorageCleanup.ts` la pornire (5.7).
  */
 
 import {
