@@ -137,3 +137,9 @@ Suita Python: 108/108.
 Probă de control (cod stricat intenționat, apoi restaurat): fără ramura 429, fără maparea câmpurilor și fără reînnoirea formularului, pică `S-17`, `S-18` și `S-19`.
 
 Suita Python: 112/112. **5.6.7 este încheiat.** Urmează 5.6.8 (staging).
+
+## 12. Stare (05.10.2026, 5.6.8: staging)
+
+Staging rulează `79a1b2a`: deploy, `civic-seed-demo` (P-4), proba de vot a proprietarului și cron-ul `surveys:close-expired` la 5 minute, toate reușite; T-ISO înainte și după: identice. Detalii: `FAZA_5_1_STAGING_JURNAL.md` §10.
+
+**Faza 5.6 este încheiată tehnic** (5.6.1–5.6.8). Rămâne checkpoint-ul ChatGPT pentru 5.6 (la decizia proprietarului). Urmează 5.7 (curățarea cheilor vechi din `localStorage`) și 5.5b (e-mail real, când există domeniul Civic).

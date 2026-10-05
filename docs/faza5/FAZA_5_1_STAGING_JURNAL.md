@@ -162,3 +162,21 @@ Plan: `FAZA_5_4_ROTIRE_SECRETE_PLAN.md`, aprobat de proprietar. Motivul: capturi
 **Rămâne neschimbat (planificat):** `TOTP_ENC_KEY` (după al doilea `super_admin`, cu migrarea datelor derivate) și parola de protecție a subdomeniului (cPanel → Directory Privacy), care nu apărea în capturi.
 
 **Constatare (fereastra „Sign in” a staging-ului):** după redeschiderea browserului, lacătul cPanel al subdomeniului se cere o dată pentru pagină și încă o dată la prima cerere API care răspunde 401 („neautentificat”). Ipoteza: serverul web (LiteSpeed), care protejează subdomeniul cu parolă, tratează un 401 venit de la aplicație ca pe o cerere de autentificare HTTP. Ipoteza nu e verificată din afară, pentru că protecția blochează și verificările lui Claude. Ține numai de staging; în producție nu există protecție cu parolă pe site.
+
+## 10. Faza 5.6.8: sondajele pe server (05.10.2026)
+
+Fiecare pas a avut aprobarea separată a proprietarului. Referința T-ISO este cea din §3. T-ISO înainte (Claude, ~20:20: T-ISO-1, 2, 4, 6): identice.
+
+| # | Data | Pas | T-ISO după / verificare | Rezultat |
+|---|---|---|---|---|
+| 23 | 05.10.2026 ~20:30 | deploy `civic-79a1b2a.zip` în `civic-test-app` (Upload + Extract, Restart): interfața sondajelor pe API (5.6.5), corecția ALTCHA din browser | `health` → `0.0.0+79a1b2a` (proprietarul) | **OK** |
+| 24 | 05.10.2026 ~20:36 | „Run JS script” → `civic-seed-demo` (P-4): sondajul demo activ prelungit la 30.06.2027; voturi demo la sondajul demo închis | ieșirea: `{"survey_submissions":27,"reports":2}`, fără erori | **OK** |
+| 25 | 05.10.2026 20:38–20:40 | proba de vot (proprietarul): textul N4-1; sondajul deschis cu „30 iun. 2027, 20:00”, fără „Rezultate” (D3, `after_close`); arhiva cu sondajul demo închis; „Rezultate” în arhivă: 27 de răspunsuri; vot trimis → confirmare → „Ai participat deja” | toate punctele confirmate de proprietar (captură a paginii Sondaje) | **OK** |
+| 26 | 05.10.2026 ~20:46 | cron `surveys:close-expired` la 5 minute (cPanel → Cron Jobs; aceeași formă ca jobul de backup, cu `CIVIC_ENV_FILE`; ieșirea în `/home2/<cont>/civic-test-data/surveys-cron.log`, suprascrisă la fiecare rulare) | prima rulare, 20:50: „surveys:close-expired: 0 sondaje închise” (proprietarul); jobul de backup neschimbat (`backup.log` de azi, 03:17) | **OK** |
+
+T-ISO după (Claude, ~20:52: T-ISO-1, 2, 4, 6): identice cu referința. T-ISO-5 (proprietarul, ~20:55: `public_html/.htaccess` 281 bytes, Jun 10, 2026; niciun folder nou): identic. T-ISO-7 (e-mail) nu a fost refăcut la acest deploy.
+
+**Constatări (5.6.8):**
+- `civic-seed-demo` a raportat și `"reports":2`: două dintre cele patru sesizări demo nu mai existau în DB, iar comanda le-a recreat, cu numere TM noi (comportament proiectat la 5.4: datele demo lipsă se refac; D25–D26). Înainte de rulare, Claude îi spusese proprietarului că sesizările rămân neatinse; formularea corectă este: sesizările existente și conturile rămân neatinse, cele demo lipsă se recreează.
+- Staging rulează acum corecția ALTCHA din browser (5.6.5), deci ALTCHA poate fi pornită pe staging la nevoie (la sesizări și per sondaj).
+- Jobul de backup este singurul job cron vechi; `purge:retention` și `outbox:process` nu sunt programate pe staging (al doilea vine la 5.5b).
