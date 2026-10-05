@@ -190,3 +190,16 @@ Aprobat de proprietar împreună cu commit-ul 5.7. T-ISO înainte (Claude, 21:19
 | 27 | 05.10.2026 ~21:28 | deploy `civic-1604472.zip` în `civic-test-app` (Upload + Extract, Restart): la pornire, aplicația șterge din browser cheile vechi ale prototipului (B1 §5.1) | `health` → `0.0.0+1604472` (proprietarul); Sondaje: „Ai participat deja” a rămas la sondajul votat la #25 (indiciul de vot nu este șters) | **OK** |
 
 T-ISO după (Claude, ~21:33): T-ISO-2, 4, 6 identice; T-ISO-1 identic pentru A, AAAA, MX, TXT, `_dmarc`, `www`, `mail`. **Înregistrarea NS nu a putut fi citită după deploy** (serviciul de interogare DNS a refuzat cererea, limită de frecvență); la 21:19 era identică. T-ISO-5 și 7 nu au fost refăcute la acest deploy.
+
+## 12. Cron-ul `purge:retention` pe staging (05.10.2026)
+
+Aprobat de proprietar la 05.10.2026. Motiv: până acum, pe staging nu rula nimic care să aplice retenția (B1 §3.9: sesizările la 45 de zile, auditul administrativ și textele libere la 6 luni); B2 §2 prevede rularea zilnică. T-ISO înainte (Claude, ~22:02: T-ISO-1, 2, 4, 6): identice cu referința din §3. Înregistrarea NS, necitită la #27, a fost citită acum printr-un al doilea serviciu de interogare DNS: identică.
+
+| # | Data | Pas | T-ISO după / verificare | Rezultat |
+|---|---|---|---|---|
+| 28 | 05.10.2026 ~22:06 | cron `purge:retention` zilnic la 03:47 (cPanel → Cron Jobs; aceeași formă ca jobul de backup, cu `CIVIC_ENV_FILE`; ieșirea adăugată în `/home2/<cont>/civic-test-data/purge.log`) | în Current Cron Jobs sunt trei joburi: backup (03:17), sondaje (la 5 minute), retenție (03:47) (proprietarul) | **OK** |
+| 29 | 05.10.2026 ~22:08 | „Run JS script” → `civic-purge-retention`, o rulare de verificare | ieșirea: `{"reports":0,"photoFiles":0,"adminAudit":0,"expiredBlocks":0,"tmpFiles":0,"accountEmails":0,"surveyFreeTexts":0}`, fără erori (captura proprietarului) | **OK** |
+
+T-ISO după (Claude, ~22:09: T-ISO-1 complet, 2, 4, 6): identice cu referința. T-ISO-5 și 7 nu au fost refăcute.
+
+**De știut:** pe staging nu există încă date mai vechi de 45 de zile (primele sunt din 29–30.09.2026), deci primele ștergeri efective vor apărea pe la mijlocul lui noiembrie 2026. Prima rulare prin cron (06.10.2026, 03:47) nu a fost încă văzută; se confirmă când apare `purge.log`.
