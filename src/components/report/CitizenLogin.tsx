@@ -12,6 +12,7 @@ import React, { useState } from 'react';
 import { KeyRound, Loader2, Mail, ShieldCheck } from 'lucide-react';
 import { citizenService } from '../../services/citizenService';
 import { ApiError } from '../../services/apiClient';
+import { CITIZEN_ACCOUNT_EMAILS_PER_DAY } from '@tmc/shared';
 
 interface CitizenLoginProps {
   onLoggedIn: () => void;
@@ -120,6 +121,10 @@ export const CitizenLogin: React.FC<CitizenLoginProps> = ({ onLoggedIn, notice }
             {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
             <span>Trimite codul pe e-mail</span>
           </button>
+          {/* limita este afișată mereu: nu dezvăluie dacă o adresă are cont (constatarea 5.4.9) */}
+          <p className="text-[11px] text-slate-500 leading-relaxed" data-testid="citizen-code-limit">
+            Se pot cere cel mult {CITIZEN_ACCOUNT_EMAILS_PER_DAY} coduri pe zi pentru o adresă de e-mail.
+          </p>
         </form>
       ) : (
         <form onSubmit={verify} className="space-y-3" noValidate>
@@ -165,6 +170,9 @@ export const CitizenLogin: React.FC<CitizenLoginProps> = ({ onLoggedIn, notice }
               Altă adresă
             </button>
           </div>
+          <p className="text-[11px] text-slate-500 leading-relaxed" data-testid="citizen-code-limit">
+            Se pot cere cel mult {CITIZEN_ACCOUNT_EMAILS_PER_DAY} coduri pe zi pentru o adresă de e-mail.
+          </p>
         </form>
       )}
     </div>

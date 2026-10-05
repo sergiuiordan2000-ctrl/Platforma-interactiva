@@ -50,14 +50,18 @@ with backend_server(5699) as BACKEND, sync_playwright() as pw:
         res.check('C-1 „Depune o sesizare” cere contul (A-9): ecranul „Contul meu”, fără formular',
                   page.locator('[data-testid=citizen-login]').count() == 1 and page.locator('#report-desc').count() == 0, '')
         email = 'maria.e2e@exemplu.test'
+        limit_email_step = '; '.join(page.locator('[data-testid=citizen-code-limit]').all_inner_texts())
         page.fill('#citizen-email', email)
         page.click('text=Trimite codul pe e-mail'); page.wait_for_timeout(300)
         no_policy = page.locator('[role=alert]').count() == 1
         page.check('[data-testid=citizen-login] input[type=checkbox]')
         page.click('text=Trimite codul pe e-mail'); page.wait_for_timeout(600)
+        limit_code_step = '; '.join(page.locator('[data-testid=citizen-code-limit]').all_inner_texts())
         page.fill('#citizen-code', citizen_code(email)); page.click('text=Confirmă codul'); page.wait_for_timeout(1200)
         res.check('C-2 cont nou: politica obligatorie (2.9); codul din e-mail autentifică; bara contului afișată',
                   no_policy and page.locator('[data-testid=citizen-account-bar]').count() == 1 and email in page.inner_text('body'), '')
+        res.check('C-2b limita de coduri este afișată ca text fix, la pasul „e-mail” și la pasul „cod” (constatarea 5.4.9)',
+                  all('cel mult 3 coduri pe zi' in t for t in (limit_email_step, limit_code_step)), f'{limit_email_step!r} | {limit_code_step!r}')
         body = page.inner_text('body')
         res.check('C-3 formular: fără date de contact, fără „Public / Public anonim” / „Nu doresc afișarea” (A-9, 2.8)',
                   all(t not in body for t in ['Nume și prenume', 'Număr telefon', 'Afișare publică anonimă', 'Nu doresc afișarea'])

@@ -1,7 +1,7 @@
 // Contextul comun al rutelor: configurare, DB, ceas (înlocuibil în teste).
 
 import type mysql from 'mysql2/promise';
-import { SURVEY_MIN_FORM_SECONDS } from '@tmc/shared';
+import { CITIZEN_ACCOUNT_EMAILS_PER_DAY, SURVEY_MIN_FORM_SECONDS } from '@tmc/shared';
 import type { Config } from './config.ts';
 import type { UatBoundary } from './uat.ts';
 import type { GeocodeFn } from './reports/geocoder.ts';
@@ -34,7 +34,7 @@ export const LIMITS = {
   citizenCodeMaxAttempts: 5,
   citizenStartPerAddressPerHour: 5,
   citizenStartPerIpPerHour: 20,
-  citizenAccountEmailsPerDay: 3,
+  citizenAccountEmailsPerDay: CITIZEN_ACCOUNT_EMAILS_PER_DAY,
   citizenBlockedNoticePerDay: 1,
   recoveryCodes: 10,
   temporaryBlockDays: 15,

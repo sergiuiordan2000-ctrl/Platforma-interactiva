@@ -59,3 +59,9 @@ export const CITIZEN_POLICY_VERSION = '2026-10';
 export function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
 }
+
+/**
+ * B3 §3: e-mailurile de cont (coduri) trimise pe zi către aceeași adresă. Peste limită, serverul răspunde
+ * la fel, fără cod nou (nu dezvăluie ce adrese au cont); interfața afișează limita ca text fix.
+ */
+export const CITIZEN_ACCOUNT_EMAILS_PER_DAY = 3;

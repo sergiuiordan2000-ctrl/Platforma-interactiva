@@ -40,7 +40,7 @@ Codul de ieșire al `run_all.py` este 0 doar dacă nu există FAIL-uri neaștept
 | suprafețe publice (D11, confidențialitate) | 9/9 |
 | regresie 6.1–6.5 (revizuită 5.4) | 12/12 |
 | E2E 5.3 conținut public | 16/16 |
-| E2E 5.4 sesizări | 26/26 |
+| E2E 5.4 sesizări | 27/27 |
 | E2E 5.4 ALTCHA la sesizări | 4/4 |
 | E2E 5.6 sondaje | 36/36 |
 
