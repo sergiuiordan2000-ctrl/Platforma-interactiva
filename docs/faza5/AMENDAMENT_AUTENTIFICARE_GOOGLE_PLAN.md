@@ -1,6 +1,6 @@
-# AMENDAMENT (PROPUNERE) — AUTENTIFICAREA CETĂȚEANULUI CU GOOGLE
+# AMENDAMENT — AUTENTIFICAREA CETĂȚEANULUI CU GOOGLE
 
-**Proiect:** Turnu Măgurele Civic · **Data:** 05.10.2026 · **Stare:** **propunere, neaprobată; nimic implementat**
+**Proiect:** Turnu Măgurele Civic · **Data:** 05.10.2026 · **Stare:** **deciziile G-1…G-7 luate de proprietar la 05.10.2026 (§6); nimic implementat.** Implementarea așteaptă domeniul Civic și checkpoint-ul pe acest plan.
 **Origine:** cererea proprietarului din 05.10.2026: autentificarea cu contul Google să fie prima variantă pentru cetățean; codul pe e-mail să rămână varianta a doua.
 **Ce modifică din designul înghețat (Faza 4):** B3 §8, rândul „Mecanism” (astăzi: numai cod de 6 cifre pe e-mail, T-A2); B2 §4.1 (rutele `/citizen/auth/*`); B8 (date personale: apare un furnizor extern de identitate); politica de utilizare (2.9). Regulile A-9, D29–D31 (cont numai pentru depunere; contul are numai e-mailul; un e-mail = un cont) **rămân neschimbate**.
 **Condiție:** domeniul Civic (ca la 5.5b). Fără el, nu se poate înregistra aplicația la Google.
@@ -67,9 +67,18 @@ După Google, rezultatul este același ca după cod: sesiunea de cetățean exis
 | G-6 | Când se face | (a) după 5.5b, ca amendament separat, cu checkpoint propriu; (b) împreună cu 5.5b | **(a)**: nu se amestecă două schimbări de autentificare / e-mail în același pas |
 | G-7 | Ce se întâmplă cu limita de coduri | (a) rămâne 3 pe zi, cu textul fix deja afișat; (b) altă valoare | **(a)** |
 
-## 7. Pași (după aprobare)
+**Decis de proprietar (05.10.2026):**
+- G-1 (a): Google este prima variantă pe ecran; codul pe e-mail, a doua.
+- G-2 (a): de la Google se cere numai adresa de e-mail (fără nume, fără fotografie).
+- G-3 (a): același cont pentru Google și pentru cod, după e-mailul verificat.
+- G-4 (a): testarea se face numai pe domeniul Civic, nu pe `civic-test.electrovolt.ro`.
+- G-5: textul politicii de utilizare va menționa autentificarea cu Google. Verificarea juridică a textului rămâne recomandarea lui Claude; proprietarul nu s-a pronunțat asupra ei.
+- G-6 (a): se face după 5.5b, ca amendament separat, cu checkpoint propriu.
+- G-7 (a): limita rămâne 3 coduri pe zi, cu textul fix deja afișat.
 
-1. Aprobarea deciziilor G-1…G-7 și trecerea lor în RULES; checkpoint ChatGPT pe acest plan.
+## 7. Pași
+
+1. ~~Aprobarea deciziilor G-1…G-7~~ (făcut, 05.10.2026). Rămân: checkpoint ChatGPT pe acest plan, apoi trecerea deciziilor în RULES.
 2. Server: rutele, verificarea jetonului, setările, testele (G-T1…G-T10).
 3. Interfață: butonul, ordinea pe ecran, mesajele de eroare, E2E.
 4. Politica de utilizare actualizată (G-5).
