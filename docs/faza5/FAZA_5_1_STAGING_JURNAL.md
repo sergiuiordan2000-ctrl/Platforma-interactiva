@@ -214,4 +214,14 @@ Aprobat de proprietar la 06.10.2026. Conține `2185c0a` (rândul fix „Se pot c
 
 T-ISO după (Claude, ~21:35: T-ISO-1 complet, 2, 4, 6): identice cu referința. T-ISO-5 și 7 nu au fost refăcute.
 
-**Nerulat:** `civic-rotate-totp-key-check` (proba) și `civic-backup-db`. Cheia `TOTP_ENC_KEY` de pe staging este neschimbată.
+**Proba pentru cheia TOTP** (aprobată separat de proprietar, 06.10.2026). T-ISO înainte: cel de la ~21:35, de mai sus.
+
+| # | Data | Pas | T-ISO după / verificare | Rezultat |
+|---|---|---|---|---|
+| 31 | 06.10.2026 ~21:47 | „Run JS script” → `civic-rotate-totp-key-check` (`rotate:totp-key --check`: toate verificările, într-o tranzacție anulată) | ieșirea (captura proprietarului): „PROBĂ reușită. La o rulare reală: secrete TOTP recriptate: 1; blocări cu amprenta recalculată: 0; coduri de recuperare șterse: 10; coduri de cetățean șterse: 0.” și „nimic nu a fost schimbat (nici baza de date, nici fișierul de setări)”; `health` → `ok`, `0.0.0+9570b48` (proprietarul, 21:49) | **OK** |
+
+T-ISO după (Claude, ~21:48: T-ISO-1 complet, 2, 4, 6): identice cu referința. T-ISO-5 și 7 nu au fost refăcute.
+
+**Ce arată proba:** pe staging nu există blocări rămase fără cont; există un singur cont Admin cu TOTP (al doilea `super_admin` nu a fost încă creat). Cheia `TOTP_ENC_KEY` este neschimbată; rularea reală (pasul B) rămâne nedecisă. `civic-backup-db` nu a fost rulat.
+
+**Constatare:** imediat după probă, prima citire a adresei `health` făcută de Claude a primit 503; a doua, la câteva secunde, 401 (protecția cu parolă a subdomeniului, răspunsul obișnuit pentru verificările externe). Cauza acelui 503 nu este cunoscută. Proprietarul a confirmat apoi `health` → `ok`.

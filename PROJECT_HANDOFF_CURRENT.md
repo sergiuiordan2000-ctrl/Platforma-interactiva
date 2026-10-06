@@ -61,7 +61,7 @@ Deciziile proprietarului din Faza 5 **nu sunt încă trecute în `PROJECT_RULES_
 
 ### 0.4 Staging (`civic-test.electrovolt.ro`)
 
-- Rulează **`9570b48`** (5.6 + 5.7 + rândul despre limita de coduri + proba pentru cheia TOTP), din 06.10.2026 (jurnal §13). Cheia `TOTP_ENC_KEY` nu a fost schimbată; proba `civic-rotate-totp-key-check` nu a fost încă rulată.
+- Rulează **`9570b48`** (5.6 + 5.7 + rândul despre limita de coduri + proba pentru cheia TOTP), din 06.10.2026 (jurnal §13). Cheia `TOTP_ENC_KEY` nu a fost schimbată. Proba `civic-rotate-totp-key-check` a fost rulată la 06.10.2026: reușită, fără blocări orfane, un singur cont Admin cu TOTP.
 - Joburi cron: `backup:db` (zilnic, 03:17), `surveys:close-expired` (la 5 minute), `purge:retention` (zilnic, 03:47; prima rulare prin cron nu a fost încă văzută). `outbox:process` vine la 5.5b.
 - Deploy: pachet cu `python3 server/scripts/package-release.py` → proprietarul face Upload + Extract în `civic-test-app` → Setup Node.js App → Restart → `/api/v1/health`. Comenzile se rulează prin „Run JS script”.
 - Fereastra „Sign in” (`civic` + parolă) este lacătul cPanel al staging-ului, nu aplicația.
@@ -81,7 +81,7 @@ Deciziile proprietarului din Faza 5 **nu sunt încă trecute în `PROJECT_RULES_
 
 1. **Proprietarul:** trimite `FAZA_5_6_RAPORT.md` (și planul Google) la ChatGPT; cumpără domeniul Civic.
 2. **După domeniu:** 5.5b (Brevo, `FAZA_5_5B_GHID.md`), apoi amendamentul Google (după checkpoint).
-3. **Cheia TOTP pe staging:** proba (`civic-rotate-totp-key-check`, nu schimbă nimic) se poate rula oricând, cu aprobare; rularea reală (pasul B) este o decizie separată a proprietarului, neluată (`FAZA_5_4_ROTIRE_TOTP_PLAN.md` §0, §4).
+3. **Cheia TOTP pe staging:** proba a trecut (jurnal §13); rularea reală (pasul B) este o decizie separată a proprietarului, neluată, și cere întâi al doilea `super_admin` (`FAZA_5_4_ROTIRE_TOTP_PLAN.md` §0, §4).
 4. **Închiderea Fazei 5:** raport final, după 5.5b și checkpoint-uri. Apoi Faza 6 și Etapa 7A–7F, conform Planului de Lucru Comun v1.1 (planul nu este în repository).
 
 ### 0.7 Deschise
