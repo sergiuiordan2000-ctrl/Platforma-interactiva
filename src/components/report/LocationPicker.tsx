@@ -8,12 +8,15 @@
  * - „Pin pe hartă”: atingerea hărții pune pinul; pinul se poate trage → `pin` (exact);
  * - „Poziția mea”: GPS-ul centrează harta și pune pinul, care se poate ajusta → `gps_pin`;
  *   precizia GPS brută nu se trimite (D6-6);
- * - „Adresă”: serverul întreabă Nominatim → pin propus, aproximativ (`geocoded`, zonă pe hartă);
+ * - „Caută pe hartă”: serverul întreabă Nominatim → pin propus, aproximativ (`geocoded`, zonă pe hartă);
  *   dacă cetățeanul îl mută, poziția devine exactă (`pin`) — decizia proprietarului din 30.09.2026;
  * - fără pin: sesizarea se salvează, dar nu apare pe hartă până la corectare (2.4).
+ *
+ * Decizia proprietarului din 06.10.2026 (AMENDAMENT_LOCATIE_FORMULAR.md): un singur câmp de adresă.
+ * Căutarea folosește textul din câmpul „Locația” al formularului; câmpul separat de căutare nu mai există.
  */
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import L from 'leaflet';
 import { Check, Loader2, MapPin, Navigation, Search, Trash2 } from 'lucide-react';
 import type { CitizenLocationSource } from '@tmc/shared';
@@ -29,8 +32,16 @@ export interface PickedPosition {
 interface LocationPickerProps {
   value: PickedPosition | null;
   onChange: (value: PickedPosition | null) => void;
-  /** Textul locației din formular, folosit ca punct de plecare pentru căutarea adresei. */
-  addressHint: string;
+  /** Textul din câmpul „Locația” al formularului: singurul text căutat pe hartă. */
+  addressText: string;
+}
+
+/** Ce poate cere formularul din afară (întrebarea „fără poziție pe hartă” de la trimitere). */
+export interface LocationPickerHandle {
+  /** Caută pe hartă textul din câmpul „Locația” și aduce harta în vizor. */
+  searchAddress: () => void;
+  /** Aduce harta în vizor, pentru punerea pinului. */
+  showMap: () => void;
 }
 
 const PIN_HTML = `
@@ -38,7 +49,8 @@ const PIN_HTML = `
     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
   </div>`;
 
-export const LocationPicker: React.FC<LocationPickerProps> = ({ value, onChange, addressHint }) => {
+export const LocationPicker = forwardRef<LocationPickerHandle, LocationPickerProps>(({ value, onChange, addressText }, ref) => {
+  const rootRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
@@ -48,7 +60,8 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({ value, onChange,
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
 
-  const [address, setAddress] = useState('');
+  const addressRef = useRef(addressText);
+  addressRef.current = addressText;
   const [busy, setBusy] = useState<'gps' | 'geo' | null>(null);
   const [message, setMessage] = useState<{ kind: 'info' | 'warn'; text: string } | null>(null);
 
@@ -153,8 +166,8 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({ value, onChange,
           kind: 'warn',
           text:
             err.code === err.PERMISSION_DENIED
-              ? 'Accesul la locație a fost refuzat. Atingeți harta sau căutați adresa.'
-              : 'Poziția nu a putut fi determinată. Atingeți harta sau căutați adresa.',
+              ? 'Accesul la locație a fost refuzat. Atingeți harta sau apăsați „Caută pe hartă”.'
+              : 'Poziția nu a putut fi determinată. Atingeți harta sau apăsați „Caută pe hartă”.',
         });
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 },
@@ -162,9 +175,9 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({ value, onChange,
   };
 
   const handleGeocode = async () => {
-    const q = (address || addressHint).trim();
+    const q = addressRef.current.trim();
     if (q.length < 3) {
-      setMessage({ kind: 'warn', text: 'Scrieți strada și numărul (de exemplu „Strada 1 Mai 10”).' });
+      setMessage({ kind: 'warn', text: 'Scrieți întâi locul în câmpul de mai sus (de exemplu „Strada 1 Mai 10”), apoi apăsați „Caută pe hartă”.' });
       return;
     }
     setBusy('geo');
@@ -183,41 +196,35 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({ value, onChange,
     });
   };
 
+  const showMap = () => rootRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  useImperativeHandle(ref, () => ({
+    searchAddress: () => {
+      showMap();
+      void handleGeocode();
+    },
+    showMap,
+  }));
+
   return (
-    <div className="space-y-3">
-      {/* căutarea adresei */}
+    <div className="space-y-3" ref={rootRef}>
+      {/* căutarea textului din „Locația” și poziția dispozitivului */}
       <div className="flex flex-col sm:flex-row gap-2">
-        <div className="relative flex-1">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                void handleGeocode();
-              }
-            }}
-            placeholder="Caută adresa: stradă și număr"
-            aria-label="Caută adresa pe hartă"
-            className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200"
-          />
-        </div>
         <button
           type="button"
           onClick={() => void handleGeocode()}
           disabled={busy !== null}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 min-h-[44px] rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition-colors disabled:opacity-50 select-none"
+          data-testid="location-search"
+          title="Caută pe hartă textul scris la „Locația”"
+          className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 min-h-[44px] rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition-colors disabled:opacity-50 select-none"
         >
           {busy === 'geo' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-          <span>Caută adresa</span>
+          <span>Caută pe hartă</span>
         </button>
         <button
           type="button"
           onClick={handleGps}
           disabled={busy !== null}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 min-h-[44px] rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-800 font-bold text-xs transition-colors border border-blue-200 disabled:opacity-50 select-none"
+          className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 min-h-[44px] rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-800 font-bold text-xs transition-colors border border-blue-200 disabled:opacity-50 select-none"
         >
           {busy === 'gps' ? <Loader2 className="w-4 h-4 animate-spin text-blue-600" /> : <Navigation className="w-4 h-4 text-blue-600" />}
           <span>Poziția mea</span>
@@ -285,4 +292,5 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({ value, onChange,
       )}
     </div>
   );
-};
+});
+LocationPicker.displayName = 'LocationPicker';

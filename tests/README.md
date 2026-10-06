@@ -13,6 +13,7 @@ Suite de teste end-to-end (Python + Playwright) care rulează aplicația reală:
 | `regression/` | `test_regresie_6_1_6_5.py` | regresie 6.1–6.5, revizuită la 5.4: ștergerea numai de autor / super_admin și contorul TM (A-1), eroarea la salvare, XSS pe hartă, login fără DEMO, sesiunea falsificată respinsă de server, gărzile pe server, modelul public | server Node + dev (proxy) |
 | `e2e/` | `test_5_3_continut_public.py` | 5.3: Acasă, Comunicate, Ghid, Apel rapid din API | server Node |
 | `e2e/` | `test_5_4_sesizari.py` | 5.4: contul cetățeanului, formularul (pin, fotografie), harta publică fără moderare, Admin (asumare, preluare, note, e-mailul autorului numai super_admin), ștergerea, dezabonarea | server Node |
+| `e2e/` | `test_5_4_locatie_formular.py` | 5.4, amendamentul din 06.10.2026: un singur câmp de adresă în formular; întrebarea la trimiterea fără pin („Caută adresa scrisă” / „Pun pinul pe hartă” / „Trimit fără hartă”) | server Node |
 | `lib/` | `harness.py` | pornirea/oprirea serverelor (Node, Vite dev cu proxy, preview), conturile de test, interogări pe DB-ul de test, ajutoare pentru sesizări | — |
 
 ## Cerințe
@@ -32,7 +33,7 @@ python3 tests/security/test_suprafete_publice.py   # o singură suită
 
 Codul de ieșire al `run_all.py` este 0 doar dacă nu există FAIL-uri neașteptate.
 
-## Rezultate de referință (Faza 5.7)
+## Rezultate de referință (06.10.2026)
 
 | Suită | Rezultat |
 |---|---|
@@ -42,6 +43,7 @@ Codul de ieșire al `run_all.py` este 0 doar dacă nu există FAIL-uri neaștept
 | E2E 5.3 conținut public | 16/16 |
 | E2E 5.4 sesizări | 27/27 |
 | E2E 5.4 ALTCHA la sesizări | 4/4 |
+| E2E 5.4 locația în formular | 10/10 |
 | E2E 5.6 sondaje | 36/36 |
 
 Nu există FAIL-uri cunoscute: `R6D-SES-01` / P7 a fost închis la Faza 5.2 (sesiunea se validează pe server).

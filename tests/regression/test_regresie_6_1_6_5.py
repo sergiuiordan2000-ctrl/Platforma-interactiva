@@ -54,7 +54,9 @@ with backend_server(5799) as BACKEND, dev_server(api_proxy=f'http://127.0.0.1:57
                  body='{"error":{"code":"INTERNAL","message":"A apărut o eroare internă."}}') if r.request.method == 'POST' else r.continue_())
         fp.goto(URL + '/#sesizari'); fp.wait_for_load_state('networkidle'); fp.wait_for_timeout(800)
         fp.click('text=Drumuri / carosabil'); fp.fill('#report-desc', 'Groapă mare pe carosabil, test R6.2.'); fp.fill('#report-location', 'Str. R6.2')
-        fp.click('button[type=submit]:has-text("Trimite sesizarea")'); fp.wait_for_timeout(1500)
+        # 06.10.2026 (AMENDAMENT_LOCATIE_FORMULAR.md): fără pin, formularul întreabă întâi; aici se alege „Trimit fără hartă”
+        fp.click('button[type=submit]:has-text("Trimite sesizarea")'); fp.wait_for_timeout(600)
+        fp.click('[data-testid=no-pin-prompt] >> text=Trimit fără hartă'); fp.wait_for_timeout(1500)
         alert = '; '.join(fp.locator('[role=alert]').all_inner_texts())
         kept = fp.input_value('#report-desc') == 'Groapă mare pe carosabil, test R6.2.'
         res.check('R6.2 eroare pe server la trimitere: mesaj „NU a fost înregistrată”, fără confirmare, datele păstrate (6.2)',

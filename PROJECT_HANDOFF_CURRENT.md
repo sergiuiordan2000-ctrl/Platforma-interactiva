@@ -18,8 +18,8 @@
 |---|---|
 | Branch de lucru | **`faza-5-backend`** (creat din checkpoint-ul Fazei 4) |
 | `main` | `d9bc2c9`, **neatins, nu se modifică** |
-| Ultimul commit de cod la 06.10.2026 | `9570b48` (comanda `rotate:totp-key` cu mod de probă; pasul A din `FAZA_5_4_ROTIRE_TOTP_PLAN.md`) |
-| Ultimul commit | se verifică cu `git log --oneline -5` (după `9570b48` urmează numai commit-uri de documentație) |
+| Ultimele commit-uri de cod la 06.10.2026 | `9570b48` (comanda `rotate:totp-key` cu mod de probă; pasul A din `FAZA_5_4_ROTIRE_TOTP_PLAN.md`), apoi locația în formularul de sesizare (un singur câmp de adresă + întrebarea la trimiterea fără pin; `docs/faza5/AMENDAMENT_LOCATIE_FORMULAR.md`) |
+| Ultimul commit | se verifică cu `git log --oneline -5` (commit-ul cu locația în formular este ultimul de cod; se recunoaște după mesaj) |
 | Reguli | fără commit sau push fără aprobarea explicită a proprietarului; fișierele se adaugă unul câte unul, niciodată `git add .`; fără force push, fără rescrierea istoricului |
 
 Verificarea la începutul unui chat nou:
@@ -61,7 +61,7 @@ Deciziile proprietarului din Faza 5 **nu sunt încă trecute în `PROJECT_RULES_
 
 ### 0.4 Staging (`civic-test.electrovolt.ro`)
 
-- Rulează **`9570b48`** (5.6 + 5.7 + rândul despre limita de coduri + proba pentru cheia TOTP), din 06.10.2026 (jurnal §13). Cheia `TOTP_ENC_KEY` nu a fost schimbată. Proba `civic-rotate-totp-key-check` a fost rulată la 06.10.2026: reușită, fără blocări orfane, un singur cont Admin cu TOTP.
+- Rulează **`9570b48`** (5.6 + 5.7 + rândul despre limita de coduri + proba pentru cheia TOTP), din 06.10.2026 (jurnal §13). Cheia `TOTP_ENC_KEY` nu a fost schimbată. Proba `civic-rotate-totp-key-check` a fost rulată la 06.10.2026: reușită, fără blocări orfane, un singur cont Admin cu TOTP. Amendamentul pentru locația în formular (06.10.2026) **nu este încă pe staging**.
 - Joburi cron: `backup:db` (zilnic, 03:17), `surveys:close-expired` (la 5 minute), `purge:retention` (zilnic, 03:47; prima rulare prin cron nu a fost încă văzută). `outbox:process` vine la 5.5b.
 - Deploy: pachet cu `python3 server/scripts/package-release.py` → proprietarul face Upload + Extract în `civic-test-app` → Setup Node.js App → Restart → `/api/v1/health`. Comenzile se rulează prin „Run JS script”.
 - Fereastra „Sign in” (`civic` + parolă) este lacătul cPanel al staging-ului, nu aplicația.
@@ -87,7 +87,7 @@ Deciziile proprietarului din Faza 5 **nu sunt încă trecute în `PROJECT_RULES_
 ### 0.7 Deschise
 
 - **Decizie de produs / juridică:** sesizările despre vecini apar public, cu descriere și loc (raport 5.4, §6).
-- **Decizii de interfață:** formularul de sesizare are două câmpuri de adresă (o adresă scrisă numai în „Locație” nu pune pin pe hartă); respingerile de vot și contoarele din tabloul de bord există pe server, dar nu au ecran în Admin.
+- **Decizii de interfață:** respingerile de vot și contoarele din tabloul de bord există pe server, dar nu au ecran în Admin. (Cele două câmpuri de adresă din formularul de sesizare: decise și implementate la 06.10.2026, `docs/faza5/AMENDAMENT_LOCATIE_FORMULAR.md`; nu sunt încă pe staging.)
 - **Securitate pe staging:** al doilea `super_admin`; apoi, numai dacă proprietarul aprobă pasul B, schimbarea cheii `TOTP_ENC_KEY`.
 - **Amendamentul Google, G-5:** verificarea juridică a textului politicii de utilizare nu este decisă.
 - **Neverificate:** cauza rulărilor CI roșii din 01.10.2026 (#24, #26, #27); rezultatul CI pentru commit-urile de după `26a8807`.
@@ -95,11 +95,11 @@ Deciziile proprietarului din Faza 5 **nu sunt încă trecute în `PROJECT_RULES_
 ### 0.8 Mediul local și verificările obligatorii înainte de commit
 
 - MySQL poate lipsi într-un container nou: `apt-get install -y mysql-server`; bazele `civic_dev` și `civic_test`; utilizatorul `civic` (pe `127.0.0.1` și `localhost`), cu parola locală de test din CI. La fiecare repornire: `service mysql start`. Dacă pornirea eșuează cu „Another process … is using unix socket file”, se șterg fișierele `mysqld.sock*` și `mysqlx.sock*` din `/var/run/mysqld/` și se pornește din nou.
-- Verificări (valorile de referință la 05.10.2026):
+- Verificări (valorile de referință la 06.10.2026):
   - `npx tsc --noEmit -p .` și `npm run typecheck -w server`
-  - `(cd server && CIVIC_TEST_DATABASE_URL=… node test/run.mjs all)`: **202/202**
+  - `(cd server && CIVIC_TEST_DATABASE_URL=… node test/run.mjs all)`: **218/218**
   - `npm run build` și `git diff --check`
-  - `CIVIC_TEST_DATABASE_URL=… python3 tests/run_all.py`: **116/116** (7 suite; detalii în `tests/README.md`)
+  - `CIVIC_TEST_DATABASE_URL=… python3 tests/run_all.py`: **126/126** (8 suite; detalii în `tests/README.md`)
 - Pachetul de staging: `npm run build && npm run build -w server && python3 server/scripts/package-release.py`; se verifică în pachet că `health` va arăta commit-ul corect.
 
 ---

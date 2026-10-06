@@ -39,7 +39,9 @@ with backend_server(5999) as BACKEND, sync_playwright() as pw:
         page.click('text=Iluminat public'); page.fill('#report-desc', DESC); page.fill('#report-location', 'Str. Test, nr. 1')
         while time.time() - t_form < 9:  # timpul minim al formularului (B7)
             time.sleep(0.5)
-        page.click('button[type=submit]:has-text("Trimite sesizarea")')
+        # 06.10.2026 (AMENDAMENT_LOCATIE_FORMULAR.md): fără pin, formularul întreabă întâi; aici se alege „Trimit fără hartă”
+        page.click('button[type=submit]:has-text("Trimite sesizarea")'); page.wait_for_timeout(600)
+        page.click('[data-testid=no-pin-prompt] >> text=Trimit fără hartă')
         try:
             page.wait_for_selector('text=Sesizarea a fost înregistrată', timeout=40000)
         except Exception:

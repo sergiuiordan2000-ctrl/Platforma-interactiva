@@ -73,7 +73,8 @@ with backend_server(5699) as BACKEND, sync_playwright() as pw:
         page.fill('#report-location', 'Str. 1 Mai, în dreptul blocului F25')
         page.set_input_files('#photo-upload-input', str(FIX / 'exif.jpg')); page.wait_for_timeout(1500)
         # geocodarea: fără GEOCODER_URL în testare → mesaj clar, formularul rămâne utilizabil (2.4)
-        page.fill('input[aria-label="Caută adresa pe hartă"]', 'Strada 1 Mai'); page.click('text=Caută adresa'); page.wait_for_timeout(800)
+        # 06.10.2026 (AMENDAMENT_LOCATIE_FORMULAR.md): un singur câmp de adresă; „Caută pe hartă” folosește textul din „Locația”
+        page.click('[data-testid=location-search]'); page.wait_for_timeout(800)
         geo_msg = page.locator('[role=status]').all_inner_texts()
         res.check('L-1 căutarea adresei indisponibilă → mesaj, fără blocarea formularului',
                   any('nu este disponibilă' in m for m in geo_msg), json.dumps(geo_msg, ensure_ascii=False)[:200])

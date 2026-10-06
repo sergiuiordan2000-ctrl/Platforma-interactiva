@@ -8,6 +8,8 @@
  * - fără date de contact: singura dată este e-mailul contului (A-9, D29);
  * - fără alegerea „Public / Public anonim” (2.8): sesizarea este publică imediat, fără moderare (2.3, D9);
  * - locația: text obligatoriu + pin pe hartă / poziția mea / adresă (2.4, D6-2); numai în UAT (2.12);
+ *   un singur câmp de adresă, iar la trimiterea fără pin formularul întreabă întâi (decizia proprietarului
+ *   din 06.10.2026, AMENDAMENT_LOCATIE_FORMULAR.md); pinul rămâne opțional;
  * - „Transmite către Primărie” (pct. 7) și notificările pe e-mail (D9), la alegerea cetățeanului;
  * - confirmarea apare numai după salvarea efectivă pe server (6.2).
  */
@@ -39,7 +41,7 @@ import type { ReportCategory } from '@tmc/shared';
 import { ReportPhoto } from '../../types/report';
 import { reportService, type FormSession } from '../../services/reportService';
 import { imageCompressionService } from '../../services/imageCompressionService';
-import { LocationPicker, type PickedPosition } from './LocationPicker';
+import { LocationPicker, type LocationPickerHandle, type PickedPosition } from './LocationPicker';
 
 /** Ce afișează confirmarea (datele trimise + răspunsul serverului). */
 export interface SubmittedReport {
@@ -113,6 +115,19 @@ export const ReportForm: React.FC<ReportFormProps> = ({ accountEmail, onSuccess,
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const submitErrorRef = useRef<HTMLDivElement | null>(null);
+  // întrebarea „fără poziție pe hartă”: apare la trimiterea fără pin și dispare când există pin
+  const [noPinPrompt, setNoPinPrompt] = useState(false);
+  // „Trimit fără hartă” a fost ales: o reîncercare (de ex. după o eroare de server) nu mai întreabă a doua oară
+  const [withoutPinConfirmed, setWithoutPinConfirmed] = useState(false);
+  const pickerRef = useRef<LocationPickerHandle | null>(null);
+  const noPinPromptRef = useRef<HTMLDivElement | null>(null);
+  const showNoPinPrompt = noPinPrompt && !position;
+
+  useEffect(() => {
+    if (!showNoPinPrompt) return;
+    noPinPromptRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    noPinPromptRef.current?.querySelector('button')?.focus({ preventScroll: true });
+  }, [showNoPinPrompt]);
 
   const loadCategories = () => {
     setCategoriesError(null);
@@ -195,7 +210,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({ accountEmail, onSuccess,
     return Object.keys(errs).length === 0;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (isProcessingPhotos || isSubmitting) return; // A-13
     setSubmitError(null);
@@ -203,6 +218,18 @@ export const ReportForm: React.FC<ReportFormProps> = ({ accountEmail, onSuccess,
       window.scrollTo({ top: 180, behavior: 'smooth' });
       return;
     }
+    // fără pin, sesizarea nu apare pe hartă: întâi întrebarea; trimiterea fără pin cere alegerea explicită
+    if (!position && !withoutPinConfirmed) {
+      setNoPinPrompt(true);
+      return;
+    }
+    void submitReport();
+  };
+
+  const submitReport = async () => {
+    if (isProcessingPhotos || isSubmitting) return; // A-13
+    setNoPinPrompt(false);
+    setSubmitError(null);
     setIsSubmitting(true);
     try {
       const form = session ?? (await reportService.startForm());
@@ -464,7 +491,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({ accountEmail, onSuccess,
             4. Locația incidentului *
           </label>
           <p className="text-xs text-slate-500 mt-0.5">
-            Descrie locul (stradă, număr, reper) și, opțional, pune pinul pe hartă. Sunt acceptate numai locuri din municipiul Turnu Măgurele.
+            Descrie locul (stradă, număr, reper), apoi pune pinul: „Caută pe hartă” folosește textul scris aici; poți și atinge harta. Sunt acceptate numai locuri din municipiul Turnu Măgurele.
           </p>
         </div>
 
@@ -490,7 +517,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({ accountEmail, onSuccess,
           <p className="text-[11px] text-slate-500">Textul locației apare public, ca descrierea.</p>
         </div>
 
-        <LocationPicker value={position} onChange={(p) => { setPosition(p); clearError('location'); }} addressHint={locationText} />
+        <LocationPicker ref={pickerRef} value={position} onChange={(p) => { setPosition(p); setWithoutPinConfirmed(false); clearError('location'); }} addressText={locationText} />
       </div>
 
       {/* 5. NOTIFICĂRI ȘI TRANSMITERE */}
@@ -564,6 +591,60 @@ export const ReportForm: React.FC<ReportFormProps> = ({ accountEmail, onSuccess,
           >
             <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
             <span className="font-semibold leading-relaxed">{submitError}</span>
+          </div>
+        )}
+        {showNoPinPrompt && (
+          <div
+            ref={noPinPromptRef}
+            role="group"
+            aria-labelledby="no-pin-prompt-title"
+            data-testid="no-pin-prompt"
+            className="p-4 rounded-2xl bg-amber-50 border border-amber-300 text-amber-950 space-y-3 shadow-sm"
+          >
+            <div className="flex items-start gap-2.5">
+              <MapPin className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <p id="no-pin-prompt-title" className="text-sm font-extrabold">
+                  Sesizarea nu are poziție pe hartă
+                </p>
+                <p className="text-xs leading-relaxed text-amber-900">
+                  Fără pin, sesizarea se salvează, dar <strong>nu apare pe harta publică</strong> până când administratorul îi stabilește poziția. Ce doriți să faceți?
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setNoPinPrompt(false);
+                  pickerRef.current?.searchAddress();
+                }}
+                className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 min-h-[44px] rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs select-none"
+              >
+                Caută adresa scrisă
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setNoPinPrompt(false);
+                  pickerRef.current?.showMap();
+                }}
+                className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 min-h-[44px] rounded-xl bg-white hover:bg-slate-100 border border-slate-300 text-slate-800 font-bold text-xs select-none"
+              >
+                Pun pinul pe hartă
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setWithoutPinConfirmed(true);
+                  void submitReport();
+                }}
+                disabled={isSubmitting || isProcessingPhotos}
+                className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 min-h-[44px] rounded-xl bg-white hover:bg-amber-100 border border-amber-300 text-amber-950 font-bold text-xs select-none disabled:opacity-50"
+              >
+                Trimit fără hartă
+              </button>
+            </div>
           </div>
         )}
         <button
