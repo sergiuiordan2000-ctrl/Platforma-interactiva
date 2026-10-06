@@ -18,8 +18,8 @@
 |---|---|
 | Branch de lucru | **`faza-5-backend`** (creat din checkpoint-ul Fazei 4) |
 | `main` | `d9bc2c9`, **neatins, nu se modifică** |
-| Ultimul commit de cod la 05.10.2026 | `2185c0a` (limita de coduri afișată în „Contul meu”) |
-| Ultimul commit | se verifică cu `git log --oneline -5` (după `2185c0a` urmează numai commit-uri de documentație) |
+| Ultimul commit de cod la 06.10.2026 | `9570b48` (comanda `rotate:totp-key` cu mod de probă; pasul A din `FAZA_5_4_ROTIRE_TOTP_PLAN.md`) |
+| Ultimul commit | se verifică cu `git log --oneline -5` (după `9570b48` urmează numai commit-uri de documentație) |
 | Reguli | fără commit sau push fără aprobarea explicită a proprietarului; fișierele se adaugă unul câte unul, niciodată `git add .`; fără force push, fără rescrierea istoricului |
 
 Verificarea la începutul unui chat nou:
@@ -61,7 +61,7 @@ Deciziile proprietarului din Faza 5 **nu sunt încă trecute în `PROJECT_RULES_
 
 ### 0.4 Staging (`civic-test.electrovolt.ro`)
 
-- Rulează **`1604472`** (5.6 + 5.7). Commit-ul `2185c0a` (rândul despre limita de coduri) **nu este încă pe staging**.
+- Rulează **`9570b48`** (5.6 + 5.7 + rândul despre limita de coduri + proba pentru cheia TOTP), din 06.10.2026 (jurnal §13). Cheia `TOTP_ENC_KEY` nu a fost schimbată; proba `civic-rotate-totp-key-check` nu a fost încă rulată.
 - Joburi cron: `backup:db` (zilnic, 03:17), `surveys:close-expired` (la 5 minute), `purge:retention` (zilnic, 03:47; prima rulare prin cron nu a fost încă văzută). `outbox:process` vine la 5.5b.
 - Deploy: pachet cu `python3 server/scripts/package-release.py` → proprietarul face Upload + Extract în `civic-test-app` → Setup Node.js App → Restart → `/api/v1/health`. Comenzile se rulează prin „Run JS script”.
 - Fereastra „Sign in” (`civic` + parolă) este lacătul cPanel al staging-ului, nu aplicația.
@@ -81,14 +81,14 @@ Deciziile proprietarului din Faza 5 **nu sunt încă trecute în `PROJECT_RULES_
 
 1. **Proprietarul:** trimite `FAZA_5_6_RAPORT.md` (și planul Google) la ChatGPT; cumpără domeniul Civic.
 2. **După domeniu:** 5.5b (Brevo, `FAZA_5_5B_GHID.md`), apoi amendamentul Google (după checkpoint).
-3. **La următorul deploy pe staging:** ajunge și `2185c0a`.
+3. **Cheia TOTP pe staging:** proba (`civic-rotate-totp-key-check`, nu schimbă nimic) se poate rula oricând, cu aprobare; rularea reală (pasul B) este o decizie separată a proprietarului, neluată (`FAZA_5_4_ROTIRE_TOTP_PLAN.md` §0, §4).
 4. **Închiderea Fazei 5:** raport final, după 5.5b și checkpoint-uri. Apoi Faza 6 și Etapa 7A–7F, conform Planului de Lucru Comun v1.1 (planul nu este în repository).
 
 ### 0.7 Deschise
 
 - **Decizie de produs / juridică:** sesizările despre vecini apar public, cu descriere și loc (raport 5.4, §6).
 - **Decizii de interfață:** formularul de sesizare are două câmpuri de adresă (o adresă scrisă numai în „Locație” nu pune pin pe hartă); respingerile de vot și contoarele din tabloul de bord există pe server, dar nu au ecran în Admin.
-- **Securitate pe staging:** al doilea `super_admin`, apoi schimbarea cheii `TOTP_ENC_KEY`.
+- **Securitate pe staging:** al doilea `super_admin`; apoi, numai dacă proprietarul aprobă pasul B, schimbarea cheii `TOTP_ENC_KEY`.
 - **Amendamentul Google, G-5:** verificarea juridică a textului politicii de utilizare nu este decisă.
 - **Neverificate:** cauza rulărilor CI roșii din 01.10.2026 (#24, #26, #27); rezultatul CI pentru commit-urile de după `26a8807`.
 

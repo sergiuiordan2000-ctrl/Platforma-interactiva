@@ -203,3 +203,15 @@ Aprobat de proprietar la 05.10.2026. Motiv: până acum, pe staging nu rula nimi
 T-ISO după (Claude, ~22:09: T-ISO-1 complet, 2, 4, 6): identice cu referința. T-ISO-5 și 7 nu au fost refăcute.
 
 **De știut:** pe staging nu există încă date mai vechi de 45 de zile (primele sunt din 29–30.09.2026), deci primele ștergeri efective vor apărea pe la mijlocul lui noiembrie 2026. Prima rulare prin cron (06.10.2026, 03:47) nu a fost încă văzută; se confirmă când apare `purge.log`.
+
+## 13. Deploy `9570b48`: nota despre limita de coduri și proba pentru cheia TOTP (06.10.2026)
+
+Aprobat de proprietar la 06.10.2026. Conține `2185c0a` (rândul fix „Se pot cere cel mult 3 coduri pe zi pentru o adresă de e-mail.” în „Contul meu”) și pasul A din `FAZA_5_4_ROTIRE_TOTP_PLAN.md` (comanda `rotate:totp-key`, cu scripturile `civic-rotate-totp-key-check` și `civic-backup-db` în pachet). Scriptul pentru rularea reală a rotirii nu este în pachet. T-ISO înainte (Claude, ~21:29: T-ISO-1 complet, 2, 4, 6): identice cu referința din §3.
+
+| # | Data | Pas | T-ISO după / verificare | Rezultat |
+|---|---|---|---|---|
+| 30 | 06.10.2026 ~21:33 | deploy `civic-9570b48.zip` în `civic-test-app` (Upload + Extract, Restart) | `health` → versiunea nouă (proprietarul); „Contul meu”: rândul despre limita de coduri apare sub butonul „Trimite codul pe e-mail” (captura proprietarului) | **OK** |
+
+T-ISO după (Claude, ~21:35: T-ISO-1 complet, 2, 4, 6): identice cu referința. T-ISO-5 și 7 nu au fost refăcute.
+
+**Nerulat:** `civic-rotate-totp-key-check` (proba) și `civic-backup-db`. Cheia `TOTP_ENC_KEY` de pe staging este neschimbată.
