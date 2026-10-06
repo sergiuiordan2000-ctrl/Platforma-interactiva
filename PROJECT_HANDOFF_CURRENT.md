@@ -90,7 +90,12 @@ Deciziile proprietarului din Faza 5 **nu sunt încă trecute în `PROJECT_RULES_
 - **Decizii de interfață:** respingerile de vot și contoarele din tabloul de bord există pe server, dar nu au ecran în Admin. (Cele două câmpuri de adresă din formularul de sesizare: decise și implementate la 06.10.2026, `docs/faza5/AMENDAMENT_LOCATIE_FORMULAR.md`; pe staging din 06.10.2026.)
 - **Securitate pe staging:** există două conturi `super_admin` (jurnal §15), cu ambele coduri TOTP pe același telefon; recomandare deschisă: unul dintre ele pe alt dispozitiv. Schimbarea cheii `TOTP_ENC_KEY` numai dacă proprietarul aprobă pasul B.
 - **Amendamentul Google, G-5:** verificarea juridică a textului politicii de utilizare nu este decisă.
-- **Neverificate:** cauza rulărilor CI roșii din 01.10.2026 (#24, #26, #27); rezultatul CI pentru commit-urile de după `26a8807`.
+- **CI, verificat la 07.10.2026 (numai citire, prin API-ul GitHub):** ultimul commit, `68f1121` (#49), este verde; toate rulările de după `26a8807` (#32) sunt verzi sau explicate mai jos.
+  - #24 `ed7f297` (01.10), roșu la testele de integrare, pe toate cele patru combinații: testul ALTCHA dependent de dată; reparat în `06781bf` (#25, verde); `docs/faza5/FAZA_5_4_RAPORT.md`, pct. 7.
+  - #26 `5c94fd3` (01.10) și #42 `f5a354f` (05.10), roșii fără ca vreun test să ruleze: GitHub nu a alocat mașini („The job was not acquired by Runner of type hosted even after multiple attempts”). Nu țin de cod; ambele sunt commit-uri de documentație.
+  - #30 `e0d25f6` (02.10), roșu numai la suita Python: interfața sondajelor trecuse pe API, iar suitele vechi au fost adaptate în `044ca26` (#31, verde). Cauza este dedusă din `FAZA_5_6_PLAN.md` (66/68, cu `R-00` și `R6.5a` prevăzute), nu citită din jurnalul jobului.
+  - #27, #35, #39, #40, #41, #48: „cancelled”, adică anulate de push-ul următor pe același branch (`cancel-in-progress`); #27 nu a fost o rulare roșie.
+  - **Necitite:** jurnalele joburilor (descărcarea lor nu a fost posibilă din mediul de lucru al lui Claude).
 
 ### 0.8 Mediul local și verificările obligatorii înainte de commit
 
