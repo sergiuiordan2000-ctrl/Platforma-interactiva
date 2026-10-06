@@ -75,6 +75,11 @@ def main() -> int:
             'civic-report-pow-off': f'{app} settings:report-pow off',
             'civic-rotate-keys': f'{app} rotate:keys',
             'civic-surveys-close-expired': f'{app} surveys:close-expired',
+            # backup la cerere (aceeași comandă ca jobul cron) și PROBA schimbării cheii TOTP: nu modifică nimic.
+            # Rularea reală (`rotate:totp-key`, fără --check) NU este în pachet: se adaugă numai după decizia proprietarului
+            # (FAZA_5_4_ROTIRE_TOTP_PLAN.md, pasul B).
+            'civic-backup-db': f'{app} backup:db',
+            'civic-rotate-totp-key-check': f'{app} rotate:totp-key --check',
         }
         if a.bootstrap_email:
             cmd = ['node', 'server/dist/app.js', 'bootstrap-admin', '--email', a.bootstrap_email, '--name', a.bootstrap_name or 'Administrator']

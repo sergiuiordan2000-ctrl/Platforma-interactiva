@@ -5,7 +5,9 @@
 // purge:pow, settings:report-pow (ALTCHA la sesizări, decizia A1 din 30.09.2026).
 // rotate:keys: cele 4 chei „ușoare” din CIVIC_ENV_FILE, fără afișarea valorilor (varianta A din 30.09.2026).
 // 5.6: surveys:close-expired (E-3, cron la 5 min); rotate:keys păstrează PARTICIPATION_HMAC_SECRET cât timp există sondaje deschise (T-6).
+// rotate:totp-key [--check]: schimbarea cheii TOTP_ENC_KEY, cu mod de probă (plan: FAZA_5_4_ROTIRE_TOTP_PLAN.md).
 
+import { basename } from 'node:path';
 import type { Config } from './config.ts';
 import { BootstrapRefusedError, bootstrapAdmin } from './accounts.ts';
 import { encryptSecret } from './auth/crypto.ts';
@@ -26,6 +28,7 @@ import { ENV_FILE_VAR } from './envFile.ts';
 import { ROTATED_KEYS, RotateKeysError, rotateKeysInFile } from './rotateKeys.ts';
 import { closeExpiredSurveys, hasOpenSurveys } from './surveys.ts';
 import { emailDowngradeMessage, mailTransportFor } from './reports/smtp.ts';
+import { RotateTotpKeyError, RotateTotpKeyRenameError, rotateTotpKey } from './rotateTotpKey.ts';
 
 export const CLI_COMMANDS = [
   'migrate',
@@ -43,6 +46,7 @@ export const CLI_COMMANDS = [
   'purge:pow',
   'settings:report-pow',
   'rotate:keys',
+  'rotate:totp-key',
   'surveys:close-expired',
 ] as const;
 
@@ -66,6 +70,7 @@ export async function runCli(
   if (command === 'dev:show-code') return runShowCode(config, out, args);
   if (command === 'dev:e2e-setup') return runE2eSetup(config, out);
   if (command === 'rotate:keys') return runRotateKeys(config, out);
+  if (command === 'rotate:totp-key') return runRotateTotpKey(config, out, args);
   const handle = createDb(config.databaseUrl, { connectionLimit: 2 });
   try {
     switch (command) {
@@ -365,4 +370,56 @@ async function runRotateKeys(config: Config, out: Out, env: NodeJS.ProcessEnv = 
   }
   out.log('rotate:keys: reporniți aplicația (Setup Node.js App → Restart) ca să folosească noile chei.');
   return 0;
+}
+
+/**
+ * rotate:totp-key [--check] — schimbarea cheii TOTP_ENC_KEY (plan: FAZA_5_4_ROTIRE_TOTP_PLAN.md).
+ * `--check` = modul de probă: toate verificările, nicio schimbare. Nicio valoare de cheie nu se afișează.
+ */
+async function runRotateTotpKey(config: Config, out: Out, args: string[], env: NodeJS.ProcessEnv = process.env): Promise<number> {
+  const dryRun = args.includes('--check');
+  const name = dryRun ? 'rotate:totp-key --check' : 'rotate:totp-key';
+  const file = env[ENV_FILE_VAR]?.trim();
+  if (!file) {
+    out.error(`${name}: variabila ${ENV_FILE_VAR} lipsește; comanda lucrează numai cu fișierul de setări.`);
+    return 2;
+  }
+  const handle = createDb(config.databaseUrl, { connectionLimit: 1 });
+  try {
+    const res = await rotateTotpKey({ file, pool: handle.pool, currentKey: config.secrets.totpEncKey, now: new Date(), dryRun });
+    if (res.status === 'orphan_blocks') {
+      out.error(
+        `${name}: există ${res.orphanBlocks} blocări active ale unor conturi deja șterse. Amprenta lor nu poate fi mutată pe cheia nouă. ` +
+          'Nimic nu a fost schimbat. Pentru aceste blocări nu există astăzi o acțiune în Admin; este nevoie de o decizie a proprietarului înaintea unei noi rulări.',
+      );
+      return 1;
+    }
+    const c = res.counts;
+    const summary = `secrete TOTP recriptate: ${c.totpSecrets}; blocări cu amprenta recalculată: ${c.blocks}; ` +
+      `coduri de recuperare șterse: ${c.recoveryCodes}; coduri de cetățean șterse: ${c.citizenCodes}`;
+    if (res.status === 'checked') {
+      out.log(`${name}: PROBĂ reușită. La o rulare reală: ${summary}.`);
+      out.log(`${name}: nimic nu a fost schimbat (nici baza de date, nici fișierul de setări).`);
+      return 0;
+    }
+    out.log(`${name}: cheia a fost schimbată. ${summary}. Valoarea cheii nu se afișează.`);
+    out.log(`${name}: reporniți aplicația (Setup Node.js App → Restart). Apoi fiecare super_admin generează coduri de recuperare noi.`);
+    return 0;
+  } catch (e) {
+    if (e instanceof RotateTotpKeyRenameError) {
+      out.error(
+        `${name}: ATENȚIE — baza de date folosește deja cheia nouă, dar fișierul de setări nu a putut fi înlocuit. ` +
+          `Redenumiți fișierul „${basename(e.tmpFile)}” în „${basename(e.envFile)}” (în același folder), apoi reporniți aplicația. ` +
+          'NU rulați comanda din nou înainte de asta.',
+      );
+      return 1;
+    }
+    if (e instanceof RotateTotpKeyError) {
+      out.error(`${name}: ${e.message}`);
+      return 1;
+    }
+    throw e;
+  } finally {
+    await handle.close();
+  }
 }
