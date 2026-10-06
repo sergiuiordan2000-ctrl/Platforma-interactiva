@@ -62,7 +62,7 @@ Deciziile proprietarului din Faza 5 **nu sunt încă trecute în `PROJECT_RULES_
 ### 0.4 Staging (`civic-test.electrovolt.ro`)
 
 - Rulează **`94dba87`** (5.6 + 5.7 + rândul despre limita de coduri + proba pentru cheia TOTP + locația în formular), din 06.10.2026 (jurnal §13–§14). Cheia `TOTP_ENC_KEY` nu a fost schimbată. Proba `civic-rotate-totp-key-check` a fost rulată la 06.10.2026: reușită, fără blocări orfane, un singur cont Admin cu TOTP la acel moment (al doilea a fost creat ulterior, jurnal §15). Căutarea reală a adresei („Caută pe hartă”) a fost probată de proprietar pe staging.
-- Joburi cron: `backup:db` (zilnic, 03:17), `surveys:close-expired` (la 5 minute), `purge:retention` (zilnic, 03:47; prima rulare prin cron nu a fost încă văzută). `outbox:process` vine la 5.5b.
+- Joburi cron: `backup:db` (zilnic, 03:17), `surveys:close-expired` (la 5 minute), `purge:retention` (zilnic, 03:47; `purge.log` văzut de proprietar la 06.10.2026, jurnal §12). `outbox:process` vine la 5.5b.
 - Deploy: pachet cu `python3 server/scripts/package-release.py` → proprietarul face Upload + Extract în `civic-test-app` → Setup Node.js App → Restart → `/api/v1/health`. Comenzile se rulează prin „Run JS script”.
 - Fereastra „Sign in” (`civic` + parolă) este lacătul cPanel al staging-ului, nu aplicația.
 - ALTCHA este oprită (implicit). Poate fi pornită: defectul din browser a fost corectat la 5.6.5.
@@ -79,7 +79,7 @@ Deciziile proprietarului din Faza 5 **nu sunt încă trecute în `PROJECT_RULES_
 
 ### 0.6 Ce urmează
 
-1. **Proprietarul:** trimite `FAZA_5_6_RAPORT.md` (și planul Google) la ChatGPT; cumpără domeniul Civic.
+1. **Proprietarul:** cumpără domeniul Civic; trimite la ChatGPT planul Google, raportul 5.7 și cele două documente din 06.10.2026 (cheia TOTP, locația în formular). Raportul 5.6 a fost trimis la 06.10.2026; rezultatul relatat de proprietar: „e ok” (`FAZA_5_6_RAPORT.md` §7).
 2. **După domeniu:** 5.5b (Brevo, `FAZA_5_5B_GHID.md`), apoi amendamentul Google (după checkpoint).
 3. **Cheia TOTP pe staging:** proba a trecut (jurnal §13), iar al doilea `super_admin` există din 06.10.2026 (jurnal §15); rularea reală (pasul B) este o decizie separată a proprietarului, neluată (`FAZA_5_4_ROTIRE_TOTP_PLAN.md` §0, §4).
 4. **Închiderea Fazei 5:** raport final, după 5.5b și checkpoint-uri. Apoi Faza 6 și Etapa 7A–7F, conform Planului de Lucru Comun v1.1 (planul nu este în repository).

@@ -204,6 +204,8 @@ T-ISO după (Claude, ~22:09: T-ISO-1 complet, 2, 4, 6): identice cu referința. 
 
 **De știut:** pe staging nu există încă date mai vechi de 45 de zile (primele sunt din 29–30.09.2026), deci primele ștergeri efective vor apărea pe la mijlocul lui noiembrie 2026. Prima rulare prin cron (06.10.2026, 03:47) nu a fost încă văzută; se confirmă când apare `purge.log`.
 
+**Confirmare (06.10.2026, ~23:52):** proprietarul a văzut fișierul `purge.log` în `civic-test-data` (File Manager), deci jobul de noapte a rulat cel puțin o dată. Conținutul și data fișierului nu au fost transmise.
+
 ## 13. Deploy `9570b48`: nota despre limita de coduri și proba pentru cheia TOTP (06.10.2026)
 
 Aprobat de proprietar la 06.10.2026. Conține `2185c0a` (rândul fix „Se pot cere cel mult 3 coduri pe zi pentru o adresă de e-mail.” în „Contul meu”) și pasul A din `FAZA_5_4_ROTIRE_TOTP_PLAN.md` (comanda `rotate:totp-key`, cu scripturile `civic-rotate-totp-key-check` și `civic-backup-db` în pachet). Scriptul pentru rularea reală a rotirii nu este în pachet. T-ISO înainte (Claude, ~21:29: T-ISO-1 complet, 2, 4, 6): identice cu referința din §3.

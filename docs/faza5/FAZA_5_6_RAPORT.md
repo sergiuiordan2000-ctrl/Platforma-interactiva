@@ -77,3 +77,5 @@ Faza 5.6 este încheiată: criteriile B10 §6 (§2) sunt îndeplinite local și 
 5. abaterea de la ecranul de confirmare a votului (§6).
 
 După checkpoint: 5.7 (curățarea cheilor vechi din `localStorage`), apoi 5.5b (e-mail real, când există domeniul Civic).
+
+**Checkpoint 5.6 (06.10.2026):** proprietarul a transmis acest raport lui ChatGPT și a relatat rezultatul: „e ok”. Răspunsul auditului nu a fost transmis lui Claude, deci eventualele observații nu sunt consemnate aici. Nu au fost încă trimise la audit: `FAZA_5_7_RAPORT.md`, `AMENDAMENT_AUTENTIFICARE_GOOGLE_PLAN.md`, `FAZA_5_4_ROTIRE_TOTP_PLAN.md`, `AMENDAMENT_LOCATIE_FORMULAR.md`.
