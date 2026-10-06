@@ -61,7 +61,7 @@ Deciziile proprietarului din Faza 5 **nu sunt încă trecute în `PROJECT_RULES_
 
 ### 0.4 Staging (`civic-test.electrovolt.ro`)
 
-- Rulează **`94dba87`** (5.6 + 5.7 + rândul despre limita de coduri + proba pentru cheia TOTP + locația în formular), din 06.10.2026 (jurnal §13–§14). Cheia `TOTP_ENC_KEY` nu a fost schimbată. Proba `civic-rotate-totp-key-check` a fost rulată la 06.10.2026: reușită, fără blocări orfane, un singur cont Admin cu TOTP. Căutarea reală a adresei („Caută pe hartă”) a fost probată de proprietar pe staging.
+- Rulează **`94dba87`** (5.6 + 5.7 + rândul despre limita de coduri + proba pentru cheia TOTP + locația în formular), din 06.10.2026 (jurnal §13–§14). Cheia `TOTP_ENC_KEY` nu a fost schimbată. Proba `civic-rotate-totp-key-check` a fost rulată la 06.10.2026: reușită, fără blocări orfane, un singur cont Admin cu TOTP la acel moment (al doilea a fost creat ulterior, jurnal §15). Căutarea reală a adresei („Caută pe hartă”) a fost probată de proprietar pe staging.
 - Joburi cron: `backup:db` (zilnic, 03:17), `surveys:close-expired` (la 5 minute), `purge:retention` (zilnic, 03:47; prima rulare prin cron nu a fost încă văzută). `outbox:process` vine la 5.5b.
 - Deploy: pachet cu `python3 server/scripts/package-release.py` → proprietarul face Upload + Extract în `civic-test-app` → Setup Node.js App → Restart → `/api/v1/health`. Comenzile se rulează prin „Run JS script”.
 - Fereastra „Sign in” (`civic` + parolă) este lacătul cPanel al staging-ului, nu aplicația.
@@ -81,14 +81,14 @@ Deciziile proprietarului din Faza 5 **nu sunt încă trecute în `PROJECT_RULES_
 
 1. **Proprietarul:** trimite `FAZA_5_6_RAPORT.md` (și planul Google) la ChatGPT; cumpără domeniul Civic.
 2. **După domeniu:** 5.5b (Brevo, `FAZA_5_5B_GHID.md`), apoi amendamentul Google (după checkpoint).
-3. **Cheia TOTP pe staging:** proba a trecut (jurnal §13); rularea reală (pasul B) este o decizie separată a proprietarului, neluată, și cere întâi al doilea `super_admin` (`FAZA_5_4_ROTIRE_TOTP_PLAN.md` §0, §4).
+3. **Cheia TOTP pe staging:** proba a trecut (jurnal §13), iar al doilea `super_admin` există din 06.10.2026 (jurnal §15); rularea reală (pasul B) este o decizie separată a proprietarului, neluată (`FAZA_5_4_ROTIRE_TOTP_PLAN.md` §0, §4).
 4. **Închiderea Fazei 5:** raport final, după 5.5b și checkpoint-uri. Apoi Faza 6 și Etapa 7A–7F, conform Planului de Lucru Comun v1.1 (planul nu este în repository).
 
 ### 0.7 Deschise
 
 - **Decizie de produs / juridică:** sesizările despre vecini apar public, cu descriere și loc (raport 5.4, §6).
 - **Decizii de interfață:** respingerile de vot și contoarele din tabloul de bord există pe server, dar nu au ecran în Admin. (Cele două câmpuri de adresă din formularul de sesizare: decise și implementate la 06.10.2026, `docs/faza5/AMENDAMENT_LOCATIE_FORMULAR.md`; pe staging din 06.10.2026.)
-- **Securitate pe staging:** al doilea `super_admin`; apoi, numai dacă proprietarul aprobă pasul B, schimbarea cheii `TOTP_ENC_KEY`.
+- **Securitate pe staging:** există două conturi `super_admin` (jurnal §15), cu ambele coduri TOTP pe același telefon; recomandare deschisă: unul dintre ele pe alt dispozitiv. Schimbarea cheii `TOTP_ENC_KEY` numai dacă proprietarul aprobă pasul B.
 - **Amendamentul Google, G-5:** verificarea juridică a textului politicii de utilizare nu este decisă.
 - **Neverificate:** cauza rulărilor CI roșii din 01.10.2026 (#24, #26, #27); rezultatul CI pentru commit-urile de după `26a8807`.
 

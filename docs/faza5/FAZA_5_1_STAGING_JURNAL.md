@@ -241,3 +241,19 @@ T-ISO după (Claude, ~22:36: T-ISO-1 complet, 2, 4, 6): identice cu referința. 
 **Neconfirmat:** răspunsul adresei `health` (versiunea `0.0.0+94dba87`) nu a fost citit după acest deploy; versiunea se deduce din faptul că formularul nou este afișat. Butoanele „Caută adresa scrisă” și „Trimit fără hartă” ale întrebării nu au fost probate pe staging (sunt acoperite de testele automate).
 
 **De știut:** căutarea adresei pe staging folosește serviciul real de hărți; în testele automate ea este simulată, deci #33 este prima verificare cap-coadă a butonului „Caută pe hartă”.
+
+## 15. Al doilea cont `super_admin` pe staging (06.10.2026)
+
+Aprobat de proprietar la 06.10.2026. Motiv: până acum exista un singur cont Admin; dacă TOTP-ul sau parola lui nu mai mergeau, nimeni nu mai putea intra în Admin (`civic-bootstrap-admin` refuză cât timp există un `super_admin` activ). Este și condiția din `FAZA_5_4_ROTIRE_TOTP_PLAN.md` §4, pasul 0. Pas făcut în aplicație, nu în cPanel: fără fișiere încărcate, fără setări schimbate. Adresele conturilor nu se scriu în acest jurnal. T-ISO înainte: cel de la ~22:36 (§14).
+
+| # | Data | Pas | T-ISO după / verificare | Rezultat |
+|---|---|---|---|---|
+| 35 | 06.10.2026 ~23:38 | Admin → „Conturi” → „Cont nou”, rolul „Super administrator” (din primul cont); parola temporară, afișată o singură dată, păstrată numai de proprietar | în tabel: al doilea cont, „Super administrator”, „activ · parolă temporară”, TOTP „—” (captura proprietarului) | **OK** |
+| 36 | 06.10.2026 ~23:40–23:47 | prima autentificare cu contul nou, în fereastră privată: parola temporară → înrolare TOTP → coduri de recuperare → parolă nouă; apoi ieșire și reautentificare | reautentificarea a reușit; în „Conturi”, contul nou apare „activ” și „configurat” (răspunsul proprietarului, fără captură) | **OK** |
+
+T-ISO după (Claude, ~23:48: T-ISO-1 complet, 2, 4, 6): identice cu referința. T-ISO-5 și 7 nu au fost refăcute.
+
+**De știut:**
+- Codul TOTP al contului nou a fost pus pe **același telefon** ca al primului cont. Cele două conturi se pot ajuta între ele (resetarea parolei sau a TOTP-ului celuilalt), dar la pierderea telefonului rămân numai codurile de recuperare ale fiecărui cont. Mutarea unuia dintre coduri pe alt dispozitiv rămâne o recomandare, nu un pas făcut.
+- La autentificarea cu primul cont, proprietarul a încercat întâi fără codul din aplicația de autentificare; după folosirea lui, autentificarea a reușit. Nu a fost o problemă a aplicației.
+- Cheia `TOTP_ENC_KEY` este neschimbată. O nouă probă `civic-rotate-totp-key-check` ar arăta acum 2 secrete TOTP și 20 de coduri de recuperare; nu a fost rulată.
