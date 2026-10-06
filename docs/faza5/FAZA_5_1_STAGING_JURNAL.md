@@ -225,3 +225,19 @@ T-ISO după (Claude, ~21:48: T-ISO-1 complet, 2, 4, 6): identice cu referința. 
 **Ce arată proba:** pe staging nu există blocări rămase fără cont; există un singur cont Admin cu TOTP (al doilea `super_admin` nu a fost încă creat). Cheia `TOTP_ENC_KEY` este neschimbată; rularea reală (pasul B) rămâne nedecisă. `civic-backup-db` nu a fost rulat.
 
 **Constatare:** imediat după probă, prima citire a adresei `health` făcută de Claude a primit 503; a doua, la câteva secunde, 401 (protecția cu parolă a subdomeniului, răspunsul obișnuit pentru verificările externe). Cauza acelui 503 nu este cunoscută. Proprietarul a confirmat apoi `health` → `ok`.
+
+## 14. Deploy `94dba87`: locația în formularul de sesizare (06.10.2026)
+
+Aprobat de proprietar la 06.10.2026. Conține amendamentul `AMENDAMENT_LOCATIE_FORMULAR.md` (un singur câmp de adresă; întrebarea la trimiterea fără pin). Numai interfață; fără migrări și fără schimbări de setări. T-ISO înainte (Claude, ~22:26: T-ISO-1 complet, 2, 4, 6): identice cu referința din §3.
+
+| # | Data | Pas | T-ISO după / verificare | Rezultat |
+|---|---|---|---|---|
+| 32 | 06.10.2026 ~22:30 | deploy `civic-94dba87.zip` în `civic-test-app` (Upload + Extract, Restart) | formularul nou este afișat (captura proprietarului, 22:35): pasul 4 are un singur câmp de text și butoanele „Caută pe hartă” / „Poziția mea” | **OK** |
+| 33 | 06.10.2026 ~22:35 | proba căutării reale a adresei (proprietarul): „Str. 1 Mai” în „Locația” → „Caută pe hartă” | pin propus pe Strada 1 Mai, cu zonă aproximativă; starea „Zonă aproximativă (după adresă)”; mesajul despre zona aproximativă (captura proprietarului) | **OK** |
+| 34 | 06.10.2026 ~22:36 | proba întrebării (proprietarul): „Șterge pinul”, apoi „Trimite sesizarea” fără pin | întrebarea „Sesizarea nu are poziție pe hartă” a apărut, cu cele trei butoane; „Pun pinul pe hartă” a adus harta în vizor (răspunsul proprietarului, fără captură) | **OK** |
+
+T-ISO după (Claude, ~22:36: T-ISO-1 complet, 2, 4, 6): identice cu referința. T-ISO-5 și 7 nu au fost refăcute.
+
+**Neconfirmat:** răspunsul adresei `health` (versiunea `0.0.0+94dba87`) nu a fost citit după acest deploy; versiunea se deduce din faptul că formularul nou este afișat. Butoanele „Caută adresa scrisă” și „Trimit fără hartă” ale întrebării nu au fost probate pe staging (sunt acoperite de testele automate).
+
+**De știut:** căutarea adresei pe staging folosește serviciul real de hărți; în testele automate ea este simulată, deci #33 este prima verificare cap-coadă a butonului „Caută pe hartă”.

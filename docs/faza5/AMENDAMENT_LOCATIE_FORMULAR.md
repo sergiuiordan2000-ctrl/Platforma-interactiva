@@ -1,6 +1,6 @@
 # AMENDAMENT — LOCAȚIA ÎN FORMULARUL DE SESIZARE
 
-**Proiect:** Turnu Măgurele Civic · **Data:** 06.10.2026 · **Branch:** `faza-5-backend` · **Stare:** **decis de proprietar și implementat local, cu teste; nu este încă pe staging.**
+**Proiect:** Turnu Măgurele Civic · **Data:** 06.10.2026 · **Branch:** `faza-5-backend` · **Stare:** **decis de proprietar, implementat cu teste (`94dba87`) și instalat pe staging la 06.10.2026 (jurnalul de staging §14).**
 **Origine:** constatarea de la 5.4.9 (jurnalul de staging §8; `FAZA_5_4_RAPORT.md` §6): formularul avea două câmpuri de adresă. Proprietarul a scris adresa numai în „Locația”; textul singur nu pune pin, deci sesizarea s-a salvat fără poziție și nu a apărut pe hartă. Formularul nu a avertizat.
 **Ce modifică din designul înghețat (Faza 4):** ecranul formularului de sesizare, pasul 4 „Locația incidentului”, și zona butonului „Trimite sesizarea”. **Nu modifică** regulile: D6-2 (textul obligatoriu, pinul opțional), 2.4 (adresă geocodată → pin aproximativ), 2.12 (numai în UAT), D6-7. Fără modificări pe server, în schemă sau în contractele API.
 
