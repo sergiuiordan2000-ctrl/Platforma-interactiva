@@ -345,7 +345,7 @@ D9 **nu redeschide și nu modifică** D1, D3/D4, D6, D8, D10 V2, N-3 sau N-4. N3
 | Subiect | Starea |
 |---|---|
 | Suita Python (E2E) în CI și pe MariaDB 11.4 | nedecisă; în CI, pe MariaDB rulează numai testele serverului (`AMENDAMENT_MARIADB_SI_GAZDUIRE.md` §4) |
-| Mutarea staging-ului pe găzduirea nouă și retragerea celui vechi (G3) | nedecisă |
+| Retragerea staging-ului vechi (`civic-test.electrovolt.ro`, G3) | nedecisă; staging-ul nou (`test.urbisactiv.ro`) este instalat din 07.10.2026 (`STAGING_URBISACTIV_JURNAL.md`) |
 | Redenumirea în „Urbis Activ” în interfață, documente și repository | nedecisă |
 | Pasul B al cheii `TOTP_ENC_KEY` | nedecis; aprobarea pasului A nu obligă la pasul B |
 | G-5: verificarea juridică a textului despre Google din politica de utilizare | proprietarul nu s-a pronunțat |

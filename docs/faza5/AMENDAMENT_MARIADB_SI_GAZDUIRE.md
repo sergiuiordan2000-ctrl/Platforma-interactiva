@@ -1,6 +1,6 @@
 # AMENDAMENT — NUMELE, DOMENIUL, GĂZDUIREA DE PRODUCȚIE ȘI MARIADB 11.4
 
-**Proiect:** Turnu Măgurele Civic (numele nou al aplicației: „Urbis Activ”) · **Data:** 07.10.2026 · **Branch:** `faza-5-backend` · **Stare:** **decis de proprietar la 07.10.2026; codul adaptat și testat local (`91a43b6`); MariaDB 11.4 în CI din `f1d6276`; aplicația nu este încă instalată pe găzduirea nouă; amendamentul nu a fost încă trimis la audit.**
+**Proiect:** Turnu Măgurele Civic (numele nou al aplicației: „Urbis Activ”) · **Data:** 07.10.2026 · **Branch:** `faza-5-backend` · **Stare:** **decis de proprietar la 07.10.2026; codul adaptat și testat local (`91a43b6`); MariaDB 11.4 în CI din `f1d6276`; aplicația este instalată ca staging pe găzduirea nouă (`STAGING_URBISACTIV_JURNAL.md`); amendamentul nu a fost încă trimis la audit.**
 **Origine:** alegerea găzduirii de producție (G6, deschisă din Faza 3). Găzduirea aleasă oferă MariaDB 11.4, nu MySQL 8.4.
 **Ce modifică din deciziile anterioare:** **G2** (`PROJECT_RULES_AND_DECISIONS.md` §11.1): baza de date de producție devine MariaDB 11.4 în loc de MySQL 8.4 LTS. Închide **G6** (infrastructura de producție) și **G7** (domeniul). **Nu modifică** schema bazei de date, contractele API, regulile de retenție sau regula „`electrovolt.ro` nu se afectează”.
 
@@ -54,7 +54,7 @@ Probe de control (într-o copie din afara repo-ului, fără `git stash`): fără
 - **CI rulează și pe MariaDB 11.4** (07.10.2026, `f1d6276`, aprobat de proprietar): un job suplimentar, „backend (Node 24, MariaDB 11.4)”, lângă matricea MySQL neschimbată; prima rulare (#53) a trecut la toate cele 6 joburi. Jobul acoperă testele serverului și pornirea artefactului. **Suita Python (E2E) rulează în CI numai pe MySQL 8.4**; pe MariaDB a rulat o singură dată, local (§3). Versiunea exactă adusă de imaginea `mariadb:11.4` în CI nu a fost citită (jurnalele joburilor nu au putut fi descărcate din mediul de lucru).
 - **Staging și producție diferă.** Staging-ul actual (`civic-test.electrovolt.ro`) rulează MySQL 8.0 și Node 20. G3 prevede mutarea staging-ului pe infrastructura de producție și retragerea celui vechi; mutarea nu este decisă și nu este planificată încă.
 - **Ordinea de sortare nu este identică** între cele două baze de date (văzută la numele tabelelor). În aplicație nu s-a găsit niciun efect în testele existente.
-- **Mediul real nu este probat.** Pe găzduirea nouă nu a rulat încă aplicația; trimiterea reală de e-mail se probează la 5.5b.
+- **Mediul real: aplicația rulează din 07.10.2026** pe `test.urbisactiv.ro` (`999a9d5`; Node 24.21.0, MariaDB 11.4.13): migrare, seed-uri, `health`, un backup. Detalii și observații: `STAGING_URBISACTIV_JURNAL.md`. Trimiterea reală de e-mail rămâne de probat la 5.5b.
 - **Remote SMTP depinde de IP-ul dedicat**, plătit lunar. Fără el, furnizorul nu permite conexiunile SMTP de ieșire, iar aplicația nu ar putea trimite codurile de autentificare.
 - **Titularul domeniului este o firmă**, deci numele ei este public în registrul `.ro`. Firma devine și cea care răspunde de datele personale; de avut în vedere la politica de utilizare (E-6).
 - **Numele vechi apare peste tot** (interfață, documente, numele repository-ului). Redenumirea în „Urbis Activ” nu este făcută și nu este planificată încă; se decide separat.
@@ -65,4 +65,4 @@ Probe de control (într-o copie din afara repo-ului, fără `git stash`): fără
 1. Auditul acestui amendament (ChatGPT), împreună cu documentele netrimise încă.
 2. MariaDB 11.4 în CI: **făcut** (`f1d6276`). Rămâne de decis dacă și suita Python rulează în CI pe MariaDB.
 3. 5.5b: înregistrările DNS pentru Brevo în Zone Editor, apoi primul e-mail real (`FAZA_5_5B_GHID.md`; ghidul trebuie adaptat la găzduirea nouă).
-4. Instalarea aplicației pe găzduirea nouă: ghid pas cu pas, la execuție.
+4. Instalarea aplicației pe găzduirea nouă: **făcută** la 07.10.2026, ca staging (`test.urbisactiv.ro`). Rămân primul cont Admin și 5.5b.
