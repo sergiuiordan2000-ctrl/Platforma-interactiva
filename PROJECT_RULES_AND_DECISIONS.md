@@ -139,7 +139,7 @@ Reguli de lucru obligatorii pentru toate etapele viitoare, indiferent de asisten
 
 **Rămân deschise (nu blochează N-2):** infrastructura de producție (G6; Basic Plus este exclus pentru producție: Node 20 și MySQL 8.0 sunt în afara suportului din 30.04.2026), numele staging-ului (G4), domeniul Civic (G7). Producția cu date reale va fi **separată de contul Electrovolt**.
 
-**Actualizare Faza 5 (07.10.2026):** **G2** — baza de date de producție este **MariaDB 11.4**, nu MySQL 8.4; MySQL rămâne suportat (staging, CI). **G6** — găzduirea de producție: ClausWeb, cont separat de cel al `electrovolt.ro`. **G7** — domeniul: `urbisactiv.ro`; numele aplicației: „Urbis Activ”. Detalii: `docs/faza5/AMENDAMENT_MARIADB_SI_GAZDUIRE.md` și §13.
+**Actualizare Faza 5 (07.10.2026):** **G2** — baza de date de producție este **MariaDB 11.4**, nu MySQL 8.4; MySQL rămâne suportat (staging, CI); CI rulează și pe MariaDB 11.4. **G6** — găzduirea de producție: ClausWeb, cont separat de cel al `electrovolt.ro`. **G7** — domeniul: `urbisactiv.ro`; numele aplicației: „Urbis Activ”. Detalii: `docs/faza5/AMENDAMENT_MARIADB_SI_GAZDUIRE.md` și §13.
 
 **Aprobarea N-2 nu autorizează** nicio acțiune pe hosting, DNS, DB sau VPS și nicio modificare de cod. Acestea se fac numai în fazele planului, cu aprobare explicită.
 
@@ -338,13 +338,13 @@ D9 **nu redeschide și nu modifică** D1, D3/D4, D6, D8, D10 V2, N-3 sau N-4. N3
 | 06.10 | **Tab de anunțuri / vânzări: respins.** Nu se reia fără cererea proprietarului | comunicată de proprietar la 06.10.2026 |
 | 07.10 | **G7: numele aplicației este „Urbis Activ”; domeniul este `urbisactiv.ro`**, înregistrat pe firma proprietarului | `AMENDAMENT_MARIADB_SI_GAZDUIRE.md` §1 |
 | 07.10 | **G6: găzduirea de producție este ClausWeb** (plan „NodeJS1” cu cPanel, IP dedicat, „Remote SMTP”), cont separat de cel al `electrovolt.ro` | `AMENDAMENT_MARIADB_SI_GAZDUIRE.md` §1–§2 |
-| 07.10 | **Baza de date de producție: MariaDB 11.4 [amendament la G2]**; MySQL rămâne suportat. Codul adaptat și testat pe ambele (`91a43b6`) | `AMENDAMENT_MARIADB_SI_GAZDUIRE.md` §1, §3 |
+| 07.10 | **Baza de date de producție: MariaDB 11.4 [amendament la G2]**; MySQL rămâne suportat. Codul adaptat și testat pe ambele (`91a43b6`); job CI pe MariaDB 11.4 (`f1d6276`) | `AMENDAMENT_MARIADB_SI_GAZDUIRE.md` §1, §3, §4 |
 
 ### 13.2 Decizii deschise (neluate la 07.10.2026)
 
 | Subiect | Starea |
 |---|---|
-| MariaDB 11.4 în CI | nefăcut; propunere în `AMENDAMENT_MARIADB_SI_GAZDUIRE.md` §4 |
+| Suita Python (E2E) în CI și pe MariaDB 11.4 | nedecisă; în CI, pe MariaDB rulează numai testele serverului (`AMENDAMENT_MARIADB_SI_GAZDUIRE.md` §4) |
 | Mutarea staging-ului pe găzduirea nouă și retragerea celui vechi (G3) | nedecisă |
 | Redenumirea în „Urbis Activ” în interfață, documente și repository | nedecisă |
 | Pasul B al cheii `TOTP_ENC_KEY` | nedecis; aprobarea pasului A nu obligă la pasul B |
