@@ -1,5 +1,6 @@
 # CI — Turnu Măgurele Civic (Faza 5.1, pasul 5.1.7)
 # Matricea G5 / B10 §2: Node 20 + 24 × MySQL 8.0 + 8.4.
+# În plus, din 07.10.2026 (amendamentul la G2): Node 24 × MariaDB 11.4, baza de date a găzduirii de producție.
 # Etape: lint (tsc) → build (frontend + artefactul backend) → unitare → API → integrare DB → artefact → E2E.
 # Orice eșec blochează integrarea (B-2).
 #
@@ -23,17 +24,29 @@ concurrency:
 
 jobs:
   backend:
-    name: backend (Node ${{ matrix.node }}, MySQL ${{ matrix.mysql }})
+    name: backend (Node ${{ matrix.node }}, ${{ matrix.db }})
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
         node: ['20', '24']
-        mysql: ['8.0', '8.4']
+        db: ['MySQL 8.0', 'MySQL 8.4']
+        include:
+          - db: 'MySQL 8.0'
+            image: 'mysql:8.0'
+            health: 'mysqladmin ping -h 127.0.0.1 -uroot -pci_root_only'
+          - db: 'MySQL 8.4'
+            image: 'mysql:8.4'
+            health: 'mysqladmin ping -h 127.0.0.1 -uroot -pci_root_only'
+          # imaginea MariaDB acceptă aceleași variabile MYSQL_*; clientul ei se numește `mariadb-admin`
+          - node: '24'
+            db: 'MariaDB 11.4'
+            image: 'mariadb:11.4'
+            health: 'mariadb-admin ping -h 127.0.0.1 -uroot -pci_root_only'
     services:
       mysql:
-        image: mysql:${{ matrix.mysql }}
+        image: ${{ matrix.image }}
         env:
           MYSQL_ROOT_PASSWORD: ci_root_only
           MYSQL_DATABASE: civic_test
@@ -42,7 +55,7 @@ jobs:
         ports:
           - 3306:3306
         options: >-
-          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -pci_root_only"
+          --health-cmd="${{ matrix.health }}"
           --health-interval=5s
           --health-timeout=5s
           --health-retries=30
@@ -83,7 +96,7 @@ jobs:
       - name: Teste API
         run: npm run test:api -w server
 
-      - name: Teste de integrare (MySQL ${{ matrix.mysql }})
+      - name: Teste de integrare (${{ matrix.db }})
         run: npm run test:integration -w server
 
       - name: Artefactul (server/dist/app.js) — migrate, seed, pornire, health
