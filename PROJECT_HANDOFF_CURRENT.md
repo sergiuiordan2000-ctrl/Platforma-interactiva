@@ -57,7 +57,7 @@ Apoi verificările din 0.8.
 | 5.7 curățarea cheilor vechi din `localStorage` | închisă, pe staging | `FAZA_5_7_RAPORT.md` |
 | Amendament: autentificarea cetățeanului cu Google | **deciziile G-1…G-7 luate (05.10.2026); nimic implementat**; așteaptă domeniul Civic și checkpoint | `AMENDAMENT_AUTENTIFICARE_GOOGLE_PLAN.md` |
 
-Deciziile proprietarului din Faza 5 **nu sunt încă trecute în `PROJECT_RULES_AND_DECISIONS.md`** (care se oprește la §12, Faza 4). Ele se găsesc în planurile și rapoartele din `docs/faza5/`.
+Deciziile proprietarului din Faza 5 sunt rezumate în `PROJECT_RULES_AND_DECISIONS.md` §13 (din 07.10.2026). Sursa completă rămân planurile și rapoartele din `docs/faza5/`.
 
 ### 0.4 Staging (`civic-test.electrovolt.ro`)
 

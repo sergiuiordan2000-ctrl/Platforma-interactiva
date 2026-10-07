@@ -304,3 +304,46 @@ D9 **nu redeschide și nu modifică** D1, D3/D4, D6, D8, D10 V2, N-3 sau N-4. N3
 **Reguli din acest document înlocuite:** marcate „→ Faza 4” în §6 și în notele „Actualizare Faza 4” din §11. Codul actual le aplică pe cele vechi până la migrarea fiecărui domeniu în Faza 5.
 
 **Planul de Lucru Comun v1.1 și Master Planul** (în afara repository-ului) sunt amendate prin `docs/AMENDAMENTE_PLAN_V1_1_SI_MASTER_PLAN.md`; originalele nu se modifică.
+
+---
+
+## 13. Decizii Faza 5 — implementarea backend-ului (**în lucru**; consemnate la 07.10.2026)
+
+**Sursa completă:** planurile și rapoartele din `docs/faza5/`. Tabelele de mai jos sunt un rezumat: dacă se contrazic cu documentul-sursă, este valabil documentul-sursă.
+
+**Regula:** designul înghețat din Faza 4 (§12) rămâne valabil. Deciziile care îl modifică sau îl extind sunt marcate **[amendament]** și au fost luate explicit de proprietar.
+
+### 13.1 Decizii luate
+
+| Fază | Decizia proprietarului | Sursa |
+|---|---|---|
+| 5.1 | branch `faza-5-backend`; schema completă într-o singură migrație; backup R = 7 / 38 zile + listă de ID-uri; ghid Windows la nivelul „Minim”; GitHub Actions | `FAZA_5_1_RAPORT.md` §3 |
+| 5.1 | **G4:** staging pe `civic-test.electrovolt.ro`, cu condiția ca site-ul `electrovolt.ro` să nu fie afectat; verificările T-ISO-1…7 înainte și după orice intervenție pe hosting | `FAZA_5_1_RAPORT.md` §3; jurnalul de staging §2–§3 |
+| 5.1 | **5.1-A [abatere de la `00` §5]:** setările de staging stau într-un singur fișier (`CIVIC_ENV_FILE`, drepturi 600), în afara oricărui docroot, pentru că pe hosting nu există Terminal, iar cron nu vede variabilele aplicației | `FAZA_5_1_NOTE_IMPLEMENTARE.md` |
+| 5.2 | contul de cetățean: serverul și testele la 5.2, ecranele la 5.4; conturile Admin: ecran simplu (tab-ul „Conturi”); P7 / `R6D-SES-01` închis formal; `bootstrap-admin` pe staging prin „Run JS script”, nu prin cron (varianta A) | `FAZA_5_2_RAPORT.md` §3 |
+| 5.3 | comunicatele demo rămân fără imagine; lista imaginilor publicate pornește goală (varianta A) | `FAZA_5_3_RAPORT.md` §3 |
+| 5.4 | sesizările demo: prin `seed:demo`, cu retenția normală de 45 de zile; pozițiile și textele date de proprietar (varianta A) | `FAZA_5_4_RAPORT.md` §3 |
+| 5.4 | **ALTCHA la sesizări [amendament: extinderea contractelor B2]:** implementată, oprită implicit, pornită numai prin CLI (A + A1) | `FAZA_5_4_PLAN.md` §5 |
+| 5.4 | limita UAT: poligonul OSM (relația 10664112), verificat vizual de proprietar; pinul propus prin adresă și mutat devine punct exact (`pin`), nemutat rămâne zonă (`geocoded`) | `FAZA_5_4_RAPORT.md` §3 |
+| 5.4 | **sesiunea de cetățean nu expiră (varianta B):** se încheie numai prin „Ieșire”, ștergerea contului sau revocare; cookie persistent de 400 de zile, reînnoit la fiecare folosire. Înlocuiește, numai pentru cetățeni, valorile din B3 §8 (DN-15). Sesiunea Admin rămâne 60 min / 12 h. Risc acceptat: un telefon pierdut rămâne autentificat până la ștergerea contului | `FAZA_5_4_PLAN.md` §5; `FAZA_5_4_RAPORT.md` §3 |
+| 5.4 | rotirea secretelor de pe staging (varianta A): parola DB și cele 4 chei „ușoare” imediat; `TOTP_ENC_KEY` separat, planificat | `FAZA_5_4_ROTIRE_SECRETE_PLAN.md` |
+| 5.5 | 5.5 se împarte: **5.5a** = codul și testele; **5.5b** = testul real pe staging (`allowlist`), după alegerea domeniului Civic. Modul `live` rămâne pentru producție | `FAZA_5_5_PLAN.md` |
+| 5.5 | configurație SMTP invalidă → `simulated`, cu eroarea în jurnal; numai antetul `List-Unsubscribe`; `smtp-server` aprobat ca dependență de test; furnizor SMTP: **Brevo** (N3-2) | `FAZA_5_5_PLAN.md` §4; `FAZA_5_5B_GHID.md` |
+| 5.6 | P-1: un sondaj închis rămâne închis definitiv. P-2: marcajul de integritate este public numai în arhivă. P-3: textul N4-1 aprobat. P-4: sondajul demo activ până la 30.06.2027, cu voturi demo la cel închis. P-5: data și ora, în ora României. P-6: vizibilitatea rezultatelor se blochează după primul vot. P-7: timp minim 6 s; cel mult 10 voturi / oră / rețea / sondaj; 300 / oră global. T-1…T-9: aprobate integral | `FAZA_5_6_PLAN.md` §3–§4; `FAZA_5_6_RAPORT.md` §3 |
+| 05.10 | **Autentificarea cetățeanului cu Google [amendament; neimplementat]:** G-1 Google este prima variantă pe ecran; G-2 se cere numai e-mailul; G-3 același cont ca la cod, după e-mailul verificat; G-4 testare numai pe domeniul Civic; G-6 după 5.5b, cu checkpoint propriu; G-7 limita de coduri rămâne 3 pe zi pe adresă, cu rândul despre ea afișat mereu în formular | `AMENDAMENT_AUTENTIFICARE_GOOGLE_PLAN.md` §6 |
+| 06.10 | **Cheia `TOTP_ENC_KEY`:** lucrul împărțit în pasul A (comanda, testele, modul de probă; făcut) și pasul B (rularea reală pe staging; decizie separată). Comanda se oprește dacă există blocări active rămase fără cont și nu șterge nimic singură | `FAZA_5_4_ROTIRE_TOTP_PLAN.md` §0 |
+| 06.10 | **Locația în formularul de sesizare [amendament]:** un singur câmp de adresă, „Caută pe hartă”, întrebarea la trimiterea fără pin (varianta 1). Pinul rămâne opțional (D6-2) | `AMENDAMENT_LOCATIE_FORMULAR.md` |
+| 06.10 | **Tab de anunțuri / vânzări: respins.** Nu se reia fără cererea proprietarului | comunicată de proprietar la 06.10.2026 |
+
+### 13.2 Decizii deschise (neluate la 07.10.2026)
+
+| Subiect | Starea |
+|---|---|
+| Numele aplicației și domeniul Civic (G7) | nedecise; de ele depind 5.5b și amendamentul Google |
+| Hostingul de producție (G6) | neales; recomandare: separat de contul Electrovolt |
+| Pasul B al cheii `TOTP_ENC_KEY` | nedecis; aprobarea pasului A nu obligă la pasul B |
+| G-5: verificarea juridică a textului despre Google din politica de utilizare | proprietarul nu s-a pronunțat |
+| Sesizările despre vecini apar public, cu descriere și loc | întrebare de produs și juridică (`FAZA_5_4_RAPORT.md` §6) |
+| Respingerile de vot și contoarele din tabloul de bord | există pe server, fără ecran în Admin |
+| O blocare definitivă rămasă fără cont | nu poate fi ridicată din Admin (`FAZA_5_4_ROTIRE_TOTP_PLAN.md`, corecția din 06.10.2026) |
+| Codurile TOTP ale celor două conturi `super_admin` | al doilea cont există din 06.10.2026 (jurnalul de staging §15); ambele coduri TOTP sunt pe același telefon; recomandare deschisă: unul dintre ele pe alt dispozitiv |
