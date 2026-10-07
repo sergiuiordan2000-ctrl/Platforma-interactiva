@@ -23,8 +23,10 @@ function safeParse(s: string): unknown {
 }
 
 export async function setSetting(conn: Conn, key: string, value: unknown, at: Date, by: string | null): Promise<void> {
+  // Textul JSON se trimite ca șir: și MySQL, și MariaDB îl validează la scrierea într-o coloană JSON.
+  // `CAST(? AS JSON)` există numai în MySQL.
   await conn.query(
-    'INSERT INTO settings (`key`, `value`, updated_at, updated_by) VALUES (?, CAST(? AS JSON), ?, ?) ' +
+    'INSERT INTO settings (`key`, `value`, updated_at, updated_by) VALUES (?, ?, ?, ?) ' +
       'ON DUPLICATE KEY UPDATE `value` = VALUES(`value`), updated_at = VALUES(updated_at), updated_by = VALUES(updated_by)',
     [key, JSON.stringify(value), at, by],
   );

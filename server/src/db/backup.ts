@@ -82,12 +82,33 @@ const sqlDate = (d: Date) => d.toISOString().replace('T', ' ').replace('Z', '');
 
 type ColumnInfo = { name: string; type: string };
 
+/**
+ * MariaDB: `JSON` este un alias pentru LONGTEXT cu o constrângere `CHECK (json_valid(col))`, iar
+ * information_schema raportează „longtext”. Coloanele acestea se recunosc după constrângere și se tratează
+ * ca JSON, la fel ca pe MySQL (unde DATA_TYPE = „json”). Pe MySQL, funcția întoarce o mulțime goală.
+ */
+async function mariadbJsonColumns(conn: mysql.Connection, table: string): Promise<Set<string>> {
+  const [v] = await conn.query('SELECT VERSION() AS v');
+  if (!/mariadb/i.test(String((v as Array<{ v: string }>)[0]!.v))) return new Set();
+  const [rows] = await conn.query(
+    'SELECT CHECK_CLAUSE AS clause FROM information_schema.CHECK_CONSTRAINTS WHERE CONSTRAINT_SCHEMA = DATABASE() AND TABLE_NAME = ?',
+    [table],
+  );
+  const out = new Set<string>();
+  for (const { clause } of rows as Array<{ clause: string }>) {
+    const m = /^json_valid\(`([^`]+)`\)$/i.exec(String(clause).trim());
+    if (m) out.add(m[1]!);
+  }
+  return out;
+}
+
 async function tableColumns(conn: mysql.Connection, table: string): Promise<ColumnInfo[]> {
   const [rows] = await conn.query(
     'SELECT COLUMN_NAME AS name, DATA_TYPE AS type FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? ORDER BY ORDINAL_POSITION',
     [table],
   );
-  return rows as ColumnInfo[];
+  const json = await mariadbJsonColumns(conn, table);
+  return (rows as ColumnInfo[]).map((c) => (json.has(c.name) ? { name: c.name, type: 'json' } : c));
 }
 
 /** SELECT-ul fiecărui tabel, cu fereastra aplicată. `?` = reportsFrom, `??` înlocuit mai jos. */

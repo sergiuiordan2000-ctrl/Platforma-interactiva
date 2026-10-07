@@ -200,7 +200,7 @@ describe('restore:db (T-D1)', () => {
     // conținutul copiat integral este identic, rând cu rând
     assert.deepEqual(await checksums(), checksumsBefore);
     // JSON null (setare nesetată) rămâne JSON null, nu NULL SQL
-    assert.equal(await n("SELECT COUNT(*) AS n FROM settings WHERE `key` = 'registry.recipient_email' AND value = CAST('null' AS JSON)"), 1);
+    assert.equal(await n("SELECT COUNT(*) AS n FROM settings WHERE `key` = 'registry.recipient_email' AND JSON_TYPE(value) = 'NULL'"), 1);
     // datele binare (secretul TOTP criptat) rămân identice
     assert.equal(await n("SELECT COUNT(*) AS n FROM admin_users WHERE totp_secret_enc = UNHEX('00FF10')"), 1);
 

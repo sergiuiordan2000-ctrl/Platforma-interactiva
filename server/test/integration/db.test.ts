@@ -53,7 +53,8 @@ describe('migrații pe DB gol (DN-20)', () => {
     const rows = await q<{ t: string; e: string; c: string }>(
       "SELECT TABLE_NAME AS t, ENGINE AS e, TABLE_COLLATION AS c FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() ORDER BY TABLE_NAME",
     );
-    const names = rows.map((r) => r.t).filter((t) => t !== MIGRATIONS_TABLE);
+    // ordinea se stabilește aici, nu în SQL: `ORDER BY TABLE_NAME` din information_schema diferă între MySQL și MariaDB
+    const names = rows.map((r) => r.t).filter((t) => t !== MIGRATIONS_TABLE).sort();
     assert.deepEqual(names, drizzleTables().map((t) => getTableConfig(t).name).sort());
     assert.equal(names.length, 30);
     for (const r of rows) {
@@ -125,16 +126,18 @@ describe('seed-uri (B1 §5.3, D10)', () => {
     assert.deepEqual(ids, ['iluminat', 'drumuri', 'trotuare', 'apa_canal', 'salubritate', 'spatii_verzi', 'semnalizare', 'altele']);
     const mode = await q<{ v: string }>("SELECT JSON_UNQUOTE(value) AS v FROM settings WHERE `key` = 'registry.primaria_mode'");
     assert.equal(mode[0]!.v, 'none');
-    const flow = await q<{ v: number }>("SELECT value = CAST('false' AS JSON) AS v FROM settings WHERE `key` = 'registry.flow_enabled'");
-    assert.equal(Number(flow[0]!.v), 1);
+    // valoarea JSON `false`, verificată prin tipul și textul ei (`CAST(… AS JSON)` există numai în MySQL)
+    const flow = await q<{ t: string; v: string }>("SELECT JSON_TYPE(value) AS t, JSON_UNQUOTE(value) AS v FROM settings WHERE `key` = 'registry.flow_enabled'");
+    assert.equal(flow[0]!.t, 'BOOLEAN');
+    assert.equal(flow[0]!.v, 'false');
   });
 
   it('seed:config nu suprascrie o setare schimbată de administrator', async () => {
-    await h.pool.query("UPDATE settings SET value = CAST('\"platform\"' AS JSON) WHERE `key` = 'registry.primaria_mode'");
+    await h.pool.query("UPDATE settings SET value = ? WHERE `key` = 'registry.primaria_mode'", [JSON.stringify('platform')]);
     await seedConfig(h.pool, SEEDS_DIR);
     const mode = await q<{ v: string }>("SELECT JSON_UNQUOTE(value) AS v FROM settings WHERE `key` = 'registry.primaria_mode'");
     assert.equal(mode[0]!.v, 'platform');
-    await h.pool.query("UPDATE settings SET value = CAST('\"none\"' AS JSON) WHERE `key` = 'registry.primaria_mode'");
+    await h.pool.query("UPDATE settings SET value = ? WHERE `key` = 'registry.primaria_mode'", [JSON.stringify('none')]);
   });
 
   it('seed:demo este refuzat în producție (D10-4), fără nicio scriere', async () => {

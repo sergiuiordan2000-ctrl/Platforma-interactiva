@@ -19,7 +19,8 @@ with backend_server(5999) as BACKEND, sync_playwright() as pw:
     errors = []
     try:
         # ALTCHA pornită, ca prin comanda `settings:report-pow on`
-        db_exec("INSERT INTO settings (`key`, `value`, updated_at, updated_by) VALUES ('reports.pow_enabled', CAST('true' AS JSON), NOW(), NULL) "
+        # valoarea este textul JSON `true` (`CAST(… AS JSON)` există numai în MySQL, nu și în MariaDB)
+        db_exec("INSERT INTO settings (`key`, `value`, updated_at, updated_by) VALUES ('reports.pow_enabled', 'true', NOW(), NULL) "
                 "ON DUPLICATE KEY UPDATE `value` = VALUES(`value`), updated_at = VALUES(updated_at)")
         ctx = b.new_context(viewport={'width': 430, 'height': 900})
         ctx.route('https://*.tile.openstreetmap.org/**', lambda r: r.abort())

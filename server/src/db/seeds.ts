@@ -39,9 +39,10 @@ export async function seedConfig(pool: mysql.Pool, seedsDir: string): Promise<Se
     }
     for (const s of settings) {
       // setările modificate de administrator nu se suprascriu
+      // textul JSON se trimite ca șir (`CAST(? AS JSON)` există numai în MySQL; vezi `setSetting`)
       await conn.query(
         `INSERT INTO settings (\`key\`, \`value\`, updated_at, updated_by)
-         VALUES (?, CAST(? AS JSON), UTC_TIMESTAMP(3), NULL)
+         VALUES (?, ?, UTC_TIMESTAMP(3), NULL)
          ON DUPLICATE KEY UPDATE \`key\` = \`key\``,
         [s.key, JSON.stringify(s.value)],
       );
