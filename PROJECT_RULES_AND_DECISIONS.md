@@ -139,6 +139,8 @@ Reguli de lucru obligatorii pentru toate etapele viitoare, indiferent de asisten
 
 **Rămân deschise (nu blochează N-2):** infrastructura de producție (G6; Basic Plus este exclus pentru producție: Node 20 și MySQL 8.0 sunt în afara suportului din 30.04.2026), numele staging-ului (G4), domeniul Civic (G7). Producția cu date reale va fi **separată de contul Electrovolt**.
 
+**Actualizare Faza 5 (07.10.2026):** **G2** — baza de date de producție este **MariaDB 11.4**, nu MySQL 8.4; MySQL rămâne suportat (staging, CI). **G6** — găzduirea de producție: ClausWeb, cont separat de cel al `electrovolt.ro`. **G7** — domeniul: `urbisactiv.ro`; numele aplicației: „Urbis Activ”. Detalii: `docs/faza5/AMENDAMENT_MARIADB_SI_GAZDUIRE.md` și §13.
+
 **Aprobarea N-2 nu autorizează** nicio acțiune pe hosting, DNS, DB sau VPS și nicio modificare de cod. Acestea se fac numai în fazele planului, cu aprobare explicită.
 
 ### 11.2 N-3 — E-mail (**închisă**, aprobată de proprietar la 27.09.2026)
@@ -334,13 +336,17 @@ D9 **nu redeschide și nu modifică** D1, D3/D4, D6, D8, D10 V2, N-3 sau N-4. N3
 | 06.10 | **Cheia `TOTP_ENC_KEY`:** lucrul împărțit în pasul A (comanda, testele, modul de probă; făcut) și pasul B (rularea reală pe staging; decizie separată). Comanda se oprește dacă există blocări active rămase fără cont și nu șterge nimic singură | `FAZA_5_4_ROTIRE_TOTP_PLAN.md` §0 |
 | 06.10 | **Locația în formularul de sesizare [amendament]:** un singur câmp de adresă, „Caută pe hartă”, întrebarea la trimiterea fără pin (varianta 1). Pinul rămâne opțional (D6-2) | `AMENDAMENT_LOCATIE_FORMULAR.md` |
 | 06.10 | **Tab de anunțuri / vânzări: respins.** Nu se reia fără cererea proprietarului | comunicată de proprietar la 06.10.2026 |
+| 07.10 | **G7: numele aplicației este „Urbis Activ”; domeniul este `urbisactiv.ro`**, înregistrat pe firma proprietarului | `AMENDAMENT_MARIADB_SI_GAZDUIRE.md` §1 |
+| 07.10 | **G6: găzduirea de producție este ClausWeb** (plan „NodeJS1” cu cPanel, IP dedicat, „Remote SMTP”), cont separat de cel al `electrovolt.ro` | `AMENDAMENT_MARIADB_SI_GAZDUIRE.md` §1–§2 |
+| 07.10 | **Baza de date de producție: MariaDB 11.4 [amendament la G2]**; MySQL rămâne suportat. Codul adaptat și testat pe ambele (`91a43b6`) | `AMENDAMENT_MARIADB_SI_GAZDUIRE.md` §1, §3 |
 
 ### 13.2 Decizii deschise (neluate la 07.10.2026)
 
 | Subiect | Starea |
 |---|---|
-| Numele aplicației și domeniul Civic (G7) | nedecise; de ele depind 5.5b și amendamentul Google |
-| Hostingul de producție (G6) | neales; recomandare: separat de contul Electrovolt |
+| MariaDB 11.4 în CI | nefăcut; propunere în `AMENDAMENT_MARIADB_SI_GAZDUIRE.md` §4 |
+| Mutarea staging-ului pe găzduirea nouă și retragerea celui vechi (G3) | nedecisă |
+| Redenumirea în „Urbis Activ” în interfață, documente și repository | nedecisă |
 | Pasul B al cheii `TOTP_ENC_KEY` | nedecis; aprobarea pasului A nu obligă la pasul B |
 | G-5: verificarea juridică a textului despre Google din politica de utilizare | proprietarul nu s-a pronunțat |
 | Sesizările despre vecini apar public, cu descriere și loc | întrebare de produs și juridică (`FAZA_5_4_RAPORT.md` §6) |

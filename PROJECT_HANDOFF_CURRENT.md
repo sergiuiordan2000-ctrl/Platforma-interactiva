@@ -52,10 +52,11 @@ Apoi verificările din 0.8.
 | 5.3 conținutul public pe API | închisă, checkpoint aprobat | `FAZA_5_3_RAPORT.md` |
 | 5.4 sesizări | închisă; **raportul este la ChatGPT, răspunsul nu a venit** | `FAZA_5_4_RAPORT.md` |
 | 5.5a e-mail (codul) | gata | `FAZA_5_5_PLAN.md` |
-| **5.5b e-mail real pe staging (Brevo)** | **așteaptă domeniul Civic** (proprietarul îl cumpără) | `FAZA_5_5B_GHID.md` |
+| **5.5b e-mail real (Brevo)** | domeniul există din 07.10.2026 (`urbisactiv.ro`); **neînceput**; ghidul trebuie adaptat la găzduirea nouă | `FAZA_5_5B_GHID.md` |
 | 5.6 sondaje (server, interfață, teste, staging) | închisă tehnic la 05.10.2026; **raportul trebuie trimis la ChatGPT** | `FAZA_5_6_PLAN.md` §6–§12, `FAZA_5_6_RAPORT.md` |
 | 5.7 curățarea cheilor vechi din `localStorage` | închisă, pe staging | `FAZA_5_7_RAPORT.md` |
-| Amendament: autentificarea cetățeanului cu Google | **deciziile G-1…G-7 luate (05.10.2026); nimic implementat**; așteaptă domeniul Civic și checkpoint | `AMENDAMENT_AUTENTIFICARE_GOOGLE_PLAN.md` |
+| Amendament: autentificarea cetățeanului cu Google | **deciziile G-1…G-7 luate (05.10.2026); nimic implementat**; așteaptă 5.5b și checkpoint | `AMENDAMENT_AUTENTIFICARE_GOOGLE_PLAN.md` |
+| Amendament: numele, domeniul, găzduirea de producție și MariaDB 11.4 | **decis la 07.10.2026**; cod adaptat și testat local (`91a43b6`); aplicația nu este instalată pe găzduirea nouă; netrimis la audit | `AMENDAMENT_MARIADB_SI_GAZDUIRE.md` |
 
 Deciziile proprietarului din Faza 5 sunt rezumate în `PROJECT_RULES_AND_DECISIONS.md` §13 (din 07.10.2026). Sursa completă rămân planurile și rapoartele din `docs/faza5/`.
 
@@ -79,8 +80,8 @@ Deciziile proprietarului din Faza 5 sunt rezumate în `PROJECT_RULES_AND_DECISIO
 
 ### 0.6 Ce urmează
 
-1. **Proprietarul:** cumpără domeniul Civic; trimite la ChatGPT planul Google, raportul 5.7 și cele două documente din 06.10.2026 (cheia TOTP, locația în formular). Raportul 5.6 a fost trimis la 06.10.2026; rezultatul relatat de proprietar: „e ok” (`FAZA_5_6_RAPORT.md` §7).
-2. **După domeniu:** 5.5b (Brevo, `FAZA_5_5B_GHID.md`), apoi amendamentul Google (după checkpoint).
+1. **Proprietarul:** domeniul este cumpărat (`urbisactiv.ro`, 07.10.2026); trimite la ChatGPT planul Google, raportul 5.7, cele două documente din 06.10.2026 (cheia TOTP, locația în formular) și amendamentul din 07.10.2026 (numele, domeniul, găzduirea, MariaDB 11.4). Raportul 5.6 a fost trimis la 06.10.2026; rezultatul relatat de proprietar: „e ok” (`FAZA_5_6_RAPORT.md` §7).
+2. **Urmează:** 5.5b (Brevo, `FAZA_5_5B_GHID.md`, de adaptat la găzduirea nouă), apoi amendamentul Google (după checkpoint).
 3. **Cheia TOTP pe staging:** proba a trecut (jurnal §13), iar al doilea `super_admin` există din 06.10.2026 (jurnal §15); rularea reală (pasul B) este o decizie separată a proprietarului, neluată (`FAZA_5_4_ROTIRE_TOTP_PLAN.md` §0, §4).
 4. **Închiderea Fazei 5:** raport final, după 5.5b și checkpoint-uri. Apoi Faza 6 și Etapa 7A–7F, conform Planului de Lucru Comun v1.1 (planul nu este în repository).
 
