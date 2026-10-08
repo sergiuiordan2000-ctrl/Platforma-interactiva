@@ -4,7 +4,8 @@
 //   rămâne în audit, actor `system`, T-E1); 5.6: textele libere ale sondajelor la 6 luni de la închidere (T-7).
 // - fișierele temporare orfane ale fotografiilor (> 1 h, B5 §1);
 // - 5.5a: e-mailurile fără sesizare (codurile de cont) la 45 de zile (B6 §6, N3-8);
-// - provocările proof-of-work expirate.
+// - provocările proof-of-work expirate;
+// - amendamentul Google: încercările OAuth expirate (`citizen_oauth_attempts`).
 
 import { readdir, rm, stat } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -23,6 +24,8 @@ export interface RetentionResult {
   accountEmails: number;
   /** 5.6 (A05-2, A06-1, T-7): răspunsurile libere golite la 6 luni de la închiderea sondajului. */
   surveyFreeTexts: number;
+  /** Amendamentul Google (§8 D, §11.3): încercările OAuth expirate (folosite sau nu). */
+  oauthAttempts: number;
 }
 
 export async function purgeRetention(ctx: AppContext): Promise<RetentionResult> {
@@ -58,6 +61,8 @@ export async function purgeRetention(ctx: AppContext): Promise<RetentionResult> 
   const [mails] = await ctx.pool.query('DELETE FROM email_outbox WHERE report_id IS NULL AND created_at < ?', [mailCutoff]);
   // 6. textele libere ale sondajelor (T-7): text_value = NULL; numărul răspunsurilor rămâne
   const surveyFreeTexts = await purgeSurveyFreeTexts(ctx);
+  // 7. amendamentul Google: încercările OAuth expirate (10 minute de la pornire), folosite sau nu
+  const [oauth] = await ctx.pool.query('DELETE FROM citizen_oauth_attempts WHERE expires_at < ?', [now]);
   return {
     reports: ids.length,
     photoFiles,
@@ -66,6 +71,7 @@ export async function purgeRetention(ctx: AppContext): Promise<RetentionResult> 
     tmpFiles,
     accountEmails: (mails as { affectedRows: number }).affectedRows,
     surveyFreeTexts,
+    oauthAttempts: (oauth as { affectedRows: number }).affectedRows,
   };
 }
 

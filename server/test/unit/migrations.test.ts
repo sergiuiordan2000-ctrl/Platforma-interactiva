@@ -38,18 +38,23 @@ describe('migrații (DN-20): fișiere și comparare', () => {
     const files = readMigrationFiles(MIGRATIONS_DIR);
     const empty = compare(files, []);
     assert.equal(empty.ok, false);
-    assert.deepEqual(empty.pending, [1]);
-    const done = compare(files, [{ version: 1, name: 'initial_schema', checksum: files[0]!.checksum }]);
+    // toate migrațiile (0001; 0002 = amendamentul Google, 08.10.2026)
+    assert.deepEqual(empty.pending, files.map((f) => f.version));
+    assert.deepEqual(files.map((f) => f.version), [1, 2]);
+    const applied = files.map((f) => ({ version: f.version, name: f.name, checksum: f.checksum }));
+    assert.equal(compare(files, applied.slice(0, 1)).ok, false, 'numai 0001 aplicată → în așteptare');
+    assert.deepEqual(compare(files, applied.slice(0, 1)).pending, [2]);
+    const done = compare(files, applied);
     assert.equal(done.ok, true);
-    assert.equal(done.currentVersion, 1);
+    assert.equal(done.currentVersion, files.length);
   });
 
   it('comparare: migrație modificată sau versiune necunoscută → refuz', () => {
     const files = readMigrationFiles(MIGRATIONS_DIR);
     assert.equal(compare(files, [{ version: 1, name: 'initial_schema', checksum: 'x'.repeat(64) }]).ok, false);
     const extra = compare(files, [
-      { version: 1, name: 'initial_schema', checksum: files[0]!.checksum },
-      { version: 2, name: 'viitor', checksum: 'y'.repeat(64) },
+      ...files.map((f) => ({ version: f.version, name: f.name, checksum: f.checksum })),
+      { version: files.length + 1, name: 'viitor', checksum: 'y'.repeat(64) },
     ]);
     assert.equal(extra.ok, false);
     assert.match(extra.problems.join(' '), /necunoscută/);

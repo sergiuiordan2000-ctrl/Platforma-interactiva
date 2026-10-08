@@ -1,4 +1,5 @@
-// Schema completă: 30 de tabele (docs/faza4/FAZA_4_B1_MODEL_DATE.md §7).
+// Schema completă: 30 de tabele (docs/faza4/FAZA_4_B1_MODEL_DATE.md §7) + `citizen_oauth_attempts`
+// (amendamentul Google, §11.3; migrația 0002) = 31.
 
 export * from './admin.ts';
 export * from './citizens.ts';

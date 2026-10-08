@@ -13,12 +13,15 @@ const B1_TABLES = [
   'surveys', 'survey_questions', 'survey_options', 'survey_submissions', 'survey_answers',
   'email_outbox', 'rate_limits', 'rejected_attempts', 'used_pow_challenges',
 ].sort();
+// adăugări la B1 prin amendamente aprobate (o migrație nouă fiecare)
+const AMENDMENT_TABLES = ['citizen_oauth_attempts']; // amendamentul Google §11.3 (08.10.2026), migrația 0002
 
 describe('schema Drizzle (B1)', () => {
-  it('conține exact cele 30 de tabele din B1 §7', () => {
+  it('conține exact cele 30 de tabele din B1 §7 + tabelele adăugate prin amendamente', () => {
     const names = drizzleTables().map((t) => getTableConfig(t).name).sort();
-    assert.equal(names.length, 30);
-    assert.deepEqual(names, B1_TABLES);
+    assert.equal(B1_TABLES.length, 30);
+    assert.equal(names.length, 30 + AMENDMENT_TABLES.length);
+    assert.deepEqual(names, [...B1_TABLES, ...AMENDMENT_TABLES].sort());
   });
 
   it('is_demo există pe entitățile de conținut (D10-3)', () => {

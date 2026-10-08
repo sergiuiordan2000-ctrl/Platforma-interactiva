@@ -39,9 +39,10 @@ describe('migrații pe DB gol (DN-20)', () => {
     assert.equal(st.currentVersion, 0);
   });
 
-  it('prima rulare aplică 0001; a doua nu schimbă nimic', async () => {
+  it('prima rulare aplică toate migrațiile (0001, 0002); a doua nu schimbă nimic', async () => {
     const first = await migrate(h.pool, MIGRATIONS_DIR);
-    assert.deepEqual(first.applied, ['0001_initial_schema.sql']);
+    // 0002: amendamentul Google §11.3 (08.10.2026)
+    assert.deepEqual(first.applied, ['0001_initial_schema.sql', '0002_citizen_oauth_attempts.sql']);
     const before2 = await q('SELECT TABLE_NAME, UPDATE_TIME FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() ORDER BY TABLE_NAME');
     const second = await migrate(h.pool, MIGRATIONS_DIR);
     assert.deepEqual(second.applied, []);
@@ -49,14 +50,14 @@ describe('migrații pe DB gol (DN-20)', () => {
     assert.equal((await schemaStatus(h.pool, MIGRATIONS_DIR)).ok, true);
   });
 
-  it('DB-ul are exact cele 30 de tabele + tabelul tehnic al migrațiilor, InnoDB utf8mb4_0900_ai_ci', async () => {
+  it('DB-ul are exact cele 30 de tabele B1 + 1 din amendamentul Google + tabelul tehnic al migrațiilor, InnoDB utf8mb4_0900_ai_ci', async () => {
     const rows = await q<{ t: string; e: string; c: string }>(
       "SELECT TABLE_NAME AS t, ENGINE AS e, TABLE_COLLATION AS c FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() ORDER BY TABLE_NAME",
     );
     // ordinea se stabilește aici, nu în SQL: `ORDER BY TABLE_NAME` din information_schema diferă între MySQL și MariaDB
     const names = rows.map((r) => r.t).filter((t) => t !== MIGRATIONS_TABLE).sort();
     assert.deepEqual(names, drizzleTables().map((t) => getTableConfig(t).name).sort());
-    assert.equal(names.length, 30);
+    assert.equal(names.length, 31);
     for (const r of rows) {
       assert.equal(r.e, 'InnoDB', r.t);
       assert.equal(r.c, 'utf8mb4_0900_ai_ci', r.t);

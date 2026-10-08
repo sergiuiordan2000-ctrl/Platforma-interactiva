@@ -81,7 +81,7 @@ După Google, rezultatul este același ca după cod: sesiunea de cetățean exis
 ## 7. Pași
 
 1. ~~Aprobarea deciziilor G-1…G-7~~ (făcut, 05.10.2026). ~~Checkpoint ChatGPT pe direcție și arhitectură~~ (făcut, 08.10.2026, cu clarificările A–D din §8, trecute și în RULES §13.1). ~~Checkpoint pe §8–§9 și decizia §9.1~~ (făcut, 08.10.2026). ~~Clarificările `POST` și `Path=/`~~ (§11).
-2. Server: rutele, verificarea jetonului, setările, testele (G-T1…G-T10).
+2. Server: rutele, verificarea jetonului, setările, testele (G-T1…G-T10). **Făcut 08.10.2026, necomis la data scrierii (§12).**
 3. Interfață: butonul, ordinea pe ecran, mesajele de eroare, E2E.
 4. Politica de utilizare actualizată (G-5).
 5. Proprietarul: înregistrarea în Google Cloud Console (ghid la execuție).
@@ -155,3 +155,20 @@ Prefixul `__Host-` face ca browserul să refuze cookie-ul dacă lipsește `Secur
 Acceptată de proprietar la 08.10.2026 ca **adăugare explicită la B1**. Justificare: folosirea unică a `state`, verificată pe server și atomic (§8 D). Se adaugă printr-o migrare nouă. Migrarea inițială nu se modifică. Conține numai date generate de noi, temporare: hash-ul `state`, `nonce`, verificatorul PKCE, versiunea politicii acceptate, `created_at`, `expires_at`, `consumed_at`. **Fără date Google** (fără e-mail, fără `sub`, fără jetoane). Încercările expirate sau folosite se șterg prin `purge:retention`. Compatibilitatea cu MariaDB 11.4 și MySQL 8 este acoperită de testele de integrare și de jobul CI pe MariaDB.
 
 **Fără alte modificări de design.**
+
+## 12. Implementarea serverului (pasul 2; 08.10.2026)
+
+**Fișiere noi:** `server/migrations/0002_citizen_oauth_attempts.sql`; `server/src/auth/googleOAuth.ts` (furnizorul Google, PKCE, verificarea locală a jetonului cu `node:crypto`, fără dependențe noi); `server/src/routes/citizenGoogle.ts` (cele două rute); `server/test/integration/citizenGoogle.test.ts` (33 de teste, furnizor fals local, fără apeluri la Google).
+**Fișiere modificate:** `config.ts` (`GOOGLE_OAUTH_CLIENT_ID` / `_SECRET`: ambele sau niciuna, altfel aplicația nu pornește; mesajul nu conține valorile); `context.ts` (furnizorul înlocuibil în teste; limitele); `schema/citizens.ts` + `schema/index.ts` (tabela, în Drizzle); `maintenance.ts` (`purge:retention` șterge încercările expirate); `app.ts` (înregistrarea rutelor; jurnalul cererilor nu conține `code` / `state` din întoarcere); `shared/src/auth.ts` (schema corpului `start`); `.env.example`.
+
+**Teste existente adaptate (explicație):** `schema.test.ts`, `db.test.ts` și `migrations.test.ts` presupuneau exact 30 de tabele și o singură migrație. Acum verifică cele 30 de tabele B1 **plus** lista explicită a tabelelor adăugate prin amendamente (`citizen_oauth_attempts`), respectiv migrațiile 0001 + 0002. Ce verificau a rămas neschimbat (lista exactă de tabele, motorul, colațiunea, coloanele, cheile străine, refuzul unei migrații modificate sau necunoscute). Numărul cheilor străine rămâne 34, pentru că tabela nouă nu are chei străine.
+
+**Probe de control** (codul stricat intenționat, pe copii, apoi refăcut): A (fără verificarea bifei la `start`; fără verificarea versiunii la întoarcere), B (`email_verified` acceptat ca valoare „adevărată” oarecare; semnătura neverificată; `nonce` neverificat), C (`sub` scris în audit), D (fără `consumed_at IS NULL`; fără expirare; cookie neverificat; `SameSite=Strict`; cookie neșters la întoarcere). Fiecare a făcut să pice cel puțin testul corespunzător. **Constatare la proba D (folosire multiplă):** testul inițial trecea și cu codul stricat, pentru că cele două întoarceri aveau loc la aceeași oră a ceasului de test, iar MySQL raportează 0 rânduri modificate când valoarea nu se schimbă. Testul a fost întărit (ceasul avansează un minut între cele două întoarceri); proba refăcută pică, cum trebuie.
+
+**Rezultate:** suita backend completă, local, pe MySQL 8.0: **252/252**. Lint (frontend, server, shared) și build-urile: OK. MariaDB 11.4: prin jobul CI, după push.
+
+**De decis / de știut înainte de pasul 3 (interfața):**
+1. **Cum află interfața dacă butonul Google trebuie afișat** (G-T7: fără configurare, butonul nu apare). Nu există încă o rută pentru asta, iar adăugarea ei ar fi o rută nouă, în afara celor două din plan. Variante: (a) o rută de citire, fără efect, de exemplu `GET /citizen/auth/google` → 200 `{ enabled: true }` / 404; (b) interfața afișează butonul mereu, iar dacă pornirea răspunde 404, afișează „indisponibil”. Recomandarea lui Claude: (a).
+2. **Auditul (G-T9).** Planul spune „audit: autentificare reușită / refuzată”. Autentificarea prin cod nu scrie în `audit_log`, care este auditul administrativ (B4 §5: actor `admin` sau `system`). Implementarea a urmat același comportament ca la cod: refuzurile sunt numărate agregat în `rejected_attempts` (`citizen_code`, `target_id = google`, fără e-mail și fără `sub`), iar reușitele nu se scriu în audit. Dacă se dorește audit pentru fiecare autentificare cu Google, cere o decizie (date personale noi în audit).
+3. **Motivele la refuz:** întoarcerea redirecționează la `/#sesizari?google=eroare|anulat|blocat|limita`. Mesajele afișate se stabilesc la pasul 3.
+4. **Pe staging, după deploy, trebuie rulată migrația 0002** (`migrate`, ca la instalare): fără ea, aplicația refuză să pornească (schema nu este la versiunea cerută).

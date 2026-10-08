@@ -42,6 +42,12 @@ export const citizenStartRequest = z.strictObject({
   policyVersion: z.string().trim().min(1).max(32).optional(),
 });
 
+/** Amendamentul Google (§8 A, §11.1): pornirea fluxului; bifa politicii se verifică pe server la fiecare pornire. */
+export const citizenGoogleStartRequest = z.strictObject({
+  policyAccepted: z.boolean().optional(),
+  policyVersion: z.string().trim().min(1).max(32).optional(),
+});
+
 export const citizenVerifyRequest = z.strictObject({
   email: emailSchema,
   code: z.string().regex(/^\d{6}$/),

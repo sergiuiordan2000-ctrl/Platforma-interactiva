@@ -111,6 +111,9 @@ const EnvSchema = z
     UAT_BOUNDARY_FILE: optionalText,
     GEOCODER_URL: optionalText,
     GEOCODER_USER_AGENT: optionalText,
+    // amendamentul Google (G-T7): ambele sau niciuna; fără ele, autentificarea cu Google este oprită (rutele → 404)
+    GOOGLE_OAUTH_CLIENT_ID: optionalText,
+    GOOGLE_OAUTH_CLIENT_SECRET: optionalText,
     RETENTION_DAYS: intFromEnv(APPROVED_RETENTION_DAYS, 1, APPROVED_RETENTION_DAYS),
     ADMIN_RETENTION_MONTHS: intFromEnv(
       APPROVED_ADMIN_RETENTION_MONTHS,
@@ -131,6 +134,13 @@ const EnvSchema = z
       });
     }
     // E-mailul (B6 §2): o configurație incompletă / invalidă NU oprește aplicația → `simulated` (emailProblems)
+    if (Boolean(env.GOOGLE_OAUTH_CLIENT_ID) !== Boolean(env.GOOGLE_OAUTH_CLIENT_SECRET)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: [env.GOOGLE_OAUTH_CLIENT_ID ? 'GOOGLE_OAUTH_CLIENT_SECRET' : 'GOOGLE_OAUTH_CLIENT_ID'],
+        message: 'GOOGLE_OAUTH_CLIENT_ID și GOOGLE_OAUTH_CLIENT_SECRET se setează împreună',
+      });
+    }
   });
 
 export type Config = {
@@ -164,6 +174,8 @@ export type Config = {
   backupDir?: string;
   uatBoundaryFile?: string;
   geocoder: { url?: string; userAgent?: string };
+  /** Amendamentul Google (G-T7): lipsă = autentificarea cu Google este oprită. Secretul nu se scrie niciodată în jurnale. */
+  googleOAuth?: { clientId: string; clientSecret: string };
   retentionDays: number;
   adminRetentionMonths: number;
   logLevel: string;
@@ -256,6 +268,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     backupDir: e.BACKUP_DIR,
     uatBoundaryFile: e.UAT_BOUNDARY_FILE,
     geocoder: { url: e.GEOCODER_URL, userAgent: e.GEOCODER_USER_AGENT },
+    googleOAuth:
+      e.GOOGLE_OAUTH_CLIENT_ID && e.GOOGLE_OAUTH_CLIENT_SECRET
+        ? { clientId: e.GOOGLE_OAUTH_CLIENT_ID, clientSecret: e.GOOGLE_OAUTH_CLIENT_SECRET }
+        : undefined,
     retentionDays: e.RETENTION_DAYS,
     adminRetentionMonths: e.ADMIN_RETENTION_MONTHS,
     logLevel: e.LOG_LEVEL,

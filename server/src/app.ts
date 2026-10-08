@@ -15,6 +15,7 @@ import { registerCsrf } from './auth/guards.ts';
 import { registerAdminAccountRoutes } from './routes/adminAccounts.ts';
 import { registerAuthRoutes } from './routes/auth.ts';
 import { registerCitizenRoutes } from './routes/citizens.ts';
+import { GOOGLE_CALLBACK_PATH, registerCitizenGoogleRoutes } from './routes/citizenGoogle.ts';
 import { registerPublicContentRoutes } from './routes/publicContent.ts';
 import { registerAdminContentRoutes } from './routes/adminContent.ts';
 import { registerReportRoutes } from './routes/reports.ts';
@@ -70,7 +71,9 @@ type LoggedRequest = { method: string; url: string; hostname?: string; ip?: stri
 
 /** T-5 (5.6): jurnalul cererilor fără IP pe rutele sondajelor (N4-7: fără IP lângă vot; decizia de anonimat 4C3). */
 export function requestLogSerializer(req: LoggedRequest): Record<string, unknown> {
-  const url = req.url ?? '';
+  let url = req.url ?? '';
+  // amendamentul Google: `code` și `state` din întoarcerea de la Google nu ajung în jurnal
+  if (url.startsWith(GOOGLE_CALLBACK_PATH)) url = GOOGLE_CALLBACK_PATH;
   const out: Record<string, unknown> = { method: req.method, url, hostname: req.hostname };
   if (!url.startsWith('/api/v1/public/surveys')) out.remoteAddress = req.ip ?? req.socket?.remoteAddress;
   return out;
@@ -128,6 +131,7 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
         registerAuthRoutes(api, options.ctx);
         registerAdminAccountRoutes(api, options.ctx);
         registerCitizenRoutes(api, options.ctx);
+        registerCitizenGoogleRoutes(api, options.ctx);
         registerPublicContentRoutes(api, options.ctx);
         registerAdminContentRoutes(api, options.ctx);
         await registerReportRoutes(api, options.ctx);

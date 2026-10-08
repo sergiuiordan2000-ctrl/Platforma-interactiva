@@ -74,3 +74,22 @@ export const citizenBlocks = mysqlTable(
     ),
   ],
 );
+
+/**
+ * Amendamentul Google (§8 D, §11.3; adăugare la B1, decizia proprietarului din 08.10.2026; migrația 0002):
+ * încercările de autentificare cu Google. `id` = SHA-256(state). Folosire unică: `consumed_at` setat atomic.
+ * Numai date generate de aplicație, temporare (10 minute); fără date Google.
+ */
+export const citizenOauthAttempts = mysqlTable(
+  'citizen_oauth_attempts',
+  {
+    id: hash64('id').primaryKey(),
+    nonce: varchar('nonce', { length: 64 }).notNull(),
+    codeVerifier: varchar('code_verifier', { length: 128 }).notNull(),
+    policyVersion: varchar('policy_version', { length: 32 }).notNull(),
+    createdAt: ts('created_at').notNull(),
+    expiresAt: ts('expires_at').notNull(),
+    consumedAt: ts('consumed_at'),
+  },
+  (t) => [index('idx_citizen_oauth_attempts_expires').on(t.expiresAt)],
+);

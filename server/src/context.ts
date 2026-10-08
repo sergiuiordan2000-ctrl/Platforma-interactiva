@@ -6,6 +6,7 @@ import type { Config } from './config.ts';
 import type { UatBoundary } from './uat.ts';
 import type { GeocodeFn } from './reports/geocoder.ts';
 import type { MailTransport } from './reports/outbox.ts';
+import type { OidcProvider } from './auth/googleOAuth.ts';
 
 export type AppContext = {
   config: Config;
@@ -19,6 +20,8 @@ export type AppContext = {
   geocode?: GeocodeFn;
   /** Transportul SMTP (5.5). Lipsă = mesajele care ar cere SMTP rămân în coadă. */
   mailTransport?: MailTransport;
+  /** Amendamentul Google: furnizorul OpenID Connect; implicit Google, înlocuit în teste (G-T10). */
+  oidc?: OidcProvider;
 };
 
 /** Valorile numerice propuse în design (DN-15); configurabile ulterior. */
@@ -36,6 +39,10 @@ export const LIMITS = {
   citizenStartPerIpPerHour: 20,
   citizenAccountEmailsPerDay: CITIZEN_ACCOUNT_EMAILS_PER_DAY,
   citizenBlockedNoticePerDay: 1,
+  /** Amendamentul Google (G-T9): pornirile și întoarcerile, pe IP, pe oră (propunere tehnică, ca la cod). */
+  citizenGooglePerIpPerHour: 20,
+  /** §8 D: încercarea expiră după 10 minute (cookie și server). */
+  citizenOauthAttemptMinutes: 10,
   recoveryCodes: 10,
   temporaryBlockDays: 15,
   /**
