@@ -1,9 +1,9 @@
 # AMENDAMENT — AUTENTIFICAREA CETĂȚEANULUI CU GOOGLE
 
-**Proiect:** Turnu Măgurele Civic · **Data:** 05.10.2026 · **Stare:** **deciziile G-1…G-7 luate de proprietar la 05.10.2026 (§6); nimic implementat.** Implementarea așteaptă domeniul Civic și checkpoint-ul pe acest plan.
+**Proiect:** Turnu Măgurele Civic · **Data:** 05.10.2026 · **Stare:** **versiunea finală, aprobată pentru implementare.** Deciziile G-1…G-7 au fost luate de proprietar la 05.10.2026 (§6). La checkpoint-ul din 08.10.2026 au fost aprobate §8 A–D și §9.2–§9.6; tabela `citizen_oauth_attempts` (§9.1) a fost acceptată de proprietar, iar clarificările `POST` / `Path=/` sunt în §11. **Nimic implementat.** Implementarea începe numai cu acordul proprietarului; commit și push numai cu aprobare explicită.
 **Origine:** cererea proprietarului din 05.10.2026: autentificarea cu contul Google să fie prima variantă pentru cetățean; codul pe e-mail să rămână varianta a doua.
 **Ce modifică din designul înghețat (Faza 4):** B3 §8, rândul „Mecanism” (astăzi: numai cod de 6 cifre pe e-mail, T-A2); B2 §4.1 (rutele `/citizen/auth/*`); B8 (date personale: apare un furnizor extern de identitate); politica de utilizare (2.9). Regulile A-9, D29–D31 (cont numai pentru depunere; contul are numai e-mailul; un e-mail = un cont) **rămân neschimbate**.
-**Condiție:** domeniul Civic (ca la 5.5b). Fără el, nu se poate înregistra aplicația la Google.
+**Condiție:** domeniul Civic (ca la 5.5b). Fără el, nu se poate înregistra aplicația la Google. **Îndeplinită din 07.10.2026:** domeniul este `urbisactiv.ro` (G7), iar staging-ul este `test.urbisactiv.ro`.
 
 ## 1. Context
 
@@ -36,14 +36,14 @@ După Google, rezultatul este același ca după cod: sesiunea de cetățean exis
 | # | Element | Propunere |
 |---|---|---|
 | G-T1 | Fluxul | OAuth 2.0 / OpenID Connect, „authorization code” cu PKCE, **prin redirecționare pe server**. Fără scripturi Google încărcate în pagină: browserul ajunge la Google numai când cetățeanul apasă butonul. |
-| G-T2 | Rute noi | `GET /api/v1/citizen/auth/google/start` (cere bifa politicii; pune `state`, `nonce` și verificatorul PKCE într-un cookie scurt, semnat; redirecționează la Google) și `GET /api/v1/citizen/auth/google/callback` (verifică `state`; schimbă codul pe jeton; verifică jetonul; creează sesiunea; redirecționează la `/#sesizari`). |
+| G-T2 | Rute noi | **`POST /api/v1/citizen/auth/google/start`** (corp JSON `{ policyAccepted: true, policyVersion }`; verifică bifa politicii pe server; creează încercarea OAuth pe server, §8 D; pune cookie-ul `__Host-civic_oauth`; răspunde 200 `{ authorizationUrl }`, iar interfața navighează la Google) și `GET /api/v1/citizen/auth/google/callback` (verifică `state`; schimbă codul pe jeton; verifică jetonul; creează sesiunea; redirecționează la `/#sesizari`). **De ce `POST` la `start` și `GET` la `callback`: §11.1.** |
 | G-T3 | Date cerute de la Google | numai `openid email`. **Fără** `profile` (nume, fotografie). Din jeton se folosesc `email` și `email_verified`; nimic altceva nu se salvează. |
 | G-T4 | Verificarea jetonului | semnătura (cheile publice Google), emitentul, destinatarul (ID-ul nostru de client), expirarea, `nonce`; **`email_verified` trebuie să fie adevărat**, altfel refuz. |
 | G-T5 | Legarea de cont | după e-mailul normalizat: dacă există cont cu acea adresă, se intră în el; dacă nu, se creează (cu versiunea și data acceptării politicii). Același cont, indiferent dacă persoana intră cu Google sau cu cod. Nu se salvează identificatorul Google (`sub`). |
-| G-T6 | Cookie-ul de `state` | `HttpOnly`, `Secure`, `SameSite=Lax` (trebuie trimis la întoarcerea de la Google), 10 minute, șters la folosire. Sesiunea rămâne cum este. |
+| G-T6 | Cookie-ul de `state` | `__Host-civic_oauth`: `Secure`, `HttpOnly`, `SameSite=Lax`, **`Path=/`, fără `Domain`** (trebuie trimis la întoarcerea de la Google), 10 minute, șters la folosire. Sesiunea rămâne cum este. **Precizat în §8 D** (folosire unică verificată pe server). |
 | G-T7 | Setări noi | `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET` (secret; numai în `civic.env`, niciodată în repository). Fără ele, butonul nu apare și rutele răspund 404: aplicația merge ca acum. |
 | G-T8 | Staging | modul `allowlist` rămâne valabil: cu Google pot intra numai adresele din `EMAIL_ALLOWLIST` (G3-c5). |
-| G-T9 | Blocări, limite, audit | blocarea are același efect (numai asupra depunerii). Limite pe IP pentru rutele noi. Audit: autentificare reușită / refuzată, fără date în plus. |
+| G-T9 | Blocări, limite, audit | blocarea are același efect (numai asupra depunerii). **O adresă cu blocare definitivă și fără cont nu primește cont nou** (T-C7, ca la cod; §9.5). Limite pe IP pentru rutele noi. Audit: autentificare reușită / refuzată, fără date în plus (fără `sub`, §8 C). |
 | G-T10 | Teste | server: jeton cu semnătură greșită, alt destinatar, expirat, `nonce` greșit, `email_verified` fals, `state` lipsă sau refolosit, cont blocat, `allowlist`; E2E în interfață cu un furnizor de identitate fals, local (permis numai în dezvoltare / CI). Fără apeluri reale la Google în teste. |
 | G-T11 | Butonul | propriu, după regulile de identitate vizuală ale Google pentru „Sign in with Google” (de verificat la execuție). |
 
@@ -76,11 +76,82 @@ După Google, rezultatul este același ca după cod: sesiunea de cetățean exis
 - G-6 (a): se face după 5.5b, ca amendament separat, cu checkpoint propriu.
 - G-7 (a): limita rămâne 3 coduri pe zi, cu textul fix deja afișat.
 
+**Precizare la G-4 (08.10.2026, fără schimbarea deciziei):** „domeniul Civic” înseamnă acum `test.urbisactiv.ro` (staging) și `urbisactiv.ro` (producție), conform G7. Aplicația înregistrată la Google nu primește nicio adresă de întoarcere pe `electrovolt.ro`.
+
 ## 7. Pași
 
-1. ~~Aprobarea deciziilor G-1…G-7~~ (făcut, 05.10.2026). Rămân: checkpoint ChatGPT pe acest plan, apoi trecerea deciziilor în RULES.
+1. ~~Aprobarea deciziilor G-1…G-7~~ (făcut, 05.10.2026). ~~Checkpoint ChatGPT pe direcție și arhitectură~~ (făcut, 08.10.2026, cu clarificările A–D din §8, trecute și în RULES §13.1). ~~Checkpoint pe §8–§9 și decizia §9.1~~ (făcut, 08.10.2026). ~~Clarificările `POST` și `Path=/`~~ (§11).
 2. Server: rutele, verificarea jetonului, setările, testele (G-T1…G-T10).
 3. Interfață: butonul, ordinea pe ecran, mesajele de eroare, E2E.
 4. Politica de utilizare actualizată (G-5).
 5. Proprietarul: înregistrarea în Google Cloud Console (ghid la execuție).
 6. Staging pe domeniul Civic: deploy, probă reală, T-ISO înainte și după; raport și checkpoint.
+
+## 8. Clarificări obligatorii de securitate (checkpoint 08.10.2026)
+
+Cerute la checkpoint, înainte de implementare. Sunt **cerințe**, nu recomandări. Fiecare are cel puțin un test pe server (G-T10).
+
+| # | Cerința | Cum se aplică (propunere tehnică) | Testul |
+|---|---|---|---|
+| **A** | **Acceptarea politicii este obligatorie la Google și se verifică pe server.** Apelul direct al rutelor OAuth nu o poate ocoli. | `POST /citizen/auth/google/start` refuză cu 422 `POLICY_REQUIRED` (fără încercare creată, fără cookie, fără adresă Google) dacă `policyAccepted` nu este `true` sau `policyVersion` diferă de `CITIZEN_POLICY_VERSION` (aceeași regulă și același cod ca la `/citizen/auth/start`). Versiunea acceptată se leagă de încercare (§8 D). La `callback`, contul se creează numai dacă încercarea are versiunea acceptată. Callback-ul nu primește bifa din URL, deci un atacator nu o poate adăuga acolo. Spre deosebire de cod (unde bifa se cere numai la crearea unui cont nou, B2 §4.1), la Google bifa se cere **la fiecare autentificare**, pentru că serverul nu știe dinainte dacă adresa are cont. | `start` fără bifă / fără versiune / cu versiune greșită → 422, fără încercare și fără cookie; `callback` cu o încercare fără versiune acceptată → refuz, fără cont creat |
+| **B** | **`email_verified === true`**, după verificarea completă a jetonului. | Ordinea, fără scurtături: (1) `state` valid și nefolosit; (2) codul schimbat pe jeton la Google, cu verificatorul PKCE; (3) jetonul verificat (semnătura cu cheile publice Google, emitentul, destinatarul = ID-ul nostru de client, expirarea, `nonce`); (4) `email_verified` este exact boolean `true` (nu șirul `"true"`, nu lipsă); (5) abia apoi căutarea contului după e-mailul normalizat sau crearea lui. Orice eșec la 1–4 → refuz, fără acces la tabela de conturi. | jeton cu semnătură greșită / alt emitent / alt destinatar / expirat / `nonce` greșit / `email_verified` fals, lipsă sau șir → refuz, fără cont creat și fără sesiune |
+| **C** | **`sub` nu se stochează: decizie deliberată de minimizare a datelor**, nu omisiune. | Identitatea contului Urbis Activ rămâne **e-mailul verificat** (A-9, D30: un e-mail = un cont). `sub` (identificatorul Google) nu se scrie în baza de date, în jurnale sau în audit. Consecință acceptată: dacă un cont Google își schimbă adresa, persoana intră cu adresa nouă într-un cont nou (sau într-unul existent cu acea adresă), exact ca la cod. Riscul adreselor reatribuite este cel din §5, identic cu cel de la cod. | testul verifică că nicio tabelă și nicio linie de audit nu conține valoarea `sub` din jetonul de test |
+| **D** | **`state`: aleator criptografic, legat de încercare, acceptat o singură dată.** Cookie: `HttpOnly`, `Secure`, `SameSite=Lax`, **`Path=/`, fără `Domain`**, expirare scurtă, invalidat după folosire. | `state` și `nonce`: câte 32 de octeți din generatorul criptografic (`crypto.randomBytes`), base64url. Verificatorul PKCE: 32 de octeți, `S256`. **Folosirea unică este verificată pe server**, nu numai prin ștergerea cookie-ului: încercarea se salvează pe server (hash-ul `state`, `nonce`, verificatorul PKCE, versiunea politicii, data creării, data folosirii) și se marchează „folosită” atomic, la primul `callback` (`UPDATE … WHERE consumed_at IS NULL`, cu exact un rând afectat). Cookie-ul `__Host-civic_oauth` (`Secure`, `HttpOnly`, `SameSite=Lax`, `Path=/`, fără `Domain`, `Max-Age=600`; prefixul `__Host-` obligă browserul să refuze cookie-ul dacă oricare dintre `Secure`, `Path=/` sau lipsa `Domain` nu este respectată) conține numai `state` și se leagă de încercare: `state` din URL trebuie să fie egal cu cel din cookie **și** să existe nefolosit pe server. Expirarea: 10 minute (cookie și server). La `callback` cookie-ul se șterge indiferent de rezultat (`Max-Age=0`, cu aceleași atribute `Path=/`, `Secure`, fără `Domain`). Încercările expirate sau folosite se șterg automat (aceeași comandă `purge:retention`). | `state` lipsă / diferit de cookie / necunoscut / expirat / **refolosit** (al doilea `callback` cu același `state` și același cookie) → refuz; atributele cookie-ului verificate în răspuns: `Secure`, `HttpOnly`, `SameSite=Lax`, `Path=/`, fără `Domain`, `Max-Age=600`; la callback, ștergerea cu aceleași atribute |
+
+## 9. Ce atinge din designul înghețat (Faza 4) și contradicțiile găsite
+
+Ce atinge amendamentul, numai prin adăugare și numai în limitele deciziilor G-1…G-7: B3 §8 („Mecanism”: a doua variantă de autentificare), B2 §4.1 (două rute noi: `POST …/google/start`, `GET …/google/callback`), B8 și politica de utilizare (G-5). Nu atinge: conturile Admin, autentificarea prin cod, sesizările, sondajele, permisiunile, modelul contului (fără nume, fotografie, `sub` sau conturi Google separate).
+
+| # | Punctul | Analiza | Propunerea |
+|---|---|---|---|
+| 9.1 | **B1 (modelul de date): §8 D cere o tabelă nouă** pentru încercările OAuth (`citizen_oauth_attempts`: hash `state`, `nonce`, verificator PKCE, versiunea politicii, `created_at`, `expires_at`, `consumed_at`), deci o migrare nouă. Datele sunt ale noastre, temporare (≤ 10 minute + curățare), nu date Google. | Contradicție de formă cu B1 înghețat: tabelă nouă. Alternativa fără tabelă (numai cookie semnat) nu poate garanta „o singură dată” pe server: un cookie copiat ar putea fi refolosit în cele 10 minute. | **Tabela nouă**, consemnată în amendament ca adăugare la B1. **Decis de proprietar la 08.10.2026: DA**, adăugare explicită la B1 (§11.3). |
+| 9.2 | **Bifa politicii: Google o cere la fiecare autentificare, codul numai la contul nou** (B2 §4.1, 2.9). | Nu contrazice 2.9 (mai strict, nu mai permisiv). Pe ecran nu se schimbă nimic: bifa este deja deasupra ambelor variante (§2). La un cont existent, versiunea politicii salvată în cont **nu** se actualizează la autentificarea cu Google (la fel ca la cod), ca modelul contului să rămână neschimbat. | fără schimbare de decizie; de reținut |
+| 9.3 | **Cookie-ul de sesiune are `SameSite=Strict`** (B3 §3); întoarcerea de la Google este o navigare de pe alt site. | Cookie-ul de sesiune se **setează** corect în răspunsul `callback`. Prima pagină după redirecționare poate să nu-l primească (lanț pornit de pe alt site), dar cererile aplicației (`/citizen/me?optional=1`) sunt pe aceeași origine și îl trimit. Nu cere schimbarea `Strict`. | se verifică în E2E și la proba reală; `Strict` rămâne |
+| 9.4 | **Cookie nou cu `SameSite=Lax`** (`__Host-civic_oauth`; `Secure`, `HttpOnly`, `Path=/`, fără `Domain`), deși B3 cere `Strict` pentru sesiune. | Nu este cookie de sesiune: conține numai `state`, nu dă acces la nimic și trăiește 10 minute. `Lax` este necesar ca să fie trimis la întoarcerea de la Google (G-T6, §8 D). | adăugare la B3 §3, consemnată în amendament |
+| 9.5 | **Blocarea definitivă fără cont** (T-C7, K-A02-4): codul nu recreează contul. | La Google trebuie același comportament: adresă cu blocare definitivă și fără cont → refuz, fără cont nou. Nu era scris explicit în §4. | adăugat la G-T9; test nou |
+| 9.6 | **Lacătul de pe staging** (Directory Privacy, G3-c4). | Întoarcerea de la Google ajunge la `test.urbisactiv.ro`, unde browserul are deja parola lacătului. Nu cere schimbări. | se verifică la proba reală |
+
+Alte contradicții cu designul înghețat: **nu am găsit**.
+
+## 10. Propunerea de checkpoint pe această versiune
+
+Se trimit la checkpoint: acest fișier (§8–§9 sunt noi) și rândul din RULES §13.1.
+
+Întrebări pentru checkpoint:
+1. §8 A–D sunt formulate complet și verificabil prin teste?
+2. §9.1: tabela nouă pentru încercările OAuth (adăugare la B1) este acceptabilă sau se preferă o altă formă de folosire unică pe server?
+3. §9.2–9.6: analiza este corectă?
+
+**Rezultat (08.10.2026):** checkpoint aprobat pentru §8 A–D și §9.2–§9.6; §9.1 decis de proprietar: DA. Au mai fost cerute două clarificări, tratate în §11.
+
+## 11. Clarificările finale (08.10.2026)
+
+### 11.1 `POST` pentru pornirea fluxului
+
+**Concluzie: `POST /citizen/auth/google/start`. Arhitectura existentă nu impune `GET`.** Numai `callback` rămâne `GET`.
+
+- **De ce `POST` la `start`:** pornirea creează o încercare pe server (§8 D), deci are efect. Cu `POST`, ruta intră automat sub protecția CSRF existentă (B3 §3, `registerCsrf`): antetul `X-Civic-Request: 1` plus `Origin` egal cu originea aplicației. Un alt site, un link, o preîncărcare a browserului sau un robot nu pot crea încercări. Bifa politicii vine în corpul JSON, ca la `POST /citizen/auth/start` (aceeași validare, același 422). Ruta este consecventă cu restul API-ului.
+- **Consecința tehnică (fără schimbare de design):** un formular HTML trimis direct nu poate pune antetul CSRF, deci serverul nu răspunde cu redirecționare. `start` se apelează prin clientul API existent (`fetch`, aceeași origine), primește 200 `{ authorizationUrl }` și cookie-ul `__Host-civic_oauth`, iar interfața navighează la adresa Google. Aplicația este deja una pe o singură pagină și cere JavaScript, deci nimic nu se pierde. Fără JavaScript, butonul Google nu există; codul pe e-mail funcționează ca acum.
+- **De ce `callback` rămâne `GET`:** Google se întoarce la adresa noastră printr-o redirecționare `GET`, cu `code` și `state` în URL (fluxul „authorization code” standard). Varianta `response_mode=form_post` (un `POST` venit de la Google) nu este potrivită: este un `POST` de pe alt site, deci (1) ar fi respins de protecția CSRF existentă, iar (2) cookie-ul `SameSite=Lax` nu ar fi trimis la un `POST` de pe alt site, deci legarea de încercare (§8 D) nu ar funcționa. Efectul `callback`-ului (sesiunea) este protejat de `state` (verificat pe server, o singură dată), de cookie-ul legat de browser și de PKCE, nu de metoda HTTP. Protecția CSRF existentă privește numai metodele care modifică date, deci nu are nevoie de excepții.
+- **Limite:** `start` primește limita pe IP (G-T9), la fel ca `/citizen/auth/start`.
+
+### 11.2 Atributele cookie-ului `__Host-civic_oauth`
+
+| Atribut | Valoare |
+|---|---|
+| Nume | `__Host-civic_oauth` |
+| `Secure` | da |
+| `HttpOnly` | da |
+| `SameSite` | `Lax` |
+| `Path` | **`/`** |
+| `Domain` | **absent** |
+| `Max-Age` | `600` (10 minute); la `callback`: `0`, cu aceleași `Path=/`, `Secure`, fără `Domain` |
+| Conținut | numai `state` (aleator, 32 de octeți, base64url); restul datelor încercării sunt pe server |
+
+Prefixul `__Host-` face ca browserul să refuze cookie-ul dacă lipsește `Secure`, dacă `Path` nu este `/` sau dacă există `Domain`. Este aceeași convenție ca la cookie-ul de sesiune (`__Host-civic_sid`, B3 §3, B-7). Testele verifică atributele în răspunsul serverului (§8 D).
+
+### 11.3 Tabela `citizen_oauth_attempts` (decizia §9.1)
+
+Acceptată de proprietar la 08.10.2026 ca **adăugare explicită la B1**. Justificare: folosirea unică a `state`, verificată pe server și atomic (§8 D). Se adaugă printr-o migrare nouă. Migrarea inițială nu se modifică. Conține numai date generate de noi, temporare: hash-ul `state`, `nonce`, verificatorul PKCE, versiunea politicii acceptate, `created_at`, `expires_at`, `consumed_at`. **Fără date Google** (fără e-mail, fără `sub`, fără jetoane). Încercările expirate sau folosite se șterg prin `purge:retention`. Compatibilitatea cu MariaDB 11.4 și MySQL 8 este acoperită de testele de integrare și de jobul CI pe MariaDB.
+
+**Fără alte modificări de design.**
