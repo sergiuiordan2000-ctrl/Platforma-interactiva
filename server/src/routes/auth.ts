@@ -15,7 +15,7 @@ import { writeAudit } from '../audit.ts';
 import { LIMITS, type AppContext } from '../context.ts';
 import { apiError } from '../errors.ts';
 import { decryptSecret, deriveKey, encryptSecret, hmacHex } from '../auth/crypto.ts';
-import { loadAdmin, requestIpHash, requireAdmin, type AdminPrincipal, type AdminUserRow } from '../auth/guards.ts';
+import { anonymousProbe, loadAdmin, requestIpHash, requireAdmin, type AdminPrincipal, type AdminUserRow } from '../auth/guards.ts';
 import { dummyVerify, hashPassword, needsRehash, passwordPolicyError, verifyPassword } from '../auth/password.ts';
 import { hitRateLimit, recordRejected } from '../auth/rateLimit.ts';
 import {
@@ -279,7 +279,7 @@ export function registerAuthRoutes(api: FastifyInstance, ctx: AppContext): void 
     return reply.code(204).send();
   });
 
-  api.get('/auth/me', { preHandler: anySession }, async (request) => {
+  api.get('/auth/me', { preHandler: anonymousProbe(loadAdmin, ctx, anySession) }, async (request) => {
     const { user, session } = request.admin!;
     return {
       id: user.id,

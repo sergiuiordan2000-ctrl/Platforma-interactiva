@@ -18,10 +18,11 @@ export interface CitizenMe {
 }
 
 class CitizenService {
-  /** `null` = neautentificat. */
+  /** `null` = neautentificat. `optional=1`: 200 `{ authenticated: false }` în loc de 401 (amendamentul 5.5). */
   async me(): Promise<CitizenMe | null> {
     try {
-      return await api.get<CitizenMe>('/citizen/me');
+      const res = await api.get<CitizenMe | { authenticated: false }>('/citizen/me?optional=1');
+      return 'authenticated' in res && res.authenticated === false ? null : (res as CitizenMe);
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) return null;
       throw err;

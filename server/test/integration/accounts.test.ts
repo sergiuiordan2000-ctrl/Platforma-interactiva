@@ -188,6 +188,32 @@ describe('conturile cetățenilor (B3 §8)', () => {
     assert.equal((await admin.get(`${V1}/citizen/me`)).statusCode, 401, 'și invers');
   });
 
+  it('amendamentul 5.5: /me?optional=1 fără sesiune → 200 { authenticated: false }; fără optional rămâne 401', async () => {
+    const anon = new Client(app);
+    for (const path of ['/citizen/me', '/auth/me']) {
+      assert.equal((await anon.get(`${V1}${path}`)).statusCode, 401, `${path} fără optional`);
+      const probe = await anon.get(`${V1}${path}?optional=1`);
+      assert.equal(probe.statusCode, 200, `${path}?optional=1`);
+      assert.deepEqual(probe.json(), { authenticated: false });
+      assert.equal(probe.headers['www-authenticate'], undefined);
+      assert.equal((await anon.get(`${V1}${path}?optional=0`)).statusCode, 401, `${path}?optional=0`);
+    }
+    // cu sesiune: același răspuns ca fără optional (contractul B2 neschimbat)
+    const c = await citizenLogin('elena@exemplu.test');
+    const me = await c.get(`${V1}/citizen/me?optional=1`);
+    assert.equal(me.statusCode, 200);
+    assert.deepEqual(me.json(), (await c.get(`${V1}/citizen/me`)).json());
+    assert.equal(me.json().email, 'elena@exemplu.test');
+    admin = await loginExisting('sa1@exemplu.test', PW); // testul anterior a lăsat sesiunea să expire
+    const am = await admin.get(`${V1}/auth/me?optional=1`);
+    assert.equal(am.statusCode, 200);
+    assert.deepEqual(am.json(), (await admin.get(`${V1}/auth/me`)).json());
+    assert.ok(am.json().id);
+    // sesiunea celuilalt tip nu dă acces: răspunsul este „neautentificat”, fără date
+    assert.deepEqual((await c.get(`${V1}/auth/me?optional=1`)).json(), { authenticated: false });
+    assert.deepEqual((await admin.get(`${V1}/citizen/me?optional=1`)).json(), { authenticated: false });
+  });
+
   it('blocare temporară = 15 zile, calculată de server; o durată trimisă → 400; ridicare cu audit', async () => {
     admin = await loginExisting('sa1@exemplu.test', PW);
     const c = await citizenLogin('vasile@exemplu.test');

@@ -15,7 +15,7 @@ import { writeAudit } from '../audit.ts';
 import { LIMITS, type AppContext } from '../context.ts';
 import { apiError } from '../errors.ts';
 import { deriveKey, hmacHex, safeEqualHex, sixDigitCode } from '../auth/crypto.ts';
-import { requestIpHash, requireAdmin, requireCitizen } from '../auth/guards.ts';
+import { anonymousProbe, loadCitizen, requestIpHash, requireAdmin, requireCitizen } from '../auth/guards.ts';
 import { hitRateLimit, peekRateLimit, recordRejected } from '../auth/rateLimit.ts';
 import { clearSessionCookie, createSession, revokeSession, setSessionCookie } from '../auth/sessions.ts';
 import { parseBody } from '../validation.ts';
@@ -188,7 +188,7 @@ export function registerCitizenRoutes(api: FastifyInstance, ctx: AppContext): vo
     return reply.code(204).send();
   });
 
-  api.get('/citizen/me', { preHandler: requireCitizen(ctx) }, async (request) => {
+  api.get('/citizen/me', { preHandler: anonymousProbe(loadCitizen, ctx, requireCitizen(ctx)) }, async (request) => {
     const { account } = request.citizen!;
     const block = await activeBlock(ctx, ctx.pool, account.id, emailHash(ctx, account.email_normalized));
     return {

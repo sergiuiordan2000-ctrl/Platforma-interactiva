@@ -89,17 +89,41 @@ export function requireAdmin(ctx: AppContext, opts: AdminGuard = {}) {
   };
 }
 
+export async function loadCitizen(ctx: AppContext, request: FastifyRequest): Promise<CitizenPrincipal | null> {
+  const session = await loadSession(ctx, request);
+  if (!session || session.principal_type !== 'citizen' || !session.citizen_account_id) return null;
+  const [rows] = await ctx.pool.query(
+    'SELECT id, email, email_normalized, status FROM citizen_accounts WHERE id = ?',
+    [session.citizen_account_id],
+  );
+  const account = (rows as CitizenPrincipal['account'][])[0];
+  if (!account || account.status !== 'active') return null;
+  return { session, account };
+}
+
+/**
+ * Amendamentul 5.5 (ferestre de parolă repetate pe staging): `GET /auth/me?optional=1` și
+ * `GET /citizen/me?optional=1` răspund 200 `{ authenticated: false }` în loc de 401 când nu există
+ * sesiune. Motiv: serverul web (LiteSpeed, Directory Privacy) adaugă `WWW-Authenticate: Basic` la orice
+ * 401, iar browserul cere din nou parola lacătului. Fără `optional=1`, comportamentul B2 (401) rămâne.
+ */
+export function anonymousProbe(
+  load: (ctx: AppContext, request: FastifyRequest) => Promise<unknown>,
+  ctx: AppContext,
+  guard: (request: FastifyRequest, reply: FastifyReply) => Promise<unknown>,
+) {
+  return async (request: FastifyRequest, reply: FastifyReply) => {
+    const optional = (request.query as Record<string, unknown> | undefined)?.optional === '1';
+    if (optional && !(await load(ctx, request))) return reply.code(200).send({ authenticated: false });
+    return guard(request, reply);
+  };
+}
+
 export function requireCitizen(ctx: AppContext) {
   return async (request: FastifyRequest, reply: FastifyReply) => {
-    const session = await loadSession(ctx, request);
-    if (!session || session.principal_type !== 'citizen' || !session.citizen_account_id) return unauthorized(reply);
-    const [rows] = await ctx.pool.query(
-      'SELECT id, email, email_normalized, status FROM citizen_accounts WHERE id = ?',
-      [session.citizen_account_id],
-    );
-    const account = (rows as CitizenPrincipal['account'][])[0];
-    if (!account || account.status !== 'active') return unauthorized(reply);
-    request.citizen = { session, account };
+    const principal = await loadCitizen(ctx, request);
+    if (!principal) return unauthorized(reply);
+    request.citizen = principal;
     // cookie persistent reînnoit la folosire (decizia din 30.09.2026, varianta B)
     const token = tokenFromRequest(ctx, request);
     if (token) setSessionCookie(ctx, reply, token, true);

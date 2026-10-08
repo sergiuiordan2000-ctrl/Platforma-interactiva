@@ -83,7 +83,9 @@ class AuthService {
   /** Reîncarcă starea de la server (`GET /auth/me`). */
   public async refresh(): Promise<void> {
     try {
-      this.apply(await api.get<MeResponse>('/auth/me'));
+      // `optional=1`: 200 `{ authenticated: false }` în loc de 401 (amendamentul 5.5)
+      const res = await api.get<MeResponse | { authenticated: false }>('/auth/me?optional=1');
+      this.apply('authenticated' in res && res.authenticated === false ? null : (res as MeResponse));
       if (this.step === 'ready') void this.loadDirectory();
     } catch {
       this.apply(null);
