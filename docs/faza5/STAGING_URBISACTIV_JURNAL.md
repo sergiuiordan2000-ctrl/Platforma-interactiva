@@ -36,6 +36,8 @@ Verificat din exterior de Claude (DNS public): `urbisactiv.ro` folosește server
 | 8 | ~22:02 | „Force HTTPS Redirect” pentru `test.urbisactiv.ro` (Domains) | cPanel: „Error: You do not have the feature “sslinstall”” | **nefăcut** (observația 3) |
 | 9 | ~22:06–22:13 | sarcinile cron: `backup:db` zilnic la 03:17 (`backup.log`), `surveys:close-expired` la 5 minute (`surveys-cron.log`, suprascris), `purge:retention` zilnic la 03:47 (`purge.log`); aceeași formă ca pe staging-ul vechi, cu `CIVIC_ENV_FILE` și programul Node din `nodevenv/civic-test-app/24` | proprietarul: cele trei rânduri există; `surveys-cron.log`: „surveys:close-expired: 0 sondaje închise”; „Run JS script” → `civic-backup-db`: `backup:db: civic-backup-20261007T191208913Z`, cu numărul de rânduri pe tabel (captură) | **OK** |
 
+| 10 | 08.10.2026 ~17:23–17:30 | primul cont `super_admin`: „Run JS script” → `civic-bootstrap-admin` (parola temporară păstrată numai de proprietar), apoi prima autentificare pe `/#admin`, în fereastră privată: parola temporară → înrolare TOTP (intrare nouă în aplicația de pe telefon, separată de cele ale staging-ului vechi) → coduri de recuperare → parolă nouă | proprietarul: „sunt în Admin” | **OK** |
+
 **Rezultat:** aplicația rulează pe găzduirea nouă, cu Node 24.21.0 și MariaDB 11.4.13: migrarea, seed-urile, pornirea, `health` și un backup au reușit în mediul real.
 
 ## 4. Observații
@@ -49,7 +51,7 @@ Verificat din exterior de Claude (DNS public): `urbisactiv.ro` folosește server
 
 ## 5. Nefăcut încă
 
-- **Primul cont Admin** (`civic-bootstrap-admin`, apoi înrolarea TOTP): amânat de proprietar.
+- **Al doilea cont `super_admin`** pe acest staging (ca pe cel vechi, pentru recuperare): nefăcut.
 - **E-mailul real (5.5b):** înregistrările DNS pentru Brevo în Zone Editor, setările SMTP, cron-ul `outbox:process`. `FAZA_5_5B_GHID.md` trebuie adaptat la găzduirea nouă.
 - **`health` după punerea parolei** nu a mai fost citit de Claude (primește 401); îl confirmă proprietarul.
 - **Restaurarea din backup** nu a fost exersată pe acest server (cere o bază de date nouă); este acoperită de testele automate, inclusiv de jobul CI pe MariaDB 11.4.
