@@ -382,7 +382,9 @@ describe('validarea votului și anti-abuzul (B7, P-7, T-2)', () => {
   });
 
   it('ALTCHA per sondaj: pornit → fără soluție 400, cu soluție 201, reluată 400; oprit → provocarea 404', async () => {
-    const s = await createActive();
+    // partea cu soluție rulează după ceasul real (mai jos): sondajul trebuie să fie deschis și la ora reală,
+    // altfel testul expiră singur (a picat din 08.10.2026, când „ceasul de test + 7 zile” a trecut)
+    const s = await createActive({ endAt: new Date(Math.max(Date.now(), clock.now().getTime()) + 7 * DAY * 60_000).toISOString() });
     assert.equal((await new Client(app).get(`${V1}/public/surveys/${s.id}/pow-challenge`)).statusCode, 404);
     assert.equal((await sa.send('PATCH', `${V1}/admin/surveys/${s.id}/pow`, { enabled: true })).statusCode, 200);
     // altcha-lib verifică expirarea după ceasul real: partea cu soluție rulează cu ceasul la ora reală
