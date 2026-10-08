@@ -52,7 +52,7 @@ Apoi verificările din 0.8.
 | 5.3 conținutul public pe API | închisă, checkpoint aprobat | `FAZA_5_3_RAPORT.md` |
 | 5.4 sesizări | închisă; **raportul este la ChatGPT, răspunsul nu a venit** | `FAZA_5_4_RAPORT.md` |
 | 5.5a e-mail (codul) | gata | `FAZA_5_5_PLAN.md` |
-| **5.5b e-mail real (Brevo)** | **în lucru:** domeniul autentificat în Brevo, staging-ul nou în `allowlist`; **primul e-mail real (cod de cont) a ajuns în Inbox la 08.10.2026**; rămâne fluxul către Primărie | `STAGING_URBISACTIV_JURNAL.md` §3 (11–14); `FAZA_5_5B_GHID.md` |
+| **5.5b e-mail real (Brevo)** | **probă reușită la 08.10.2026** pe `test.urbisactiv.ro` (`allowlist`): cod de cont în Inbox; sesizare cu transmitere → mesaj cu fotografia → „în analiză” → notificarea autorului. **Raportul trebuie trimis la audit** | `FAZA_5_5_RAPORT.md`; `STAGING_URBISACTIV_JURNAL.md` §3 (11–16) |
 | 5.6 sondaje (server, interfață, teste, staging) | închisă tehnic la 05.10.2026; **raportul trebuie trimis la ChatGPT** | `FAZA_5_6_PLAN.md` §6–§12, `FAZA_5_6_RAPORT.md` |
 | 5.7 curățarea cheilor vechi din `localStorage` | închisă, pe staging | `FAZA_5_7_RAPORT.md` |
 | Amendament: autentificarea cetățeanului cu Google | **deciziile G-1…G-7 luate (05.10.2026); nimic implementat**; așteaptă 5.5b și checkpoint | `AMENDAMENT_AUTENTIFICARE_GOOGLE_PLAN.md` |

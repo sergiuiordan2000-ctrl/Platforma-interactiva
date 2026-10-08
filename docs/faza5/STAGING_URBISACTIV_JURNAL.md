@@ -41,6 +41,8 @@ Verificat din exterior de Claude (DNS public): `urbisactiv.ro` folosește server
 | 12 | 08.10.2026 ~17:42–17:57 | domeniul `urbisactiv.ro` adăugat în Brevo, autentificare manuală, fără „branded subdomain”; în Zone Editor (ClausWeb): TXT `brevo-code` pe domeniu, CNAME `brevo1._domainkey` și `brevo2._domainkey`; rândul DMARC existent (`v=DMARC1; p=none;`) **modificat** cu valoarea Brevo (cu `rua`), nu dublat; SPF-ul existent neatins | Claude, din exterior (DNS public): cele patru înregistrări corecte, SPF neschimbat; Brevo: „Your domain has been authenticated” (captura proprietarului) | **OK** |
 | 13 | 08.10.2026 ~18:03–18:11 | cheie SMTP Brevo generată de proprietar (nu a trecut prin conversație); în `civic.env`: `EMAIL_MODE=allowlist`, `EMAIL_ALLOWLIST` (adresa de test a proprietarului), `SMTP_HOST=smtp-relay.brevo.com`, `SMTP_PORT=587`, `SMTP_SECURE=false`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM=no-reply@urbisactiv.ro`, `CIVIC_MAIL_DOMAIN=urbisactiv.ro`; Restart; cron `outbox:process` la 2 minute (`outbox-cron.log`, suprascris) | „Run JS script” → `civic-outbox-process`: fără mesajul de trecere în `simulated`, coadă goală | **OK** |
 | 14 | 08.10.2026 ~18:15–18:20 | **primul e-mail real:** cod de cont cerut din „Contul meu” pentru adresa din listă | proprietarul: mesajul a ajuns în **Inbox** (nu în Spam); autentificarea cu codul a reușit | **OK** |
+| 15 | 08.10.2026 ~18:37 | Admin → Sesizări → „Fluxul către Primărie”: destinatarul tehnic = adresa de test a proprietarului (din listă; niciodată adresa reală a Primăriei, E-5), „Primăria primește numai e-mailuri”, fără referință de acord, fluxul pornit; modul afișat: „staging: numai adresele din listă” | proprietarul: „gata” | **OK** |
+| 16 | 08.10.2026 ~18:40–18:45 | sesizare de test („TEST flux Primărie, staging”), cu o fotografie, fără pin („Trimit fără hartă”), cu transmitere către Primărie și notificări cerute | proprietarul: **două mesaje** primite: cel „pentru Primărie”, **cu fotografia**, și notificarea autorului despre stadiu; în „Sesizările mele”: **„în analiză”** | **OK** |
 
 **Rezultat:** aplicația rulează pe găzduirea nouă, cu Node 24.21.0 și MariaDB 11.4.13: migrarea, seed-urile, pornirea, `health` și un backup au reușit în mediul real.
 
@@ -56,7 +58,9 @@ Verificat din exterior de Claude (DNS public): `urbisactiv.ro` folosește server
 ## 5. Nefăcut încă
 
 - **Al doilea cont `super_admin`** pe acest staging (ca pe cel vechi, pentru recuperare): nefăcut.
-- **Restul probei 5.5b:** fluxul către Primărie (destinatar = o adresă de test din listă, niciodată adresa reală; sesizare cu transmitere → mesaj cu fotografia → stadiul „în analiză” → notificarea autorului). `FAZA_5_5B_GHID.md` nu a fost încă adaptat la găzduirea nouă.
+- **Proba negativă a listei:** o adresă din afara `EMAIL_ALLOWLIST` nu trebuie să primească nimic (ghidul 5.5b, pasul 7, partea a doua); nefăcută.
+- Sesizarea de test rămâne pe staging (se șterge automat după 45 de zile sau o poate șterge autorul).
+- `FAZA_5_5B_GHID.md` descrie încă staging-ul vechi; nu a fost adaptat.
 - **Verificarea telefonului în Brevo:** amânată.
 - **`health` după punerea parolei** nu a mai fost citit de Claude (primește 401); îl confirmă proprietarul.
 - **Restaurarea din backup** nu a fost exersată pe acest server (cere o bază de date nouă); este acoperită de testele automate, inclusiv de jobul CI pe MariaDB 11.4.
