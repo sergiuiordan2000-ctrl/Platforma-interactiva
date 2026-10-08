@@ -1,6 +1,6 @@
 # AMENDAMENT — VERIFICAREA „EȘTI LOGAT?” FĂRĂ 401 (`/me?optional=1`)
 
-**Proiect:** Turnu Măgurele Civic (Urbis Activ) · **Data:** 08.10.2026 · **Branch:** `faza-5-backend` · **Stare:** **decis de proprietar (varianta 1), implementat cu teste; neinstalat încă pe staging.**
+**Proiect:** Turnu Măgurele Civic (Urbis Activ) · **Data:** 08.10.2026 · **Branch:** `faza-5-backend` · **Stare:** **decis de proprietar (varianta 1), implementat cu teste (`b0e1842`), instalat pe staging și confirmat de proprietar la 08.10.2026 (jurnalul de staging, intervenția 18).**
 **Origine:** ferestrele de parolă repetate pe staging (jurnalul `STAGING_URBISACTIV_JURNAL.md`, observația 2).
 **Ce modifică din designul înghețat (Faza 4):** contractul B2 (`FAZA_4_B2_API.md`) pentru `GET /auth/me` și `GET /citizen/me`, **numai prin adăugare**: un parametru opțional. Fără `optional=1`, comportamentul B2 rămâne neschimbat (401 la lipsa sesiunii). Fără modificări în schemă, în permisiuni sau în celelalte rute.
 
@@ -40,6 +40,6 @@ Celelalte 401 rămân (de exemplu o acțiune făcută după expirarea sesiunii).
 
 `surveys.test.ts`, testul „ALTCHA per sondaj”, picase din 08.10.2026, atât local, cât și în CI (rulările de la 15:22 și 15:47 UTC). Cauza: sondajul se închidea la „ceasul de test (01.10.2026) + 7 zile”, dar partea cu soluția ALTCHA rulează după ceasul real (`altcha-lib` verifică expirarea după ora reală). Din 08.10, sondajul era deja închis (403 în loc de 400). **Adaptarea:** numai pentru acest test, `endAt` = max(ora reală, ceasul de test) + 7 zile. Ce verifică testul a rămas neschimbat. Codul aplicației nu a fost atins.
 
-## 6. Instalarea pe staging (de făcut, cu aprobare separată)
+## 6. Instalarea pe staging (făcută la 08.10.2026, intervenția 18)
 
 Build-ul nou, urcat ca la intervențiile anterioare. Verificare: fereastră privată nouă → parola cerută o singură dată → navigare prin Acasă, Sesizări, Hartă, Sondaje, Admin, fără ferestre noi. T-ISO pe `electrovolt.ro` înainte și după.
