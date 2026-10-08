@@ -1,14 +1,14 @@
 # PROJECT_HANDOFF_CURRENT.md — Turnu Măgurele Civic
 
 **Stare documentată:** finalul Etapei 6.5 (26 septembrie 2026), actualizată după **Etapa 6.6** (comisă și publicată: `83b77ad`), după **auditul general** și pentru **remedierea P0 post-audit** (vezi B, G.5 și I), după checkpoint-ul Fazei 0 (`f6809f3`), după Fazele 1–2, după deciziile Fazei 3 (`PROJECT_RULES_AND_DECISIONS.md` §11) și după **Faza 4** (designul backend-ului, checkpoint aprobat de proprietar la 28.09.2026; `PROJECT_RULES_AND_DECISIONS.md` §12, `docs/faza4/`)
-**Actualizare 05.10.2026:** starea curentă (Faza 5, cu server) este în **Secțiunea 0**; ea are prioritate față de secțiunile de stare mai vechi.
+**Actualizare 08.10.2026:** starea curentă (Faza 5, cu server) este în **Secțiunea 0**; ea are prioritate față de secțiunile de stare mai vechi.
 **Scop:** documentul principal de preluare pentru un chat nou. Înlocuiește, pentru starea curentă, secțiunile de stare din `PROJECT_HANDOFF.md`. Acela a fost scris la finalul Etapei 5 și este acum depășit la Git, securitate și pasul următor.
 
 > **Regula de pornire pentru noul chat:** citește acest document (întâi **Secțiunea 0**), apoi `PROJECT_RULES_AND_DECISIONS.md`, `docs/faza4/FAZA_4_REGISTRU_DECIZII.md`, `ETAPA_6_STATUS_FINAL.md` și documentele din `docs/faza5/` indicate în 0.3. Apoi **verifică starea Git real** (Secțiunea 0.1; B.4 este istorică și indică un branch vechi). Nu presupune nimic din memorie. **Codul și istoricul Git sunt sursa de adevăr.** Dacă documentul și codul se contrazic, codul are dreptate, iar contradicția se raportează.
 
 ---
 
-## 0. STAREA CURENTĂ — FAZA 5 (actualizat la 05.10.2026)
+## 0. STAREA CURENTĂ — FAZA 5 (actualizat la 08.10.2026, seara)
 
 > **Această secțiune are prioritate.** Secțiunile A.2, A.6, B, E, F, G.4 și I de mai jos descriu starea de dinaintea Fazei 5 (aplicație fără server) și rămân ca istoric. Dacă se contrazic cu Secțiunea 0, este valabilă Secțiunea 0; dacă Secțiunea 0 se contrazice cu codul, are dreptate codul.
 
@@ -16,11 +16,12 @@
 
 | Element | Valoare |
 |---|---|
-| Branch de lucru | **`faza-5-backend`** (creat din checkpoint-ul Fazei 4) |
+| Branch de lucru | **`faza-5-backend`** |
 | `main` | `d9bc2c9`, **neatins, nu se modifică** |
-| Ultimele commit-uri de cod la 06.10.2026 | `9570b48` (comanda `rotate:totp-key` cu mod de probă; pasul A din `FAZA_5_4_ROTIRE_TOTP_PLAN.md`), apoi locația în formularul de sesizare (un singur câmp de adresă + întrebarea la trimiterea fără pin; `docs/faza5/AMENDAMENT_LOCATIE_FORMULAR.md`) |
-| Ultimul commit | se verifică cu `git log --oneline -5` (commit-ul cu locația în formular este ultimul de cod; se recunoaște după mesaj) |
-| Reguli | fără commit sau push fără aprobarea explicită a proprietarului; fișierele se adaugă unul câte unul, niciodată `git add .`; fără force push, fără rescrierea istoricului |
+| Ultimele commit-uri (08.10.2026) | `b0e1842` (`/me?optional=1`, reparația ferestrei de parolă), `abfee77` (Google, serverul), `71b5516` (Google: `GET /citizen/auth/google`, auditul ca la cod); urmează commit-ul acestei actualizări |
+| CI | verde la `abfee77` (inclusiv jobul pe MariaDB 11.4) |
+| Repo | `https://github.com/sergiuiordan2000-ctrl/Platforma-interactiva` (public; vechea adresă redirecționează) |
+| Reguli | fără commit sau push fără aprobarea explicită a proprietarului; fișierele se adaugă unul câte unul, niciodată `git add .`; fără force push, fără rescrierea istoricului, fără `git stash` |
 
 Verificarea la începutul unui chat nou:
 
@@ -38,10 +39,12 @@ Apoi verificările din 0.8.
 
 ### 0.2 Arhitectura
 
-- **Frontend:** React / TypeScript / Vite. **Backend:** Node.js / Fastify 5 / MySQL. Workspace-uri npm: `server/` și `shared/` (scheme Zod și constante comune).
-- **Toate domeniile sunt pe server:** comunicate, Ghid, Apel rapid (5.3); conturi de cetățean și sesizări, fără moderare (5.4); sondaje (5.6). Autentificarea Admin: parolă + TOTP pentru `super_admin` (5.2). Sesiunile sunt cookie-uri `HttpOnly`.
-- **În browser nu rămân date:** singura cheie din `localStorage` este indiciul „Ai participat deja” (`tmc_survey_participation_hint`, numai ID-uri de sondaje). Cheile vechi ale prototipului se șterg la pornire (5.7).
-- **E-mail:** codul există (SMTP cu TLS, `allowlist`; 5.5a), dar nu este pornit nicăieri; staging rulează `EMAIL_MODE=simulated`.
+- **Frontend:** React / TypeScript / Vite. **Backend:** Node.js / Fastify 5 / MySQL 8 sau **MariaDB 11.4** (producția). Workspace-uri npm: `server/` și `shared/` (scheme Zod și constante comune).
+- **Toate domeniile sunt pe server:** comunicate, Ghid, Apel rapid (5.3); conturi de cetățean (cod pe e-mail) și sesizări, fără moderare (5.4); sondaje (5.6). Autentificarea Admin: parolă + TOTP pentru `super_admin` (5.2). Sesiunile sunt cookie-uri `HttpOnly`.
+- **Migrații:** `0001` (30 de tabele B1) și **`0002`** (`citizen_oauth_attempts`, amendamentul Google). Aplicația nu pornește dacă schema nu este la ultima versiune (`migrate`).
+- **În browser nu rămân date:** singura cheie din `localStorage` este indiciul „Ai participat deja” (`tmc_survey_participation_hint`).
+- **E-mail:** Brevo SMTP, pornit pe staging-ul nou în modul `allowlist` (5.5b, 08.10.2026).
+- **Google (amendament):** serverul este gata (`POST /citizen/auth/google/start`, `GET …/callback`, `GET /citizen/auth/google`); **interfața nu este făcută**; fără `GOOGLE_OAUTH_CLIENT_ID` / `_SECRET`, rutele răspund 404.
 
 ### 0.3 Stadiul Fazei 5
 
@@ -50,65 +53,70 @@ Apoi verificările din 0.8.
 | 5.1 infrastructură, staging, backup | închisă, checkpoint aprobat | `docs/faza5/FAZA_5_1_RAPORT.md` |
 | 5.2 autentificare și autorizare pe server | închisă, checkpoint aprobat | `FAZA_5_2_RAPORT.md` |
 | 5.3 conținutul public pe API | închisă, checkpoint aprobat | `FAZA_5_3_RAPORT.md` |
-| 5.4 sesizări | închisă; **raportul este la ChatGPT, răspunsul nu a venit** | `FAZA_5_4_RAPORT.md` |
+| 5.4 sesizări | închisă; răspunsul ChatGPT la raport nu a fost consemnat | `FAZA_5_4_RAPORT.md` |
 | 5.5a e-mail (codul) | gata | `FAZA_5_5_PLAN.md` |
-| **5.5b e-mail real (Brevo)** | **probă reușită la 08.10.2026** pe `test.urbisactiv.ro` (`allowlist`): cod de cont în Inbox; sesizare cu transmitere → mesaj cu fotografia → „în analiză” → notificarea autorului. **Raportul trebuie trimis la audit** | `FAZA_5_5_RAPORT.md`; `STAGING_URBISACTIV_JURNAL.md` §3 (11–16) |
-| 5.6 sondaje (server, interfață, teste, staging) | închisă tehnic la 05.10.2026; **raportul trebuie trimis la ChatGPT** | `FAZA_5_6_PLAN.md` §6–§12, `FAZA_5_6_RAPORT.md` |
+| 5.5b e-mail real (Brevo) | **probă reușită la 08.10.2026** pe `test.urbisactiv.ro`: cod în Inbox; flux către Primărie cu fotografia; notificarea autorului; **proba negativă a listei reușită** (jurnal 19). Raportul trebuie trimis la audit | `FAZA_5_5_RAPORT.md`; `STAGING_URBISACTIV_JURNAL.md` |
+| 5.6 sondaje | închisă; rezultatul relatat de proprietar: „e ok” | `FAZA_5_6_RAPORT.md` |
 | 5.7 curățarea cheilor vechi din `localStorage` | închisă, pe staging | `FAZA_5_7_RAPORT.md` |
-| Amendament: autentificarea cetățeanului cu Google | **deciziile G-1…G-7 luate (05.10.2026); nimic implementat**; așteaptă 5.5b și checkpoint | `AMENDAMENT_AUTENTIFICARE_GOOGLE_PLAN.md` |
-| Amendament: numele, domeniul, găzduirea de producție și MariaDB 11.4 | **decis la 07.10.2026**; cod adaptat și testat local (`91a43b6`); aplicația nu este instalată pe găzduirea nouă; netrimis la audit | `AMENDAMENT_MARIADB_SI_GAZDUIRE.md` |
+| Amendament: numele „Urbis Activ”, `urbisactiv.ro`, ClausWeb, MariaDB 11.4 | decis 07.10.2026; cod + CI pe MariaDB; staging nou instalat | `AMENDAMENT_MARIADB_SI_GAZDUIRE.md` |
+| Amendament: `/me?optional=1` (fereastra de parolă repetată pe staging) | decis, implementat, **instalat și confirmat** 08.10.2026 | `AMENDAMENT_ME_OPTIONAL.md` |
+| **Amendament: autentificarea cetățeanului cu Google** | **versiunea finală aprobată la checkpoint (08.10.2026)**; **pasul 2 (serverul) făcut**: `abfee77`, `71b5516`; **urmează pasul 3 (interfața)** | `AMENDAMENT_AUTENTIFICARE_GOOGLE_PLAN.md` (§8 A–D, §9, §11, §12) |
 
-Deciziile proprietarului din Faza 5 sunt rezumate în `PROJECT_RULES_AND_DECISIONS.md` §13 (din 07.10.2026). Sursa completă rămân planurile și rapoartele din `docs/faza5/`.
+Deciziile proprietarului din Faza 5 sunt rezumate în `PROJECT_RULES_AND_DECISIONS.md` §13 (§13.1 deciziile, §13.2 cele deschise).
 
-### 0.4 Staging (`civic-test.electrovolt.ro`)
+### 0.4 Staging
 
-- **Staging nou, din 07.10.2026: `test.urbisactiv.ro`** (ClausWeb, Node 24.21.0, MariaDB 11.4.13), rulează **`999a9d5`**: instalat, `health` ok, parolă de acces, trei sarcini cron, un backup reușit. **Un cont `super_admin` (din 08.10.2026); e-mail real prin Brevo, în `allowlist` (din 08.10.2026).** Jurnal: `docs/faza5/STAGING_URBISACTIV_JURNAL.md` (observații deschise: `TRUST_PROXY`, „Force HTTPS Redirect”, a doua fereastră de parolă). Rândurile de mai jos descriu **staging-ul vechi**, neatins și încă pornit.
-- Rulează **`94dba87`** (5.6 + 5.7 + rândul despre limita de coduri + proba pentru cheia TOTP + locația în formular), din 06.10.2026 (jurnal §13–§14). Cheia `TOTP_ENC_KEY` nu a fost schimbată. Proba `civic-rotate-totp-key-check` a fost rulată la 06.10.2026: reușită, fără blocări orfane, un singur cont Admin cu TOTP la acel moment (al doilea a fost creat ulterior, jurnal §15). Căutarea reală a adresei („Caută pe hartă”) a fost probată de proprietar pe staging.
-- Joburi cron: `backup:db` (zilnic, 03:17), `surveys:close-expired` (la 5 minute), `purge:retention` (zilnic, 03:47; `purge.log` văzut de proprietar la 06.10.2026, jurnal §12). `outbox:process` vine la 5.5b.
-- Deploy: pachet cu `python3 server/scripts/package-release.py` → proprietarul face Upload + Extract în `civic-test-app` → Setup Node.js App → Restart → `/api/v1/health`. Comenzile se rulează prin „Run JS script”.
-- Fereastra „Sign in” (`civic` + parolă) este lacătul cPanel al staging-ului, nu aplicația.
-- ALTCHA este oprită (implicit). Poate fi pornită: defectul din browser a fost corectat la 5.6.5.
-- Jurnalul complet: `docs/faza5/FAZA_5_1_STAGING_JURNAL.md` (§1–§12). Numele contului cPanel se scrie `<cont>`.
+**Staging-ul nou, `test.urbisactiv.ro`** (ClausWeb, Node 24.21.0, MariaDB 11.4.13), jurnal `docs/faza5/STAGING_URBISACTIV_JURNAL.md` (intervențiile 1–20):
+- rulează **`b0e1842`** (reparația `/me?optional=1`, intervenția 18). **Nu are încă migrația 0002 și nici codul Google**: la următorul deploy se rulează și `migrate`;
+- lacăt Directory Privacy (utilizatorul `civic`; parola schimbată la 08.10.2026); ferestrele de parolă repetate sunt eliminate;
+- **două conturi `super_admin`** (al doilea din 08.10.2026, intervenția 20);
+- e-mail: Brevo, `EMAIL_MODE=allowlist`; DKIM / DMARC configurate; cron `outbox:process`;
+- cron: `backup:db`, `surveys:close-expired`, `purge:retention`, `outbox:process`;
+- calea contului este `/home2/<cont>`; Node: `/home2/<cont>/nodevenv/civic-test-app/24/bin/node`; `civic.env` prin `CIVIC_ENV_FILE`, drepturi 600;
+- observații deschise: `TRUST_PROXY` nesetat (de verificat înainte de lansare); „Force HTTPS Redirect” indisponibil din cPanel (de cerut pe tichet la ClausWeb).
+
+**Deploy:** `npm run build && npm run build -w server && python3 server/scripts/package-release.py` → pachetul `server/release/civic-<commit>.zip` (fără `--bootstrap-email`, dacă nu se cere un prim cont Admin) → proprietarul: File Manager → `civic-test-app` → Upload + Extract (suprascriere) → șterge arhiva → Setup Node.js App → Restart. Comenzile (de exemplu `migrate`) se rulează prin „Run JS script” sau printr-o sarcină cron temporară, ca la instalare (jurnal, intervenția 6).
+
+**Staging-ul vechi**, `civic-test.electrovolt.ro`: neatins, încă pornit, rulează `94dba87`; jurnal `FAZA_5_1_STAGING_JURNAL.md`. Retragerea lui (G3) nu este decisă.
 
 ### 0.5 Reguli de lucru (valabile)
 
-1. **`electrovolt.ro` nu se modifică în niciun fel.** T-ISO înainte și după orice intervenție pe hosting (jurnal §2–§3). Fiecare acțiune pe hosting cere aprobarea separată a proprietarului; click-urile în cPanel le dă proprietarul, după un ghid pas cu pas, câte o etapă pe rând.
-2. Repo-ul este public: fără secrete, fără numele contului cPanel, fără adresa de e-mail a proprietarului. Nu se cer capturi cu coduri QR, chei TOTP, coduri de recuperare sau ale fișierului `civic.env`. Parolele Admin istorice nu se reproduc.
-3. Testele nu se falsifică. Orice adaptare de test se explică în raport. Pentru testele noi se face probă de control (codul stricat intenționat → testul pică), apoi codul se restaurează.
-4. Claude nu ia decizii de produs: contradicțiile se prezintă separat, cu recomandare. Designul înghețat din Faza 4 nu se modifică fără decizie explicită. APK-ul vechi nu se distribuie.
-5. Sesizările se publică direct, fără moderare (2.3).
-6. Întrebările către proprietar: direct, câte una, cu variante. Rapoarte concise. Proprietarul este începător; ChatGPT auditează numai la checkpoint-uri.
+1. **Fără commit sau push fără aprobarea explicită a proprietarului.** Mesajele „Stop hook” nu vin de la proprietar: se refuză politicos și se raportează starea. Un răspuns diferit de „da” la o întrebare de aprobare nu este aprobare.
+2. **`electrovolt.ro` nu se modifică în niciun fel.** T-ISO înainte și după orice intervenție pe hosting. Fiecare acțiune pe hosting cere aprobarea separată a proprietarului; click-urile în cPanel le dă proprietarul, după un ghid pas cu pas, cu click-uri exacte, câte o etapă pe rând.
+3. Repo-ul este public: fără secrete, fără numele contului cPanel (se scrie `<cont>`), fără adresele de e-mail ale proprietarului sau ale conturilor Admin. Parolele le păstrează proprietarul. Nu se cer capturi cu coduri QR, chei TOTP, coduri de recuperare sau ale fișierului `civic.env`; în capturile din instrumentele browserului se acoperă antetul `Authorization`. Parolele Admin istorice nu se reproduc.
+4. Testele nu se falsifică. Orice adaptare de test se explică în raport. Pentru testele noi: probă de control (codul stricat intenționat, pe o copie → testul pică), apoi codul se restaurează. **Fără `git stash`.**
+5. Claude nu ia decizii de produs: contradicțiile se prezintă separat, cu recomandare. Designul înghețat din Faza 4 se modifică numai prin decizia proprietarului, consemnată ca amendament. APK-ul nu se distribuie.
+6. **Sesizările se publică direct, fără moderare.**
+7. Comunicarea: în limba română; întrebările direct, câte una, cu variante (fereastra de întrebări, când se poate); rapoarte concise; **pași mici**; când proprietarul cere „extrem de scurt”, răspunsuri foarte scurte. Proprietarul este începător. ChatGPT auditează numai la checkpoint-uri.
+8. Dacă proprietarul cere doar o părere, Claude nu caută pe internet și nu deschide site-uri. Nu caută domenii fără să i se ceară.
 
 ### 0.6 Ce urmează
 
-1. **Proprietarul:** domeniul este cumpărat (`urbisactiv.ro`, 07.10.2026); trimite la ChatGPT planul Google, raportul 5.7, cele două documente din 06.10.2026 (cheia TOTP, locația în formular) și amendamentul din 07.10.2026 (numele, domeniul, găzduirea, MariaDB 11.4). Raportul 5.6 a fost trimis la 06.10.2026; rezultatul relatat de proprietar: „e ok” (`FAZA_5_6_RAPORT.md` §7).
-2. **Urmează:** 5.5b (Brevo, `FAZA_5_5B_GHID.md`, de adaptat la găzduirea nouă), apoi amendamentul Google (după checkpoint).
-3. **Cheia TOTP pe staging:** proba a trecut (jurnal §13), iar al doilea `super_admin` există din 06.10.2026 (jurnal §15); rularea reală (pasul B) este o decizie separată a proprietarului, neluată (`FAZA_5_4_ROTIRE_TOTP_PLAN.md` §0, §4).
-4. **Închiderea Fazei 5:** raport final, după 5.5b și checkpoint-uri. Apoi Faza 6 și Etapa 7A–7F, conform Planului de Lucru Comun v1.1 (planul nu este în repository).
+1. **Amendamentul Google, pasul 3 (interfața):** pe „Contul meu”, butonul „Continuă cu Google” deasupra codului (G-1), afișat numai dacă `GET /api/v1/citizen/auth/google` răspunde 200; bifa politicii obligatorie înainte de buton (§8 A); pornirea prin clientul API (`POST …/google/start` → navigare la `authorizationUrl`, §11.1); mesajele la întoarcere `/#sesizari?google=eroare|anulat|blocat|limita` (de formulat), apoi adresa curățată; E2E cu un furnizor fals (permis numai în dezvoltare / CI, G-T10). Butonul: după regulile vizuale Google (G-T11, de verificat la execuție).
+2. Pasul 4: textul politicii de utilizare despre Google (G-5; verificarea juridică este nedecisă).
+3. Pasul 5: proprietarul înregistrează aplicația în Google Cloud Console (ghid scris la execuție, pe ecranele de atunci; adresa de întoarcere `https://test.urbisactiv.ro/api/v1/citizen/auth/google/callback`; numai `openid email`).
+4. Pasul 6: deploy pe staging cu `migrate` (0002), cheile Google în `civic.env`, proba reală, T-ISO; raport și checkpoint.
+5. Separat: `TRUST_PROXY` înainte de lansare; „Force HTTPS” cerut pe tichet; adaptarea `FAZA_5_5B_GHID.md` la găzduirea nouă; raportul final al Fazei 5. Apoi Faza 6 și Etapa 7A–7F (Planul de Lucru Comun v1.1 nu este în repository).
+6. Proprietarul are de trimis la ChatGPT: `FAZA_5_5_RAPORT.md`, `AMENDAMENT_MARIADB_SI_GAZDUIRE.md`, `AMENDAMENT_ME_OPTIONAL.md` (dacă nu le-a trimis).
 
 ### 0.7 Deschise
 
-- **Decizie de produs / juridică:** sesizările despre vecini apar public, cu descriere și loc (raport 5.4, §6).
-- **Decizii de interfață:** respingerile de vot și contoarele din tabloul de bord există pe server, dar nu au ecran în Admin. (Cele două câmpuri de adresă din formularul de sesizare: decise și implementate la 06.10.2026, `docs/faza5/AMENDAMENT_LOCATIE_FORMULAR.md`; pe staging din 06.10.2026.)
-- **Securitate pe staging:** există două conturi `super_admin` (jurnal §15), cu ambele coduri TOTP pe același telefon; recomandare deschisă: unul dintre ele pe alt dispozitiv. Schimbarea cheii `TOTP_ENC_KEY` numai dacă proprietarul aprobă pasul B.
-- **Amendamentul Google, G-5:** verificarea juridică a textului politicii de utilizare nu este decisă.
-- **CI, verificat la 07.10.2026 (numai citire, prin API-ul GitHub):** ultimul commit, `68f1121` (#49), este verde; toate rulările de după `26a8807` (#32) sunt verzi sau explicate mai jos.
-  - #24 `ed7f297` (01.10), roșu la testele de integrare, pe toate cele patru combinații: testul ALTCHA dependent de dată; reparat în `06781bf` (#25, verde); `docs/faza5/FAZA_5_4_RAPORT.md`, pct. 7.
-  - #26 `5c94fd3` (01.10) și #42 `f5a354f` (05.10), roșii fără ca vreun test să ruleze: GitHub nu a alocat mașini („The job was not acquired by Runner of type hosted even after multiple attempts”). Nu țin de cod; ambele sunt commit-uri de documentație.
-  - #30 `e0d25f6` (02.10), roșu numai la suita Python: interfața sondajelor trecuse pe API, iar suitele vechi au fost adaptate în `044ca26` (#31, verde). Cauza este dedusă din `FAZA_5_6_PLAN.md` (66/68, cu `R-00` și `R6.5a` prevăzute), nu citită din jurnalul jobului.
-  - #27, #35, #39, #40, #41, #48: „cancelled”, adică anulate de push-ul următor pe același branch (`cancel-in-progress`); #27 nu a fost o rulare roșie.
-  - **Necitite:** jurnalele joburilor (descărcarea lor nu a fost posibilă din mediul de lucru al lui Claude).
+- Retragerea staging-ului vechi (G3); redenumirea în „Urbis Activ” în interfață și în repository; suita Python (E2E) pe MariaDB: nedecise (RULES §13.2).
+- **Decizie de produs / juridică:** sesizările despre vecini apar public, cu descriere și loc (raport 5.4, §6). G-5: verificarea juridică a textului despre Google.
+- **Interfață:** respingerile de vot și contoarele din tabloul de bord nu au ecran în Admin.
+- **Securitate:** pe ambele staging-uri, codurile TOTP ale celor două conturi `super_admin` sunt pe același telefon (recomandare: unul pe alt dispozitiv; codurile de recuperare păstrate separat). Pasul B al cheii `TOTP_ENC_KEY` (staging-ul vechi): nedecis.
+- Fișierul `cli.log` a rămas în `civic-test-data` pe staging-ul nou (fără secrete).
 
 ### 0.8 Mediul local și verificările obligatorii înainte de commit
 
-- MySQL poate lipsi într-un container nou: `apt-get install -y mysql-server`; bazele `civic_dev` și `civic_test`; utilizatorul `civic` (pe `127.0.0.1` și `localhost`), cu parola locală de test din CI. La fiecare repornire: `service mysql start`. Dacă pornirea eșuează cu „Another process … is using unix socket file”, se șterg fișierele `mysqld.sock*` și `mysqlx.sock*` din `/var/run/mysqld/` și se pornește din nou.
-- Verificări (valorile de referință la 06.10.2026):
-  - `npx tsc --noEmit -p .` și `npm run typecheck -w server`
-  - `(cd server && CIVIC_TEST_DATABASE_URL=… node test/run.mjs all)`: **218/218**
+- MySQL poate lipsi într-un container nou: `apt-get install -y mysql-server`; bazele `civic_dev` și `civic_test`; utilizatorul `civic` (pe `127.0.0.1` și `localhost`), cu parola locală de test din CI (`.github/workflows/ci.yml`: `CIVIC_TEST_DATABASE_URL`). **La fiecare repornire a containerului: `service mysql start`** (altfel testele de integrare dau `ECONNREFUSED`). Dacă pornirea eșuează cu „Another process … is using unix socket file”, se șterg `mysqld.sock*` și `mysqlx.sock*` din `/var/run/mysqld/` și se pornește din nou.
+- Verificări (valorile de referință la 08.10.2026):
+  - `npm run lint` și `npm run typecheck -w server`
+  - `(cd server && CIVIC_TEST_DATABASE_URL=… node test/run.mjs all)`: **253/253** (MySQL 8.0 local; MariaDB 11.4 în CI)
   - `npm run build` și `git diff --check`
-  - `CIVIC_TEST_DATABASE_URL=… python3 tests/run_all.py`: **126/126** (8 suite; detalii în `tests/README.md`)
-- Pachetul de staging: `npm run build && npm run build -w server && python3 server/scripts/package-release.py`; se verifică în pachet că `health` va arăta commit-ul corect.
-
+  - `CIVIC_TEST_DATABASE_URL=… python3 tests/run_all.py`: ultima rulare locală consemnată 126/126 (06.10.2026); în CI, jobul E2E este verde la `abfee77`
+- Jurnalele joburilor CI nu se pot descărca din mediul lui Claude (adresa de stocare este blocată); starea se citește cu `gh run view`.
+- Pachetul de staging: se verifică în pachet că `RELEASE.txt` și `server/dist/app.js` arată commit-ul corect (scriptul refuză un build vechi).
 ---
 
 ## A. IDENTITATEA PROIECTULUI
