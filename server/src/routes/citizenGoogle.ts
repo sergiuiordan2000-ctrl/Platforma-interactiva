@@ -1,9 +1,10 @@
 // Autentificarea cetățeanului cu Google (amendamentul Google, versiunea finală din 08.10.2026).
 //
+//   GET  /citizen/auth/google           → 200 { enabled: true } / 404 (butonul se afișează sau nu; §12.1)
 //   POST /citizen/auth/google/start     → 200 { authorizationUrl } + cookie `__Host-civic_oauth` (§11.1, §11.2)
 //   GET  /citizen/auth/google/callback  → 303 spre `/#sesizari` (reușită) sau `/#sesizari?google=<motiv>` (refuz)
 //
-// Fără GOOGLE_OAUTH_CLIENT_ID / _SECRET, ambele rute răspund 404 (G-T7).
+// Fără GOOGLE_OAUTH_CLIENT_ID / _SECRET, toate rutele răspund 404 (G-T7).
 // Rezultatul este aceeași sesiune de cetățean ca după cod; același cont, după e-mailul verificat (G-3, D30).
 // Nu se salvează nimic primit de la Google în afară de adresa de e-mail a unui cont nou (G-2, §8 C).
 
@@ -46,6 +47,9 @@ export function registerCitizenGoogleRoutes(api: FastifyInstance, ctx: AppContex
   const oidc = () => (provider ??= ctx.oidc ?? googleProvider());
   const redirectUri = `${ctx.config.publicBaseUrl}${GOOGLE_CALLBACK_PATH}`;
   const notFound = (reply: FastifyReply) => reply.code(404).send(apiError('NOT_FOUND', 'Resursa nu există.'));
+
+  /** Decizia proprietarului (08.10.2026, §12.1 a): interfața afișează butonul numai dacă ruta răspunde 200. Fără efect. */
+  api.get('/citizen/auth/google', async (_request, reply) => (ctx.config.googleOAuth ? { enabled: true } : notFound(reply)));
 
   api.post('/citizen/auth/google/start', async (request, reply) => {
     const google = ctx.config.googleOAuth;

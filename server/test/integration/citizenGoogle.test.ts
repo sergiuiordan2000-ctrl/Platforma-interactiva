@@ -143,9 +143,10 @@ after(async () => {
 });
 
 describe('Google: configurare (G-T7)', () => {
-  it('fără GOOGLE_OAUTH_CLIENT_ID / _SECRET: ambele rute → 404, fără încercare creată', async () => {
+  it('fără GOOGLE_OAUTH_CLIENT_ID / _SECRET: toate rutele → 404, fără încercare creată', async () => {
     const { app: off } = await makeApp(h, clock, {}, { oidc: fakeProvider });
     try {
+      assert.equal((await off.inject({ method: 'GET', url: `${V1}/citizen/auth/google` })).statusCode, 404, '§12.1: butonul nu apare');
       assert.equal((await start(off)).res.statusCode, 404);
       assert.equal((await callback(off, { state: 'x', code: 'y' })).statusCode, 404);
       assert.equal((await q('SELECT id FROM citizen_oauth_attempts')).length, 0);
@@ -161,6 +162,14 @@ describe('Google: configurare (G-T7)', () => {
 });
 
 describe('Google: pornirea (§8 A, §8 D, §11.1, §11.2)', () => {
+  it('§12.1: GET /citizen/auth/google → 200 { enabled: true }, fără încercare și fără cookie', async () => {
+    const res = await app.inject({ method: 'GET', url: `${V1}/citizen/auth/google` });
+    assert.equal(res.statusCode, 200);
+    assert.deepEqual(res.json(), { enabled: true });
+    assert.equal(setCookies(res).length, 0);
+    assert.equal((await q('SELECT id FROM citizen_oauth_attempts')).length, 0);
+  });
+
   it('§8 A: fără bifă / fără versiune / cu versiune greșită → 422, fără încercare și fără cookie', async () => {
     for (const body of [{}, { policyAccepted: true }, { policyAccepted: false, policyVersion: CITIZEN_POLICY_VERSION },
       { policyAccepted: true, policyVersion: '2000-01' }]) {
