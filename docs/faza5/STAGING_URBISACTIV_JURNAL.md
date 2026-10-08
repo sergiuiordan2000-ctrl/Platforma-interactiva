@@ -45,6 +45,8 @@ Verificat din exterior de Claude (DNS public): `urbisactiv.ro` folosește server
 | 16 | 08.10.2026 ~18:40–18:45 | sesizare de test („TEST flux Primărie, staging”), cu o fotografie, fără pin („Trimit fără hartă”), cu transmitere către Primărie și notificări cerute | proprietarul: **două mesaje** primite: cel „pentru Primărie”, **cu fotografia**, și notificarea autorului despre stadiu; în „Sesizările mele”: **„în analiză”** | **OK** |
 | 17 | 08.10.2026 ~20:13–20:20 | încercare de reparare a ferestrei de parolă repetate: în `test.urbisactiv.ro/.htaccess` (copie înainte: `.htaccess.bak-20261008`) s-au adăugat 3 rânduri (`SetEnvIf Authorization .+ …` + `Header always unset WWW-Authenticate env=…`) | proprietarul, fereastră privată nouă: fereastra apare imediat | **fără efect**; rândurile se scot (scoaterea trebuie confirmată de proprietar). Reparația aleasă: `AMENDAMENT_ME_OPTIONAL.md` |
 | 18 | 08.10.2026 ~20:45 | parola lacătului schimbată (utilizatorul `civic`, Directory Privacy); deploy `civic-b0e1842.zip` (reparația `/me?optional=1`; fără scriptul `civic-bootstrap-admin`), apoi Restart | proprietarul: parola cerută o singură dată, apoi navigare fără ferestre noi: „Ai eliminat problema” | **OK** |
+| 19 | 08.10.2026 ~21:05–21:15 | proba negativă a listei (ghidul 5.5b, pasul 7, partea a doua): cod de cont cerut din „Contul meu” pentru o adresă a proprietarului **din afara** `EMAIL_ALLOWLIST` | proprietarul, după ~10 minute: nimic în Inbox sau Spam; nicio trimitere în Brevo → Transactional → Logs | **OK** |
+| 20 | 08.10.2026 ~21:15–21:28 | al doilea cont `super_admin` (în aplicație, nu în cPanel): Admin → „Conturi” → „Cont nou”, rolul „Super administrator”, din primul cont; parola temporară păstrată numai de proprietar; apoi prima autentificare cu contul nou: parola temporară → înrolare TOTP → coduri de recuperare → parolă nouă. Adresa nu se scrie în jurnal | proprietarul: „totul e ok”, autentificarea cu contul nou a reușit (fără captură) | **OK** |
 
 **Rezultat:** aplicația rulează pe găzduirea nouă, cu Node 24.21.0 și MariaDB 11.4.13: migrarea, seed-urile, pornirea, `health` și un backup au reușit în mediul real.
 
@@ -59,8 +61,6 @@ Verificat din exterior de Claude (DNS public): `urbisactiv.ro` folosește server
 
 ## 5. Nefăcut încă
 
-- **Al doilea cont `super_admin`** pe acest staging (ca pe cel vechi, pentru recuperare): nefăcut.
-- **Proba negativă a listei:** o adresă din afara `EMAIL_ALLOWLIST` nu trebuie să primească nimic (ghidul 5.5b, pasul 7, partea a doua); nefăcută.
 - Sesizarea de test rămâne pe staging (se șterge automat după 45 de zile sau o poate șterge autorul).
 - `FAZA_5_5B_GHID.md` descrie încă staging-ul vechi; nu a fost adaptat.
 - **Verificarea telefonului în Brevo:** amânată.
