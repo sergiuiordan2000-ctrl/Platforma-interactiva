@@ -555,6 +555,6 @@ La checkpoint, proprietarul a reconfirmat explicit rezultatele de mai jos. Lipsa
 
 Materialul de audit al pasului 6 (document de lucru al proprietarului, nu este în repository) a fost trimis la ChatGPT la 09.10.2026. Concluzia transmisă de proprietar: **„pasul 6 poate fi propus pentru închidere, cu excepția testului real «Anulează» consemnată transparent”.**
 
-Rămâne: decizia proprietarului de închidere a pasului 6 și a amendamentului.
+**Decizia proprietarului (09.10.2026): pasul 6 și amendamentul „autentificarea cetățeanului cu Google” sunt închise**, cu excepția testului real „Anulează”, consemnată în §16.4 și §16.6.
 
 În afara pasului 6, înainte de lansare: `TRUST_PROXY` (§16.5) și cerințele din §15.4.
