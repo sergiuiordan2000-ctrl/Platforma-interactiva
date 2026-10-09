@@ -495,9 +495,9 @@ Pe staging (proprietarul, cu capturi): backup (`civic-backup-20261009T171424982Z
 | 4 | sesiunea după întoarcere, pe HTTPS, cu cookie-urile `__Host-` (§9.3) | **OK**: bara „Autentificat ca …”; după reîncărcare rămâne autentificat |
 | 5 | verificarea jetonului real (semnătura cu cheile Google, emitentul, destinatarul, `nonce`) | **OK**, implicit: fără ea, autentificarea nu ar fi reușit |
 | 7 | același cont ca la codul primit pe e-mail (G-3) | **OK**: în „Sesizările mele” apare sesizarea depusă la 08.10.2026 cu același cont, prin cod |
-| 6 | renunțarea; o adresă din afara `EMAIL_ALLOWLIST` | adresa din afara listei: **OK** (16.4, proba D); renunțarea („Anulează”): **nefăcută** |
-| 8 | IP-ul văzut de server (`TRUST_PROXY`) | **nefăcut** |
-| 9 | aspectul butonului pe un telefon real | **nefăcut** (pe calculator: corect, captura proprietarului) |
+| 6 | renunțarea; o adresă din afara `EMAIL_ALLOWLIST` | adresa din afara listei: **OK** (16.4, proba D); renunțarea („Anulează”): **neprobată cu Google real** (16.4, decizia proprietarului) |
+| 8 | IP-ul văzut de server (`TRUST_PROXY`) | **verificat, cu constatare** (16.5): aplicația nu vede adresa reală |
+| 9 | aspectul butonului pe un telefon real | **OK** (16.5): autentificarea de pe telefon a reușit; aspectul confirmat de proprietar, fără captură |
 
 ### 16.3 Constatare și decizie: alegerea contului
 
@@ -522,10 +522,25 @@ CI la `08f4dc3`: verde pe toate cele 6 joburi (inclusiv MariaDB 11.4 și E2E). I
 
 Confirmat în plus, din captura probei D: Google cere acordul numai pentru adresa de e-mail (G-2: fără nume, fără fotografie).
 
-Limitele probei D, onest: (1) interfața arată același mesaj pentru orice refuz (așa este proiectat: G-T8, §13.6), deci din captură nu se vede **motivul**; o încercare mai veche de 10 minute ar da același mesaj. Proba a fost reluată de la început, la cererea lui Claude, iar captura a venit la circa 2 minute; refuzul pentru listă este acoperit și de testul de integrare (G-T10). (2) Nu s-a verificat dacă al doilea cont este în lista „Test users” de la Google (§15.3, punctul 1). (3) Renunțarea („Anulează” pe ecranul Google) nu a fost probată cu Google real; este acoperită numai de testele automate, cu furnizorul fals.
+Proba D a fost repetată fără intenție la ~21:55, într-o încercare nouă (pornită din „Contul meu”): Google nu a mai arătat ecranul de acord pentru al doilea cont (acordul fusese dat la prima trecere, cu „Continuă”) și l-a trimis direct la aplicație, care l-a refuzat cu același mesaj (captură). Astfel refuzul este confirmat și pe o încercare sigur neexpirată.
 
-### 16.5 Ce rămâne din pasul 6
+Limitele probei D, onest: (1) interfața arată același mesaj pentru orice refuz (așa este proiectat: G-T8, §13.6), deci din captură nu se vede **motivul**; refuzul pentru listă este acoperit și de testul de integrare (G-T10). (2) Nu s-a verificat dacă al doilea cont este în lista „Test users” de la Google (§15.3, punctul 1).
 
-1. Renunțarea cu Google real: „Anulează” pe ecranul de acord → mesajul „Ați renunțat la autentificarea cu Google…”, neautentificat.
-2. `TRUST_PROXY` și aspectul pe telefon (§13.7.6, punctele 8 și 9).
-3. Raportul pasului 6 și checkpoint-ul amendamentului (la ChatGPT merge §16, inclusiv modificarea serverului din §16.3).
+**Renunțarea („Anulează” pe ecranul Google) nu a fost probată cu Google real.** După prima trecere a probei D, Google nu mai arată ecranul de acord pentru niciunul dintre cele două conturi; proba ar cere retragerea acordului din contul Google de test sau un al treilea cont. **Decizia proprietarului (09.10.2026): proba se sare.** Renunțarea rămâne acoperită numai de testele automate, cu furnizorul fals (integrare și E2E).
+
+### 16.5 `TRUST_PROXY` și telefonul (09.10.2026, ~22:00–22:11)
+
+Jurnalul aplicației nu poate fi citit din cPanel (`stderr.log` din `civic-test-app` are 0 octeți), așa că s-au comparat amprentele de IP din tabela `sessions` (numai citire, phpMyAdmin; jurnal, intervenția 28).
+
+| Verificare (§13.7.6) | Rezultat |
+|---|---|
+| 9: autentificarea cu Google de pe un telefon real (Android, date mobile) | **OK**, relatat de proprietar; **aspectul** butonului pe telefon (încape pe ecran, textul pe un singur rând): confirmat de proprietar, fără captură |
+| 8: IP-ul văzut de server | **constatare**: sesiunea de pe telefon (date mobile, Wi-Fi oprit) are aceeași amprentă ca sesiunile de pe calculator din aceeași zi, deci aplicația **nu vede adresa reală a vizitatorului** |
+
+**Urmarea pentru Google:** limita de 20 de porniri și 20 de întoarceri pe oră „pe IP” (§13.7.2) este, pe această găzduire, o limită pentru toți vizitatorii la un loc. La fel celelalte limite pe IP ale aplicației. Pe staging nu deranjează; **înainte de lansare trebuie rezolvat** (`STAGING_URBISACTIV_JURNAL.md` §4, observația 4). Nu este o problemă a amendamentului Google și nu se rezolvă în pasul 6: cere aflarea modului în care LiteSpeed trimite cererile către aplicație; un `TRUST_PROXY` setat greșit ar permite falsificarea adresei.
+
+### 16.6 Ce rămâne din pasul 6
+
+1. Raportul pasului 6 și checkpoint-ul amendamentului (la ChatGPT merge §16, inclusiv modificarea serverului din §16.3 și constatarea din §16.5).
+
+În afara pasului 6, înainte de lansare: `TRUST_PROXY` (§16.5).
