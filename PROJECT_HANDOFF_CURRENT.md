@@ -18,8 +18,8 @@
 |---|---|
 | Branch de lucru | **`faza-5-backend`** |
 | `main` | `d9bc2c9`, **neatins, nu se modifică** |
-| Ultimele commit-uri | 08.10.2026: `b0e1842` (`/me?optional=1`, reparația ferestrei de parolă), `abfee77` (Google, serverul), `71b5516` (Google: `GET /citizen/auth/google`, auditul ca la cod), `011d51b` (handoff). 09.10.2026: `11e0d20` (setarea de test `DEV_OIDC_PROVIDER_URL`, numai în dezvoltare), `0ed3cd0` (Google, interfața), `cc73327` (handoff), `93300ab` (corecțiile de după auditul pasului 3); urmează commit-ul acestei actualizări |
-| CI | verde la `011d51b` (inclusiv jobul pe MariaDB 11.4); pentru commit-urile din 09.10.2026 se verifică după push (`gh run list`) |
+| Ultimele commit-uri | 08.10.2026: `b0e1842` (`/me?optional=1`, reparația ferestrei de parolă), `abfee77` (Google, serverul), `71b5516` (Google: `GET /citizen/auth/google`, auditul ca la cod), `011d51b` (handoff). 09.10.2026: `11e0d20` (setarea de test `DEV_OIDC_PROVIDER_URL`, numai în dezvoltare), `0ed3cd0` (Google, interfața), `cc73327` (handoff), `93300ab` (corecțiile de după auditul pasului 3), `6ed9b13` (handoff), `576d643` (pasul 4: rândul de informare despre Google); urmează commit-ul acestei actualizări |
+| CI | verde la `6ed9b13` (toate cele 6 joburi, inclusiv MariaDB 11.4 și E2E); pentru commit-urile ulterioare se verifică după push (`gh run list`) |
 | Repo | `https://github.com/sergiuiordan2000-ctrl/Platforma-interactiva` (public; vechea adresă redirecționează) |
 | Reguli | fără commit sau push fără aprobarea explicită a proprietarului; fișierele se adaugă unul câte unul, niciodată `git add .`; fără force push, fără rescrierea istoricului, fără `git stash` |
 
@@ -62,7 +62,7 @@ Apoi verificările din 0.8.
 | 5.7 curățarea cheilor vechi din `localStorage` | închisă, pe staging | `FAZA_5_7_RAPORT.md` |
 | Amendament: numele „Urbis Activ”, `urbisactiv.ro`, ClausWeb, MariaDB 11.4 | decis 07.10.2026; cod + CI pe MariaDB; staging nou instalat | `AMENDAMENT_MARIADB_SI_GAZDUIRE.md` |
 | Amendament: `/me?optional=1` (fereastra de parolă repetată pe staging) | decis, implementat, **instalat și confirmat** 08.10.2026 | `AMENDAMENT_ME_OPTIONAL.md` |
-| **Amendament: autentificarea cetățeanului cu Google** | **versiunea finală aprobată la checkpoint (08.10.2026)**; **pasul 2 (serverul) făcut**: `abfee77`, `71b5516`; **pasul 3 (interfața) făcut la 09.10.2026**: `11e0d20`, `0ed3cd0`; **auditat de ChatGPT la 09.10.2026**: trei cerințe, rezolvate în `93300ab` (§13.7) și aprobate tehnic de proprietar. **Aprobarea nu este validarea finală: aceasta rămâne proba pe staging, cu Google real (pasul 6, §13.7.6).** Re-auditul corecțiilor: la alegerea proprietarului. **Urmează pasul 4 (textul politicii)** | `AMENDAMENT_AUTENTIFICARE_GOOGLE_PLAN.md` (§8 A–D, §9, §11, §12, §13) |
+| **Amendament: autentificarea cetățeanului cu Google** | **versiunea finală aprobată la checkpoint (08.10.2026)**; **pasul 2 (serverul) făcut**: `abfee77`, `71b5516`; **pasul 3 (interfața) făcut la 09.10.2026**: `11e0d20`, `0ed3cd0`; **auditat de ChatGPT la 09.10.2026**: trei cerințe, rezolvate în `93300ab` (§13.7) și aprobate tehnic de proprietar. **Aprobarea nu este validarea finală: aceasta rămâne proba pe staging, cu Google real (pasul 6, §13.7.6).** Re-auditul corecțiilor: la alegerea proprietarului. **Pasul 4 făcut la 09.10.2026** (`576d643`): rând de informare sub butonul Google, varianta scurtă; textul bifei și versiunea politicii neschimbate (§14). **Urmează pasul 5 (Google Cloud Console)** | `AMENDAMENT_AUTENTIFICARE_GOOGLE_PLAN.md` (§8 A–D, §9, §11, §12, §13, §14) |
 
 Deciziile proprietarului din Faza 5 sunt rezumate în `PROJECT_RULES_AND_DECISIONS.md` §13 (§13.1 deciziile, §13.2 cele deschise).
 
@@ -95,8 +95,8 @@ Deciziile proprietarului din Faza 5 sunt rezumate în `PROJECT_RULES_AND_DECISIO
 ### 0.6 Ce urmează
 
 1. ~~Amendamentul Google, pasul 3 (interfața)~~: **făcut și auditat la 09.10.2026** (`AMENDAMENT_AUTENTIFICARE_GOOGLE_PLAN.md` §13; corecțiile de după audit: §13.7). Documentul trimis la audit (`AUDIT_GOOGLE_PAS_3.md`) este document de lucru al proprietarului, nu este în repository.
-2. **Pasul următor: pasul 4**, textul politicii de utilizare despre Google (G-5; verificarea juridică este nedecisă). Textul bifei din „Contul meu” nu menționează încă Google. De stabilit cu proprietarul dacă se schimbă `CITIZEN_POLICY_VERSION`.
-3. Pasul 5: proprietarul înregistrează aplicația în Google Cloud Console (ghid scris la execuție, pe ecranele de atunci; adresa de întoarcere `https://test.urbisactiv.ro/api/v1/citizen/auth/google/callback`; numai `openid email`).
+2. ~~Pasul 4~~: **făcut la 09.10.2026** (§14): rând de informare sub butonul Google; `CITIZEN_POLICY_VERSION` neschimbată (`2026-10`). Deschis: documentul complet al politicii și informarea privind datele personale (2.9, E-6), cu paragraful despre Google, inclusiv ce află Google (§5); verificarea juridică este nedecisă.
+3. **Pasul următor: pasul 5.** Proprietarul înregistrează aplicația în Google Cloud Console (ghid scris la execuție, pe ecranele de atunci; adresa de întoarcere `https://test.urbisactiv.ro/api/v1/citizen/auth/google/callback`; numai `openid email`). De hotărât atunci: ce adresă se dă ca politică de confidențialitate pe ecranul de consimțământ (aplicația nu are o asemenea pagină).
 4. Pasul 6: deploy pe staging cu `migrate` (0002), cheile Google în `civic.env`, proba reală, T-ISO; raport și checkpoint. Lista verificărilor care nu se pot face automat este în §13.7.6 (ecranul Google, adresa de întoarcere, lacătul, sesiunea pe HTTPS, jetonul real, `TRUST_PROXY`, `EMAIL_ALLOWLIST`, aspectul butonului, T-ISO).
 5. Separat: `TRUST_PROXY` înainte de lansare; „Force HTTPS” cerut pe tichet; adaptarea `FAZA_5_5B_GHID.md` la găzduirea nouă; raportul final al Fazei 5. Apoi Faza 6 și Etapa 7A–7F (Planul de Lucru Comun v1.1 nu este în repository).
 6. Proprietarul are de trimis la ChatGPT: `FAZA_5_5_RAPORT.md`, `AMENDAMENT_MARIADB_SI_GAZDUIRE.md`, `AMENDAMENT_ME_OPTIONAL.md` (dacă nu le-a trimis).
@@ -116,7 +116,7 @@ Deciziile proprietarului din Faza 5 sunt rezumate în `PROJECT_RULES_AND_DECISIO
   - `npm run lint` și `npm run typecheck -w server`
   - `(cd server && CIVIC_TEST_DATABASE_URL=… node test/run.mjs all)`: **288/288** (MySQL 8.0 local; MariaDB 11.4 în CI)
   - `npm run build` și `git diff --check`
-  - `CIVIC_TEST_DATABASE_URL=… python3 tests/run_all.py`: **148/148** local (09.10.2026; durează circa 8 minute, deci se rulează în fundal); în CI, jobul E2E era verde la `011d51b`
+  - `CIVIC_TEST_DATABASE_URL=… python3 tests/run_all.py`: **149/149** local (09.10.2026; durează circa 8 minute, deci se rulează în fundal); în CI, jobul E2E era verde la `011d51b`
 - Jurnalele joburilor CI nu se pot descărca din mediul lui Claude (adresa de stocare este blocată); starea se citește cu `gh run view`.
 - Probele de control se fac pe o copie a proiectului (`cp -a`, fără `.git`); `rsync` nu este instalat în container. Testele din copie folosesc aceeași bază de test și aceleași porturi, deci nu se rulează în paralel cu testele din proiect.
 - Pachetul de staging: se verifică în pachet că `RELEASE.txt` și `server/dist/app.js` arată commit-ul corect (scriptul refuză un build vechi).
