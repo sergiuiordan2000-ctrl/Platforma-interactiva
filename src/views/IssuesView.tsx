@@ -10,7 +10,7 @@ import { ReportForm, type SubmittedReport } from '../components/report/ReportFor
 import { ReportConfirmation } from '../components/report/ReportConfirmation';
 import { CitizenLogin } from '../components/report/CitizenLogin';
 import { MyReports } from '../components/report/MyReports';
-import { citizenService, type CitizenMe } from '../services/citizenService';
+import { citizenService, takeGoogleReturnMessage, type CitizenMe } from '../services/citizenService';
 
 interface IssuesViewProps {
   onNavigate: (view: AppView) => void;
@@ -31,6 +31,13 @@ export const IssuesView: React.FC<IssuesViewProps> = ({ onNavigate, initialTab =
   const [confirmDeleteAccount, setConfirmDeleteAccount] = useState(false);
   const [busy, setBusy] = useState(false);
   const [myCount, setMyCount] = useState<number | null>(null);
+  // amendamentul Google: mesajul de la întoarcerea cu refuz (`#sesizari?google=<motiv>`); adresa se curăță la citire
+  const [googleNotice, setGoogleNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    const message = takeGoogleReturnMessage();
+    if (message) setGoogleNotice(message);
+  }, []);
 
   const loadMe = useCallback(async () => {
     setMeError(null);
@@ -107,8 +114,10 @@ export const IssuesView: React.FC<IssuesViewProps> = ({ onNavigate, initialTab =
           {meError && <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 max-w-xl mx-auto">{meError}</div>}
           <CitizenLogin
             notice={notice}
+            googleNotice={googleNotice}
             onLoggedIn={() => {
               setNotice(null);
+              setGoogleNotice(null);
               void loadMe();
             }}
           />

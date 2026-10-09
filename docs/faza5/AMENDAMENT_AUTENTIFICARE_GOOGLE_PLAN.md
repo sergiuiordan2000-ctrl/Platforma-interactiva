@@ -1,6 +1,6 @@
 # AMENDAMENT — AUTENTIFICAREA CETĂȚEANULUI CU GOOGLE
 
-**Proiect:** Turnu Măgurele Civic · **Data:** 05.10.2026 · **Stare:** **versiunea finală, aprobată pentru implementare.** Deciziile G-1…G-7 au fost luate de proprietar la 05.10.2026 (§6). La checkpoint-ul din 08.10.2026 au fost aprobate §8 A–D și §9.2–§9.6; tabela `citizen_oauth_attempts` (§9.1) a fost acceptată de proprietar, iar clarificările `POST` / `Path=/` sunt în §11. **Nimic implementat.** Implementarea începe numai cu acordul proprietarului; commit și push numai cu aprobare explicită.
+**Proiect:** Turnu Măgurele Civic · **Data:** 05.10.2026 · **Stare:** **versiunea finală, aprobată pentru implementare.** Deciziile G-1…G-7 au fost luate de proprietar la 05.10.2026 (§6). La checkpoint-ul din 08.10.2026 au fost aprobate §8 A–D și §9.2–§9.6; tabela `citizen_oauth_attempts` (§9.1) a fost acceptată de proprietar, iar clarificările `POST` / `Path=/` sunt în §11. **Implementat:** serverul (pasul 2, §12) și interfața (pasul 3, §13). Urmează pașii 4–6 (§7). Commit și push numai cu aprobarea explicită a proprietarului.
 **Origine:** cererea proprietarului din 05.10.2026: autentificarea cu contul Google să fie prima variantă pentru cetățean; codul pe e-mail să rămână varianta a doua.
 **Ce modifică din designul înghețat (Faza 4):** B3 §8, rândul „Mecanism” (astăzi: numai cod de 6 cifre pe e-mail, T-A2); B2 §4.1 (rutele `/citizen/auth/*`); B8 (date personale: apare un furnizor extern de identitate); politica de utilizare (2.9). Regulile A-9, D29–D31 (cont numai pentru depunere; contul are numai e-mailul; un e-mail = un cont) **rămân neschimbate**.
 **Condiție:** domeniul Civic (ca la 5.5b). Fără el, nu se poate înregistra aplicația la Google. **Îndeplinită din 07.10.2026:** domeniul este `urbisactiv.ro` (G7), iar staging-ul este `test.urbisactiv.ro`.
@@ -81,8 +81,8 @@ După Google, rezultatul este același ca după cod: sesiunea de cetățean exis
 ## 7. Pași
 
 1. ~~Aprobarea deciziilor G-1…G-7~~ (făcut, 05.10.2026). ~~Checkpoint ChatGPT pe direcție și arhitectură~~ (făcut, 08.10.2026, cu clarificările A–D din §8, trecute și în RULES §13.1). ~~Checkpoint pe §8–§9 și decizia §9.1~~ (făcut, 08.10.2026). ~~Clarificările `POST` și `Path=/`~~ (§11).
-2. Server: rutele, verificarea jetonului, setările, testele (G-T1…G-T10). **Făcut 08.10.2026, necomis la data scrierii (§12).**
-3. Interfață: butonul, ordinea pe ecran, mesajele de eroare, E2E.
+2. Server: rutele, verificarea jetonului, setările, testele (G-T1…G-T10). **Făcut 08.10.2026 (§12); comis: `abfee77`, `71b5516`.**
+3. Interfață: butonul, ordinea pe ecran, mesajele de eroare, E2E. **Făcut 09.10.2026 (§13).**
 4. Politica de utilizare actualizată (G-5).
 5. Proprietarul: înregistrarea în Google Cloud Console (ghid la execuție).
 6. Staging pe domeniul Civic: deploy, probă reală, T-ISO înainte și după; raport și checkpoint.
@@ -174,3 +174,109 @@ Acceptată de proprietar la 08.10.2026 ca **adăugare explicită la B1**. Justif
 2. **(12.2) Auditul (G-T9).** Planul spune „audit: autentificare reușită / refuzată”. Autentificarea prin cod nu scrie în `audit_log`, care este auditul administrativ (B4 §5: actor `admin` sau `system`). Implementarea a urmat același comportament ca la cod: refuzurile sunt numărate agregat în `rejected_attempts` (`citizen_code`, `target_id = google`, fără e-mail și fără `sub`), iar reușitele nu se scriu în audit. Dacă se dorește audit pentru fiecare autentificare cu Google, cere o decizie (date personale noi în audit).
 3. **Motivele la refuz:** întoarcerea redirecționează la `/#sesizari?google=eroare|anulat|blocat|limita`. Mesajele afișate se stabilesc la pasul 3.
 4. **Pe staging, după deploy, trebuie rulată migrația 0002** (`migrate`, ca la instalare): fără ea, aplicația refuză să pornească (schema nu este la versiunea cerută).
+
+## 13. Implementarea interfeței (pasul 3; 09.10.2026)
+
+### 13.1 Deciziile proprietarului (09.10.2026)
+
+| # | Întrebarea | Decizia |
+|---|---|---|
+| 13.1-a | Cum se testează interfața: (A) lanțul real, cu un furnizor de identitate fals și o setare nouă pe server, acceptată numai în dezvoltare; (B) simulare numai în browser, fără modificări pe server | **A** |
+| 13.1-b | Textele mesajelor de la întoarcere și rândul de sub titlul „Contul meu” | **aprobate**, cu corecția proprietarului: „codul **primit** pe e-mail” (nu „codul pe e-mail”) |
+
+Textele aprobate:
+
+| Motiv (`/#sesizari?google=…`) | Text |
+|---|---|
+| `eroare` | „Autentificarea cu Google nu a reușit. Încercați din nou sau folosiți codul primit pe e-mail.” |
+| `anulat` | „Ați renunțat la autentificarea cu Google. Puteți încerca din nou sau puteți folosi codul primit pe e-mail.” |
+| `blocat` | „Această adresă nu mai poate fi folosită pentru un cont nou.” (textul din e-mailul existent `citizen_account_blocked`) |
+| `limita` | „Prea multe încercări. Reveniți mai târziu.” |
+| sub titlu, numai când butonul există | „Pentru a depune o sesizare aveți nevoie de un cont. Nu cerem nume, telefon sau parolă: intrați cu contul Google sau cu un cod primit pe e-mail. Restul aplicației se folosește fără cont.” |
+
+Textul bifei (regulile de utilizare) **nu** a fost schimbat: ține de pasul 4 (G-5).
+
+### 13.2 Setarea de test `DEV_OIDC_PROVIDER_URL` (decizia 13.1-a)
+
+**Ce este:** adresa furnizorului de identitate fals al testelor E2E (`tests/lib/fake_oidc.mjs`). Cu ea, serverul vorbește cu furnizorul fals în loc de Google (G-T10: fără apeluri reale la Google în teste).
+
+**Riscul și blocarea:** cine controlează furnizorul poate declara orice adresă de e-mail. De aceea:
+
+1. `config.ts`: cu `APP_ENV=staging` sau `production`, **aplicația refuză să pornească** dacă setarea există (mesajul numește setarea);
+2. `config.ts`: și în dezvoltare, se acceptă numai `http://localhost:<port>` sau `http://127.0.0.1:<port>` (fără cale, fără utilizator);
+3. `googleOAuth.ts` (`devOidcProviderFor`): a doua verificare a mediului la alegerea furnizorului; în afara dezvoltării întoarce `undefined`, deci se folosește Google;
+4. setarea nu se scrie în `civic.env`; o pun numai testele, pe durata rulării. `tests/` nu intră în pachetul de instalare (`package-release.py`: `dist`, `server/dist`, `server/migrations`, `server/seeds`, `server/data`);
+5. la pornire, serverul scrie un avertisment în jurnal când furnizorul fals este activ.
+
+Este o adăugare la serverul aprobat la checkpoint-ul din 08.10.2026: **de trimis la audit împreună cu pasul 3.** Rutele, verificarea jetonului, cookie-urile și auditul din §12 sunt neschimbate; `googleProvider()` a fost numai reorganizat (aceleași adrese Google, verificate de un test nou).
+
+### 13.3 Ce s-a implementat
+
+**Fișiere noi:** `tests/lib/fake_oidc.mjs` (furnizorul fals: pagina „furnizorului”, schimbul codului cu PKCE, cheia publică; ascultă numai pe adresa locală; fără dependențe); `tests/e2e/test_google_autentificare.py` (17 verificări); `server/test/unit/oidcProvider.test.ts` (4 teste).
+**Fișiere modificate:** `src/components/report/CitizenLogin.tsx` (butonul, ordinea, mesajele); `src/services/citizenService.ts` (`googleEnabled`, `googleStart`, textele, curățarea adresei); `src/views/IssuesView.tsx` (mesajul de la întoarcere); `server/src/config.ts`, `server/src/auth/googleOAuth.ts`, `server/src/main.ts`, `.env.example` (setarea de test); `server/test/unit/config.test.ts` (5 teste noi); `tests/lib/harness.py` (`fake_oidc`, `backend_server(..., extra_env)`); `tests/run_all.py`, `tests/README.md`.
+
+**Comportament:**
+
+- Butonul „Continuă cu Google” apare numai dacă `GET /api/v1/citizen/auth/google` răspunde 200 (§12.1 a). Altfel (404, eroare de rețea), ecranul este **cel de dinainte**, neschimbat.
+- Cu butonul: bifa regulilor → „Continuă cu Google” → „sau” → adresa de e-mail → „Trimite codul pe e-mail” (G-1, §2).
+- Fără bifă: mesajul existent („Pentru a continua, acceptați regulile de utilizare.”), sub buton; nu se trimite nimic (§8 A; serverul verifică oricum).
+- Cu bifă: `POST …/google/start` prin clientul API, apoi navigare la `authorizationUrl` (§11.1). Dacă pornirea este refuzată, mesajul apare sub buton, iar butonul rămâne utilizabil.
+- La întoarcerea cu refuz, mesajul apare o singură dată în „Contul meu”, iar adresa se curăță la `/#sesizari` (`history.replaceState`), deci mesajul nu reapare la reîncărcare și nu rămâne în istoric. Un motiv necunoscut nu produce mesaj. Mesajul dispare la o încercare nouă.
+- La revenirea cu „Înapoi” de la Google, butonul nu rămâne blocat (`pageshow`).
+- În pagină nu se încarcă nimic de la Google (G-T1): sigla este desenată în pagină (SVG).
+
+### 13.4 Butonul și regulile Google (G-T11, verificate la 09.10.2026)
+
+Sursa: pagina Google „Sign in with Google Branding Guidelines”. Aplicat: textul „Continuă cu Google” (traducerea este permisă); sigla „G” standard, în culorile ei, nerecolorată, pe fond alb; tema deschisă (fond `#FFFFFF`, contur `#747775` de 1 px, text `#1F1F1F`); text 14/20, greutate medie; 12 px până la siglă, 10 px între siglă și text, 12 px după text; forma „pilulă”; butonul are lățimea și înălțimea butonului „Trimite codul pe e-mail” (cerința de vizibilitate cel puțin egală).
+
+**Abatere, de știut:** regulile cer fontul „Google Sans”. Încărcarea lui de la Google ar însemna o cerere către Google la fiecare deschidere a paginii, ceea ce contrazice G-T1. Butonul folosește „Google Sans” sau „Roboto” numai dacă există deja pe dispozitiv; altfel, fontul sistemului. Dacă Google cere altceva la verificarea aplicației (pasul 5), fontul se poate include în aplicație, printr-o decizie separată.
+
+### 13.5 Teste
+
+**E2E (`tests/e2e/test_google_autentificare.py`, 17 verificări):** furnizorul fals rulează pe `localhost`, aplicația pe `127.0.0.1`. Pentru browser sunt site-uri diferite, deci întoarcerea este o navigare de pe alt site, ca la Google.
+
+| Verificare | Ce acoperă |
+|---|---|
+| GU-1 | fără configurare: 404, fără buton, ecranul de dinainte |
+| GU-2, GU-3 | ordinea pe ecran (G-1); nimic cerut de la Google sau de la furnizor la încărcare (G-T1) |
+| GU-4 | bifa obligatorie: mesaj, nicio cerere, nicio încercare pe server (§8 A) |
+| GU-5 | `POST …/start`; numai `openid email`; PKCE S256, `state`, `nonce`; adresa de întoarcere (G-2, §11.1) |
+| GU-6 | cont nou: `/#sesizari`, bara contului, cont activ cu versiunea politicii, niciun cod trimis |
+| GU-7 | **§9.3:** cookie-ul de sesiune `SameSite=Strict`, `HttpOnly`; după întoarcerea de pe alt site și reîncărcare, sesiunea funcționează; cookie-ul încercării este șters |
+| GU-8, GU-9 | același cont la a doua autentificare și după un cont creat prin cod (G-3) |
+| GU-10…GU-13 | mesajele `anulat`, `eroare` (adresă neverificată), `blocat` (§9.5), `limita`; motiv necunoscut; adresa curățată |
+| GU-14 | pornire refuzată (429): mesaj, butonul rămâne utilizabil |
+| GU-15 | codul pe e-mail funcționează ca înainte |
+| GU-16 | nicio încercare OAuth nefolosită după scenarii |
+
+Limita pe IP a serverului nu se atinge în E2E (ar cere peste 20 de porniri); regula este testată în `citizenGoogle.test.ts`. GU-13 verifică numai afișarea mesajului.
+
+**Server (unit):** `config.test.ts` (setarea acceptată în dezvoltare; refuzată pe staging și în producție; adrese nelocale refuzate) și `oidcProvider.test.ts` (furnizor de test numai în dezvoltare; adresele locale; furnizorul real folosește numai adresele Google).
+
+**Probe de control** (codul stricat intenționat, pe o copie a proiectului; apoi copia a fost refăcută):
+
+| Proba | Ce a picat |
+|---|---|
+| S1 setarea acceptată și în afara dezvoltării | `config.test.ts` (staging și producție) |
+| S2 orice adresă acceptată ca furnizor | `config.test.ts` |
+| S3 furnizorul ales fără verificarea mediului | `oidcProvider.test.ts` |
+| U1 butonul afișat fără a întreba serverul | GU-1 |
+| U2 fără verificarea bifei în interfață | GU-4, GU-5, GU-16 |
+| U3 bifa rămasă sub e-mail | GU-2 |
+| U4 adresa necurățată | GU-10…GU-13 |
+| U5 motiv necunoscut afișat ca eroare | GU-13 |
+| U6 mesajul neafișat | GU-10…GU-13 |
+| U7 sigla încărcată de la Google | GU-3 |
+| U8 cookie-ul de sesiune cu `SameSite=Lax` | GU-7 |
+| U9 butonul blocat după o pornire refuzată | GU-14 |
+| U10 se cere și `profile` | GU-5 |
+| U11 mesajul vechi rămâne la o încercare nouă | GU-11 |
+
+**Rezultate (local, MySQL 8.0, 09.10.2026):** lint (frontend, server, shared) și build-urile: OK; suita backend completă: **262/262** (253 + 9 teste noi); `tests/run_all.py`: **143/143** (126 + 17). MariaDB 11.4 și Node 24: prin CI, după push.
+
+### 13.6 De știut înainte de pașii 4–6
+
+1. **Pe staging (`allowlist`)**, o adresă Google care nu este în `EMAIL_ALLOWLIST` primește mesajul `eroare` (G-T8), fără altă explicație.
+2. **`TRUST_PROXY` nesetat pe staging** (observație deschisă din HANDOFF §0.4): dacă serverul vede adresa proxy-ului în locul celei a vizitatorului, limita de 20 de porniri pe oră se aplică tuturor împreună. De verificat la pasul 6.
+3. **Observație existentă, nemodificată:** în `IssuesView`, un mesaj general (`notice`, de exemplu „Contul a fost șters…”) apare de două ori când cetățeanul nu este autentificat: o dată sus și o dată în „Contul meu”. Mesajul Google apare o singură dată. Reparația este mică, dar este în afara pasului 3.
+4. Pasul 6 cere `migrate` (0002) pe staging, ca în §12 punctul 4.

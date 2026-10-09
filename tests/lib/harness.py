@@ -63,9 +63,35 @@ E2E_ACCOUNTS = {'admin': 'e2e-admin@exemplu.test', 'op': 'e2e-operator@exemplu.t
 
 
 @contextmanager
-def backend_server(port):
+def fake_oidc(port):
+    """Amendamentul Google (G-T10): furnizorul de identitate fals, local (`tests/lib/fake_oidc.mjs`).
+    Întoarce adresa lui și setările de mediu pentru `backend_server(..., extra_env=...)`. Adresa folosește
+    `localhost`, iar aplicația `127.0.0.1`: pentru browser sunt site-uri diferite, deci întoarcerea de la
+    furnizor este o navigare de pe alt site, ca la Google (§9.3). Fără apeluri reale la Google."""
+    import secrets
+    client_id = 'e2e-client.apps.exemplu.test'
+    client_secret = secrets.token_hex(24)
+    if _port_in_use(port):
+        raise RuntimeError(f'Portul {port} este deja ocupat.')
+    proc = subprocess.Popen(['node', 'tests/lib/fake_oidc.mjs', str(port)], cwd=REPO, stdout=subprocess.DEVNULL,
+                            stderr=subprocess.DEVNULL, start_new_session=True,
+                            env=dict(os.environ, FAKE_OIDC_CLIENT_ID=client_id, FAKE_OIDC_CLIENT_SECRET=client_secret))
+    try:
+        if not _wait_port(port, timeout=20):
+            raise RuntimeError('furnizorul fals nu a pornit')
+        url = f'http://localhost:{port}'
+        yield {'url': url, 'client_id': client_id,
+               'env': {'GOOGLE_OAUTH_CLIENT_ID': client_id, 'GOOGLE_OAUTH_CLIENT_SECRET': client_secret,
+                       'DEV_OIDC_PROVIDER_URL': url}}
+    finally:
+        _stop_server(proc)
+
+
+@contextmanager
+def backend_server(port, extra_env=None):
     """Serverul Node (artefactul construit) pe DB-ul de test, servind build-ul frontend-ului.
-    Cere CIVIC_TEST_DATABASE_URL (un DB cu „test” în nume). Parola și secretul TOTP se generează aleator."""
+    Cere CIVIC_TEST_DATABASE_URL (un DB cu „test” în nume). Parola și secretul TOTP se generează aleator.
+    `extra_env`: setări suplimentare (de exemplu cele din `fake_oidc`)."""
     import secrets, base64, tempfile
     db = os.environ.get('CIVIC_TEST_DATABASE_URL')
     if not db:
@@ -78,6 +104,10 @@ def backend_server(port):
                FORM_TOKEN_SECRET=secrets.token_hex(32), POW_HMAC_KEY=secrets.token_hex(32), TOTP_ENC_KEY=secrets.token_hex(32),
                LOG_LEVEL='warn', CIVIC_E2E_PASSWORD=password, CIVIC_E2E_TOTP_SECRET=totp_secret)
     env.pop('CIVIC_ENV_FILE', None)
+    # setările Google nu se moștenesc din mediul în care rulează testele: numai cele cerute explicit
+    for key in ('GOOGLE_OAUTH_CLIENT_ID', 'GOOGLE_OAUTH_CLIENT_SECRET', 'DEV_OIDC_PROVIDER_URL'):
+        env.pop(key, None)
+    env.update(extra_env or {})
     b = subprocess.run(['npm', 'run', 'build', '-w', 'server'], cwd=REPO, capture_output=True, text=True)
     if b.returncode != 0:
         raise RuntimeError('build server eșuat: ' + b.stderr[-500:])
