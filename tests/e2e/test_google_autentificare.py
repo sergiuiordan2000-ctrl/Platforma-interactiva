@@ -24,6 +24,7 @@ GOOGLE = '[data-testid=citizen-google]'
 MESSAGE = '[data-testid=citizen-google-message]'
 BAR = '[data-testid=citizen-account-bar]'
 CODE_BUTTON = 'button:has-text("Trimite codul pe e-mail")'
+GOOGLE_INFO = 'Dacă alegeți Google, platforma primește de la Google numai adresa dumneavoastră de e-mail, nu și numele sau fotografia.'
 TEXTS = {
     'eroare': 'Autentificarea cu Google nu a reușit. Încercați din nou sau folosiți codul primit pe e-mail.',
     'anulat': 'Ați renunțat la autentificarea cu Google. Puteți încerca din nou sau puteți folosi codul primit pe e-mail.',
@@ -117,6 +118,12 @@ with fake_oidc(FAKE_PORT) as FAKE, backend_server(APP_PORT, FAKE['env']) as BACK
         foreign = [u for u in requested if not u.startswith(URL) and not u.startswith('data:')]
         res.check('GU-3 la încărcarea paginii nu se cere nimic de la Google sau de la furnizor (G-T1): sigla este desenată în pagină',
                   not foreign and page.locator(GOOGLE + ' svg').count() == 1 and page.locator(GOOGLE + ' img').count() == 0, '; '.join(foreign)[:200])
+
+        info = page.locator('[data-testid=citizen-google-info]')
+        res.check('GU-22 pasul 4 (G-5): rândul de informare despre Google, cu textul aprobat, sub buton și deasupra lui „sau”; textul bifei nu menționează Google',
+                  info.count() == 1 and info.inner_text().strip() == GOOGLE_INFO
+                  and top(page, GOOGLE) < top(page, '[data-testid=citizen-google-info]') < top(page, '[data-testid=citizen-login-or]')
+                  and 'Google' not in page.inner_text('[data-testid=citizen-policy]'), info.inner_text()[:120] if info.count() else 'lipsește')
 
         # 2. bifa obligatorie (§8 A)
         starts = []

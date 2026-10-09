@@ -1,6 +1,6 @@
 # AMENDAMENT — AUTENTIFICAREA CETĂȚEANULUI CU GOOGLE
 
-**Proiect:** Turnu Măgurele Civic · **Data:** 05.10.2026 · **Stare:** **versiunea finală, aprobată pentru implementare.** Deciziile G-1…G-7 au fost luate de proprietar la 05.10.2026 (§6). La checkpoint-ul din 08.10.2026 au fost aprobate §8 A–D și §9.2–§9.6; tabela `citizen_oauth_attempts` (§9.1) a fost acceptată de proprietar, iar clarificările `POST` / `Path=/` sunt în §11. **Implementat:** serverul (pasul 2, §12) și interfața (pasul 3, §13). Urmează pașii 4–6 (§7). Commit și push numai cu aprobarea explicită a proprietarului.
+**Proiect:** Turnu Măgurele Civic · **Data:** 05.10.2026 · **Stare:** **versiunea finală, aprobată pentru implementare.** Deciziile G-1…G-7 au fost luate de proprietar la 05.10.2026 (§6). La checkpoint-ul din 08.10.2026 au fost aprobate §8 A–D și §9.2–§9.6; tabela `citizen_oauth_attempts` (§9.1) a fost acceptată de proprietar, iar clarificările `POST` / `Path=/` sunt în §11. **Implementat:** serverul (pasul 2, §12), interfața (pasul 3, §13) și informarea despre Google de pe ecran (pasul 4, §14). Urmează pașii 5–6 (§7). Commit și push numai cu aprobarea explicită a proprietarului.
 **Origine:** cererea proprietarului din 05.10.2026: autentificarea cu contul Google să fie prima variantă pentru cetățean; codul pe e-mail să rămână varianta a doua.
 **Ce modifică din designul înghețat (Faza 4):** B3 §8, rândul „Mecanism” (astăzi: numai cod de 6 cifre pe e-mail, T-A2); B2 §4.1 (rutele `/citizen/auth/*`); B8 (date personale: apare un furnizor extern de identitate); politica de utilizare (2.9). Regulile A-9, D29–D31 (cont numai pentru depunere; contul are numai e-mailul; un e-mail = un cont) **rămân neschimbate**.
 **Condiție:** domeniul Civic (ca la 5.5b). Fără el, nu se poate înregistra aplicația la Google. **Îndeplinită din 07.10.2026:** domeniul este `urbisactiv.ro` (G7), iar staging-ul este `test.urbisactiv.ro`.
@@ -83,7 +83,7 @@ După Google, rezultatul este același ca după cod: sesiunea de cetățean exis
 1. ~~Aprobarea deciziilor G-1…G-7~~ (făcut, 05.10.2026). ~~Checkpoint ChatGPT pe direcție și arhitectură~~ (făcut, 08.10.2026, cu clarificările A–D din §8, trecute și în RULES §13.1). ~~Checkpoint pe §8–§9 și decizia §9.1~~ (făcut, 08.10.2026). ~~Clarificările `POST` și `Path=/`~~ (§11).
 2. Server: rutele, verificarea jetonului, setările, testele (G-T1…G-T10). **Făcut 08.10.2026 (§12); comis: `abfee77`, `71b5516`.**
 3. Interfață: butonul, ordinea pe ecran, mesajele de eroare, E2E. **Făcut 09.10.2026 (§13).**
-4. Politica de utilizare actualizată (G-5).
+4. Politica de utilizare actualizată (G-5). **Făcut 09.10.2026 în forma decisă de proprietar: rând de informare pe ecran (§14).**
 5. Proprietarul: înregistrarea în Google Cloud Console (ghid la execuție).
 6. Staging pe domeniul Civic: deploy, probă reală, T-ISO înainte și după; raport și checkpoint.
 
@@ -400,3 +400,39 @@ Testele automate nu contactează Google. La proba de pe `test.urbisactiv.ro` se 
 10. T-ISO înainte și după; `electrovolt.ro` neatins.
 
 Refuzul de a porni cu setarea de test **nu** se probează pe staging (ar opri aplicația); este acoperit de testele automate cu procesul real.
+
+## 14. Pasul 4: textul despre Google (G-5; 09.10.2026)
+
+### 14.1 Constatare
+
+În aplicație nu există un document separat „Politica de utilizare”. Singurul text al regulilor este cel de lângă bifă, pe ecranul „Contul meu”. Textul complet al politicii (2.9) este în registrul Fazei 4 ca sarcină documentară nefăcută, iar verificarea juridică (E-6) este cerută înainte de „date reale”.
+
+### 14.2 Deciziile proprietarului (09.10.2026)
+
+| # | Întrebarea | Decizia |
+|---|---|---|
+| 14.2-a | Unde apare textul despre Google: (A) rând de informare sub buton; (B) în textul bifei; (C) în ambele | **A**: sub butonul „Continuă cu Google”, vizibil numai când butonul există |
+| 14.2-b | Textul: (A) cu fraza despre ce află Google; (B) varianta scurtă | **B**: „Dacă alegeți Google, platforma primește de la Google numai adresa dumneavoastră de e-mail, nu și numele sau fotografia.” |
+
+Urmări:
+
+- **Textul bifei și versiunea politicii (`CITIZEN_POLICY_VERSION = '2026-10'`) sunt neschimbate.** Rândul de informare nu face parte din regulile acceptate prin bifă.
+- **Față de G-5** („textul politicii de utilizare va menționa autentificarea cu Google”): mențiunea este pe același ecran, dar nu în textul acceptat prin bifă. Varianta a fost aleasă de proprietar, cu această observație prezentată.
+- **Față de §5** („Google află că un anumit cont Google s-a autentificat pe platformă și când… trebuie scris în politica de utilizare și în informarea privind datele personale”): fraza despre ce află Google **nu** este pe ecran (varianta scurtă). Rămâne de scris în documentul complet al politicii / în informarea privind datele personale (sarcina 2.9, E-6), cu verificare juridică. **Nedecis.**
+
+### 14.3 Ce s-a implementat
+
+`src/components/report/CitizenLogin.tsx`: rândul de informare (`data-testid="citizen-google-info"`), sub butonul Google (și sub mesajul de eroare al butonului, când există), deasupra separatorului „sau”. Fără Google configurat, rândul nu apare, ca restul blocului Google. Nicio modificare pe server.
+
+### 14.4 Teste
+
+`tests/e2e/test_google_autentificare.py`, **GU-22**: textul exact aprobat; poziția (sub buton, deasupra lui „sau”); textul bifei nu menționează Google. Absența fără Google este acoperită de GU-1 (cuvântul „Google” nu apare pe ecran).
+
+**Probe de control** (pe o copie): P1 rândul lipsește → GU-22; P2 rândul apare și fără Google configurat → GU-1 (și GU-22, pentru poziție); P3 alt text decât cel aprobat → GU-22; P4 rândul sub „sau” → GU-22.
+
+**Rezultate (local, MySQL 8.0, Node 22, 09.10.2026):** lint, `typecheck` (server, shared) și build-urile: OK; suita backend completă: **288/288** (neschimbată: fără modificări pe server); `tests/run_all.py`: **149/149** (148 + GU-22); suita Google: 23/23. MariaDB 11.4 și Node 24: prin CI, după push.
+
+### 14.5 Deschise după pasul 4
+
+1. Documentul complet „Politica de utilizare” și informarea privind datele personale (2.9, E-6), inclusiv paragraful despre Google (ce primește platforma; ce află Google). Verificarea juridică: nedecisă (G-5).
+2. Pasul 5: înregistrarea în Google Cloud Console (proprietarul, după ghid). Ecranul de consimțământ Google cere o adresă a politicii de confidențialitate a aplicației: de stabilit atunci ce adresă se dă.

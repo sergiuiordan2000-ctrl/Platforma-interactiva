@@ -28,6 +28,8 @@ interface CitizenLoginProps {
 }
 
 const POLICY_REQUIRED = 'Pentru a continua, acceptați regulile de utilizare.';
+/** Amendamentul Google, pasul 4 (G-5): informarea de sub buton; text aprobat de proprietar la 09.10.2026 (§14). */
+const GOOGLE_INFO = 'Dacă alegeți Google, platforma primește de la Google numai adresa dumneavoastră de e-mail, nu și numele sau fotografia.';
 const GOOGLE_START_FAILED = 'Autentificarea cu Google nu a putut fi pornită. Încercați din nou sau folosiți codul primit pe e-mail.';
 
 /** Sigla „G” standard, în culorile ei (regulile Google: fără recolorare, pe fond alb). Desenată în pagină, fără descărcare. */
@@ -185,6 +187,7 @@ export const CitizenLogin: React.FC<CitizenLoginProps> = ({ onLoggedIn, notice, 
                 <span>Continuă cu Google</span>
               </button>
               {googleError && <p role="alert" className="text-xs text-red-600 font-semibold" data-testid="citizen-google-error">{googleError}</p>}
+              <p className="text-[11px] text-slate-500 leading-relaxed" data-testid="citizen-google-info">{GOOGLE_INFO}</p>
               <div className="flex items-center gap-3 text-[11px] font-bold uppercase tracking-wider text-slate-400" data-testid="citizen-login-or">
                 <span className="h-px flex-1 bg-slate-200" />
                 <span>sau</span>
