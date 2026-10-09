@@ -142,6 +142,8 @@ with fake_oidc(FAKE_PORT) as FAKE, backend_server(APP_PORT, FAKE['env']) as BACK
                   len(starts) == 1 and at_provider.startswith(FAKE['url'] + '/authorize') and scope == 'openid email'
                   and log[-1].get('code_challenge_method') == 'S256' and len(log[-1].get('state', '')) >= 40 and len(log[-1].get('nonce', '')) >= 40
                   and log[-1].get('redirect_uri') == URL + '/api/v1/citizen/auth/google/callback', scope)
+        res.check('GU-23 §16: la furnizor se cere de fiecare dată alegerea contului (`prompt=select_account`)',
+                  log[-1].get('prompt') == 'select_account', str(log[-1].get('prompt')))
         acc = accounts(ana)
         no_code_mail = db_query("SELECT COUNT(*) AS n FROM email_outbox WHERE kind = 'citizen_login_code' AND recipient = ?", [ana])[0]['n'] == 0
         res.check('GU-6 la întoarcere: adresa este `/#sesizari`, bara contului arată e-mailul; cont nou activ, cu versiunea politicii; niciun cod trimis pe e-mail',

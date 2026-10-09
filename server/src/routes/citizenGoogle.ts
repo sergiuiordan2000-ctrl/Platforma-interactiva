@@ -90,6 +90,9 @@ export function registerCitizenGoogleRoutes(api: FastifyInstance, ctx: AppContex
       nonce,
       code_challenge: pkceChallenge(codeVerifier),
       code_challenge_method: 'S256',
+      // decizia proprietarului (09.10.2026, amendament §16): Google arată de fiecare dată „Alege un cont”;
+      // fără acest parametru, după „Ieșire” un click pe buton reintra direct în contul Google deschis în browser
+      prompt: 'select_account',
     }).toString();
     return { authorizationUrl: url.toString() };
   });

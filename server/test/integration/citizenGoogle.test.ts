@@ -215,6 +215,12 @@ describe('Google: pornirea (§8 A, §8 D, §11.1, §11.2)', () => {
     assert.equal(c.split(';')[0], `civic_oauth=${s.state}`, 'cookie-ul conține numai state');
   });
 
+  it('§16: adresa cere de fiecare dată alegerea contului (`prompt=select_account`), o singură dată', async () => {
+    const s = await start(app);
+    assert.equal(s.res.statusCode, 200);
+    assert.deepEqual(s.url.searchParams.getAll('prompt'), ['select_account']);
+  });
+
   it('limită pe IP: a 21-a pornire într-o oră → 429; a 21-a întoarcere → google=limita, fără sesiune', async () => {
     for (let i = 0; i < 20; i++) assert.equal((await start(app, undefined, { ip: '10.7.7.7' })).res.statusCode, 200);
     assert.equal((await start(app, undefined, { ip: '10.7.7.7' })).res.statusCode, 429);
@@ -548,6 +554,7 @@ describe('Google: adresa de autorizare și furnizorul folosit (audit 09.10.2026)
       const raw = s.res.json().authorizationUrl as string;
       assert.ok(raw.startsWith(`${GOOGLE_AUTHORIZATION_ENDPOINT}?`), raw);
       assert.equal(safeGoogleAuthorizationUrl(raw, STAGING_PAGE), raw);
+      assert.equal(s.url.searchParams.get('prompt'), 'select_account', '§16: și în fluxul real');
       assert.equal(s.url.searchParams.get('redirect_uri'), `${origin}/api/v1/citizen/auth/google/callback`);
     } finally {
       await real.close();

@@ -1,6 +1,6 @@
 # AMENDAMENT — AUTENTIFICAREA CETĂȚEANULUI CU GOOGLE
 
-**Proiect:** Turnu Măgurele Civic · **Data:** 05.10.2026 · **Stare:** **versiunea finală, aprobată pentru implementare.** Deciziile G-1…G-7 au fost luate de proprietar la 05.10.2026 (§6). La checkpoint-ul din 08.10.2026 au fost aprobate §8 A–D și §9.2–§9.6; tabela `citizen_oauth_attempts` (§9.1) a fost acceptată de proprietar, iar clarificările `POST` / `Path=/` sunt în §11. **Implementat:** serverul (pasul 2, §12), interfața (pasul 3, §13) și informarea despre Google de pe ecran (pasul 4, §14). Aplicația este înregistrată la Google (pasul 5, §15). Urmează pasul 6 (§7). Commit și push numai cu aprobarea explicită a proprietarului.
+**Proiect:** Turnu Măgurele Civic · **Data:** 05.10.2026 · **Stare:** **versiunea finală, aprobată pentru implementare.** Deciziile G-1…G-7 au fost luate de proprietar la 05.10.2026 (§6). La checkpoint-ul din 08.10.2026 au fost aprobate §8 A–D și §9.2–§9.6; tabela `citizen_oauth_attempts` (§9.1) a fost acceptată de proprietar, iar clarificările `POST` / `Path=/` sunt în §11. **Implementat:** serverul (pasul 2, §12), interfața (pasul 3, §13) și informarea despre Google de pe ecran (pasul 4, §14). Aplicația este înregistrată la Google (pasul 5, §15). Pasul 6 (staging) este în curs (§16). Commit și push numai cu aprobarea explicită a proprietarului.
 **Origine:** cererea proprietarului din 05.10.2026: autentificarea cu contul Google să fie prima variantă pentru cetățean; codul pe e-mail să rămână varianta a doua.
 **Ce modifică din designul înghețat (Faza 4):** B3 §8, rândul „Mecanism” (astăzi: numai cod de 6 cifre pe e-mail, T-A2); B2 §4.1 (rutele `/citizen/auth/*`); B8 (date personale: apare un furnizor extern de identitate); politica de utilizare (2.9). Regulile A-9, D29–D31 (cont numai pentru depunere; contul are numai e-mailul; un e-mail = un cont) **rămân neschimbate**.
 **Condiție:** domeniul Civic (ca la 5.5b). Fără el, nu se poate înregistra aplicația la Google. **Îndeplinită din 07.10.2026:** domeniul este `urbisactiv.ro` (G7), iar staging-ul este `test.urbisactiv.ro`.
@@ -85,7 +85,7 @@ După Google, rezultatul este același ca după cod: sesiunea de cetățean exis
 3. Interfață: butonul, ordinea pe ecran, mesajele de eroare, E2E. **Făcut 09.10.2026 (§13).**
 4. Politica de utilizare actualizată (G-5). **Făcut 09.10.2026 în forma decisă de proprietar: rând de informare pe ecran (§14).**
 5. Proprietarul: înregistrarea în Google Cloud Console (ghid la execuție). **Făcut 09.10.2026 (§15).**
-6. Staging pe domeniul Civic: deploy, probă reală, T-ISO înainte și după; raport și checkpoint.
+6. Staging pe domeniul Civic: deploy, probă reală, T-ISO înainte și după; raport și checkpoint. **Început la 09.10.2026 (§16): instalat, proba principală reușită; o modificare decisă în urma probei.**
 
 ## 8. Clarificări obligatorii de securitate (checkpoint 08.10.2026)
 
@@ -474,3 +474,43 @@ Contul este **permanent**: de el depinde autentificarea cu Google pe staging și
 - Verificarea mărcii („Verify branding”), ca pe ecranul Google să apară numele și sigla aplicației.
 - Un client separat pentru producție (alt secret), cu adresa de întoarcere pe `urbisactiv.ro`; cheile lui intră numai în `civic.env` de producție.
 - Declararea datelor cerute (Data Access: `openid`, `email`).
+
+## 16. Pasul 6: staging-ul și proba cu Google real (09.10.2026)
+
+Planul pasului 6 a fost aprobat de proprietar la 09.10.2026, inclusiv comanda `civic-migrate` adăugată în pachet (`f9dfd37`). Intervențiile pe hosting sunt în `STAGING_URBISACTIV_JURNAL.md` (22–25). T-ISO nu a fost rulat: găzduirea este la alt furnizor decât `electrovolt.ro` (aceeași convenție ca la intervențiile 1–20), iar staging-ul vechi a fost retras în aceeași zi.
+
+### 16.1 Instalarea (`civic-f9dfd37.zip`)
+
+Repetiție locală înainte, cu pachetul construit: pe o bază adusă la starea de pe staging (schema 1, cu date demo), codul nou refuză să pornească („rulați «migrate»”); `civic-migrate` aplică numai 0002, datele rămân; a doua rulare nu schimbă nimic; aplicația pornește, cu ruta Google activă.
+
+Pe staging (proprietarul, cu capturi): backup (`civic-backup-20261009T171424982Z`); cele două chei Google adăugate în `civic.env` (fără capturi); pachetul încărcat și extras; `civic-migrate` → „Aplicate: 0002_citizen_oauth_attempts.sql. Schema este la versiunea 2.”; Restart; `health` → `0.0.0+f9dfd37`; pe „Contul meu” apar butonul Google și rândul de informare.
+
+### 16.2 Proba reală (proprietarul, cu adresa din `EMAIL_ALLOWLIST` și din „Test users”)
+
+| # | Verificare (§13.7.6) | Rezultat |
+|---|---|---|
+| 1 | butonul apare după setarea cheilor; ecranul Google | **OK**: „Alege un cont · Accesează urbisactiv.ro” (domeniul, nu numele aplicației: aplicația nu este verificată de Google) |
+| 2 | adresa reală construită de server este acceptată de validarea din interfață și de Google | **OK** (navigarea a avut loc; Google a acceptat adresa de întoarcere) |
+| 3 | întoarcerea prin lacătul Directory Privacy (§9.6) | **OK** |
+| 4 | sesiunea după întoarcere, pe HTTPS, cu cookie-urile `__Host-` (§9.3) | **OK**: bara „Autentificat ca …”; după reîncărcare rămâne autentificat |
+| 5 | verificarea jetonului real (semnătura cu cheile Google, emitentul, destinatarul, `nonce`) | **OK**, implicit: fără ea, autentificarea nu ar fi reușit |
+| 7 | același cont ca la codul primit pe e-mail (G-3) | **OK**: în „Sesizările mele” apare sesizarea depusă la 08.10.2026 cu același cont, prin cod |
+| 6 | renunțarea; o adresă din afara `EMAIL_ALLOWLIST` | **nefăcute** (vezi 16.3) |
+| 8 | IP-ul văzut de server (`TRUST_PROXY`) | **nefăcut** |
+| 9 | aspectul butonului pe un telefon real | **nefăcut** (pe calculator: corect, captura proprietarului) |
+
+### 16.3 Constatare și decizie: alegerea contului
+
+**Constatare:** după „Ieșire”, un click pe „Continuă cu Google” a reintrat direct în cont, fără ecranul „Alege un cont”: Google folosește singur contul deja deschis în browser. Urmări: pe un calculator folosit de mai mulți oameni, cine apasă butonul intră cu contul Google al altcuiva, fără să fie întrebat; „Ieșire” se anulează dintr-un click; probele „renunțare” și „altă adresă” nu au putut fi făcute, pentru că ecranul Google nu mai apare.
+
+**Decizia proprietarului (09.10.2026): Google arată de fiecare dată „Alege un cont”.** Serverul adaugă la adresa de autorizare parametrul `prompt=select_account` (`server/src/routes/citizenGoogle.ts`). Este o modificare a serverului auditat la checkpoint: un singur parametru, fără rute, câmpuri sau reguli noi; validarea din interfață acceptă deja parametri în plus (§13.7.1) și nu a fost schimbată.
+
+**Teste:** integrare: adresa conține `prompt=select_account`, o singură dată (test nou), inclusiv în fluxul real spre Google (verificare adăugată la testul „fluxul real”); E2E **GU-23**: furnizorul primește parametrul. **Probă de control** (pe o copie): fără parametru pe server, pică testul de integrare nou, testul „fluxul real” și GU-23.
+
+**Rezultate (local, MySQL 8.0, Node 22, 09.10.2026):** lint, `typecheck` (server, shared) și build-urile: OK; suita backend completă: **289/289** (288 + testul nou); `tests/run_all.py`: **150/150** (149 + GU-23); suita Google: 24/24. MariaDB 11.4 și Node 24: prin CI, după push.
+
+### 16.4 Ce rămâne din pasul 6
+
+1. Instalarea versiunii cu `prompt=select_account` pe staging (fără migrare) și reluarea probei: ecranul „Alege un cont” apare de fiecare dată; întoarcerea cu „Înapoi” de pe ecranul Google lasă butonul utilizabil; o adresă din afara listei nu ajunge autentificată.
+2. `TRUST_PROXY` și aspectul pe telefon (§13.7.6, punctele 8 și 9).
+3. Raportul pasului 6 și checkpoint-ul amendamentului.
