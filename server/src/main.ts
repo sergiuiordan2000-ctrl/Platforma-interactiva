@@ -19,6 +19,7 @@ import { loadAnnouncementImages } from './images.ts';
 import { DEFAULT_UAT_FILE, loadUatBoundary } from './uat.ts';
 import { APP_VERSION } from './version.ts';
 import { emailDowngradeMessage, mailTransportFor } from './reports/smtp.ts';
+import { devOidcProviderFor } from './auth/googleOAuth.ts';
 
 function fail(message: string): never {
   console.error(message);
@@ -62,10 +63,13 @@ async function startServer(config: Config): Promise<void> {
       uat: loadUatBoundary(config.uatBoundaryFile ?? DEFAULT_UAT_FILE),
       // 5.5a: SMTP numai în `allowlist` / `live` cu configurație validă (B6 §2)
       mailTransport: mailTransportFor(config),
+      // G-T10: furnizorul fals al testelor E2E; numai în dezvoltare (altfel `undefined` → Google)
+      oidc: devOidcProviderFor(config),
     },
   });
   const emailWarning = emailDowngradeMessage(config);
   if (emailWarning) app.log.error(emailWarning);
+  if (devOidcProviderFor(config)) app.log.warn('Autentificarea cu Google folosește furnizorul fals de test (DEV_OIDC_PROVIDER_URL).');
 
   const shutdown = async (signal: string) => {
     app.log.info({ signal }, 'oprire');

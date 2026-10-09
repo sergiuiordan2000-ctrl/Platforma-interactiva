@@ -42,14 +42,21 @@ export class OidcError extends Error {
   }
 }
 
-/** Furnizorul real (Google), cu cheile publice ținute în memorie o oră. */
-export function googleProvider(fetchImpl: typeof fetch = fetch): OidcProvider {
+export type OidcEndpoints = {
+  authorizationEndpoint: string;
+  tokenEndpoint: string;
+  jwksUri: string;
+  issuers: readonly string[];
+};
+
+/** Un furnizor OpenID Connect apelat prin HTTP, cu cheile publice ținute în memorie o oră. */
+export function httpOidcProvider(endpoints: OidcEndpoints, fetchImpl: typeof fetch = fetch): OidcProvider {
   let cache: { keys: JsonWebKey[]; at: number } | null = null;
   return {
-    authorizationEndpoint: GOOGLE_PROVIDER.authorizationEndpoint,
-    issuers: GOOGLE_PROVIDER.issuers,
+    authorizationEndpoint: endpoints.authorizationEndpoint,
+    issuers: endpoints.issuers,
     async exchangeCode(p) {
-      const res = await fetchImpl(GOOGLE_PROVIDER.tokenEndpoint, {
+      const res = await fetchImpl(endpoints.tokenEndpoint, {
         method: 'POST',
         headers: { 'content-type': 'application/x-www-form-urlencoded', accept: 'application/json' },
         body: new URLSearchParams({
@@ -69,7 +76,7 @@ export function googleProvider(fetchImpl: typeof fetch = fetch): OidcProvider {
     },
     async jwks(refresh = false) {
       if (!refresh && cache && Date.now() - cache.at < 3_600_000) return cache.keys;
-      const res = await fetchImpl(GOOGLE_PROVIDER.jwksUri, { signal: AbortSignal.timeout(HTTP_TIMEOUT_MS) });
+      const res = await fetchImpl(endpoints.jwksUri, { signal: AbortSignal.timeout(HTTP_TIMEOUT_MS) });
       if (!res.ok) throw new OidcError(`jwks_http_${res.status}`);
       const data = (await res.json()) as { keys?: unknown };
       if (!Array.isArray(data.keys)) throw new OidcError('jwks_invalid');
@@ -77,6 +84,26 @@ export function googleProvider(fetchImpl: typeof fetch = fetch): OidcProvider {
       return cache.keys;
     },
   };
+}
+
+/** Furnizorul real (Google). */
+export const googleProvider = (fetchImpl: typeof fetch = fetch): OidcProvider => httpOidcProvider(GOOGLE_PROVIDER, fetchImpl);
+
+/**
+ * G-T10: furnizorul fals al testelor E2E (`tests/lib/fake_oidc.mjs`), numai în dezvoltare.
+ * A doua verificare a mediului, pe lângă cea din `config.ts`: în afara dezvoltării întoarce `undefined`
+ * (se folosește Google), chiar dacă adresa ar ajunge în configurare pe altă cale.
+ */
+export function devOidcProviderFor(
+  config: { appEnv: string; devOidcProviderUrl?: string },
+  fetchImpl: typeof fetch = fetch,
+): OidcProvider | undefined {
+  if (config.appEnv !== 'development' || !config.devOidcProviderUrl) return undefined;
+  const base = config.devOidcProviderUrl;
+  return httpOidcProvider(
+    { authorizationEndpoint: `${base}/authorize`, tokenEndpoint: `${base}/token`, jwksUri: `${base}/jwks`, issuers: [base] },
+    fetchImpl,
+  );
 }
 
 /** PKCE S256: BASE64URL(SHA256(verifier)). */

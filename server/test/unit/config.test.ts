@@ -126,3 +126,36 @@ describe('configurare (00 §5): validare la pornire', () => {
     assert.ok(problems(testEnv({ DATABASE_URL: 'postgres://x' })).some((x) => x.startsWith('DATABASE_URL')));
   });
 });
+
+// Amendamentul Google, pasul 3 (G-T10): furnizorul de identitate fals al testelor E2E.
+// Cine îl controlează poate declara orice adresă de e-mail, deci setarea este acceptată numai în dezvoltare.
+describe('DEV_OIDC_PROVIDER_URL: numai în dezvoltare, numai pe același calculator', () => {
+  const FAKE = 'http://localhost:6199';
+
+  it('fără setare: nimic de test în configurare', () => {
+    assert.equal(loadConfig(testEnv()).devOidcProviderUrl, undefined);
+    assert.equal(loadConfig(testEnv({ DEV_OIDC_PROVIDER_URL: '  ' })).devOidcProviderUrl, undefined);
+  });
+
+  it('în dezvoltare, cu o adresă locală: acceptată', () => {
+    assert.equal(loadConfig(testEnv({ DEV_OIDC_PROVIDER_URL: FAKE })).devOidcProviderUrl, FAKE);
+    assert.equal(loadConfig(testEnv({ DEV_OIDC_PROVIDER_URL: 'http://127.0.0.1:6199/' })).devOidcProviderUrl, 'http://127.0.0.1:6199');
+  });
+
+  for (const appEnv of ['staging', 'production']) {
+    it(`pe ${appEnv}: aplicația refuză să pornească, cu numele setării`, () => {
+      const p = problems(testEnv({ APP_ENV: appEnv, PUBLIC_BASE_URL: 'https://civic.exemplu.test', DEV_OIDC_PROVIDER_URL: FAKE }));
+      assert.deepEqual(p.filter((x) => !x.startsWith('DEV_OIDC_PROVIDER_URL')), [], 'singura problemă este setarea de test');
+      assert.equal(p.length, 1);
+      assert.match(p[0]!, /numai cu APP_ENV=development/);
+    });
+  }
+
+  it('în dezvoltare, o adresă care nu este locală (sau nu este http, sau are cale) este refuzată', () => {
+    for (const url of ['https://accounts.exemplu.test', 'http://idp.exemplu.test:6199', 'https://localhost:6199',
+      'http://localhost', 'http://localhost:6199/cale', 'http://u:p@localhost:6199', 'localhost:6199', 'http://127.0.0.2:6199']) {
+      const p = problems(testEnv({ DEV_OIDC_PROVIDER_URL: url }));
+      assert.ok(p.some((x) => x.startsWith('DEV_OIDC_PROVIDER_URL')), url);
+    }
+  });
+});

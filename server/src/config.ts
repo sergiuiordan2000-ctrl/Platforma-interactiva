@@ -82,6 +82,25 @@ const trustProxy = z
       .filter(Boolean);
   });
 
+/** `http://localhost:<port>` sau `http://127.0.0.1:<port>`, fără cale: furnizorul fals rulează pe calculatorul de test. */
+export function isLoopbackHttpUrl(value: string): boolean {
+  try {
+    const u = new URL(value);
+    return (
+      u.protocol === 'http:' &&
+      (u.hostname === 'localhost' || u.hostname === '127.0.0.1') &&
+      u.port !== '' &&
+      u.pathname === '/' &&
+      u.search === '' &&
+      u.hash === '' &&
+      u.username === '' &&
+      u.password === ''
+    );
+  } catch {
+    return false;
+  }
+}
+
 const EnvSchema = z
   .object({
     APP_ENV: z.enum(APP_ENVS),
@@ -114,6 +133,8 @@ const EnvSchema = z
     // amendamentul Google (G-T7): ambele sau niciuna; fără ele, autentificarea cu Google este oprită (rutele → 404)
     GOOGLE_OAUTH_CLIENT_ID: optionalText,
     GOOGLE_OAUTH_CLIENT_SECRET: optionalText,
+    // G-T10: furnizorul de identitate fals al testelor E2E; acceptat NUMAI cu APP_ENV=development (vezi mai jos)
+    DEV_OIDC_PROVIDER_URL: optionalText,
     RETENTION_DAYS: intFromEnv(APPROVED_RETENTION_DAYS, 1, APPROVED_RETENTION_DAYS),
     ADMIN_RETENTION_MONTHS: intFromEnv(
       APPROVED_ADMIN_RETENTION_MONTHS,
@@ -140,6 +161,23 @@ const EnvSchema = z
         path: [env.GOOGLE_OAUTH_CLIENT_ID ? 'GOOGLE_OAUTH_CLIENT_SECRET' : 'GOOGLE_OAUTH_CLIENT_ID'],
         message: 'GOOGLE_OAUTH_CLIENT_ID și GOOGLE_OAUTH_CLIENT_SECRET se setează împreună',
       });
+    }
+    // G-T10: cine controlează furnizorul fals poate declara orice adresă de e-mail, deci setarea nu are voie să existe
+    // pe staging sau în producție (aplicația nu pornește); și în dezvoltare, numai un furnizor de pe același calculator
+    if (env.DEV_OIDC_PROVIDER_URL !== undefined) {
+      if (env.APP_ENV !== 'development') {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['DEV_OIDC_PROVIDER_URL'],
+          message: 'este permisă numai cu APP_ENV=development (furnizorul fals al testelor); ștergeți-o',
+        });
+      } else if (!isLoopbackHttpUrl(env.DEV_OIDC_PROVIDER_URL)) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['DEV_OIDC_PROVIDER_URL'],
+          message: 'trebuie să fie http://localhost:<port> sau http://127.0.0.1:<port>',
+        });
+      }
     }
   });
 
@@ -176,6 +214,8 @@ export type Config = {
   geocoder: { url?: string; userAgent?: string };
   /** Amendamentul Google (G-T7): lipsă = autentificarea cu Google este oprită. Secretul nu se scrie niciodată în jurnale. */
   googleOAuth?: { clientId: string; clientSecret: string };
+  /** G-T10: adresa furnizorului de identitate fals (testele E2E); există numai cu `appEnv === 'development'`. */
+  devOidcProviderUrl?: string;
   retentionDays: number;
   adminRetentionMonths: number;
   logLevel: string;
@@ -272,6 +312,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
       e.GOOGLE_OAUTH_CLIENT_ID && e.GOOGLE_OAUTH_CLIENT_SECRET
         ? { clientId: e.GOOGLE_OAUTH_CLIENT_ID, clientSecret: e.GOOGLE_OAUTH_CLIENT_SECRET }
         : undefined,
+    devOidcProviderUrl: e.DEV_OIDC_PROVIDER_URL?.replace(/\/+$/, ''),
     retentionDays: e.RETENTION_DAYS,
     adminRetentionMonths: e.ADMIN_RETENTION_MONTHS,
     logLevel: e.LOG_LEVEL,
