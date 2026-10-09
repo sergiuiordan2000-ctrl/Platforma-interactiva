@@ -9,7 +9,8 @@ Rulare (din rădăcina repository-ului, după `npm run build` și `npm run build
     python3 server/scripts/package-release.py --bootstrap-email <adresă> [--bootstrap-name "Nume"]
 
 Scripturile npm din package.json (5.4: civic-seed-demo, civic-show-latest-code, civic-outbox-process,
-civic-purge-retention, civic-report-pow-*, civic-rotate-keys) se rulează din cPanel → Node.js → „Run JS script”.
+civic-purge-retention, civic-report-pow-*, civic-rotate-keys; din 09.10.2026 și civic-migrate) se rulează din
+cPanel → Node.js → „Run JS script”.
 Cu --bootstrap-email, package.json din pachet primește și scriptul `civic-bootstrap-admin`, rulat din
 cPanel → Node.js → „Run JS script” (care nu acceptă argumente). Parola temporară apare numai în
 ieșirea comenzii, nu într-un fișier (B3 §6). Adresa ajunge numai în pachet, nu în repository.
@@ -65,6 +66,9 @@ def main() -> int:
         # 5.4: comenzile fără argumente pentru cPanel → Setup Node.js App → „Run JS script” (fără Terminal pe staging)
         app = 'node server/dist/app.js'
         pkg['scripts'] = {
+            # amendamentul Google, pasul 6: migrarea dintr-un click (până acum se rula printr-o sarcină cron temporară).
+            # `migrate` aplică numai migrațiile lipsă; pe o schemă deja la zi nu schimbă nimic.
+            'civic-migrate': f'{app} migrate',
             'civic-migrate-status': f'{app} migrate:status',
             'civic-seed-demo': f'{app} seed:demo',
             'civic-show-latest-code': f'{app} dev:show-code --latest',
