@@ -2,7 +2,7 @@
 
 **Proiect:** Turnu Măgurele Civic („Urbis Activ”) · **Găzduire:** ClausWeb, plan „NodeJS1” cu cPanel, IP dedicat · **Început:** 07.10.2026
 **Deciziile din spate:** `AMENDAMENT_MARIADB_SI_GAZDUIRE.md` (G6, G7, amendamentul la G2).
-**Staging-ul vechi** (`civic-test.electrovolt.ro`, HostGate) are jurnalul lui: `FAZA_5_1_STAGING_JURNAL.md`. Nu a fost atins în această zi și rulează în continuare `94dba87`.
+**Staging-ul vechi** (`civic-test.electrovolt.ro`, HostGate) are jurnalul lui: `FAZA_5_1_STAGING_JURNAL.md`. La instalarea de aici (07.10.2026) nu a fost atins și rula `94dba87`; **a fost retras complet la 09.10.2026** (jurnalul lui, §16).
 
 ## 1. Reguli și convenții
 
@@ -67,4 +67,4 @@ Verificat din exterior de Claude (DNS public): `urbisactiv.ro` folosește server
 - **Verificarea telefonului în Brevo:** amânată.
 - **`health` după punerea parolei** nu a mai fost citit de Claude (primește 401); îl confirmă proprietarul.
 - **Restaurarea din backup** nu a fost exersată pe acest server (cere o bază de date nouă); este acoperită de testele automate, inclusiv de jobul CI pe MariaDB 11.4.
-- **Retragerea staging-ului vechi** (G3): nedecisă.
+- ~~Retragerea staging-ului vechi (G3)~~: **făcută la 09.10.2026** (`FAZA_5_1_STAGING_JURNAL.md` §16).

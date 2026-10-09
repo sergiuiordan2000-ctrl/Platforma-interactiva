@@ -259,3 +259,32 @@ T-ISO după (Claude, ~23:48: T-ISO-1 complet, 2, 4, 6): identice cu referința. 
 - Codul TOTP al contului nou a fost pus pe **același telefon** ca al primului cont. Cele două conturi se pot ajuta între ele (resetarea parolei sau a TOTP-ului celuilalt), dar la pierderea telefonului rămân numai codurile de recuperare ale fiecărui cont. Mutarea unuia dintre coduri pe alt dispozitiv rămâne o recomandare, nu un pas făcut.
 - La autentificarea cu primul cont, proprietarul a încercat întâi fără codul din aplicația de autentificare; după folosirea lui, autentificarea a reușit. Nu a fost o problemă a aplicației.
 - Cheia `TOTP_ENC_KEY` este neschimbată. O nouă probă `civic-rotate-totp-key-check` ar arăta acum 2 secrete TOTP și 20 de coduri de recuperare; nu a fost rulată.
+
+## 16. Retragerea staging-ului (09.10.2026)
+
+**Decizia proprietarului (09.10.2026): G3, staging-ul de pe `civic-test.electrovolt.ro` se retrage complet.** Motiv: staging-ul nou (`test.urbisactiv.ro`, alt furnizor) îl înlocuiește din 07.10.2026; cel vechi rula cod vechi (`94dba87`), nu primea autentificarea cu Google (G-4) și stătea pe contul site-ului firmei. Datele erau numai demo.
+
+Click-urile în cPanel le-a dat proprietarul, după ghid, câte o etapă pe rând, cu capturi. Ștergerile sunt definitive.
+
+**T-ISO înainte** (Claude, ~15:55): T-ISO-1 (A, AAAA, MX, TXT, `_dmarc`, NS, `www`, `mail`), 2 și 4 identice cu referința din §3; T-ISO-3: `www` afișează aceeași pagină (redirecționarea de pe `http://` nu a putut fi citită cu instrumentele lui Claude); T-ISO-6: cererea este respinsă (codul exact nu a putut fi citit). Subdomeniul avea în DNS o înregistrare A și un rând SPF creat de cPanel. **T-ISO-5** (proprietarul, captură, ~15:58): identic (`.htaccess` 281 bytes, 10 iunie 2026; numai `.well-known` și `cgi-bin`; 18 elemente). T-ISO-7 nu a fost făcut.
+
+| # | Ora | Pas | Verificare | Rezultat |
+|---|---|---|---|---|
+| 37 | ~15:58–16:00 | Cron Jobs: cele trei sarcini șterse (`backup:db`, `surveys:close-expired`, `purge:retention`). Înainte: lista conținea numai aceste trei; contul nu avea alte sarcini cron | captură: „No Cron Jobs” | **OK** |
+| 38 | ~16:00–16:02 | Setup Node.js App: aplicația `civic-test.electrovolt.ro` (singura din listă) oprită și ștearsă | captură: „No applications found” | **OK** |
+| 39 | ~16:02–16:04 | Manage My Databases: baza `<cont>_civic_test` și utilizatorul `<cont>_civic` șterse (singura bază și singurul utilizator ai contului) | captură: nicio bază, niciun utilizator | **OK** |
+| 40 | ~16:05–16:11 | Domains: subdomeniul `civic-test.electrovolt.ro` șters | relatat de proprietar, fără captură | **OK** (vezi „Neconfirmat”) |
+| 41 | ~16:11–16:14 | File Manager: folderele `civic-test-app`, `civic-test-data` (cu `civic.env`, fotografiile, backup-urile, jurnalele) și `civic-test.electrovolt.ro`, șterse de proprietar **fără captura cerută înaintea confirmării** și fără bifa de ștergere definitivă: au ajuns în coș | captură a coșului: cele trei foldere, plus un folder `civic.env` din 29.09 | **corectat la 42** |
+| 42 | ~16:16–16:20 | coșul (`.trash`): cele patru foldere șterse definitiv. Restul coșului (două backup-uri complete ale contului, versiuni vechi ale site-ului firmei, pachetele `civic-….zip`) **neatins**; „Empty Trash” nefolosit | capturi: coșul fără cele patru foldere; folderul principal fără niciun `civic-test…`, cu `public_html` la locul lui | **OK** |
+| 43 | ~16:21–16:22 | `.htpasswds`: folderele `civic-test-app`, `civic-test-data` și `civic-test.electrovolt.ro` (ultimul conținea parola lacătului) șterse. Folderele goale create de cPanel pentru restul contului (`public_html`, `etc`, `mail` …) neatinse | captură: rămân numai folderele goale ale contului | **OK** |
+
+**T-ISO după** (Claude, ~16:14): T-ISO-1 (A, AAAA, MX, TXT, `_dmarc`, NS, `www`, `mail`), 2 și 4 identice cu referința. Numărul de serie al zonei s-a schimbat (`2026100903`), cum era de așteptat după ștergerea subdomeniului. **T-ISO-5** (proprietarul, captură, ~16:20): identic cu cel dinainte, fișier cu fișier (nume, mărimi, date).
+
+**Neconfirmat:**
+- dispariția subdomeniului din DNS-ul public (interogarea lui Claude a fost refuzată pentru prea multe cereri) și lista „Domains” după ștergere (fără captură);
+- T-ISO-3 (`http://`), T-ISO-6 și T-ISO-7 (e-mail către o adresă `@electrovolt.ro`) nu au fost refăcute după intervenție;
+- dacă la intervenția 43 a fost pusă bifa de ștergere definitivă (altfel cele trei foldere mici sunt în coș).
+
+**Rămase pe cont, cu știința proprietarului:** pachetele `civic-….zip` din coș (numai cod; unele conțin adresa primului cont Admin, în scriptul `civic-bootstrap-admin`); folderul gol `nodevenv`; folderele goale din `.htpasswds`. Backup-urile contului și versiunile vechi ale site-ului din coș sunt ale firmei și nu țin de acest proiect.
+
+**Urmări:** cheile din `civic.env` și parola bazei de date nu mai deschid nimic (baza și aplicația nu mai există). Pasul B al cheii `TOTP_ENC_KEY` (`FAZA_5_4_ROTIRE_TOTP_PLAN.md`) rămâne fără obiect. Intrările TOTP și codurile de recuperare ale celor două conturi Admin de pe acest staging nu mai sunt folosite. De acum, proiectul nu mai are nimic pe contul `electrovolt.ro`; verificările T-ISO rămân valabile numai dacă se revine vreodată pe acel cont.
