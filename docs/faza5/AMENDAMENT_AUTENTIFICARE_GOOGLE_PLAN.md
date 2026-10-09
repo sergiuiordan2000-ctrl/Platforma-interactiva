@@ -1,6 +1,6 @@
 # AMENDAMENT — AUTENTIFICAREA CETĂȚEANULUI CU GOOGLE
 
-**Proiect:** Turnu Măgurele Civic · **Data:** 05.10.2026 · **Stare:** **versiunea finală, aprobată pentru implementare.** Deciziile G-1…G-7 au fost luate de proprietar la 05.10.2026 (§6). La checkpoint-ul din 08.10.2026 au fost aprobate §8 A–D și §9.2–§9.6; tabela `citizen_oauth_attempts` (§9.1) a fost acceptată de proprietar, iar clarificările `POST` / `Path=/` sunt în §11. **Implementat:** serverul (pasul 2, §12), interfața (pasul 3, §13) și informarea despre Google de pe ecran (pasul 4, §14). Urmează pașii 5–6 (§7). Commit și push numai cu aprobarea explicită a proprietarului.
+**Proiect:** Turnu Măgurele Civic · **Data:** 05.10.2026 · **Stare:** **versiunea finală, aprobată pentru implementare.** Deciziile G-1…G-7 au fost luate de proprietar la 05.10.2026 (§6). La checkpoint-ul din 08.10.2026 au fost aprobate §8 A–D și §9.2–§9.6; tabela `citizen_oauth_attempts` (§9.1) a fost acceptată de proprietar, iar clarificările `POST` / `Path=/` sunt în §11. **Implementat:** serverul (pasul 2, §12), interfața (pasul 3, §13) și informarea despre Google de pe ecran (pasul 4, §14). Aplicația este înregistrată la Google (pasul 5, §15). Urmează pasul 6 (§7). Commit și push numai cu aprobarea explicită a proprietarului.
 **Origine:** cererea proprietarului din 05.10.2026: autentificarea cu contul Google să fie prima variantă pentru cetățean; codul pe e-mail să rămână varianta a doua.
 **Ce modifică din designul înghețat (Faza 4):** B3 §8, rândul „Mecanism” (astăzi: numai cod de 6 cifre pe e-mail, T-A2); B2 §4.1 (rutele `/citizen/auth/*`); B8 (date personale: apare un furnizor extern de identitate); politica de utilizare (2.9). Regulile A-9, D29–D31 (cont numai pentru depunere; contul are numai e-mailul; un e-mail = un cont) **rămân neschimbate**.
 **Condiție:** domeniul Civic (ca la 5.5b). Fără el, nu se poate înregistra aplicația la Google. **Îndeplinită din 07.10.2026:** domeniul este `urbisactiv.ro` (G7), iar staging-ul este `test.urbisactiv.ro`.
@@ -84,7 +84,7 @@ După Google, rezultatul este același ca după cod: sesiunea de cetățean exis
 2. Server: rutele, verificarea jetonului, setările, testele (G-T1…G-T10). **Făcut 08.10.2026 (§12); comis: `abfee77`, `71b5516`.**
 3. Interfață: butonul, ordinea pe ecran, mesajele de eroare, E2E. **Făcut 09.10.2026 (§13).**
 4. Politica de utilizare actualizată (G-5). **Făcut 09.10.2026 în forma decisă de proprietar: rând de informare pe ecran (§14).**
-5. Proprietarul: înregistrarea în Google Cloud Console (ghid la execuție).
+5. Proprietarul: înregistrarea în Google Cloud Console (ghid la execuție). **Făcut 09.10.2026 (§15).**
 6. Staging pe domeniul Civic: deploy, probă reală, T-ISO înainte și după; raport și checkpoint.
 
 ## 8. Clarificări obligatorii de securitate (checkpoint 08.10.2026)
@@ -436,3 +436,41 @@ Urmări:
 
 1. Documentul complet „Politica de utilizare” și informarea privind datele personale (2.9, E-6), inclusiv paragraful despre Google (ce primește platforma; ce află Google). Verificarea juridică: nedecisă (G-5).
 2. Pasul 5: înregistrarea în Google Cloud Console (proprietarul, după ghid). Ecranul de consimțământ Google cere o adresă a politicii de confidențialitate a aplicației: de stabilit atunci ce adresă se dă.
+
+## 15. Pasul 5: înregistrarea la Google (09.10.2026)
+
+Făcută de proprietar, în Google Cloud Console, după ghidul dat de Claude pas cu pas, cu capturi după fiecare etapă. Ecranele sunt cele din „Google Auth Platform” (Overview, Branding, Audience, Clients), verificate în documentația Google în aceeași zi. **În repository nu intră adresa contului, identificatorul clientului sau secretul.**
+
+### 15.1 Deciziile proprietarului
+
+| # | Întrebarea | Decizia |
+|---|---|---|
+| 15.1-a | În ce cont Google se creează proiectul (adresa lui este afișată cetățenilor ca e-mail de asistență) | **cont Google nou, dedicat aplicației**, cu adresă Gmail nouă |
+
+Contul este **permanent**: de el depinde autentificarea cu Google pe staging și în producție. Adresa de asistență și proprietarul proiectului se pot schimba ulterior (un al doilea cont poate fi adăugat ca „Owner”).
+
+### 15.2 Ce s-a făcut
+
+| # | Pas | Rezultat (din capturile proprietarului) |
+|---|---|---|
+| 1 | cont Google dedicat; termenii Google Cloud acceptați (țara România), fără oferta de probă cu card | contul există |
+| 2 | proiectul **„Urbis Activ”**, fără organizație | selectat |
+| 3 | Google Auth Platform → „Get started”: numele aplicației „Urbis Activ”, e-mailul de asistență = contul dedicat, publicul **External** | „OAuth configuration created!” |
+| 4 | Branding → „Authorized domains”: `urbisactiv.ro`. Logo, pagina principală, politica de confidențialitate și termenii: **necompletate** | „Branding changes saved!” |
+| 5 | Audience: starea **Testing**, tipul External; un utilizator de test (adresa de test a proprietarului). „Publish app” neapăsat | 1 utilizator din 100 |
+| 6 | Clients → client de tip **Web application**, „Urbis Activ staging”; fără „Authorized JavaScript origins”; adresa de întoarcere `https://test.urbisactiv.ro/api/v1/citizen/auth/google/callback` (verificată literă cu literă pe captură) | client creat, secret activ |
+| 7 | identificatorul și secretul clientului: salvate de proprietar acolo unde păstrează parolele; nu au trecut prin conversație (secretul); fereastra cu secretul nu a fost capturată | confirmat de proprietar |
+
+### 15.3 Constatări
+
+1. **Utilizatorii de test.** Pagina „Audience” spune: în starea „Testing”, numai utilizatorii de test pot folosi aplicația (cel mult 100, numărați pe toată durata aplicației). Documentația Google spune că, pentru cererile care cer numai `openid` / `email`, lista nu este necesară. Cele două nu au fost puse la probă; adresa de test a fost adăugată în listă, ca proba de pe staging să nu depindă de asta. **Adresa de test trebuie să fie și în `EMAIL_ALLOWLIST`.**
+2. **Cât timp aplicația nu este verificată de Google**, pe ecranul Google apare domeniul (`urbisactiv.ro`), nu numele „Urbis Activ”.
+3. **Secretul clientului se vede în întregime numai la creare.** Dacă se pierde, se generează altul din pagina clientului („Add secret”), iar cel vechi se dezactivează.
+4. Verificarea în doi pași pe contul dedicat: recomandată proprietarului; neconfirmată în conversație.
+
+### 15.4 Rămase pentru lansare (nu pentru proba de pe staging)
+
+- **Înainte de „In production”** Google cere, pentru aplicațiile externe: pagina principală, politica de confidențialitate și termenii (legături pe domeniul autorizat). Aplicația nu are încă o pagină de confidențialitate (§14.5; poarta „date reale”).
+- Verificarea mărcii („Verify branding”), ca pe ecranul Google să apară numele și sigla aplicației.
+- Un client separat pentru producție (alt secret), cu adresa de întoarcere pe `urbisactiv.ro`; cheile lui intră numai în `civic.env` de producție.
+- Declararea datelor cerute (Data Access: `openid`, `email`).
