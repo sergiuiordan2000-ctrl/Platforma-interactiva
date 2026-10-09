@@ -495,7 +495,7 @@ Pe staging (proprietarul, cu capturi): backup (`civic-backup-20261009T171424982Z
 | 4 | sesiunea după întoarcere, pe HTTPS, cu cookie-urile `__Host-` (§9.3) | **OK**: bara „Autentificat ca …”; după reîncărcare rămâne autentificat |
 | 5 | verificarea jetonului real (semnătura cu cheile Google, emitentul, destinatarul, `nonce`) | **OK**, implicit: fără ea, autentificarea nu ar fi reușit |
 | 7 | același cont ca la codul primit pe e-mail (G-3) | **OK**: în „Sesizările mele” apare sesizarea depusă la 08.10.2026 cu același cont, prin cod |
-| 6 | renunțarea; o adresă din afara `EMAIL_ALLOWLIST` | **nefăcute** (vezi 16.3) |
+| 6 | renunțarea; o adresă din afara `EMAIL_ALLOWLIST` | adresa din afara listei: **OK** (16.4, proba D); renunțarea („Anulează”): **nefăcută** |
 | 8 | IP-ul văzut de server (`TRUST_PROXY`) | **nefăcut** |
 | 9 | aspectul butonului pe un telefon real | **nefăcut** (pe calculator: corect, captura proprietarului) |
 
@@ -509,8 +509,23 @@ Pe staging (proprietarul, cu capturi): backup (`civic-backup-20261009T171424982Z
 
 **Rezultate (local, MySQL 8.0, Node 22, 09.10.2026):** lint, `typecheck` (server, shared) și build-urile: OK; suita backend completă: **289/289** (288 + testul nou); `tests/run_all.py`: **150/150** (149 + GU-23); suita Google: 24/24. MariaDB 11.4 și Node 24: prin CI, după push.
 
-### 16.4 Ce rămâne din pasul 6
+### 16.4 A doua instalare (`civic-08f4dc3.zip`) și reluarea probei (09.10.2026, seara)
 
-1. Instalarea versiunii cu `prompt=select_account` pe staging (fără migrare) și reluarea probei: ecranul „Alege un cont” apare de fiecare dată; întoarcerea cu „Înapoi” de pe ecranul Google lasă butonul utilizabil; o adresă din afara listei nu ajunge autentificată.
+CI la `08f4dc3`: verde pe toate cele 6 joburi (inclusiv MariaDB 11.4 și E2E). Instalarea: pachetul încărcat și extras, Restart; fără migrare și fără schimbări în `civic.env`. `health` → `0.0.0+08f4dc3` (relatat de proprietar, fără captură). Jurnal: intervențiile 26 și 27.
+
+| Proba | Ce s-a verificat | Rezultat |
+|---|---|---|
+| A | ecranul de alegere a contului apare la apăsarea butonului | **OK** (captură): „Alege un cont · Accesează urbisactiv.ro” |
+| B | „Înapoi” din browser, de pe ecranul Google | **OK** (captură): „Contul meu”, regulile bifate, butonul Google utilizabil (corecția `pageshow`, §13) |
+| C | autentificarea cu adresa de probă, prin ecranul de alegere | **OK**, relatat de proprietar („totul e ok”), fără captură |
+| D | un al doilea cont Google, care nu este în `EMAIL_ALLOWLIST` (confirmat de proprietar) | **OK** (capturi): Google arată ecranul de acord, cu o singură informație cerută: „Adresă de e-mail”; după „Continuă”, aplicația arată „Contul meu” cu mesajul „Autentificarea cu Google nu a reușit. Încercați din nou sau folosiți codul primit pe e-mail.”, **fără** bara „Autentificat ca …” (G-T8) |
+
+Confirmat în plus, din captura probei D: Google cere acordul numai pentru adresa de e-mail (G-2: fără nume, fără fotografie).
+
+Limitele probei D, onest: (1) interfața arată același mesaj pentru orice refuz (așa este proiectat: G-T8, §13.6), deci din captură nu se vede **motivul**; o încercare mai veche de 10 minute ar da același mesaj. Proba a fost reluată de la început, la cererea lui Claude, iar captura a venit la circa 2 minute; refuzul pentru listă este acoperit și de testul de integrare (G-T10). (2) Nu s-a verificat dacă al doilea cont este în lista „Test users” de la Google (§15.3, punctul 1). (3) Renunțarea („Anulează” pe ecranul Google) nu a fost probată cu Google real; este acoperită numai de testele automate, cu furnizorul fals.
+
+### 16.5 Ce rămâne din pasul 6
+
+1. Renunțarea cu Google real: „Anulează” pe ecranul de acord → mesajul „Ați renunțat la autentificarea cu Google…”, neautentificat.
 2. `TRUST_PROXY` și aspectul pe telefon (§13.7.6, punctele 8 și 9).
-3. Raportul pasului 6 și checkpoint-ul amendamentului.
+3. Raportul pasului 6 și checkpoint-ul amendamentului (la ChatGPT merge §16, inclusiv modificarea serverului din §16.3).
