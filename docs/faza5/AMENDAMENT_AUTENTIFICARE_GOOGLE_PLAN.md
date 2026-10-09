@@ -493,11 +493,11 @@ Pe staging (proprietarul, cu capturi): backup (`civic-backup-20261009T171424982Z
 | 2 | adresa reală construită de server este acceptată de validarea din interfață și de Google | **OK** (navigarea a avut loc; Google a acceptat adresa de întoarcere) |
 | 3 | întoarcerea prin lacătul Directory Privacy (§9.6) | **OK** |
 | 4 | sesiunea după întoarcere, pe HTTPS, cu cookie-urile `__Host-` (§9.3) | **OK**: bara „Autentificat ca …”; după reîncărcare rămâne autentificat |
-| 5 | verificarea jetonului real (semnătura cu cheile Google, emitentul, destinatarul, `nonce`) | **OK**, implicit: fără ea, autentificarea nu ar fi reușit |
+| 5 | verificarea jetonului real (semnătura cu cheile Google, emitentul, destinatarul, `nonce`) | **OK, dedus**: autentificarea reală a reușit, iar fără verificarea jetonului nu ar fi putut reuși; nu există un jurnal separat care să arate fiecare verificare în parte |
 | 7 | același cont ca la codul primit pe e-mail (G-3) | **OK**: în „Sesizările mele” apare sesizarea depusă la 08.10.2026 cu același cont, prin cod |
 | 6 | renunțarea; o adresă din afara `EMAIL_ALLOWLIST` | adresa din afara listei: **OK** (16.4, proba D); renunțarea („Anulează”): **neprobată cu Google real** (16.4, decizia proprietarului) |
 | 8 | IP-ul văzut de server (`TRUST_PROXY`) | **verificat, cu constatare** (16.5): aplicația nu vede adresa reală |
-| 9 | aspectul butonului pe un telefon real | **OK** (16.5): autentificarea de pe telefon a reușit; aspectul confirmat de proprietar, fără captură |
+| 9 | aspectul butonului pe un telefon real | **OK, confirmat de proprietar** (16.5): autentificarea de pe telefon a reușit, butonul încape pe ecran și textul rămâne pe un singur rând; fără captură |
 
 ### 16.3 Constatare și decizie: alegerea contului
 
@@ -517,16 +517,16 @@ CI la `08f4dc3`: verde pe toate cele 6 joburi (inclusiv MariaDB 11.4 și E2E). I
 |---|---|---|
 | A | ecranul de alegere a contului apare la apăsarea butonului | **OK** (captură): „Alege un cont · Accesează urbisactiv.ro” |
 | B | „Înapoi” din browser, de pe ecranul Google | **OK** (captură): „Contul meu”, regulile bifate, butonul Google utilizabil (corecția `pageshow`, §13) |
-| C | autentificarea cu adresa de probă, prin ecranul de alegere | **OK**, relatat de proprietar („totul e ok”), fără captură |
+| C | autentificarea cu adresa de probă, prin ecranul de alegere | **OK, reconfirmat explicit de proprietar**; fără captură |
 | D | un al doilea cont Google, care nu este în `EMAIL_ALLOWLIST` (confirmat de proprietar) | **OK** (capturi): Google arată ecranul de acord, cu o singură informație cerută: „Adresă de e-mail”; după „Continuă”, aplicația arată „Contul meu” cu mesajul „Autentificarea cu Google nu a reușit. Încercați din nou sau folosiți codul primit pe e-mail.”, **fără** bara „Autentificat ca …” (G-T8) |
 
 Confirmat în plus, din captura probei D: Google cere acordul numai pentru adresa de e-mail (G-2: fără nume, fără fotografie).
 
 Proba D a fost repetată fără intenție la ~21:55, într-o încercare nouă (pornită din „Contul meu”): Google nu a mai arătat ecranul de acord pentru al doilea cont (acordul fusese dat la prima trecere, cu „Continuă”) și l-a trimis direct la aplicație, care l-a refuzat cu același mesaj (captură). Astfel refuzul este confirmat și pe o încercare sigur neexpirată.
 
-Limitele probei D, onest: (1) interfața arată același mesaj pentru orice refuz (așa este proiectat: G-T8, §13.6), deci din captură nu se vede **motivul**; refuzul pentru listă este acoperit și de testul de integrare (G-T10). (2) Nu s-a verificat dacă al doilea cont este în lista „Test users” de la Google (§15.3, punctul 1).
+Limitele probei D, onest: (1) interfața arată același mesaj pentru orice refuz (așa este proiectat: G-T8, §13.6), deci din captură nu se vede **motivul**; refuzul pentru listă este acoperit și de testul de integrare (G-T10). (2) Proprietarul confirmă (09.10.2026) că al doilea cont **nu era în lista „Test users”** de la Google. Google i-a arătat totuși ecranul de acord și l-a trimis înapoi la aplicație, deși aplicația este în starea „Testing”. Se potrivește cu ce spune documentația Google pentru cererile care cer numai `openid` / `email` (§15.3, punctul 1). Urmarea: pe staging, starea „Testing” de la Google **nu** limitează cine poate ajunge la aplicație; singura barieră este `EMAIL_ALLOWLIST`, care a funcționat.
 
-**Renunțarea („Anulează” pe ecranul Google) nu a fost probată cu Google real.** După prima trecere a probei D, Google nu mai arată ecranul de acord pentru niciunul dintre cele două conturi; proba ar cere retragerea acordului din contul Google de test sau un al treilea cont. **Decizia proprietarului (09.10.2026): proba se sare.** Renunțarea rămâne acoperită numai de testele automate, cu furnizorul fals (integrare și E2E).
+**Renunțarea („Anulează” pe ecranul Google) nu a fost probată cu Google real.** După prima trecere a probei D, Google nu mai arată ecranul de acord pentru niciunul dintre cele două conturi; proba ar cere retragerea acordului din contul Google de test sau un al treilea cont. **Decizia proprietarului (09.10.2026): proba se sare.** **Excepție documentată:** testul real „Anulează” rămâne neefectuat și nu se consemnează ca test real trecut; renunțarea este acoperită numai de testele automate, cu furnizorul fals (integrare și E2E).
 
 ### 16.5 `TRUST_PROXY` și telefonul (09.10.2026, ~22:00–22:11)
 
@@ -534,13 +534,27 @@ Jurnalul aplicației nu poate fi citit din cPanel (`stderr.log` din `civic-test-
 
 | Verificare (§13.7.6) | Rezultat |
 |---|---|
-| 9: autentificarea cu Google de pe un telefon real (Android, date mobile) | **OK**, relatat de proprietar; **aspectul** butonului pe telefon (încape pe ecran, textul pe un singur rând): confirmat de proprietar, fără captură |
+| 9: autentificarea cu Google de pe un telefon real (Android, date mobile) | **OK, reconfirmat explicit de proprietar**; **aspectul** butonului pe telefon (încape pe ecran, textul pe un singur rând): confirmat de proprietar, fără captură |
 | 8: IP-ul văzut de server | **constatare**: sesiunea de pe telefon (date mobile, Wi-Fi oprit) are aceeași amprentă ca sesiunile de pe calculator din aceeași zi, deci aplicația **nu vede adresa reală a vizitatorului** |
 
 **Urmarea pentru Google:** limita de 20 de porniri și 20 de întoarceri pe oră „pe IP” (§13.7.2) este, pe această găzduire, o limită pentru toți vizitatorii la un loc. La fel celelalte limite pe IP ale aplicației. Pe staging nu deranjează; **înainte de lansare trebuie rezolvat** (`STAGING_URBISACTIV_JURNAL.md` §4, observația 4). Nu este o problemă a amendamentului Google și nu se rezolvă în pasul 6: cere aflarea modului în care LiteSpeed trimite cererile către aplicație; un `TRUST_PROXY` setat greșit ar permite falsificarea adresei.
 
-### 16.6 Ce rămâne din pasul 6
+### 16.6 Clarificarea proprietarului și starea probelor (09.10.2026)
 
-1. Raportul pasului 6 și checkpoint-ul amendamentului (la ChatGPT merge §16, inclusiv modificarea serverului din §16.3 și constatarea din §16.5).
+La checkpoint, proprietarul a reconfirmat explicit rezultatele de mai jos. Lipsa capturilor este o omisiune de documentare, nu o probă că testele nu au fost executate; ea nu este prezentată nici drept eșec tehnic, nici drept dovadă independentă.
 
-În afara pasului 6, înainte de lansare: `TRUST_PROXY` (§16.5).
+| Verificare | Felul dovezii |
+|---|---|
+| autentificarea cu adresa permisă, după instalarea `08f4dc3` (proba C) | executată; confirmată de proprietar, fără captură |
+| telefon Android: autentificarea și aspectul butonului | executate; confirmate de proprietar, fără captură |
+| verificarea jetonului Google real | **dedusă** din reușita autentificării; fără jurnal separat (raportul nu pretinde o asemenea dovadă) |
+| un cont din afara `EMAIL_ALLOWLIST` și din afara listei „Test users” este refuzat (proba D) | executată, cu capturi; motivul refuzului nu se vede în interfață; refuzul pentru listă este acoperit și de testul de integrare |
+| „Anulează” pe ecranul Google real | **neefectuată** (decizia proprietarului, §16.4); excepție netestată în condiții reale, acoperită numai de testele automate cu furnizorul fals |
+
+### 16.7 Checkpoint și ce rămâne
+
+Materialul de audit al pasului 6 (document de lucru al proprietarului, nu este în repository) a fost trimis la ChatGPT la 09.10.2026. Concluzia transmisă de proprietar: **„pasul 6 poate fi propus pentru închidere, cu excepția testului real «Anulează» consemnată transparent”.**
+
+Rămâne: decizia proprietarului de închidere a pasului 6 și a amendamentului.
+
+În afara pasului 6, înainte de lansare: `TRUST_PROXY` (§16.5) și cerințele din §15.4.
