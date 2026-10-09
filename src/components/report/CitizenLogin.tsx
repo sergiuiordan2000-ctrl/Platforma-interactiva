@@ -81,8 +81,9 @@ export const CitizenLogin: React.FC<CitizenLoginProps> = ({ onLoggedIn, notice, 
     }
     setGoogleBusy(true);
     try {
+      // adresa este validată strict în serviciu (numai Google sau, local, furnizorul fals); `null` = respinsă
       const url = await citizenService.googleStart();
-      if (!/^https?:\/\//.test(url)) throw new Error('adresă neașteptată');
+      if (url === null) throw new Error('adresă de autorizare respinsă');
       window.location.assign(url); // butonul rămâne „ocupat” până la plecarea din pagină
     } catch (err) {
       setGoogleBusy(false);

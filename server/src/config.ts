@@ -177,6 +177,13 @@ const EnvSchema = z
           path: ['DEV_OIDC_PROVIDER_URL'],
           message: 'trebuie să fie http://localhost:<port> sau http://127.0.0.1:<port>',
         });
+      } else if (!isLoopbackHttpUrl(env.PUBLIC_BASE_URL)) {
+        // corecția de după audit (09.10.2026): un APP_ENV=development pus din greșeală pe un server public nu ajunge
+        ctx.addIssue({
+          code: 'custom',
+          path: ['DEV_OIDC_PROVIDER_URL'],
+          message: 'este permisă numai când și PUBLIC_BASE_URL este o adresă locală (http://localhost:<port> sau http://127.0.0.1:<port>)',
+        });
       }
     }
   });

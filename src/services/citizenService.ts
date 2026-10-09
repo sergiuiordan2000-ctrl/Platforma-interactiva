@@ -10,7 +10,7 @@
  * Contul se cere numai pentru depunerea unei sesizări; restul aplicației rămâne fără cont.
  */
 
-import { CITIZEN_POLICY_VERSION } from '@tmc/shared';
+import { CITIZEN_POLICY_VERSION, safeGoogleAuthorizationUrl } from '@tmc/shared';
 import { api, ApiError } from './apiClient';
 
 export interface CitizenMe {
@@ -58,13 +58,17 @@ class CitizenService {
   /**
    * Amendamentul Google (§8 A, §11.1): pornirea prin clientul API (`POST`, sub protecția CSRF), cu bifa politicii.
    * Întoarce adresa la care navighează browserul; serverul a pus deja cookie-ul încercării.
+   *
+   * Corecția de după audit (09.10.2026): adresa primită NU este folosită pe încredere. Se acceptă numai adresa de
+   * autorizare Google sau, numai când aplicația este deschisă de pe calculatorul local, furnizorul fals al testelor
+   * (`safeGoogleAuthorizationUrl`, în `@tmc/shared`). Orice altă adresă → `null`, iar interfața nu navighează.
    */
-  async googleStart(): Promise<string> {
-    const res = await api.post<{ authorizationUrl: string }>('/citizen/auth/google/start', {
+  async googleStart(): Promise<string | null> {
+    const res = await api.post<{ authorizationUrl?: unknown } | null>('/citizen/auth/google/start', {
       policyAccepted: true,
       policyVersion: CITIZEN_POLICY_VERSION,
     });
-    return res.authorizationUrl;
+    return safeGoogleAuthorizationUrl(res?.authorizationUrl, window.location);
   }
 
   logout() {

@@ -5,6 +5,7 @@
 // `sub` nu se citește în afara verificării și nu se întoarce: identitatea contului este e-mailul verificat (§8 C).
 
 import { createHash, createPublicKey, timingSafeEqual, verify as cryptoVerify, type JsonWebKey } from 'node:crypto';
+import { isLoopbackHttpUrl } from '../config.ts';
 
 export const GOOGLE_PROVIDER = {
   authorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',
@@ -91,14 +92,16 @@ export const googleProvider = (fetchImpl: typeof fetch = fetch): OidcProvider =>
 
 /**
  * G-T10: furnizorul fals al testelor E2E (`tests/lib/fake_oidc.mjs`), numai în dezvoltare.
- * A doua verificare a mediului, pe lângă cea din `config.ts`: în afara dezvoltării întoarce `undefined`
- * (se folosește Google), chiar dacă adresa ar ajunge în configurare pe altă cale.
+ * A doua verificare, pe lângă cea din `config.ts`: în afara dezvoltării, sau dacă furnizorul ori aplicația nu sunt
+ * pe calculatorul local, întoarce `undefined` (se folosește Google), chiar dacă adresa ar ajunge în configurare pe altă cale.
  */
 export function devOidcProviderFor(
-  config: { appEnv: string; devOidcProviderUrl?: string },
+  config: { appEnv: string; publicBaseUrl: string; devOidcProviderUrl?: string },
   fetchImpl: typeof fetch = fetch,
 ): OidcProvider | undefined {
   if (config.appEnv !== 'development' || !config.devOidcProviderUrl) return undefined;
+  // corecția de după audit (09.10.2026): furnizorul fals și aplicația trebuie să fie amândouă pe calculatorul local
+  if (!isLoopbackHttpUrl(config.devOidcProviderUrl) || !isLoopbackHttpUrl(config.publicBaseUrl)) return undefined;
   const base = config.devOidcProviderUrl;
   return httpOidcProvider(
     { authorizationEndpoint: `${base}/authorize`, tokenEndpoint: `${base}/token`, jwksUri: `${base}/jwks`, issuers: [base] },

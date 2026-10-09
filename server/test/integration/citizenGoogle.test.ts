@@ -5,10 +5,10 @@ import assert from 'node:assert/strict';
 import { generateKeyPairSync, randomBytes, sign as cryptoSign, type KeyObject } from 'node:crypto';
 import { after, before, describe, it } from 'node:test';
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
-import { CITIZEN_POLICY_VERSION } from '@tmc/shared';
+import { CITIZEN_POLICY_VERSION, GOOGLE_AUTHORIZATION_ENDPOINT, safeGoogleAuthorizationUrl } from '@tmc/shared';
 import { requestLogSerializer } from '../../src/app.ts';
 import { sha256Hex } from '../../src/auth/crypto.ts';
-import { pkceChallenge, type ExchangeParams, type OidcProvider } from '../../src/auth/googleOAuth.ts';
+import { devOidcProviderFor, pkceChallenge, type ExchangeParams, type OidcProvider } from '../../src/auth/googleOAuth.ts';
 import type { DbHandle } from '../../src/db/client.ts';
 import { migrate } from '../../src/db/migrations.ts';
 import { seedConfig } from '../../src/db/seeds.ts';
@@ -456,5 +456,126 @@ describe('Google: jurnalul cererilor', () => {
     const out = requestLogSerializer({ method: 'GET', url: `${V1}/citizen/auth/google/callback?state=SECRET1&code=SECRET2`, hostname: 'h', ip: '1.2.3.4' } as never);
     assert.equal(out.url, `${V1}/citizen/auth/google/callback`);
     assert.ok(!JSON.stringify(out).includes('SECRET'));
+  });
+});
+
+// ——— Verificările cerute la auditul pasului 3 (09.10.2026) ———
+// Sunt ultimele din fișier, pentru că mută ceasul de test peste granița orei (fereastra limitelor).
+
+const attemptCount = async () => Number((await q<{ n: number }>('SELECT COUNT(*) AS n FROM citizen_oauth_attempts'))[0]!.n);
+const rateLimitedCount = async () =>
+  Number((await q<{ n: number | null }>(
+    "SELECT SUM(count) AS n FROM rejected_attempts WHERE area = 'citizen_code' AND target_id = 'google' AND reason = 'rate_limited'"))[0]!.n ?? 0);
+/** Mută ceasul la un minut înaintea orei următoare (aceeași fereastră), apoi, la cerere, în fereastra următoare. */
+const minutesToNextHour = () => 60 - clock.now().getUTCMinutes();
+
+describe('Google: limitarea cererilor pe server (G-T9; verificare extinsă la audit, 09.10.2026)', () => {
+  it('pornirea: 20 pe oră pe IP; a 21-a → 429 cu Retry-After, fără cookie, fără încercare; alt IP neafectat; după trecerea orei se reia', async () => {
+    const ip = '10.60.0.1';
+    // cererile refuzate pentru bifă (422) nu creează nimic și nu consumă limita
+    for (let i = 0; i < 5; i++) assert.equal((await start(app, {}, { ip })).res.statusCode, 422);
+    const before = await attemptCount();
+    const rejectedBefore = await rateLimitedCount();
+    for (let i = 0; i < 20; i++) assert.equal((await start(app, undefined, { ip })).res.statusCode, 200, `pornirea ${i + 1}`);
+    assert.equal(await attemptCount(), before + 20);
+
+    for (let i = 0; i < 2; i++) {
+      const blocked = await start(app, undefined, { ip });
+      assert.equal(blocked.res.statusCode, 429);
+      assert.equal(blocked.res.json().error.code, 'RATE_LIMITED');
+      assert.equal(blocked.res.headers['retry-after'], '3600');
+      assert.equal(blocked.res.json().authorizationUrl, undefined, 'fără adresă de autorizare');
+      assert.equal(setCookies(blocked.res).filter((c) => /civic_oauth=/.test(c)).length, 0, 'fără cookie-ul încercării');
+    }
+    assert.equal(await attemptCount(), before + 20, 'cererile refuzate nu creează încercări');
+    assert.equal(await rateLimitedCount(), rejectedBefore + 2, 'refuzurile sunt numărate (agregat, fără e-mail)');
+
+    // limita este pe IP, nu globală; pornirea și întoarcerea au limite separate
+    assert.equal((await start(app, undefined, { ip: '10.60.0.9' })).res.statusCode, 200);
+    const s = await start(app, undefined, { ip: '10.60.0.9' });
+    const code = issueCode(s, (n) => signToken(claims('limita-pornire@exemplu.test', n)));
+    assert.equal((await callback(app, { state: s.state, code }, s.cookie, ip)).headers.location, '/#sesizari', 'întoarcerea de pe IP-ul limitat la pornire reușește');
+
+    // aceeași fereastră (un minut înainte de ora următoare): încă refuzat; în fereastra următoare: permis din nou
+    clock.advanceMinutes(minutesToNextHour() - 1);
+    assert.equal((await start(app, undefined, { ip })).res.statusCode, 429);
+    clock.advanceMinutes(1);
+    assert.equal((await start(app, undefined, { ip })).res.statusCode, 200);
+  });
+
+  it('întoarcerea: a 21-a pe oră pe IP → google=limita chiar cu o încercare validă: fără schimb de cod, fără cont, fără sesiune; alt IP reușește', async () => {
+    const ip = '10.60.0.2';
+    for (let i = 0; i < 20; i++) {
+      assert.equal((await callback(app, { state: 'x', code: 'y' }, undefined, ip)).headers.location, '/#sesizari?google=eroare', `întoarcerea ${i + 1}`);
+    }
+    const rejectedBefore = await rateLimitedCount();
+    const s = await start(app);
+    const code = issueCode(s, (n) => signToken(claims('limita-intoarcere@exemplu.test', n)));
+    exchanges = [];
+    const res = await callback(app, { state: s.state, code }, s.cookie, ip);
+    assert.equal(res.statusCode, 303);
+    assert.equal(res.headers.location, '/#sesizari?google=limita');
+    assert.equal(sessionCookie(res), undefined, 'fără sesiune');
+    assert.equal(exchanges.length, 0, 'furnizorul nu este contactat');
+    assert.equal(await accountCount('limita-intoarcere@exemplu.test'), 0, 'fără cont');
+    assert.ok(setCookies(res).some((c) => /^civic_oauth=;/.test(c)), 'cookie-ul încercării este șters și la refuz');
+    assert.equal(await rateLimitedCount(), rejectedBefore + 1);
+
+    // limita este pe IP: aceeași întoarcere, de pe alt IP, reușește (refuzul pentru limită nu consumă încercarea)
+    const other = await callback(app, { state: s.state, code }, s.cookie, '10.60.0.8');
+    assert.equal(other.headers.location, '/#sesizari');
+    assert.ok(sessionCookie(other));
+    assert.equal(await accountCount('limita-intoarcere@exemplu.test'), 1);
+
+    // în fereastra următoare, IP-ul limitat poate reveni
+    clock.advanceMinutes(minutesToNextHour());
+    const s2 = await start(app);
+    const code2 = issueCode(s2, (n) => signToken(claims('limita-intoarcere@exemplu.test', n)));
+    assert.equal((await callback(app, { state: s2.state, code: code2 }, s2.cookie, ip)).headers.location, '/#sesizari');
+  });
+});
+
+describe('Google: adresa de autorizare și furnizorul folosit (audit 09.10.2026)', () => {
+  const origin = 'https://test.civic.exemplu';
+  const STAGING_PAGE = { protocol: 'https:', hostname: 'test.civic.exemplu' };
+  const stagingEnv = { ...GOOGLE_ENV, APP_ENV: 'staging', PUBLIC_BASE_URL: origin };
+
+  it('fluxul real (fără furnizor de test): `start` întoarce adresa Google, pe care validarea interfeței o acceptă neschimbată', async () => {
+    const { app: real } = await makeApp(h, clock, stagingEnv); // fără `oidc`: furnizorul implicit, Google; `start` nu face apeluri în rețea
+    try {
+      const s = await start(real, undefined, { origin });
+      assert.equal(s.res.statusCode, 200);
+      const raw = s.res.json().authorizationUrl as string;
+      assert.ok(raw.startsWith(`${GOOGLE_AUTHORIZATION_ENDPOINT}?`), raw);
+      assert.equal(safeGoogleAuthorizationUrl(raw, STAGING_PAGE), raw);
+      assert.equal(s.url.searchParams.get('redirect_uri'), `${origin}/api/v1/citizen/auth/google/callback`);
+    } finally {
+      await real.close();
+    }
+  });
+
+  it('o adresă de autorizare de pe alt site (aici: furnizorul acestor teste) este respinsă de validarea interfeței, de oriunde', async () => {
+    const s = await start(app);
+    const raw = s.res.json().authorizationUrl as string;
+    assert.ok(raw.startsWith('https://idp.exemplu.test/autorizare?'));
+    for (const page of [STAGING_PAGE, { protocol: 'http:', hostname: '127.0.0.1' }, { protocol: 'http:', hostname: 'localhost' }]) {
+      assert.equal(safeGoogleAuthorizationUrl(raw, page), null);
+    }
+  });
+
+  it('configurație greșită: pe staging, chiar cu adresa furnizorului de test ajunsă în configurare, se folosește Google', async () => {
+    const { app: wrong, ctx: wrongCtx } = await makeApp(h, clock, stagingEnv);
+    try {
+      // ocolirea validării de la pornire (care ar opri aplicația): valoarea este pusă direct în configurarea încărcată
+      (wrongCtx.config as { devOidcProviderUrl?: string }).devOidcProviderUrl = 'http://localhost:6199';
+      wrongCtx.oidc = devOidcProviderFor(wrongCtx.config); // exact ce face main.ts
+      assert.equal(wrongCtx.oidc, undefined);
+      const s = await start(wrong, undefined, { origin });
+      assert.equal(s.res.statusCode, 200);
+      assert.equal(s.url.origin, 'https://accounts.google.com');
+      assert.equal(s.url.pathname, '/o/oauth2/v2/auth');
+    } finally {
+      await wrong.close();
+    }
   });
 });

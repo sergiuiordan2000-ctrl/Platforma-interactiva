@@ -151,6 +151,38 @@ describe('DEV_OIDC_PROVIDER_URL: numai în dezvoltare, numai pe același calcula
     });
   }
 
+  it('configurație greșită: APP_ENV=development, dar aplicația are o adresă publică → refuz (furnizorul fals numai cu aplicația locală)', () => {
+    for (const base of ['https://civic.exemplu.test', 'http://civic.exemplu.test:3000', 'https://localhost:3000', 'http://192.168.1.20:3000']) {
+      const p = problems(testEnv({ PUBLIC_BASE_URL: base, DEV_OIDC_PROVIDER_URL: FAKE }));
+      assert.equal(p.length, 1, base);
+      assert.match(p[0]!, /^DEV_OIDC_PROVIDER_URL: .*PUBLIC_BASE_URL este o adresă locală/, base);
+    }
+    // aceeași adresă publică, fără setarea de test: configurarea este validă (nu s-a schimbat nimic pentru restul)
+    assert.equal(loadConfig(testEnv({ PUBLIC_BASE_URL: 'http://192.168.1.20:3000' })).devOidcProviderUrl, undefined);
+  });
+
+  it('configurație greșită: APP_ENV scris altfel decât cele trei valori → aplicația nu pornește deloc', () => {
+    for (const appEnv of ['Development', 'DEVELOPMENT', 'dev', 'test', 'local', 'Staging', 'prod', ' development']) {
+      const p = problems(testEnv({ APP_ENV: appEnv, DEV_OIDC_PROVIDER_URL: FAKE }));
+      assert.ok(p.some((x) => x.startsWith('APP_ENV')), appEnv);
+    }
+  });
+
+  it('pe staging și în producție, refuzul nu depinde de celelalte setări Google sau de forma adresei', () => {
+    const google = { GOOGLE_OAUTH_CLIENT_ID: 'client.apps.exemplu', GOOGLE_OAUTH_CLIENT_SECRET: randomBytes(16).toString('hex') };
+    for (const appEnv of ['staging', 'production']) {
+      for (const url of [FAKE, 'http://127.0.0.1:6199', 'https://accounts.google.com', 'orice']) {
+        const p = problems(testEnv({ APP_ENV: appEnv, PUBLIC_BASE_URL: 'https://civic.exemplu.test', ...google, DEV_OIDC_PROVIDER_URL: url }));
+        assert.equal(p.length, 1, `${appEnv} ${url}`);
+        assert.match(p[0]!, /^DEV_OIDC_PROVIDER_URL: .*numai cu APP_ENV=development/);
+        assert.ok(!p[0]!.includes(url), 'mesajul nu repetă valoarea');
+      }
+      // setarea goală (rând rămas în fișier fără valoare) nu activează nimic și nu oprește aplicația
+      const c = loadConfig(testEnv({ APP_ENV: appEnv, PUBLIC_BASE_URL: 'https://civic.exemplu.test', ...google, DEV_OIDC_PROVIDER_URL: '' }));
+      assert.equal(c.devOidcProviderUrl, undefined);
+    }
+  });
+
   it('în dezvoltare, o adresă care nu este locală (sau nu este http, sau are cale) este refuzată', () => {
     for (const url of ['https://accounts.exemplu.test', 'http://idp.exemplu.test:6199', 'https://localhost:6199',
       'http://localhost', 'http://localhost:6199/cale', 'http://u:p@localhost:6199', 'localhost:6199', 'http://127.0.0.2:6199']) {

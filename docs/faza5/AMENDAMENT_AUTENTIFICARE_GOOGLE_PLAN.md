@@ -203,10 +203,11 @@ Textul bifei (regulile de utilizare) **nu** a fost schimbat: ține de pasul 4 (G
 **Riscul și blocarea:** cine controlează furnizorul poate declara orice adresă de e-mail. De aceea:
 
 1. `config.ts`: cu `APP_ENV=staging` sau `production`, **aplicația refuză să pornească** dacă setarea există (mesajul numește setarea);
-2. `config.ts`: și în dezvoltare, se acceptă numai `http://localhost:<port>` sau `http://127.0.0.1:<port>` (fără cale, fără utilizator);
-3. `googleOAuth.ts` (`devOidcProviderFor`): a doua verificare a mediului la alegerea furnizorului; în afara dezvoltării întoarce `undefined`, deci se folosește Google;
+2. `config.ts`: și în dezvoltare, se acceptă numai `http://localhost:<port>` sau `http://127.0.0.1:<port>` (fără cale, fără utilizator) și, **după audit (§13.7)**, numai dacă și `PUBLIC_BASE_URL` este o adresă locală (un `APP_ENV=development` pus din greșeală pe un server public nu ajunge);
+3. `googleOAuth.ts` (`devOidcProviderFor`): a doua verificare, la alegerea furnizorului (mediul și, după audit, cele două adrese locale); altfel întoarce `undefined`, deci se folosește Google;
 4. setarea nu se scrie în `civic.env`; o pun numai testele, pe durata rulării. `tests/` nu intră în pachetul de instalare (`package-release.py`: `dist`, `server/dist`, `server/migrations`, `server/seeds`, `server/data`);
-5. la pornire, serverul scrie un avertisment în jurnal când furnizorul fals este activ.
+5. la pornire, serverul scrie un avertisment în jurnal când furnizorul fals este activ;
+6. **după audit (§13.7):** interfața acceptă adresa furnizorului local numai când aplicația însăși este deschisă de pe calculatorul local.
 
 Este o adăugare la serverul aprobat la checkpoint-ul din 08.10.2026: **de trimis la audit împreună cu pasul 3.** Rutele, verificarea jetonului, cookie-urile și auditul din §12 sunt neschimbate; `googleProvider()` a fost numai reorganizat (aceleași adrese Google, verificate de un test nou).
 
@@ -220,7 +221,7 @@ Este o adăugare la serverul aprobat la checkpoint-ul din 08.10.2026: **de trimi
 - Butonul „Continuă cu Google” apare numai dacă `GET /api/v1/citizen/auth/google` răspunde 200 (§12.1 a). Altfel (404, eroare de rețea), ecranul este **cel de dinainte**, neschimbat.
 - Cu butonul: bifa regulilor → „Continuă cu Google” → „sau” → adresa de e-mail → „Trimite codul pe e-mail” (G-1, §2).
 - Fără bifă: mesajul existent („Pentru a continua, acceptați regulile de utilizare.”), sub buton; nu se trimite nimic (§8 A; serverul verifică oricum).
-- Cu bifă: `POST …/google/start` prin clientul API, apoi navigare la `authorizationUrl` (§11.1). Dacă pornirea este refuzată, mesajul apare sub buton, iar butonul rămâne utilizabil.
+- Cu bifă: `POST …/google/start` prin clientul API, apoi navigare la `authorizationUrl` (§11.1), **numai după validarea strictă a adresei (după audit, §13.7)**. Dacă pornirea este refuzată, mesajul apare sub buton, iar butonul rămâne utilizabil.
 - La întoarcerea cu refuz, mesajul apare o singură dată în „Contul meu”, iar adresa se curăță la `/#sesizari` (`history.replaceState`), deci mesajul nu reapare la reîncărcare și nu rămâne în istoric. Un motiv necunoscut nu produce mesaj. Mesajul dispare la o încercare nouă.
 - La revenirea cu „Înapoi” de la Google, butonul nu rămâne blocat (`pageshow`).
 - În pagină nu se încarcă nimic de la Google (G-T1): sigla este desenată în pagină (SVG).
@@ -272,7 +273,7 @@ Limita pe IP a serverului nu se atinge în E2E (ar cere peste 20 de porniri); re
 | U10 se cere și `profile` | GU-5 |
 | U11 mesajul vechi rămâne la o încercare nouă | GU-11 |
 
-**Rezultate (local, MySQL 8.0, 09.10.2026):** lint (frontend, server, shared) și build-urile: OK; suita backend completă: **262/262** (253 + 9 teste noi); `tests/run_all.py`: **143/143** (126 + 17). MariaDB 11.4 și Node 24: prin CI, după push.
+**Rezultate la commit-ul `0ed3cd0` (local, MySQL 8.0, 09.10.2026; valorile de după corecțiile de audit sunt în §13.7):** lint (frontend, server, shared) și build-urile: OK; suita backend completă: **262/262** (253 + 9 teste noi); `tests/run_all.py`: **143/143** (126 + 17). MariaDB 11.4 și Node 24: prin CI, după push.
 
 ### 13.6 De știut înainte de pașii 4–6
 
@@ -280,3 +281,122 @@ Limita pe IP a serverului nu se atinge în E2E (ar cere peste 20 de porniri); re
 2. **`TRUST_PROXY` nesetat pe staging** (observație deschisă din HANDOFF §0.4): dacă serverul vede adresa proxy-ului în locul celei a vizitatorului, limita de 20 de porniri pe oră se aplică tuturor împreună. De verificat la pasul 6.
 3. **Observație existentă, nemodificată:** în `IssuesView`, un mesaj general (`notice`, de exemplu „Contul a fost șters…”) apare de două ori când cetățeanul nu este autentificat: o dată sus și o dată în „Contul meu”. Mesajul Google apare o singură dată. Reparația este mică, dar este în afara pasului 3.
 4. Pasul 6 cere `migrate` (0002) pe staging, ca în §12 punctul 4.
+
+### 13.7 Corecțiile de după audit (09.10.2026)
+
+Auditul pasului 3 (ChatGPT, 09.10.2026) a cerut, înainte de închiderea pasului și de instalarea pe staging: (1) validarea strictă a `authorizationUrl` în interfață, cu teste negative; (2) confirmarea prin teste de integrare că limitarea cererilor este aplicată pe server și că furnizorul de test nu poate fi activat pe staging sau în producție, nici prin configurație greșită; (3) actualizarea documentului de audit. Fără schimbări de arhitectură, de rute sau de contracte API.
+
+**Aprobare (proprietar, 09.10.2026):** corecțiile tehnice din această secțiune sunt aprobate pentru commit. **Aprobarea nu este validarea finală a pasului 3:** aceasta rămâne proba pe staging, cu Google real (pasul 6, §13.7.6).
+
+#### 13.7.1 Validarea strictă a adresei de autorizare
+
+**Problema:** interfața naviga la orice adresă primită de la `POST …/google/start` care începea cu `http://` sau `https://`.
+
+**Corecția:** `shared/src/googleAuthUrl.ts` (`safeGoogleAuthorizationUrl`), folosită în `citizenService.googleStart()`. Interfața navighează numai dacă adresa trece toate regulile; altfel rămâne pe loc, cu mesajul „Autentificarea cu Google nu a putut fi pornită…”. Regulile:
+
+1. valoarea este un șir de cel mult 4096 de caractere ASCII tipăribile (fără spații, fără „\”, fără caractere de control);
+2. fără utilizator / parolă în adresă și fără fragment (`#…`);
+3. destinația este **exact** una dintre:
+   - `https://accounts.google.com/o/oauth2/v2/auth` (portul implicit), de oriunde este deschisă aplicația;
+   - `http://localhost:<port>/authorize` sau `http://127.0.0.1:<port>/authorize`, **numai dacă aplicația însăși este deschisă de pe `http://localhost` sau `http://127.0.0.1`**. Pe staging și în producție aplicația este pe HTTPS, pe domeniul ei, deci furnizorul local este respins acolo;
+4. parametrii sunt cei ai fluxului nostru: `response_type=code`, numai `openid email` (G-2), PKCE `S256`, cu `client_id`, `redirect_uri`, `state`, `nonce` și `code_challenge` prezente, fiecare o singură dată;
+5. navigarea se face la forma normalizată de analizorul de adrese al browserului (aceeași pe care au fost verificate regulile).
+
+**De știut:** interfața nu cunoaște mediul serverului și nici portul furnizorului de test, deci regula locală este „orice port de pe calculatorul local, numai când și pagina este locală”. Serverul nu a primit nicio rută și niciun câmp nou. Fluxul valid nu este schimbat: adresa construită de server pentru Google trece validarea neschimbată (test de integrare) și este aceeași constantă ca în interfață (test unitar).
+
+#### 13.7.2 Limitarea cererilor (G-T9), verificată pe server
+
+Limita era implementată și testată din pasul 2 (un test). La audit s-au adăugat două teste de integrare care apelează rutele reale, cu baza de date și ceasul de test (fără simulare în browser). Confirmat:
+
+| Regula | Verificat |
+|---|---|
+| pornirea: 20 pe oră pe IP | a 21-a → 429 `RATE_LIMITED`, `Retry-After: 3600`, fără `authorizationUrl`, fără cookie, fără încercare creată |
+| întoarcerea: 20 pe oră pe IP | a 21-a → `/#sesizari?google=limita` chiar cu o încercare validă: furnizorul nu este contactat, fără cont, fără sesiune; cookie-ul încercării este șters |
+| pe IP, nu global | alt IP nu este afectat, în același moment |
+| limite separate | un IP limitat la pornire poate încă primi întoarceri |
+| fereastra | un minut înainte de ora următoare: încă refuzat; în ora următoare: permis |
+| evidența | refuzurile sunt numărate agregat în `rejected_attempts` (`citizen_code`, `google`, `rate_limited`), fără e-mail |
+
+**Constatări (comportament existent, nemodificat; de știut):**
+
+- fereastra este ora ceasului (nu „ultimele 60 de minute”), ca la toate limitele aplicației: la granița orei pot trece până la 40 de porniri într-un interval scurt;
+- cererile refuzate pentru bifă (422) nu creează nimic și nu se numără la limită;
+- un refuz pentru limită la întoarcere nu consumă încercarea: aceeași întoarcere, de pe un IP care nu este limitat, reușește în cele 10 minute (cere în continuare `state`, cookie-ul și PKCE);
+- limita este pe IP-ul văzut de server: pe staging depinde de `TRUST_PROXY` (§13.6 punctul 2).
+
+#### 13.7.3 Furnizorul de test nu poate fi activat pe staging sau în producție
+
+Patru blocări independente, fiecare cu test și probă de control:
+
+| # | Blocarea | Unde | Testul |
+|---|---|---|---|
+| 1 | cu `APP_ENV=staging` / `production`, aplicația nu pornește dacă setarea există (inclusiv cu orice valoare, cu sau fără cheile Google) | `config.ts` | `config.test.ts`; **`devOidcStartup.test.ts`: procesul real al aplicației se oprește la configurare, înainte de baza de date**, și când setarea vine din fișierul `CIVIC_ENV_FILE` |
+| 2 | **nou:** cu `APP_ENV=development`, dar cu `PUBLIC_BASE_URL` public, aplicația nu pornește dacă setarea există | `config.ts` | `config.test.ts`, `devOidcStartup.test.ts` |
+| 3 | la alegerea furnizorului: în afara dezvoltării, sau dacă furnizorul ori aplicația nu sunt locale, se folosește Google, chiar dacă valoarea ar ajunge în configurare pe altă cale | `devOidcProviderFor` | `oidcProvider.test.ts`; integrare: pe staging, cu valoarea pusă direct în configurarea încărcată, `start` întoarce adresa Google |
+| 4 | **nou:** interfața respinge adresa furnizorului local când aplicația nu este deschisă de pe calculatorul local | `googleAuthUrl.ts` | `googleAuthUrl.test.ts`; E2E GU-21 |
+
+Un `APP_ENV` scris greșit (de exemplu „Development”) oprește aplicația la pornire (valorile permise sunt exact trei). O setare rămasă goală în fișier nu activează nimic.
+
+**Ce rămâne, onest:** un calculator configurat complet ca unul de dezvoltare (`APP_ENV=development`, `PUBLIC_BASE_URL` local, setarea de test) folosește furnizorul fals. Acesta este scopul setării; un asemenea server nu poate servi domeniul public (adresa de întoarcere este locală), iar interfața de pe domeniul public respinge adresa locală.
+
+#### 13.7.4 Teste noi și probe de control
+
+**Teste noi (26 pe server, 5 E2E):** `server/test/unit/googleAuthUrl.test.ts` (9: adresa Google acceptată; furnizorul local numai de pe pagină locală; adrese externe și asemănătoare; scheme; adrese neconforme; parametri); `server/test/unit/devOidcStartup.test.ts` (7: procesul real); `config.test.ts` (+3); `oidcProvider.test.ts` (+2); `citizenGoogle.test.ts` (+5: două de limitare, trei pentru adresa de autorizare și furnizor); `tests/e2e/test_google_autentificare.py` GU-17…GU-21 (prin interfața reală: adrese externe, scheme, adrese neconforme și răspunsuri de alt tip; adresa Google acceptată; pagină deschisă de pe un nume care nu este local). În E2E, nicio cerere nu pleacă spre Google: cererile din afara aplicației sunt oprite de test și numărate.
+
+**Teste existente adaptate (explicație):** `oidcProvider.test.ts`: `devOidcProviderFor` primește acum și adresa aplicației, deci cele 3 apeluri existente au primit acest parametru; ce verificau a rămas neschimbat și au fost adăugate cazuri. Niciun test nu a fost eliminat sau slăbit.
+
+**Probe de control** (codul stricat intenționat, pe o copie; copia a fost apoi ștearsă):
+
+| Proba | Ce a picat |
+|---|---|
+| A1 orice site https acceptat ca Google | `googleAuthUrl.test.ts`; GU-17 |
+| A2 furnizorul local acceptat de pe orice pagină | `googleAuthUrl.test.ts`; GU-21 |
+| A3 calea adresei Google neverificată | `googleAuthUrl.test.ts`; GU-17 |
+| A4 utilizator / parolă / fragment acceptate | `googleAuthUrl.test.ts`; GU-17 |
+| A5 parametrii neverificați | `googleAuthUrl.test.ts`; GU-19 |
+| A6 `http` acceptat spre Google | `googleAuthUrl.test.ts`; GU-18 |
+| A7 interfața folosește adresa fără validare | GU-17, GU-18, GU-19, GU-21 (testele unitare trec: funcția este intactă, dar nefolosită) |
+| A8 spații și caractere de control acceptate | `googleAuthUrl.test.ts`; GU-18 |
+| A9 adresa Google reală respinsă (fluxul valid stricat) | `googleAuthUrl.test.ts`; integrare („fluxul real”); GU-20, GU-21 |
+| B1 furnizor de test acceptat cu adresă publică (config) | `config.test.ts`, `devOidcStartup.test.ts` |
+| B2 furnizor ales fără verificarea adreselor locale | `oidcProvider.test.ts` |
+| B3 setarea acceptată în afara dezvoltării (S1 refăcută) | `config.test.ts`, `devOidcStartup.test.ts` (staging, producție, fișierul de setări) |
+| B4 furnizor ales fără verificarea mediului (S3 refăcută) | `oidcProvider.test.ts`; integrare („configurație greșită: pe staging…”) |
+| C1 fără limită la pornire | integrare: testul existent și cel nou |
+| C2 fără limită la întoarcere | integrare: testul existent și cel nou |
+| C3, C4 limită globală în loc de pe IP | integrare (pică și multe teste existente) |
+| C5 refuzul pentru limită nenumărat | integrare (testul nou) |
+| C6 încercare creată înainte de verificarea limitei | integrare (testul nou) |
+
+**Constatare la probe:** în prima formă, GU-17…GU-21 se opreau cu o excepție când codul stricat lăsa interfața să navigheze (testul pica, dar fără să spună ce verificare). Testul a fost întărit: așteaptă un rezultat clar (respins / navigat / blocat) și continuă; probele refăcute arată verificarea exactă.
+
+#### 13.7.5 Rezultate (local, MySQL 8.0, Node 22, 09.10.2026)
+
+| Comanda | Rezultat |
+|---|---|
+| `npm run lint` (frontend) | OK |
+| `npm run typecheck -w server` | OK |
+| `npm run typecheck -w shared` | OK |
+| `(cd server && CIVIC_TEST_DATABASE_URL=… node test/run.mjs all)` | **288/288** (63 de suite; 0 picate, 0 sărite). Înainte de corecții: 262 |
+| `npm run build` și `npm run build -w server` | OK |
+| `git diff --check` | OK |
+| `CIVIC_TEST_DATABASE_URL=… python3 tests/run_all.py` | **148/148** (9 suite). Suita Google: 22/22. Înainte de corecții: 143 |
+
+MariaDB 11.4 și Node 24: prin CI, după push (nerulat încă pentru aceste modificări).
+
+#### 13.7.6 Ce nu se poate verifica automat: de făcut pe staging, cu Google real (pasul 6)
+
+Testele automate nu contactează Google. La proba de pe `test.urbisactiv.ro` se verifică:
+
+1. butonul apare numai după setarea cheilor Google; ecranul Google arată numele aplicației și cere numai adresa de e-mail;
+2. adresa reală construită de server este acceptată de validarea din interfață și de Google (inclusiv adresa de întoarcere înregistrată în Google Cloud Console);
+3. întoarcerea ajunge la aplicație prin lacătul Directory Privacy (§9.6);
+4. sesiunea după întoarcere, pe HTTPS, cu cookie-urile `__Host-` (§9.3, §11.2);
+5. verificarea jetonului real (semnătura cu cheile Google, emitentul, destinatarul, `nonce`);
+6. „Anulează” pe ecranul Google → mesajul de renunțare; o adresă din afara `EMAIL_ALLOWLIST` → mesajul de eroare;
+7. același cont ca la codul primit pe e-mail (G-3);
+8. IP-ul văzut de server (`TRUST_PROXY`), de care depinde limita pe IP;
+9. aspectul butonului pe un telefon real (§13.4);
+10. T-ISO înainte și după; `electrovolt.ro` neatins.
+
+Refuzul de a porni cu setarea de test **nu** se probează pe staging (ar opri aplicația); este acoperit de testele automate cu procesul real.

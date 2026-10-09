@@ -9,6 +9,8 @@ Furnizorul rulează pe `localhost`, aplicația pe `127.0.0.1`: pentru browser su
 
 Regulile serverului (jetonul, `state`, PKCE, limitele, auditul) sunt testate în
 server/test/integration/citizenGoogle.test.ts; aici se verifică interfața și lanțul complet.
+GU-17…GU-21 (corecția de după audit, 09.10.2026): adresa primită de la `start` este validată strict înainte de
+navigare (shared/src/googleAuthUrl.ts); regulile ei, caz cu caz, sunt și în server/test/unit/googleAuthUrl.test.ts.
 Suită separată (server și DB proprii).
 """
 import sys; sys.dont_write_bytecode = True
@@ -224,6 +226,155 @@ with fake_oidc(FAKE_PORT) as FAKE, backend_server(APP_PORT, FAKE['env']) as BACK
 
         leaked = db_query("SELECT COUNT(*) AS n FROM citizen_oauth_attempts WHERE consumed_at IS NULL AND expires_at > NOW(3)")[0]['n']
         res.check('GU-16 nicio încercare OAuth nefolosită nu a rămas după scenarii (fiecare pornire a fost urmată de întoarcere)', leaked == 0, f'{leaked}')
+
+        # 10. corecția de după audit (09.10.2026): adresa primită de la `start` este validată strict înainte de navigare
+        from urllib.parse import urlencode
+        START = '**/api/v1/citizen/auth/google/start'
+        START_FAILED = 'Autentificarea cu Google nu a putut fi pornită. Încercați din nou sau folosiți codul primit pe e-mail.'
+        Q = urlencode({'response_type': 'code', 'client_id': FAKE['client_id'], 'redirect_uri': URL + '/api/v1/citizen/auth/google/callback',
+                       'scope': 'openid email', 'state': 'S' * 43, 'nonce': 'N' * 43, 'code_challenge': 'C' * 43, 'code_challenge_method': 'S256'})
+        GOOGLE_URL = 'https://accounts.google.com/o/oauth2/v2/auth?' + Q
+        current = {'body': '{}'}
+        ctx.route(START, lambda route: route.fulfill(status=200, content_type='application/json', body=current['body']))
+        # nicio cerere nu are voie să plece spre Google sau spre alt site: tot ce nu este aplicația sau furnizorul local este oprit și notat
+        escaped = []
+
+        def guard(route):
+            url = route.request.url
+            if url.startswith(URL) or url.startswith(FAKE['url']) or url.startswith('data:'):
+                return route.fallback()
+            escaped.append(url)
+            route.fulfill(status=200, content_type='text/html', body='<html><body id="stub">pagina oprita de test</body></html>')
+        ctx.route('**/*', guard)
+
+        def after_click(pg, home):
+            """Ce a făcut interfața după apăsarea butonului: 'respins' (mesaj de eroare, pe loc), 'navigat' sau 'blocat'."""
+            for _ in range(40):
+                if pg.url != home:
+                    return 'navigat'
+                if pg.locator('[data-testid=citizen-google-error]').count() and pg.locator(GOOGLE).is_enabled():
+                    return 'respins'
+                pg.wait_for_timeout(100)
+            return 'navigat' if pg.url != home else 'blocat'
+
+        def rejected(value, raw_body=None):
+            """Serverul „răspunde” cu `value`; interfața trebuie să rămână pe loc, cu mesajul de eroare, fără nicio cerere în afară."""
+            current['body'] = raw_body if raw_body is not None else json.dumps({'authorizationUrl': value})
+            seen = len(escaped)
+            page.click(GOOGLE)
+            if after_click(page, URL + '/#sesizari') != 'respins':  # a navigat sau a rămas blocat: verificarea pică; ecranul se redeschide
+                page.wait_for_timeout(500)
+                del escaped[seen:]
+                open_login(page, URL); page.check(POLICY)
+                return False
+            alert = page.locator('[data-testid=citizen-google-error]')
+            return (len(escaped) == seen and alert.count() == 1
+                    and alert.inner_text().strip() == START_FAILED and page.locator(GOOGLE).is_enabled())
+
+        logout(page)  # după GU-15 cetățeanul este autentificat
+        open_login(page, URL); page.check(POLICY)
+        external = [
+            'https://evil.exemplu.test/o/oauth2/v2/auth?' + Q,
+            'https://accounts.google.com.evil.exemplu.test/o/oauth2/v2/auth?' + Q,
+            'https://accounts.google.com@evil.exemplu.test/o/oauth2/v2/auth?' + Q,
+            'https://user:parola@accounts.google.com/o/oauth2/v2/auth?' + Q,
+            'https://accounts.google.com:8443/o/oauth2/v2/auth?' + Q,
+            'https://accounts.google.com/o/oauth2/v2/auth/alt?' + Q,
+            'https://accounts.google.com/altceva?' + Q,
+            'https://accounts.google.com\\@evil.exemplu.test/o/oauth2/v2/auth?' + Q,
+            'https://accounts.google.com/o/oauth2/v2/auth?' + Q + '#https://evil.exemplu.test',
+            'http://192.168.1.20:6199/authorize?' + Q,
+            'http://localhost.evil.exemplu.test:6199/authorize?' + Q,
+            FAKE['url'] + '/altceva?' + Q,
+            'http://localhost/authorize?' + Q,
+        ]
+        bad_external = [u for u in external if not rejected(u)]
+        res.check('GU-17 adrese externe arbitrare și adrese care seamănă cu Google sau cu furnizorul local: respinse, fără navigare și fără nicio cerere în afară',
+                  not bad_external and not escaped, '; '.join(bad_external)[:300] + ' | ' + '; '.join(escaped)[:200])
+        schemes = [
+            'http://accounts.google.com/o/oauth2/v2/auth?' + Q,
+            'javascript:document.body.setAttribute("data-xss","1")',
+            'javascript:document.body.setAttribute("data-xss","1")//accounts.google.com/o/oauth2/v2/auth?' + Q,
+            'data:text/html,<script>document.body.setAttribute("data-xss","1")</script>',
+            'ftp://accounts.google.com/o/oauth2/v2/auth?' + Q,
+            'https://localhost:%d/authorize?%s' % (FAKE_PORT, Q),
+            '//accounts.google.com/o/oauth2/v2/auth?' + Q,
+            '/o/oauth2/v2/auth?' + Q,
+            'accounts.google.com/o/oauth2/v2/auth?' + Q,
+            ' ' + GOOGLE_URL,
+            GOOGLE_URL + '\n',
+            '',
+        ]
+        bad_schemes = [u for u in schemes if not rejected(u)]
+        res.check('GU-18 scheme nepermise (http spre Google, javascript:, data:, ftp:, https spre furnizorul local), adrese relative, cu spații sau goale: respinse; niciun script executat',
+                  not bad_schemes and not escaped and page.locator('body[data-xss]').count() == 0, '; '.join(bad_schemes)[:300])
+        nonconforming = [
+            ('alt response_type', GOOGLE_URL.replace('response_type=code', 'response_type=token')),
+            ('se cere și profile', GOOGLE_URL.replace('scope=openid+email', 'scope=openid+email+profile')),
+            ('PKCE plain', GOOGLE_URL.replace('code_challenge_method=S256', 'code_challenge_method=plain')),
+            ('fără state', GOOGLE_URL.replace('state=' + 'S' * 43, 'x=1')),
+            ('scope repetat', GOOGLE_URL + '&scope=openid+email+profile'),
+            ('fără parametri', 'https://accounts.google.com/o/oauth2/v2/auth'),
+        ]
+        bad_params = [n for n, u in nonconforming if not rejected(u)]
+        bodies = [('număr', '{"authorizationUrl": 7}'), ('null', '{"authorizationUrl": null}'), ('obiect', '{"authorizationUrl": {"href": "%s"}}' % GOOGLE_URL),
+                  ('listă', '{"authorizationUrl": ["%s"]}' % GOOGLE_URL), ('câmp lipsă', '{}'), ('alt câmp', '{"url": "%s"}' % GOOGLE_URL),
+                  ('răspuns null', 'null'), ('nu este JSON', 'https://accounts.google.com/')]
+        bad_bodies = [n for n, body in bodies if not rejected(None, body)]
+        res.check('GU-19 adrese neconforme (alt `response_type`, alte date cerute, PKCE slab, parametri lipsă sau repetați) și răspunsuri de alt tip: respinse',
+                  not bad_params and not bad_bodies and not escaped, f'{bad_params} {bad_bodies}')
+
+        # adresa Google reală este acceptată: browserul navighează exact la ea (cererea este oprită de test, nu ajunge la Google)
+        current['body'] = json.dumps({'authorizationUrl': GOOGLE_URL})
+        del escaped[:]
+        page.click(GOOGLE)
+        try:
+            page.wait_for_url('https://accounts.google.com/**', timeout=6000)
+        except Exception:
+            pass  # fără navigare: verificarea de mai jos pică
+        res.check('GU-20 adresa de autorizare Google reală este acceptată și browserul navighează exact la ea (fluxul valid nu este afectat)',
+                  page.url == GOOGLE_URL and escaped == [GOOGLE_URL] and page.locator('#stub').count() == 1, page.url[:120])
+
+        # aceeași aplicație, deschisă de pe un nume care NU este local (ca pe staging / producție): furnizorul local este respins
+        ctx.unroute(START)
+        real_local = ctx.request.post(URL + '/api/v1/citizen/auth/google/start', headers=CSRF,
+                                      data={'policyAccepted': True, 'policyVersion': '2026-10'}).json()['authorizationUrl']
+        PUBLIC = 'http://civic.exemplu.test:%d' % APP_PORT
+        pb = pw.chromium.launch(args=['--host-resolver-rules=MAP civic.exemplu.test 127.0.0.1'])
+        pctx = pb.new_context(viewport={'width': 430, 'height': 900})
+        ppage = pctx.new_page(); ppage.on('pageerror', lambda e: errors.append(str(e)[:160]))
+        left = []
+
+        def public_guard(route):
+            url = route.request.url
+            if url.startswith(PUBLIC + '/') and '/citizen/auth/google/start' not in url:
+                return route.fallback()
+            if '/citizen/auth/google/start' in url:
+                return route.fulfill(status=200, content_type='application/json', body=current['body'])
+            left.append(url)
+            route.fulfill(status=200, content_type='text/html', body='<html><body id="stub">pagina oprita de test</body></html>')
+        pctx.route('**/*', public_guard)
+        ppage.goto(PUBLIC + '/#sesizari'); ppage.wait_for_load_state('networkidle')
+        ppage.wait_for_selector(GOOGLE); ppage.check(POLICY)
+        current['body'] = json.dumps({'authorizationUrl': real_local})
+        ppage.click(GOOGLE)
+        public_outcome = after_click(ppage, PUBLIC + '/#sesizari')
+        alert = ppage.locator('[data-testid=citizen-google-error]')
+        local_refused = (public_outcome == 'respins' and not left and alert.count() == 1 and alert.inner_text().strip() == START_FAILED)
+        if public_outcome != 'respins':  # interfața a navigat la furnizorul local (sau s-a blocat): verificarea pică; ecranul se redeschide
+            ppage.wait_for_timeout(500)
+            left.clear()
+            ppage.goto(PUBLIC + '/#sesizari'); ppage.wait_for_load_state('networkidle'); ppage.wait_for_selector(GOOGLE); ppage.check(POLICY)
+        current['body'] = json.dumps({'authorizationUrl': GOOGLE_URL})
+        ppage.click(GOOGLE)
+        try:
+            ppage.wait_for_url('https://accounts.google.com/**', timeout=6000)
+        except Exception:
+            pass  # fără navigare: verificarea de mai jos pică
+        res.check('GU-21 aplicația deschisă de pe un nume care nu este local: adresa (reală) a furnizorului local este respinsă, fără nicio cerere; adresa Google este acceptată',
+                  real_local.startswith(FAKE['url'] + '/authorize?') and local_refused and ppage.url == GOOGLE_URL and left == [GOOGLE_URL],
+                  f'{local_refused} {ppage.url[:80]} {left[:2]}')
+        pb.close()
     except Exception as exc:  # orice excepție = FAIL raportat, nu oprire fără rezumat
         res.check('EXCEPTIE în scenariul B', False, repr(exc)[:300])
     b.close()
