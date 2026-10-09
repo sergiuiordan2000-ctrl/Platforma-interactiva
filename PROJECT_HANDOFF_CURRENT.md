@@ -18,8 +18,8 @@
 |---|---|
 | Branch de lucru | **`faza-5-backend`** |
 | `main` | `d9bc2c9`, **neatins, nu se modifică** |
-| Ultimele commit-uri | 08.10.2026: `b0e1842` (`/me?optional=1`, reparația ferestrei de parolă), `abfee77` (Google, serverul), `71b5516` (Google: `GET /citizen/auth/google`, auditul ca la cod), `011d51b` (handoff). 09.10.2026: `11e0d20` (setarea de test `DEV_OIDC_PROVIDER_URL`, numai în dezvoltare), `0ed3cd0` (Google, interfața), `cc73327` (handoff), `93300ab` (corecțiile de după auditul pasului 3), `6ed9b13` (handoff), `576d643` (pasul 4: rândul de informare despre Google), `6151a78` (handoff), `751a2db` (pasul 5, documentație); urmează commit-ul acestei actualizări |
-| CI | verde la `6151a78` (toate cele 6 joburi, inclusiv MariaDB 11.4 și E2E); pentru commit-urile ulterioare se verifică după push (`gh run list`) |
+| Ultimele commit-uri | 08.10.2026: `b0e1842` (`/me?optional=1`, reparația ferestrei de parolă), `abfee77` (Google, serverul), `71b5516` (Google: `GET /citizen/auth/google`, auditul ca la cod), `011d51b` (handoff). 09.10.2026: `11e0d20` (setarea de test `DEV_OIDC_PROVIDER_URL`, numai în dezvoltare), `0ed3cd0` (Google, interfața), `cc73327` (handoff), `93300ab` (corecțiile de după auditul pasului 3), `6ed9b13` (handoff), `576d643` (pasul 4: rândul de informare despre Google), `6151a78` (handoff), `751a2db` (pasul 5, documentație), `6cc7044` (handoff), `9e8e087` (retragerea staging-ului vechi, documentație); urmează commit-ul acestei actualizări |
+| CI | verde la `6151a78` (toate cele 6 joburi, inclusiv MariaDB 11.4 și E2E); commit-urile ulterioare din 09.10.2026 sunt numai documentație; starea lor se verifică la începutul sesiunii următoare (`gh run list`) |
 | Repo | `https://github.com/sergiuiordan2000-ctrl/Platforma-interactiva` (public; vechea adresă redirecționează) |
 | Reguli | fără commit sau push fără aprobarea explicită a proprietarului; fișierele se adaugă unul câte unul, niciodată `git add .`; fără force push, fără rescrierea istoricului, fără `git stash` |
 
@@ -79,7 +79,7 @@ Deciziile proprietarului din Faza 5 sunt rezumate în `PROJECT_RULES_AND_DECISIO
 
 **Deploy:** `npm run build && npm run build -w server && python3 server/scripts/package-release.py` → pachetul `server/release/civic-<commit>.zip` (fără `--bootstrap-email`, dacă nu se cere un prim cont Admin) → proprietarul: File Manager → `civic-test-app` → Upload + Extract (suprascriere) → șterge arhiva → Setup Node.js App → Restart. Comenzile (de exemplu `migrate`) se rulează prin „Run JS script” sau printr-o sarcină cron temporară, ca la instalare (jurnal, intervenția 6).
 
-**Staging-ul vechi**, `civic-test.electrovolt.ro`: neatins, încă pornit, rulează `94dba87`; jurnal `FAZA_5_1_STAGING_JURNAL.md`. Retragerea lui (G3) nu este decisă.
+**Staging-ul vechi**, `civic-test.electrovolt.ro`: **retras complet la 09.10.2026** (decizia G3; `FAZA_5_1_STAGING_JURNAL.md` §16). Proiectul nu mai are nimic pe contul `electrovolt.ro`. Neconfirmat la retragere: dispariția subdomeniului din DNS-ul public și T-ISO-7 (e-mail către o adresă `@electrovolt.ro`), de cerut proprietarului.
 
 ### 0.5 Reguli de lucru (valabile)
 
@@ -98,15 +98,16 @@ Deciziile proprietarului din Faza 5 sunt rezumate în `PROJECT_RULES_AND_DECISIO
 2. ~~Pasul 4~~: **făcut la 09.10.2026** (§14): rând de informare sub butonul Google; `CITIZEN_POLICY_VERSION` neschimbată (`2026-10`). Deschis: documentul complet al politicii și informarea privind datele personale (2.9, E-6), cu paragraful despre Google, inclusiv ce află Google (§5); verificarea juridică este nedecisă.
 3. ~~Pasul 5~~: **făcut la 09.10.2026** (§15). Pentru lansare rămân (§15.4): pagina de confidențialitate, pagina principală și termenii (cerute de Google înainte de „In production”), verificarea mărcii, un client separat pentru producție.
 4. **Pasul următor: pasul 6.** Deploy pe staging cu `migrate` (0002), cheile Google în `civic.env` (le are proprietarul), proba reală, T-ISO; raport și checkpoint. De știut: pachetul nu are o comandă `migrate` pentru „Run JS script” (la instalare s-a folosit o sarcină cron temporară); după `migrate` 0002, codul vechi (`b0e1842`) nu mai pornește pe aceeași bază, deci întoarcerea simplă înseamnă scoaterea cheilor Google din `civic.env`. Adresa de test trebuie să fie în `EMAIL_ALLOWLIST` și în lista „Test users” de la Google. Lista verificărilor care nu se pot face automat este în §13.7.6 (ecranul Google, adresa de întoarcere, lacătul, sesiunea pe HTTPS, jetonul real, `TRUST_PROXY`, `EMAIL_ALLOWLIST`, aspectul butonului, T-ISO).
-5. Separat: `TRUST_PROXY` înainte de lansare; „Force HTTPS” cerut pe tichet; adaptarea `FAZA_5_5B_GHID.md` la găzduirea nouă; raportul final al Fazei 5. Apoi Faza 6 și Etapa 7A–7F (Planul de Lucru Comun v1.1 nu este în repository).
-6. Proprietarul are de trimis la ChatGPT: `FAZA_5_5_RAPORT.md`, `AMENDAMENT_MARIADB_SI_GAZDUIRE.md`, `AMENDAMENT_ME_OPTIONAL.md` (dacă nu le-a trimis).
+5. **Întrebare deschisă pentru sesiunea următoare:** planul pasului 6 a fost prezentat proprietarului la 09.10.2026 (inclusiv adăugarea unei comenzi `civic-migrate` în pachet, `server/scripts/package-release.py`); **nu a fost aprobat încă**: proiectul a intrat în pauză. Se reia de la această aprobare.
+6. Separat: `TRUST_PROXY` înainte de lansare; „Force HTTPS” cerut pe tichet; adaptarea `FAZA_5_5B_GHID.md` la găzduirea nouă; raportul final al Fazei 5. Apoi Faza 6 și Etapa 7A–7F (Planul de Lucru Comun v1.1 nu este în repository).
+7. Proprietarul are de trimis la ChatGPT: `FAZA_5_5_RAPORT.md`, `AMENDAMENT_MARIADB_SI_GAZDUIRE.md`, `AMENDAMENT_ME_OPTIONAL.md` (dacă nu le-a trimis).
 
 ### 0.7 Deschise
 
-- Retragerea staging-ului vechi (G3); redenumirea în „Urbis Activ” în interfață și în repository; suita Python (E2E) pe MariaDB: nedecise (RULES §13.2).
+- Redenumirea în „Urbis Activ” în interfață și în repository; suita Python (E2E) pe MariaDB: nedecise (RULES §13.2).
 - **Decizie de produs / juridică:** sesizările despre vecini apar public, cu descriere și loc (raport 5.4, §6). G-5: verificarea juridică a textului despre Google.
 - **Interfață:** respingerile de vot și contoarele din tabloul de bord nu au ecran în Admin. Un mesaj general (`notice`, de exemplu „Contul a fost șters…”) apare de două ori pe ecranul „Contul meu” (observație din 09.10.2026, nereparată). Butonul Google folosește fontul dispozitivului, nu „Google Sans” (§13.4).
-- **Securitate:** pe ambele staging-uri, codurile TOTP ale celor două conturi `super_admin` sunt pe același telefon (recomandare: unul pe alt dispozitiv; codurile de recuperare păstrate separat). Pasul B al cheii `TOTP_ENC_KEY` (staging-ul vechi): nedecis.
+- **Securitate:** pe staging, codurile TOTP ale celor două conturi `super_admin` sunt pe același telefon (recomandare: unul pe alt dispozitiv; codurile de recuperare păstrate separat). Pasul B al cheii `TOTP_ENC_KEY` a rămas fără obiect odată cu retragerea staging-ului vechi.
 - Fișierul `cli.log` a rămas în `civic-test-data` pe staging-ul nou (fără secrete).
 
 ### 0.8 Mediul local și verificările obligatorii înainte de commit
