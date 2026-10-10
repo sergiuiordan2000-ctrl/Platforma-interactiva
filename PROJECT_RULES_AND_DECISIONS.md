@@ -309,7 +309,7 @@ D9 **nu redeschide și nu modifică** D1, D3/D4, D6, D8, D10 V2, N-3 sau N-4. N3
 
 ---
 
-## 13. Decizii Faza 5 — implementarea backend-ului (**în lucru**; consemnate la 07.10.2026)
+## 13. Decizii Faza 5 — implementarea backend-ului (**Faza 5 închisă la 10.10.2026**; consemnate din 07.10.2026)
 
 **Sursa completă:** planurile și rapoartele din `docs/faza5/`. Tabelele de mai jos sunt un rezumat: dacă se contrazic cu documentul-sursă, este valabil documentul-sursă.
 
@@ -341,6 +341,7 @@ D9 **nu redeschide și nu modifică** D1, D3/D4, D6, D8, D10 V2, N-3 sau N-4. N3
 | 09.10 | **G3: staging-ul vechi (`civic-test.electrovolt.ro`) este retras complet.** Șterse de proprietar, după ghid: sarcinile cron, aplicația Node, baza de date și utilizatorul ei, subdomeniul, folderele (inclusiv fișierul de setări) și parola de acces. T-ISO înainte și după: site-ul `electrovolt.ro` identic cu referința. Proiectul nu mai are nimic pe contul firmei | `FAZA_5_1_STAGING_JURNAL.md` §16 |
 | 09.10 | **Google, alegerea contului (pasul 6) [amendament]:** la proba reală, după „Ieșire”, butonul Google reintra direct în contul deschis în browser. Decizie: Google arată de fiecare dată „Alege un cont” (`prompt=select_account` în adresa de autorizare). Comanda `civic-migrate` este în pachet, pentru „Run JS script” | `AMENDAMENT_AUTENTIFICARE_GOOGLE_PLAN.md` §16 |
 | 09.10 | **Amendamentul Google: pasul 6 și amendamentul sunt închise.** Proba cu Google real pe staging a reușit; testul real „Anulează” rămâne **excepție netestată**, prin decizia proprietarului (acoperit numai de testele automate). Deschis în afara amendamentului, înainte de lansare: `TRUST_PROXY` | `AMENDAMENT_AUTENTIFICARE_GOOGLE_PLAN.md` §16.4–§16.7 |
+| 10.10 | **Faza 5 este închisă; se trece la Faza 6.** Subfazele 5.1–5.7 nu se redeschid pentru repetarea verificărilor; excepțiile documentate rămân consemnate. `TRUST_PROXY` este blocant pentru reauditul de securitate și pentru lansare: nu se activează fără verificarea configurației reale și fără teste pe staging (IP real, limite separate pe client, fără falsificare prin antete). Fără modificări funcționale noi, de contracte API sau de design fără decizie explicită | `FAZA_5_RAPORT_FINAL.md` §11 |
 | 06.10 | **Cheia `TOTP_ENC_KEY`:** lucrul împărțit în pasul A (comanda, testele, modul de probă; făcut) și pasul B (rularea reală pe staging; decizie separată). Comanda se oprește dacă există blocări active rămase fără cont și nu șterge nimic singură | `FAZA_5_4_ROTIRE_TOTP_PLAN.md` §0 |
 | 06.10 | **Locația în formularul de sesizare [amendament]:** un singur câmp de adresă, „Caută pe hartă”, întrebarea la trimiterea fără pin (varianta 1). Pinul rămâne opțional (D6-2) | `AMENDAMENT_LOCATIE_FORMULAR.md` |
 | 06.10 | **Tab de anunțuri / vânzări: respins.** Nu se reia fără cererea proprietarului | comunicată de proprietar la 06.10.2026 |
@@ -361,4 +362,7 @@ D9 **nu redeschide și nu modifică** D1, D3/D4, D6, D8, D10 V2, N-3 sau N-4. N3
 | Respingerile de vot și contoarele din tabloul de bord | există pe server, fără ecran în Admin |
 | O blocare definitivă rămasă fără cont | nu poate fi ridicată din Admin (`FAZA_5_4_ROTIRE_TOTP_PLAN.md`, corecția din 06.10.2026) |
 | `TRUST_PROXY` pe găzduirea ClausWeb | **de rezolvat înainte de lansare**: la 09.10.2026 s-a confirmat că aplicația nu vede adresa reală a vizitatorului, deci limitele pe IP numără toți vizitatorii la un loc (`STAGING_URBISACTIV_JURNAL.md` §4, observația 4). Nu se setează pe ghicite |
+| Restaurarea unui backup pe o bază de date separată, pe găzduire | **neexersată; de făcut înainte de date reale** (decizia de la checkpoint-ul Fazei 5, 10.10.2026) |
+| „Force HTTPS Redirect” | indisponibil din cPanel; de activat cu ajutorul furnizorului, înainte de date reale |
+| Politica de utilizare și informarea privind datele personale; acordul scris al Primăriei (A17-1); paginile și clientul Google pentru producție | nefăcute; condiții pentru date reale (`FAZA_5_RAPORT_FINAL.md` §7.1) |
 | Codurile TOTP ale celor două conturi `super_admin` | pe staging-ul nou, al doilea cont există din 08.10.2026 (`STAGING_URBISACTIV_JURNAL.md`, intervenția 20); ambele coduri TOTP sunt pe același telefon; recomandare deschisă: unul dintre ele pe alt dispozitiv. Intrările staging-ului vechi (retras la 09.10.2026) nu mai sunt folosite |

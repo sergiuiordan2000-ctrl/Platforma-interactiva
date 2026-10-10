@@ -3,7 +3,8 @@
 **Proiect:** Urbis Activ (fost „Turnu Măgurele Civic”) · **Branch:** `faza-5-backend` · **Data:** 10.10.2026
 **Plan:** Planul de Lucru Comun v1.1, Faza 5 (5.1–5.7), citit cu amendamentele din `docs/AMENDAMENTE_PLAN_V1_1_SI_MASTER_PLAN.md`
 **Design:** `docs/faza4/` (înghețat la 28.09.2026), cu amendamentele din §3
-**Stare Git la redactare:** `faza-5-backend` = `bd3aeaa`; `main` = `d9bc2c9`, neatins. De la checkpoint-ul Fazei 4 (`0d328a6`, 28.09.2026): 87 de commit-uri.
+**Stare Git la redactare:** `faza-5-backend` = `bd3aeaa`; `main` = `d9bc2c9`, neatins. De la checkpoint-ul Fazei 4 (`0d328a6`, 28.09.2026): 87 de commit-uri. Raportul a fost comis ca `e567585`.
+**Checkpoint:** Faza 5 a fost **închisă de proprietar la 10.10.2026** (§11). Clarificările cerute la checkpoint sunt în §4 (mediul testelor) și §5 (codul de pe staging).
 
 Acest raport adună rapoartele subfazelor; nu le înlocuiește. Dacă se contrazic, este valabil raportul subfazei, iar față de amândouă este valabil codul.
 
@@ -56,14 +57,16 @@ Respinsă de proprietar: un tab de anunțuri / vânzări (06.10.2026).
 
 ## 4. Codul și testele
 
-Rulate de Claude la 10.10.2026, pe `bd3aeaa`, local (MySQL 8.0.46, Node 22.22, Chromium):
+Rulate de Claude la 10.10.2026, pe `bd3aeaa`, **în mediul local de lucru al lui Claude** (MySQL 8.0.46, Node 22.22, Chromium). **Niciun test automat nu rulează pe staging și niciunul nu îl contactează.**
 
 | Verificare | Rezultat |
 |---|---|
 | `npm run lint`, `typecheck` (server), build frontend, build server | trec |
 | suita serverului (unit + API + integrare) | **289 / 289** |
-| suita Python (`tests/run_all.py`, pe serverul real) | **150 / 150** |
+| suita Python (`tests/run_all.py`), în browser, pe aplicația pornită local | **150 / 150** |
 | `git diff --check` | curat |
+
+Ce înseamnă „pe aplicația pornită local” (clarificare cerută la checkpoint): fiecare suită Python pornește singură, pe `127.0.0.1`, serverul Node al aplicației (`server/dist/app.js`, același fel de artefact ca pe staging), legat de baza de date locală de test, și îl folosește dintr-un browser Chromium fără interfață. Este serverul adevărat al aplicației, nu o simulare a lui; **nu este staging-ul**. Formularea inițială a raportului („pe serverul real”) era ambiguă și a fost corectată.
 
 Suita Python, pe părți:
 
@@ -102,11 +105,13 @@ Scăderea suitei Python la 5.4–5.6 vine din înlocuirea a patru suite care tes
 |---|---|
 | adresa | `test.urbisactiv.ro`, cu parolă de acces și `noindex` |
 | găzduirea | ClausWeb (cea de producție), Node 24.21.0, MariaDB 11.4.13 |
-| codul instalat | `08f4dc3`; schema la versiunea 2 |
+| codul instalat | `08f4dc3`; schema la versiunea 2. **Față de vârful ramurii nu lipsește nimic funcțional** (vezi mai jos) |
 | sarcini programate | backup zilnic, închiderea sondajelor (5 min), retenția zilnică, coada de e-mail (2 min) |
 | e-mail | Brevo, modul `allowlist` |
 | Google | client de test, starea „Testing” la Google |
 | conturi Admin | două `super_admin`, cu TOTP |
+
+**Codul din Git față de cel de pe staging** (clarificare cerută la checkpoint, verificată la 10.10.2026 cu `git diff 08f4dc3 e567585`): după `08f4dc3` există 5 commit-uri (`dc6d991`, `008cb9d`, `b46db36`, `bd3aeaa`, `e567585`), toate numai de documentație. Ele schimbă 5 fișiere `.md` și niciun fișier de cod, de test, de configurare sau de migrație. Folderele din care se construiește pachetul de staging (`dist`, `server/dist`, `server/migrations`, `server/seeds`, `server/data`) provin din surse neschimbate. Un pachet construit acum ar diferi de cel instalat numai prin numărul versiunii. **Nu există remedieri sau modificări funcționale care să lipsească de pe staging; nu este nevoie de un deploy.**
 
 Probat real pe această găzduire, de proprietar: instalarea de la zero (migrare, seed-uri, backup); primul cont Admin cu TOTP; cod de cont primit pe e-mail; sesizare cu fotografie transmisă „Primăriei” (adresa de test) și notificarea autorului; refuzul unei adrese din afara listei; autentificarea cu Google, pe calculator și pe telefon.
 
@@ -136,6 +141,8 @@ Staging-ul vechi (`civic-test.electrovolt.ro`) a fost retras complet la 09.10.20
 | 5 | Google: pagina de confidențialitate, pagina principală, termenii; trecerea în „In production”; client separat pentru producție | cerute de Google înainte de folosirea publică |
 | 6 | DMARC este `p=none` | întărirea lui este o decizie separată |
 | 7 | datele demo de pe staging | producția refuză pornirea cu date demo (D10) |
+| 8 | restaurarea unui backup pe o bază de date separată, pe găzduire, nu a fost exersată | fără ea, backup-ul zilnic este verificat numai de testele automate (§6, punctul 3) |
+| 9 | jurnalul aplicației nu poate fi citit pe găzduire | erorile din exploatare nu s-ar vedea (§6, punctul 6) |
 
 ### 7.2 Decizii de produs deschise
 
@@ -195,3 +202,23 @@ Fluxul există și a fost probat pe bucăți (§5). Faza 6 îl verifică de la u
 3. Împărțirea problemelor deschise (§7: ce blochează datele reale, ce este decizie de produs, ce este mic) este corectă?
 4. `TRUST_PROXY` înainte de reauditul de securitate din Faza 6: de acord?
 5. Documentele neauditate (§8) pot fi acoperite de acest checkpoint, sau trebuie auditate separat?
+
+## 11. Checkpoint-ul Fazei 5 (10.10.2026)
+
+**Decizia proprietarului (10.10.2026): Faza 5 este închisă și se trece la Faza 6**, cu limitele din §6 și problemele deschise din §7.
+
+- Subfazele 5.1–5.7 nu se redeschid pentru a repeta verificări deja făcute. Rapoartele lor rămân neschimbate.
+- Excepțiile documentate rămân consemnate ca atare, inclusiv testul real „Anulează” de la autentificarea cu Google, care nu a fost efectuat.
+- Problemele din §7.1 nu redeschid Faza 5, dar se tratează înainte de folosirea publică, cu date reale. Niciuna nu este declarată rezolvată.
+- Fără modificări funcționale noi și fără schimbări ale contractelor API sau ale designului înghețat, în lipsa unei decizii explicite.
+
+**`TRUST_PROXY` rămâne blocant** pentru reauditul de securitate din Faza 6 și pentru lansarea publică. Nu se scrie `TRUST_PROXY=true` fără verificarea configurației reale a găzduirii. Problema se consideră rezolvată numai când teste pe staging arată că:
+
+1. aplicația identifică adresa IP reală a clientului;
+2. limitele anti-abuz funcționează separat pentru clienți diferiți;
+3. un client nu își poate falsifica adresa prin antete HTTP;
+4. comportamentul este corect pe staging.
+
+Faptul că aplicația pornește sau că testele locale trec nu este o dovadă.
+
+La checkpoint au fost cerute două clarificări, făcute în acest document: mediul în care rulează suita Python (§4) și diferența dintre codul din Git și cel de pe staging (§5). Niciuna nu a schimbat rezultatele raportului.
