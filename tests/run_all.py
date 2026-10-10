@@ -28,6 +28,8 @@ SUITES = [
     'e2e/test_5_6_sondaje.py',
     # amendamentul Google, pasul 3: interfața, cu un furnizor de identitate fals, local (tests/lib/fake_oidc.mjs)
     'e2e/test_google_autentificare.py',
+    # Faza 6, Pasul 3A: fluxul critic cap-coadă, cu un server SMTP fals, local (tests/lib/fake_smtp.mjs)
+    'e2e/test_faza6_flux_critic.py',
 ]
 # Limitări cunoscute, documentate în PROJECT_HANDOFF_CURRENT.md (G.4 / P7). Nu sunt bug-uri de regresie.
 # P7 / R6D-SES-01 închis formal la Faza 5.2 (sesiune validată pe server); orice FAIL al lui este acum regresie.

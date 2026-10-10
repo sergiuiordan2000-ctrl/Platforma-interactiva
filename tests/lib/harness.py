@@ -88,6 +88,86 @@ def fake_oidc(port):
 
 
 @contextmanager
+def fake_smtp(port, allowlist):
+    """Faza 6, Pasul 3A: serverul SMTP fals, local (`tests/lib/fake_smtp.mjs`), pentru drumul real al e-mailului
+    (TLS, autentificare, atașamente) fără niciun mesaj trimis în afara calculatorului. Certificatul TLS se generează
+    la rulare (fără chei în repository) și este dat aplicației prin `NODE_EXTRA_CA_CERTS`, fără nicio schimbare în
+    codul ei. Întoarce setările de mediu pentru `backend_server(..., extra_env=...)` și funcția `messages()`.
+
+    Fișierele temporare (cheia privată, certificatul, fișierul cu mesajele primite) stau într-un director propriu,
+    în afara repository-ului, accesibil numai utilizatorului curent. Directorul este șters la ieșire în orice
+    situație: test trecut, test picat, excepție, pornire eșuată."""
+    import base64, email, email.policy, secrets, shutil, tempfile
+    if _port_in_use(port):
+        raise RuntimeError(f'Portul {port} este deja ocupat.')
+    tmp = tempfile.mkdtemp(prefix='civic-smtp-e2e-')   # drepturi 0700; în directorul temporar al sistemului
+    proc = None
+    try:
+        key, cert, out = (os.path.join(tmp, n) for n in ('key.pem', 'cert.pem', 'mesaje.jsonl'))
+        try:
+            r = subprocess.run(['openssl', 'req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-days', '2', '-subj', '/CN=localhost',
+                                '-addext', 'subjectAltName=IP:127.0.0.1,DNS:localhost', '-keyout', key, '-out', cert],
+                               capture_output=True, text=True)
+        except FileNotFoundError:
+            raise RuntimeError('openssl indisponibil: testul cap-coadă cere un certificat TLS local') from None
+        if r.returncode != 0:
+            raise RuntimeError('openssl a eșuat: testul cap-coadă cere un certificat TLS local: ' + r.stderr[-300:])
+        ca = cert
+        inherited = os.environ.get('NODE_EXTRA_CA_CERTS')
+        if inherited and os.path.isfile(inherited):  # se păstrează și certificatele deja cerute de mediul de rulare
+            ca = os.path.join(tmp, 'ca.pem')
+            with open(inherited) as f_in, open(cert) as f_cert, open(ca, 'w') as f_out:
+                f_out.write(f_in.read().rstrip('\n') + '\n' + f_cert.read())
+        user, password = 'civic-e2e', secrets.token_urlsafe(18)
+        proc = subprocess.Popen(['node', 'tests/lib/fake_smtp.mjs', str(port)], cwd=REPO, stdout=subprocess.DEVNULL,
+                                stderr=subprocess.DEVNULL, start_new_session=True,
+                                env=dict(os.environ, FAKE_SMTP_KEY=key, FAKE_SMTP_CERT=cert, FAKE_SMTP_USER=user,
+                                         FAKE_SMTP_PASS=password, FAKE_SMTP_OUT=out))
+
+        def messages():
+            """Mesajele primite până acum, în ordinea sosirii, analizate (antete, text, atașamente)."""
+            found = []
+            if not os.path.isfile(out):
+                return found
+            with open(out, encoding='utf-8') as f:
+                lines = f.readlines()
+            for line in lines:
+                if not line.strip():
+                    continue
+                m = json.loads(line)
+                msg = email.message_from_bytes(base64.b64decode(m['raw']), policy=email.policy.default)
+                body = msg.get_body(preferencelist=('plain',))
+                found.append({
+                    'tls': m['tls'], 'envelope_from': m['from'], 'envelope_to': m['to'],
+                    'from': str(msg.get('From', '')), 'to': str(msg.get('To', '')), 'subject': str(msg.get('Subject', '')),
+                    'headers': {k.lower(): str(v) for k, v in msg.items()},
+                    'text': body.get_content() if body else '',
+                    'attachments': [{'filename': a.get_filename(), 'type': a.get_content_type(), 'bytes': len(a.get_content())}
+                                    for a in msg.iter_attachments()],
+                })
+            return found
+
+        if not _wait_port(port, timeout=20):
+            raise RuntimeError('serverul SMTP fals nu a pornit')
+        mail_from = 'no-reply@civic.exemplu.test'
+        yield {'messages': messages, 'mail_from': mail_from, 'tmp_dir': tmp,
+               'env': {'EMAIL_MODE': 'allowlist', 'EMAIL_ALLOWLIST': ', '.join(allowlist), 'SMTP_HOST': '127.0.0.1',
+                       'SMTP_PORT': str(port), 'SMTP_SECURE': 'false', 'SMTP_USER': user, 'SMTP_PASS': password,
+                       'MAIL_FROM': mail_from, 'CIVIC_MAIL_DOMAIN': 'civic.exemplu.test', 'NODE_EXTRA_CA_CERTS': ca}}
+    finally:
+        if proc is not None:
+            _stop_server(proc)
+        shutil.rmtree(tmp, ignore_errors=True)   # cheia privată, certificatul și mesajele de test nu rămân pe disc
+
+
+def run_cli(backend, *args):
+    """Rulează o comandă a aplicației (de exemplu `outbox:process`, ca sarcina cron de pe staging), cu aceleași
+    setări ca serverul pornit de `backend_server`. Întoarce (cod de ieșire, ieșire)."""
+    r = subprocess.run(['node', 'server/dist/app.js', *args], cwd=REPO, env=backend['env'], capture_output=True, text=True)
+    return r.returncode, (r.stdout + r.stderr).strip()
+
+
+@contextmanager
 def backend_server(port, extra_env=None):
     """Serverul Node (artefactul construit) pe DB-ul de test, servind build-ul frontend-ului.
     Cere CIVIC_TEST_DATABASE_URL (un DB cu „test” în nume). Parola și secretul TOTP se generează aleator.
@@ -125,7 +205,7 @@ def backend_server(port, extra_env=None):
             time.sleep(0.25)
         else:
             raise RuntimeError('serverul Node nu a pornit')
-        yield {'url': f'http://127.0.0.1:{port}', 'password': password, 'totp_secret': totp_secret, **E2E_ACCOUNTS}
+        yield {'url': f'http://127.0.0.1:{port}', 'password': password, 'totp_secret': totp_secret, 'env': env, **E2E_ACCOUNTS}
     finally:
         _stop_server(proc)
 
