@@ -6,6 +6,7 @@
 // rotate:keys: cele 4 chei „ușoare” din CIVIC_ENV_FILE, fără afișarea valorilor (varianta A din 30.09.2026).
 // 5.6: surveys:close-expired (E-3, cron la 5 min); rotate:keys păstrează PARTICIPATION_HMAC_SECRET cât timp există sondaje deschise (T-6).
 // rotate:totp-key [--check]: schimbarea cheii TOTP_ENC_KEY, cu mod de probă (plan: FAZA_5_4_ROTIRE_TOTP_PLAN.md).
+// Faza 6, A1: markers:rebuild-counter [--at-least N]: refacerea EXPLICITĂ a marcajului contorului TM pierdut.
 
 import { basename } from 'node:path';
 import type { Config } from './config.ts';
@@ -13,11 +14,13 @@ import { BootstrapRefusedError, bootstrapAdmin } from './accounts.ts';
 import { encryptSecret } from './auth/crypto.ts';
 import { hashPassword } from './auth/password.ts';
 import { newId } from './ids.ts';
-import { createBackup, listBackups, restoreBackup } from './db/backup.ts';
+import { createBackup, formatRestoreInspection, inspectRestore, listBackups, restoreBackup } from './db/backup.ts';
+import { REBUILD_COUNTER_COMMAND } from './db/markers.ts';
+import { initBackupMarkers, rebuildReportCounterWatermark } from './db/reportCounter.ts';
 import { createDb } from './db/client.ts';
 import { migrate, schemaStatus } from './db/migrations.ts';
 import { checkNoDemo } from './db/noDemo.ts';
-import { SeedRefusedError, seedConfig, seedDemo } from './db/seeds.ts';
+import { SeedRefusedError, assertDemoAllowed, seedConfig, seedDemo } from './db/seeds.ts';
 import { MIGRATIONS_DIR, SEEDS_DIR } from './paths.ts';
 import type { AppContext } from './context.ts';
 import { purgePow, purgeRetention } from './maintenance.ts';
@@ -48,6 +51,7 @@ export const CLI_COMMANDS = [
   'rotate:keys',
   'rotate:totp-key',
   'surveys:close-expired',
+  REBUILD_COUNTER_COMMAND,
 ] as const;
 
 export type CliCommand = (typeof CLI_COMMANDS)[number];
@@ -95,8 +99,38 @@ export async function runCli(
         return 0;
       }
       case 'seed:demo': {
-        const res = await seedDemo(handle.pool, SEEDS_DIR, config.appEnv);
+        // sesizările demo primesc numere TM: marcajul contorului se scrie și pentru ele (R2); inițializarea
+        // completă (A1): refuz dacă marcajul contorului s-a pierdut, altfel marcajul există înainte de emitere
+        assertDemoAllowed(config.appEnv); // refuzul din producție vine primul, înainte de a atinge marcajele
+        if (config.backupDir) await initBackupMarkers(handle.pool, config.backupDir);
+        const res = await seedDemo(handle.pool, SEEDS_DIR, config.appEnv, config.backupDir);
         out.log(`seed:demo (rânduri noi): ${JSON.stringify(res)}`);
+        return 0;
+      }
+      case REBUILD_COUNTER_COMMAND: {
+        if (!config.backupDir) {
+          out.error(`${REBUILD_COUNTER_COMMAND}: BACKUP_DIR nu este configurat; nu există marcaj de refăcut.`);
+          return 2;
+        }
+        // alegere explicită, înainte de orice scriere: --at-least <ultimul număr TM comunicat> sau --from-db
+        const raw = argValue(args, '--at-least');
+        const fromDb = args.includes('--from-db');
+        const known = new Set(['--at-least', '--from-db']);
+        const unknown = args.some((a, i) => (a.startsWith('--') ? !known.has(a) : args[i - 1] !== '--at-least'));
+        const atLeast = raw !== undefined && /^\d+$/.test(raw) ? Number(raw) : null;
+        const usable = !unknown && (fromDb !== args.includes('--at-least')) && (fromDb || (atLeast !== null && Number.isSafeInteger(atLeast)));
+        if (!usable) {
+          out.error(`Utilizare: ${REBUILD_COUNTER_COMMAND} --at-least <N>   (N = cel mai mare număr TM comunicat vreodată, de exemplu 12)`);
+          out.error(`           ${REBUILD_COUNTER_COMMAND} --from-db        (numai ce se vede în bază: contorul și sesizările existente)`);
+          out.error('Dacă baza a fost readusă dintr-o copie, numerele emise după copie nu se văd în bază: folosiți --at-least.');
+          return 2;
+        }
+        const res = await rebuildReportCounterWatermark(handle.pool, config.backupDir, fromDb ? null : atLeast);
+        out.log(
+          `${REBUILD_COUNTER_COMMAND}: contorul din bază ${res.counterFound}; cel mai mare număr din sesizări ` +
+            `${res.highestReportNumber ?? '—'}; --at-least ${res.atLeast ?? '—'} → marcaj scris: ${res.watermark}. ` +
+            `Următorul număr emis: TM-${String(res.watermark + 1).padStart(3, '0')}.`,
+        );
         return 0;
       }
       case 'outbox:process': {
@@ -189,21 +223,46 @@ async function runBackupCommand(
       const res = await createBackup(base);
       out.log(`backup:db: ${res.manifest.name} (${JSON.stringify(res.manifest.counts)}; fotografii: ${res.manifest.photos})`);
       if (res.removed.length > 0) out.log(`backup:db: șterse (mai vechi de 7 zile): ${res.removed.join(', ')}`);
+      if (res.markers.counterRaisedFrom !== null) {
+        // A8: singura scriere în bază făcută de backup; după o depunere anulată sau o cădere este normală,
+        // altfel este semn că baza a fost readusă la o stare mai veche
+        out.log(
+          `backup:db: contorul TM din bază (${res.markers.counterRaisedFrom}) era sub marcajul durabil; ` +
+            `a fost ridicat la ${res.markers.counter} înainte de copie (numerele rezervate nu se refolosesc).`,
+        );
+      }
       return 0;
     }
-    const source = args.find((a) => !a.startsWith('--'));
-    if (!source || !args.includes('--confirm')) {
-      out.error('Utilizare: restore:db <director-backup> --confirm   (într-un DB nou, după „migrate”)');
+    const source = args.find((a, i) => !a.startsWith('--') && args[i - 1] !== '--at-least');
+    const check = args.includes('--check');
+    if (!source || (!check && !args.includes('--confirm'))) {
+      out.error('Utilizare: restore:db <director-backup> --check     (numai verificare: nu scrie nimic)');
+      out.error('           restore:db <director-backup> --confirm   (într-un DB nou, după „migrate”, cu un STORAGE_DIR nou, gol)');
+      out.error('           opțional, numai dacă marcajele s-au pierdut definitiv: --allow-missing-markers --at-least <N>');
+      out.error('           (N = cel mai mare număr TM comunicat vreodată; contorul restaurat și marcajul refăcut pornesc de la el)');
       const available = listBackups(config.backupDir);
       if (available.length > 0) out.error(`Backup-uri disponibile: ${available.join(', ')}`);
       return 2;
     }
-    const res = await restoreBackup({ ...base, source });
+    // G1: --at-least <N> (număr întreg); o valoare lipsă sau nenumerică este refuzată de verificări, fără scriere
+    const atLeastRaw = argValue(args, '--at-least');
+    const atLeast = !args.includes('--at-least') ? null : atLeastRaw !== undefined && /^\d+$/.test(atLeastRaw) ? Number(atLeastRaw) : Number.NaN;
+    const restoreOpts = { ...base, source, allowMissingMarkers: args.includes('--allow-missing-markers'), atLeast };
+    if (check) {
+      // `--check` are întâietate față de `--confirm`: cu el nu se scrie nimic (bază, fișiere, marcaje, copie)
+      const inspection = await inspectRestore(restoreOpts);
+      out.log('restore:db --check: numai verificare, nu se scrie nimic.');
+      for (const line of formatRestoreInspection(inspection)) out.log(line);
+      return inspection.problems.length === 0 ? 0 : 1;
+    }
+    const res = await restoreBackup(restoreOpts);
     out.log(`restore:db: rânduri ${JSON.stringify(res.rows)}`);
     out.log(
       `restore:db: fotografii restaurate ${res.photosRestored}, lipsă ${res.photosMissing}; ` +
         `șterse conform listei ${res.deletedFromList}; eliminate prin retenție ${res.purgedByRetention}`,
     );
+    out.log(`restore:db: contorul TM restaurat: ${res.reportCounter}`);
+    if (res.markersWritten.length > 0) out.log(`restore:db: marcaje refăcute în BACKUP_DIR: ${res.markersWritten.join('; ')}`);
     return 0;
   } catch (err) {
     out.error(err instanceof Error ? err.message : String(err));
@@ -306,7 +365,8 @@ async function runE2eSetup(config: Config, out: Out): Promise<number> {
     await migrate(handle.pool, MIGRATIONS_DIR);
     await seedConfig(handle.pool, SEEDS_DIR);
     // Faza 5.3: conținutul public (comunicate, ghid, apel rapid) vine din DB; E2E folosesc datele demo
-    await seedDemo(handle.pool, SEEDS_DIR, config.appEnv);
+    if (config.backupDir) await initBackupMarkers(handle.pool, config.backupDir);
+    await seedDemo(handle.pool, SEEDS_DIR, config.appEnv, config.backupDir);
     const now = new Date();
     const hash = await hashPassword(password);
     const accounts = [

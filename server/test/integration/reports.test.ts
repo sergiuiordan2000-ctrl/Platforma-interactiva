@@ -363,7 +363,11 @@ describe('numerotarea TM-XXX (3B, D25–D26)', () => {
     assert.deepEqual(nums, Array.from({ length: 8 }, (_, i) => start + i));
   });
 
-  it('rollback → numărul nu este consumat', async () => {
+  // Adaptare (decizia proprietarului din 11.10.2026): acest test rulează FĂRĂ BACKUP_DIR (dezvoltare), deci fără
+  // rezervare durabilă; acolo o tranzacție anulată nu consumă numărul. Cu BACKUP_DIR (obligatoriu pe staging și
+  // în producție) numărul rezervat nu se mai emite și rămâne un gol: vezi backupSafety.test.ts. Aserțiunile de
+  // mai jos sunt neschimbate; s-a precizat numai titlul.
+  it('fără BACKUP_DIR (dezvoltare): rollback → numărul nu este consumat', async () => {
     const c = await citizen('rollback@exemplu.test');
     const [v0] = await q<{ v: number }>('SELECT `last_value` AS v FROM report_counter WHERE id = 1');
     // eșec forțat ÎN tranzacție, după incrementarea contorului: tabelul fotografiilor lipsește temporar

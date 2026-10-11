@@ -447,10 +447,12 @@ export function registerAdminReportRoutes(api: FastifyInstance, ctx: AppContext)
   );
 
   // ——— ștergerea definitivă (A-5, D10–D12; B-7: fără audit) ———
+  // Marcajul de ștergere se scrie înainte de COMMIT; dacă nu poate fi scris → eroare, sesizarea rămâne.
 
   api.delete<{ Params: { id: string } }>('/admin/reports/:id', { preHandler: superOnly }, async (request, reply) => {
     if (!ULID.test(request.params.id)) return reply.code(404).send(notFound);
-    const res = await deleteReportsHard(ctx.pool, [request.params.id], ctx.config.storageDir);
+    const marker = ctx.config.backupDir ? { backupDir: ctx.config.backupDir, now: ctx.now() } : undefined;
+    const res = await deleteReportsHard(ctx.pool, [request.params.id], ctx.config.storageDir, marker);
     if (res.reportIds.length === 0) return reply.code(404).send(notFound);
     return reply.code(204).send();
   });

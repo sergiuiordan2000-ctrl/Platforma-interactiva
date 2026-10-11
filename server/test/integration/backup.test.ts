@@ -3,7 +3,7 @@
 
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { gunzipSync } from 'node:zlib';
@@ -166,15 +166,28 @@ describe('backup:db (T-D1)', () => {
   });
 });
 
-describe('lista de ștergeri (numai ID-uri, 7 zile)', () => {
-  it('conține numai ID-ul intern și data; intrările mai vechi de 7 zile dispar', () => {
-    recordReportDeletions(backupDir, [id(99)], ago(8));
-    recordReportDeletions(backupDir, [id(13)], new Date(NOW.getTime() + DAY));
-    const raw = readFileSync(join(backupDir, 'deletion-list.jsonl'), 'utf8').trim().split('\n');
-    for (const line of raw) assert.deepEqual(Object.keys(JSON.parse(line)).sort(), ['deletedAt', 'reportId']);
-    assert.deepEqual(deletionListIds(backupDir), [id(13)]);
+// Adaptare (Faza 6, R1; decizia proprietarului din 11.10.2026): marcajele de ștergere nu mai dispar după 7 zile,
+// ci abia când nicio copie nu mai poate readuce sesizarea („data depunerii + 45 de zile”, + 1 zi rezervă).
+// Formatul: un fișier pentru fiecare intrare (`deletions/<ID>.json`), în locul unui singur fișier rescris.
+describe('marcajele de ștergere (numai ID-uri și date; păstrate cât o copie mai poate readuce sesizarea)', () => {
+  it('conține numai ID-ul intern și două date; o intrare dispare după „depunere + 45 de zile”, nu după 7 zile', () => {
+    recordReportDeletions(backupDir, [{ id: id(99), createdAt: ago(50) }], ago(8)); // depusă acum 50 de zile
+    recordReportDeletions(backupDir, [{ id: id(13), createdAt: ago(2) }], new Date(NOW.getTime() + DAY));
+    const files = readdirSync(join(backupDir, 'deletions')).sort();
+    assert.deepEqual(files, [`${id(13)}.json`, `${id(99)}.json`]);
+    for (const f of files) {
+      const entry = JSON.parse(readFileSync(join(backupDir, 'deletions', f), 'utf8'));
+      assert.deepEqual(Object.keys(entry).sort(), ['deletedAt', 'reportCreatedAt', 'reportId']);
+    }
+    assert.ok(!existsSync(join(backupDir, 'deletion-list.jsonl')), 'formatul vechi nu se mai scrie');
+    assert.deepEqual(deletionListIds(backupDir).sort(), [id(13), id(99)]);
+    // la NOW + 9 zile: sesizarea de 59 de zile nu mai poate fi readusă de nicio copie → intrarea dispare;
+    // intrarea recentă rămâne, deși ștergerea are deja 8 zile (regula veche ar fi eliminat-o)
     assert.equal(pruneDeletionList(backupDir, new Date(NOW.getTime() + 9 * DAY)), 1);
-    recordReportDeletions(backupDir, [id(13)], new Date(NOW.getTime() + DAY));
+    assert.deepEqual(deletionListIds(backupDir), [id(13)]);
+    // idempotent: aceeași sesizare notată din nou → o singură intrare
+    recordReportDeletions(backupDir, [{ id: id(13), createdAt: ago(2) }], new Date(NOW.getTime() + DAY));
+    assert.deepEqual(deletionListIds(backupDir), [id(13)]);
   });
 });
 

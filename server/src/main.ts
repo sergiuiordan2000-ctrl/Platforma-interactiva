@@ -5,7 +5,9 @@
 // La pornirea serverului:
 //   1. configurarea este validată (refuz fără secrete);
 //   2. schema DB trebuie să fie exact la versiunea așteptată (DN-20), altfel refuz;
-//   3. în producție, nicio dată demo (D10-3), altfel refuz.
+//   3. în producție, nicio dată demo (D10-3), altfel refuz;
+//   4. marcajele de lângă backup-uri (BACKUP_DIR) trebuie să poată fi scrise, altfel refuz; contorul TM
+//      din bază și marcajul lui sunt aduse la maximul dintre ele (un număr rezervat nu se mai emite).
 
 import { buildApp, type HealthState } from './app.ts';
 import { CLI_COMMANDS, isCliCommand, runCli } from './cli.ts';
@@ -14,6 +16,7 @@ import { EnvFileError, loadEnvFileFromVar } from './envFile.ts';
 import { createDb, pingDb } from './db/client.ts';
 import { schemaStatus } from './db/migrations.ts';
 import { checkNoDemo } from './db/noDemo.ts';
+import { initBackupMarkers, type CounterSync } from './db/reportCounter.ts';
 import { FRONTEND_DIST_DIR, MIGRATIONS_DIR } from './paths.ts';
 import { loadAnnouncementImages } from './images.ts';
 import { DEFAULT_UAT_FILE, loadUatBoundary } from './uat.ts';
@@ -44,6 +47,18 @@ async function startServer(config: Config): Promise<void> {
     }
   }
 
+  // Fără marcaje, depunerea și ștergerea ar fi oricum refuzate la fiecare cerere: aplicația nu pornește deloc,
+  // cu un mesaj explicit. (În dezvoltare, BACKUP_DIR poate lipsi: atunci marcajele nu se folosesc.)
+  let markers: CounterSync | undefined;
+  if (config.backupDir) {
+    try {
+      markers = await initBackupMarkers(handle.pool, config.backupDir);
+    } catch (err) {
+      await handle.close();
+      fail(`Aplicația nu pornește: marcajele din BACKUP_DIR nu pot fi folosite. ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+
   const health = async (): Promise<HealthState> => {
     if (!(await pingDb(handle.pool))) return 'degraded';
     const st = await schemaStatus(handle.pool, MIGRATIONS_DIR);
@@ -70,6 +85,13 @@ async function startServer(config: Config): Promise<void> {
   const emailWarning = emailDowngradeMessage(config);
   if (emailWarning) app.log.error(emailWarning);
   if (devOidcProviderFor(config)) app.log.warn('Autentificarea cu Google folosește furnizorul fals de test (DEV_OIDC_PROVIDER_URL).');
+  if (markers && markers.counterRaisedFrom !== null) {
+    // după o depunere anulată sau o cădere este normal; altfel, semn că baza a fost readusă la o stare mai veche
+    app.log.warn(
+      { counterFound: markers.counterRaisedFrom, counterNow: markers.counter },
+      'Contorul TM din baza de date era sub marcajul durabil și a fost ridicat la el (numerele rezervate nu se refolosesc).',
+    );
+  }
 
   const shutdown = async (signal: string) => {
     app.log.info({ signal }, 'oprire');

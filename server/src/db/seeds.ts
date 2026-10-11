@@ -9,6 +9,7 @@ import { join } from 'node:path';
 import type mysql from 'mysql2/promise';
 import type { AppEnv } from '../config.ts';
 import { newId } from '../ids.ts';
+import { allocateReportNumber } from './reportCounter.ts';
 
 type Row = Record<string, unknown>;
 
@@ -63,14 +64,21 @@ export async function seedConfig(pool: mysql.Pool, seedsDir: string): Promise<Se
 
 export class SeedRefusedError extends Error {}
 
+/** D10-4: datele demo sunt refuzate în producție. Verificat înaintea oricărei alte operații (și a marcajelor). */
+export function assertDemoAllowed(appEnv: AppEnv): void {
+  if (appEnv === 'production') {
+    throw new SeedRefusedError('seed:demo este refuzat în producție (D10-4).');
+  }
+}
+
 export async function seedDemo(
   pool: mysql.Pool,
   seedsDir: string,
   appEnv: AppEnv,
+  /** Directorul marcajelor (BACKUP_DIR): numerele TM date sesizărilor demo se notează și acolo. */
+  backupDir?: string,
 ): Promise<SeedResult> {
-  if (appEnv === 'production') {
-    throw new SeedRefusedError('seed:demo este refuzat în producție (D10-4).');
-  }
+  assertDemoAllowed(appEnv);
   const dir = join(seedsDir, 'demo');
   const announcements = readJson<Row[]>(dir, 'announcements.json');
   const directory = readJson<{ institution: Row; departments: Row[]; services: Row[]; links: Row[] }>(
@@ -209,9 +217,7 @@ export async function seedDemo(
     for (const r of reports) {
       const [exists] = await conn.query('SELECT id FROM reports WHERE id = ?', [r.id]);
       if ((exists as unknown[]).length > 0) continue;
-      const [counter] = await conn.query('SELECT `last_value` AS v FROM report_counter WHERE id = 1 FOR UPDATE');
-      const next = Number((counter as Array<{ v: number }>)[0]!.v) + 1;
-      await conn.query('UPDATE report_counter SET `last_value` = ? WHERE id = 1', [next]);
+      const next = await allocateReportNumber(conn, backupDir);
       await ins('reports', {
         id: r.id, author_account_id: null, reference_number: `TM-${String(next).padStart(3, '0')}`,
         category_id: r.categoryId, description: r.description, location_text: r.locationText,

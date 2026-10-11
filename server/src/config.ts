@@ -9,6 +9,7 @@
 // Variabilele folosite abia în subfazele următoare (SMTP 5.5, geocodare și UAT 5.4)
 // sunt opționale în 5.1 și devin obligatorii în subfaza care le folosește.
 
+import { resolve, sep } from 'node:path';
 import { z } from 'zod';
 
 export const APP_ENVS = ['development', 'staging', 'production'] as const;
@@ -154,6 +155,27 @@ const EnvSchema = z
         message: 'trebuie să folosească https în afara mediului de dezvoltare',
       });
     }
+    // Marcajele de lângă backup-uri (contorul TM, ștergerile; R1–R2, Faza 6) sunt obligatorii pe staging și în
+    // producție: fără BACKUP_DIR, depunerea și ștergerea nu ar avea unde să le scrie, iar lipsa ar trece neobservată.
+    if (env.APP_ENV !== 'development' && env.BACKUP_DIR === undefined) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['BACKUP_DIR'],
+        message: 'este obligatorie pe staging și în producție (directorul backup-urilor și al marcajelor, în afara oricărui docroot)',
+      });
+    }
+    // Oriunde este setat: directorul backup-urilor și cel al fotografiilor nu se pot suprapune
+    if (env.BACKUP_DIR !== undefined) {
+      const backup = resolve(env.BACKUP_DIR);
+      const storage = resolve(env.STORAGE_DIR);
+      if (backup === storage || backup.startsWith(storage + sep) || storage.startsWith(backup + sep)) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['BACKUP_DIR'],
+          message: 'nu poate fi același director cu STORAGE_DIR și niciunul nu poate fi în interiorul celuilalt',
+        });
+      }
+    }
     // E-mailul (B6 §2): o configurație incompletă / invalidă NU oprește aplicația → `simulated` (emailProblems)
     if (Boolean(env.GOOGLE_OAUTH_CLIENT_ID) !== Boolean(env.GOOGLE_OAUTH_CLIENT_SECRET)) {
       ctx.addIssue({
@@ -215,7 +237,10 @@ export type Config = {
     civicMailDomain?: string;
     smtp: { host?: string; port: number; secure: boolean; user?: string; pass?: string };
   };
-  /** Directorul backup-urilor (în afara oricărui docroot); obligatoriu numai pentru backup:db / restore:db. */
+  /**
+   * Directorul backup-urilor și al marcajelor (în afara oricărui docroot). Obligatoriu pe staging și în producție;
+   * în dezvoltare poate lipsi (atunci marcajele nu se scriu, iar backup:db / restore:db sunt refuzate).
+   */
   backupDir?: string;
   uatBoundaryFile?: string;
   geocoder: { url?: string; userAgent?: string };

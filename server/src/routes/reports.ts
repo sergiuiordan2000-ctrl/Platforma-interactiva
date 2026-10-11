@@ -24,6 +24,7 @@ import { storagePath } from '../storage.ts';
 import { requestIpHash, requireCitizen } from '../auth/guards.ts';
 import { hitRateLimit, recordRejected } from '../auth/rateLimit.ts';
 import { sha256Hex } from '../auth/crypto.ts';
+import { allocateReportNumber } from '../db/reportCounter.ts';
 import { deleteReportsHard } from '../db/reportDeletion.ts';
 import { isReportPowEnabled } from '../settings.ts';
 import { activeBlock, emailHash } from './citizens.ts';
@@ -345,16 +346,16 @@ export async function registerReportRoutes(api: FastifyInstance, ctx: AppContext
         throw err;
       }
 
-      // 4. tranzacția: contorul TM (FOR UPDATE), sesizarea, fotografiile, coada (numai la cerere)
+      // 4. tranzacția: contorul TM (FOR UPDATE) și marcajul lui de lângă backup-uri, scris ÎNAINTE de COMMIT
+      //    (dacă marcajul nu poate fi scris, tranzacția se anulează: niciun număr emis); apoi sesizarea,
+      //    fotografiile, coada (numai la cerere)
       const reportId = newId(now);
       const outboxIds: string[] = [];
       let referenceNumber = '';
       const conn = await ctx.pool.getConnection();
       try {
         await conn.beginTransaction();
-        const [counter] = await conn.query('SELECT `last_value` FROM report_counter WHERE id = 1 FOR UPDATE');
-        const next = Number((counter as Array<{ last_value: number }>)[0]!.last_value) + 1;
-        await conn.query('UPDATE report_counter SET `last_value` = ? WHERE id = 1', [next]);
+        const next = await allocateReportNumber(conn, ctx.config.backupDir);
         referenceNumber = formatReference(next);
         const unsubHash = data.notifyOptIn ? unsubscribeTokenHash(unsubscribeToken(ctx, reportId)) : null;
         await conn.query(
@@ -448,11 +449,15 @@ export async function registerReportRoutes(api: FastifyInstance, ctx: AppContext
     return toCitizen(row);
   });
 
-  /** D19–D22: ștergerea definitivă a propriei sesizări, în orice stare, și cu blocare activă (D15); fără audit (B-7). */
+  /**
+   * D19–D22: ștergerea definitivă a propriei sesizări, în orice stare, și cu blocare activă (D15); fără audit (B-7).
+   * Marcajul de ștergere se scrie înainte de COMMIT; dacă nu poate fi scris → eroare, sesizarea rămâne.
+   */
   api.delete<{ Params: { tm: string } }>('/citizen/reports/:tm', { preHandler: citizen }, async (request, reply) => {
     const row = await ownReport(request);
     if (!row) return reply.code(404).send(apiError('NOT_FOUND', 'Sesizarea nu există.'));
-    await deleteReportsHard(ctx.pool, [row.id], ctx.config.storageDir);
+    const marker = ctx.config.backupDir ? { backupDir: ctx.config.backupDir, now: ctx.now() } : undefined;
+    await deleteReportsHard(ctx.pool, [row.id], ctx.config.storageDir, marker);
     return reply.code(204).send();
   });
 }

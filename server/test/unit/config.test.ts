@@ -191,3 +191,39 @@ describe('DEV_OIDC_PROVIDER_URL: numai în dezvoltare, numai pe același calcula
     }
   });
 });
+
+// Faza 6 (R1–R2): marcajele de lângă backup-uri au nevoie de BACKUP_DIR pe staging și în producție
+describe('BACKUP_DIR: obligatoriu pe staging și în producție; separat de STORAGE_DIR', () => {
+  const https = { PUBLIC_BASE_URL: 'https://exemplu.test' };
+
+  it('în dezvoltare poate lipsi; prezent, ajunge în configurare', () => {
+    assert.equal(loadConfig(testEnv()).backupDir, undefined);
+    assert.equal(loadConfig(testEnv({ BACKUP_DIR: '/var/civic/backups' })).backupDir, '/var/civic/backups');
+  });
+
+  for (const appEnv of ['staging', 'production'] as const) {
+    it(`APP_ENV=${appEnv}: fără BACKUP_DIR (lipsă sau gol) → aplicația nu pornește; cu BACKUP_DIR → acceptat`, () => {
+      for (const value of [undefined, '', '   ']) {
+        const p = problems(testEnv({ APP_ENV: appEnv, ...https, BACKUP_DIR: value }));
+        assert.deepEqual(p, ['BACKUP_DIR: este obligatorie pe staging și în producție (directorul backup-urilor și al marcajelor, în afara oricărui docroot)']);
+      }
+      assert.equal(loadConfig(testEnv({ APP_ENV: appEnv, ...https, BACKUP_DIR: '/var/civic/backups' })).backupDir, '/var/civic/backups');
+    });
+  }
+
+  it('același director cu STORAGE_DIR, sau unul în interiorul celuilalt → refuz, în orice mediu; mesajul nu repetă calea', () => {
+    for (const [storage, backup] of [
+      ['/var/civic/storage', '/var/civic/storage'],
+      ['/var/civic/storage', '/var/civic/storage/backups'],
+      ['/var/civic/backups/storage', '/var/civic/backups'],
+      ['/var/civic/storage/', '/var/civic/storage/../storage'],
+    ] as const) {
+      const p = problems(testEnv({ STORAGE_DIR: storage, BACKUP_DIR: backup }));
+      assert.equal(p.length, 1);
+      assert.match(p[0]!, /^BACKUP_DIR: nu poate fi același director cu STORAGE_DIR/);
+      assert.ok(!p[0]!.includes('/var/civic'));
+    }
+    // directoare vecine cu prefix comun: permise
+    assert.ok(loadConfig(testEnv({ STORAGE_DIR: '/var/civic/storage', BACKUP_DIR: '/var/civic/storage-backups' })).backupDir);
+  });
+});
