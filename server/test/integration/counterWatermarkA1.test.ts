@@ -90,7 +90,7 @@ describe('A1: emiterea cu marcajul contorului absent → oprită', () => {
     assert.equal((await flow.submitOk(c)).number, first.number + 1);
   });
 
-  it('tot BACKUP_DIR golit în timpul funcționării (lipsesc amândouă): depunerea → 500; emiterea nu creează un set nou', async () => {
+  it('tot BACKUP_DIR golit în timpul funcționării (lipsesc amândouă): depunerea → 500; nici emiterea, nici repornirea nu creează un set nou (decizia B)', async () => {
     const c = await flow.citizen('a1-golit@exemplu.test');
     await flow.submitOk(c);
     const counter0 = await flow.counter();
@@ -100,9 +100,13 @@ describe('A1: emiterea cu marcajul contorului absent → oprită', () => {
     assert.equal(res.statusCode, 500, res.body);
     assert.equal(await flow.counter(), counter0);
     assert.deepEqual(readdirSync(backupDir), [], 'nimic creat de emitere');
-    // limita documentată: o nouă inițializare (pornire) creează un set nou, de la contorul din bază
+    // decizia B (12.10.2026): nici repornirea nu mai creează un set nou din contorul bazei
+    await assert.rejects(initBackupMarkers(h.pool, backupDir), /Marcajele lipsesc complet din BACKUP_DIR, dar baza are deja numere TM emise/);
+    assert.deepEqual(readdirSync(backupDir), [], 'nimic creat de pornire');
+    assert.equal(await flow.counter(), counter0);
+    // numai explicit, cu ultimul număr comunicat
+    assert.equal((await rebuildReportCounterWatermark(h.pool, backupDir, counter0)).watermark, counter0);
     await initBackupMarkers(h.pool, backupDir);
-    assert.equal(watermarkOnDisk(backupDir), counter0);
     assert.equal((await flow.submitOk(c)).number, counter0 + 1);
   });
 });
@@ -146,7 +150,7 @@ describe('A1: `deletions/` fără marcajul contorului → refuz la pornire, back
 });
 
 describe('A1: prima inițializare rămâne automată, iar ordinea ei nu poate produce o stare „pierdută”', () => {
-  it('prima inițializare eșuată (baza inaccesibilă) nu lasă `deletions/` în urmă; următoarea reușește', async () => {
+  it('prima inițializare eșuată (baza inaccesibilă) nu lasă `deletions/` în urmă; peste o bază cu numere, crearea se face explicit', async () => {
     const fresh = join(root, 'backups-prima');
     const url = new URL(testDatabaseUrl());
     url.pathname = '/civic_test_nu_exista_a1';
@@ -158,12 +162,33 @@ describe('A1: prima inițializare rămâne automată, iar ordinea ei nu poate pr
     }
     assert.equal(existsSync(join(fresh, 'deletions')), false, '`deletions/` apare numai după marcajul contorului');
     const counter = await flow.counter();
+    await assert.rejects(initBackupMarkers(h.pool, fresh), /Marcajele lipsesc complet/);
+    assert.equal(existsSync(join(fresh, 'deletions')), false);
+    await rebuildReportCounterWatermark(h.pool, fresh, null);
     assert.deepEqual(await initBackupMarkers(h.pool, fresh), { counter, watermark: counter, counterRaisedFrom: null });
     assert.deepEqual(readdirSync(fresh).sort(), ['deletions', WATERMARK]);
   });
 
-  it('`seed:demo` (comanda) pe o instalare nouă, înainte de prima pornire: inițializează complet și emite', async () => {
+  it('decizia B: contorul 0, dar există sesizări → tot refuz (baza nu este nouă)', async () => {
+    const fresh = join(root, 'backups-contor-zero');
+    const counter = await flow.counter();
+    await h.pool.query('UPDATE report_counter SET `last_value` = 0 WHERE id = 1');
+    try {
+      await assert.rejects(initBackupMarkers(h.pool, fresh), /Marcajele lipsesc complet din BACKUP_DIR, dar baza are deja numere TM emise \(contorul 0\)/);
+      assert.equal(watermarkOnDisk(fresh), null);
+    } finally {
+      await h.pool.query('UPDATE report_counter SET `last_value` = ? WHERE id = 1', [counter]);
+    }
+  });
+
+  it('`seed:demo` (comanda) cu marcajele absente peste o bază cu numere: refuz (decizia B), nimic inserat; după crearea explicită, emite', async () => {
     const fresh = join(root, 'backups-seed-nou');
+    const demo0 = (await flow.q<{ n: number }>('SELECT COUNT(*) AS n FROM reports WHERE is_demo = TRUE'))[0]!.n;
+    const refused = run(['seed:demo'], { BACKUP_DIR: fresh });
+    assert.equal(refused.status, 1, refused.stderr);
+    assert.match(refused.stderr, /Marcajele lipsesc complet din BACKUP_DIR/);
+    assert.equal((await flow.q<{ n: number }>('SELECT COUNT(*) AS n FROM reports WHERE is_demo = TRUE'))[0]!.n, demo0);
+    assert.equal(run(['markers:rebuild-counter', '--from-db'], { BACKUP_DIR: fresh }).status, 0);
     const res = run(['seed:demo'], { BACKUP_DIR: fresh });
     assert.equal(res.status, 0, res.stderr);
     assert.equal(watermarkOnDisk(fresh), await flow.counter());

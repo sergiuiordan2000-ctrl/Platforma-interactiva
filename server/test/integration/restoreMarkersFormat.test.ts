@@ -233,6 +233,19 @@ describe('G1: --allow-missing-markers cere --at-least N și reface marcajele', (
   });
 });
 
+describe('decizia B (12.10.2026): pornirea cu marcajele absente', () => {
+  it('bază fără sesizări, dar cu contorul peste 0 → refuz; contorul 0 și nicio sesizare → inițializare automată', async () => {
+    await emptyTarget();
+    const dir = join(root, `pornire-b-${++seq}`);
+    await h.pool.query('INSERT INTO report_counter (id, `last_value`) VALUES (1, 5)');
+    await assert.rejects(initBackupMarkers(h.pool, dir), /baza are deja numere TM emise \(contorul 5\)/);
+    assert.equal(watermarkOnDisk(dir), null);
+    await h.pool.query('UPDATE report_counter SET `last_value` = 0 WHERE id = 1');
+    assert.deepEqual(await initBackupMarkers(h.pool, dir), { counter: 0, watermark: 0, counterRaisedFrom: null });
+    assert.equal(existsSync(join(dir, 'deletions')), true);
+  });
+});
+
 describe('G3: formatul copiilor', () => {
   it('copiile noi au formatul „civic-backup/2”', () => {
     const m = JSON.parse(readFileSync(join(source, 'manifest.json'), 'utf8'));

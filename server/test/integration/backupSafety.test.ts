@@ -29,7 +29,7 @@ import {
   recordReportDeletions,
 } from '../../src/db/markers.ts';
 import { migrate } from '../../src/db/migrations.ts';
-import { initBackupMarkers, syncReportCounterWatermark } from '../../src/db/reportCounter.ts';
+import { initBackupMarkers, rebuildReportCounterWatermark, syncReportCounterWatermark } from '../../src/db/reportCounter.ts';
 import { seedConfig, seedDemo } from '../../src/db/seeds.ts';
 import { APP_ROOT, MIGRATIONS_DIR, SEEDS_DIR } from '../../src/paths.ts';
 import { loadUatBoundary } from '../../src/uat.ts';
@@ -387,10 +387,14 @@ describe('datele demo, pornirea și backup-ul țin marcajul contorului la zi', (
     assert.equal(ok.number, v0 + 15);
   });
 
-  it('contor existent și marcaj absent sau rămas în urmă → inițializarea aduce marcajul la contor; contorul nu coboară', async () => {
+  it('contor existent și marcaje absente → refuz (decizia B, 12.10.2026); după crearea explicită, marcajul rămas în urmă este ridicat; contorul nu coboară', async () => {
     const fresh = join(root, 'backups-fara-marcaj');
     const counter = await flow.counter();
     assert.ok(counter > 0);
+    await assert.rejects(initBackupMarkers(h.pool, fresh), /Marcajele lipsesc complet din BACKUP_DIR, dar baza are deja numere TM emise/);
+    assert.equal(watermarkOnDisk(fresh), null, 'nimic inițializat automat');
+    assert.equal(existsSync(join(fresh, 'deletions')), false);
+    assert.equal((await rebuildReportCounterWatermark(h.pool, fresh, null)).watermark, counter); // `markers:rebuild-counter --from-db`
     assert.deepEqual(await initBackupMarkers(h.pool, fresh), { counter, watermark: counter, counterRaisedFrom: null });
     assert.equal(watermarkOnDisk(fresh), counter);
     assert.equal(existsSync(join(fresh, 'deletions')), true);
@@ -401,9 +405,13 @@ describe('datele demo, pornirea și backup-ul țin marcajul contorului la zi', (
     assert.equal(await flow.counter(), counter);
   });
 
-  it('backup într-un BACKUP_DIR fără marcaje → după backup marcajul = contorul, iar copia nu are contorul peste marcaj', async () => {
+  it('backup într-un BACKUP_DIR fără marcaje → refuz (decizia B); după crearea explicită, marcajul = contorul, iar copia nu are contorul peste marcaj', async () => {
     const fresh = join(root, 'backups-noi');
     const counter = await flow.counter();
+    await assert.rejects(createBackup(backupOpts({ backupDir: fresh })), /Marcajele lipsesc complet din BACKUP_DIR/);
+    assert.equal(watermarkOnDisk(fresh), null);
+    assert.deepEqual(readdirSync(fresh).filter((n) => n.startsWith('civic-backup-')), [], 'nicio copie');
+    await rebuildReportCounterWatermark(h.pool, fresh, null);
     const res = await createBackup(backupOpts({ backupDir: fresh }));
     assert.equal(watermarkOnDisk(fresh), counter);
     assert.equal(existsSync(join(fresh, 'deletions')), true);
@@ -412,8 +420,15 @@ describe('datele demo, pornirea și backup-ul țin marcajul contorului la zi', (
     assert.ok(inspection.markers.watermark! >= inspection.source.reportCounter!);
   });
 
-  it('pornirea reală a aplicației (proces) cu un BACKUP_DIR nou → marcajul apare și este egal cu contorul', async () => {
+  it('pornirea reală a aplicației (proces) cu un BACKUP_DIR nou peste o bază cu numere → refuz (decizia B); după `markers:rebuild-counter --from-db`, pornește și marcajul = contorul', async () => {
     const fresh = join(root, 'backups-la-pornire');
+    const refused = run([], { BACKUP_DIR: fresh, STORAGE_DIR: storage, PORT: '39877' });
+    assert.equal(refused.status, 1, refused.stderr);
+    assert.match(refused.stderr, /Aplicația nu pornește: marcajele din BACKUP_DIR nu pot fi folosite/);
+    assert.match(refused.stderr, /markers:rebuild-counter/);
+    assert.equal(watermarkOnDisk(fresh), null);
+    const rebuilt = run(['markers:rebuild-counter', '--from-db'], { BACKUP_DIR: fresh, STORAGE_DIR: storage });
+    assert.equal(rebuilt.status, 0, rebuilt.stderr);
     const port = await freePort();
     const child = spawn(process.execPath, ['--import', 'tsx', join(APP_ROOT, 'server', 'src', 'main.ts')], {
       env: { ...testEnv({ DATABASE_URL: testDatabaseUrl(), BACKUP_DIR: fresh, STORAGE_DIR: storage, PORT: String(port) }), PATH: process.env.PATH ?? '' },
@@ -468,7 +483,8 @@ describe('curățarea marcajelor de ștergere', () => {
 
   it('backup-ul nu elimină o intrare cât timp o copie mai poate readuce sesizarea (depunere + 45 de zile + 1 zi)', async () => {
     const dir = join(root, 'backups-curatare');
-    await initBackupMarkers(h.pool, dir); // A1: ca la pornire (marcajul contorului, apoi `deletions/`)
+    // crearea explicită (decizia B): baza are deja numere emise
+    await rebuildReportCounterWatermark(h.pool, dir, null);
     recordReportDeletions(dir, [{ id: id(1), createdAt: ago(10) }], ago(9)); // ștearsă acum 9 zile: regula veche (7 zile) ar fi eliminat-o
     recordReportDeletions(dir, [{ id: id(2), createdAt: ago(44) }], ago(30));
     recordReportDeletions(dir, [{ id: id(3), createdAt: ago(45.5) }], ago(1)); // în ziua de rezervă

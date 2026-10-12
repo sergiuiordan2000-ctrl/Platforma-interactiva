@@ -25,13 +25,14 @@
 // cu `markers:rebuild-counter` (`rebuildReportCounterWatermark`). La emitere, marcajul lipsă oprește
 // emiterea în orice situație.
 //
-// LIMITA rămasă: dacă se pierde TOT BACKUP_DIR (deci și `deletions/`) și baza este readusă la o stare
-// veche, aplicația nu are nicio informație despre numerele emise după acea stare: următoarea pornire
-// inițializează un set nou de marcaje de la contorul din bază, iar refolosirea nu poate fi exclusă.
+// Setul de marcaje lipsă complet (decizia din 12.10.2026, varianta B): inițializarea automată este permisă
+// numai pe o bază nouă (contorul 0, nicio sesizare). Altfel pornirea, backup-ul și `seed:demo` refuză, iar
+// marcajele se creează numai cu `markers:rebuild-counter` (la prima instalare peste o bază cu date, la fel).
 
 import type mysql from 'mysql2/promise';
 import {
   MarkerError,
+  REBUILD_COUNTER_COMMAND,
   assertCounterWatermarkCoherent,
   initMarkerDirs,
   prepareBackupDir,
@@ -98,6 +99,19 @@ export async function syncReportCounterWatermark(pool: mysql.Pool, backupDir: st
       return { counter: null, watermark: reserved ?? 0, counterRaisedFrom: null };
     }
     const found = Number(row.v);
+    if (reserved === null) {
+      // Decizia proprietarului din 12.10.2026 (varianta B): setul de marcaje lipsește complet, dar baza are
+      // deja numere emise → nu se inițializează automat din contorul bazei (care poate fi al unei baze
+      // readuse la o stare mai veche). Automat numai pe o bază nouă: contorul 0 și nicio sesizare.
+      const [anyReport] = await conn.query('SELECT 1 FROM reports LIMIT 1');
+      if (found > 0 || (anyReport as unknown[]).length > 0) {
+        throw new MarkerError(
+          `Marcajele lipsesc complet din BACKUP_DIR, dar baza are deja numere TM emise (contorul ${found}). ` +
+            'Nu se inițializează automat: contorul bazei poate fi al unei stări mai vechi. ' +
+            `Inițializarea se face numai explicit, cu comanda „${REBUILD_COUNTER_COMMAND}” (--at-least <cel mai mare număr TM comunicat> sau --from-db).`,
+        );
+      }
+    }
     const top = Math.max(found, reserved ?? 0);
     let counterRaisedFrom: number | null = null;
     if (top > found) {

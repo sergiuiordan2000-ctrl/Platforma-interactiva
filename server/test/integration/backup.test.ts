@@ -20,6 +20,7 @@ import {
 } from '../../src/db/backup.ts';
 import type { DbHandle } from '../../src/db/client.ts';
 import { migrate } from '../../src/db/migrations.ts';
+import { rebuildReportCounterWatermark } from '../../src/db/reportCounter.ts';
 import { seedConfig, seedDemo } from '../../src/db/seeds.ts';
 import { APP_ROOT, MIGRATIONS_DIR, SEEDS_DIR } from '../../src/paths.ts';
 import { openTestDb, resetTestDb, testDatabaseUrl } from '../helpers/db.ts';
@@ -117,6 +118,9 @@ before(async () => {
   }
   // o sesiune (efemeră): nu intră în backup
   await h.pool.query("INSERT INTO sessions (id, principal_type, user_id, created_at, last_seen_at, idle_expires_at, absolute_expires_at, mfa_state) VALUES (REPEAT('s', 64), 'admin', ?, ?, ?, ?, ?, 'verified')", [id(2), NOW, NOW, NOW, NOW]);
+  // decizia din 12.10.2026 (varianta B): peste o bază care are deja numere TM emise, marcajele nu se mai
+  // creează automat la primul backup; operatorul le creează explicit (`markers:rebuild-counter --from-db`)
+  await rebuildReportCounterWatermark(h.pool, backupDir, null);
   checksumsBefore = await checksums();
 });
 
