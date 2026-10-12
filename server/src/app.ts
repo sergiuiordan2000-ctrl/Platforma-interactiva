@@ -22,6 +22,7 @@ import { registerReportRoutes } from './routes/reports.ts';
 import { registerAdminReportRoutes } from './routes/adminReports.ts';
 import { registerSurveyRoutes } from './routes/surveys.ts';
 import { registerAdminSurveyRoutes } from './routes/adminSurveys.ts';
+import { registerDiagnosticRoutes } from './routes/diagnostics.ts';
 import { apiError } from './errors.ts';
 import { APP_VERSION } from './version.ts';
 
@@ -139,6 +140,7 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
         registerSurveyRoutes(api, options.ctx);
         registerAdminSurveyRoutes(api, options.ctx);
       }
+      registerDiagnosticRoutes(api, config); // Faza 6, Pasul 2: numai cu DIAG_CLIENT_IP=on
       api.get('/health', async (_request, reply) => {
         let status: HealthState;
         try {

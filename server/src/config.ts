@@ -136,6 +136,8 @@ const EnvSchema = z
     GOOGLE_OAUTH_CLIENT_SECRET: optionalText,
     // G-T10: furnizorul de identitate fals al testelor E2E; acceptat NUMAI cu APP_ENV=development (vezi mai jos)
     DEV_OIDC_PROVIDER_URL: optionalText,
+    // Faza 6, Pasul 2 (TRUST_PROXY): pagina temporară de diagnostic a adresei vizitatorului; numai „on”
+    DIAG_CLIENT_IP: z.enum(['on'], { message: 'singura valoare acceptată este „on” (sau ștergeți setarea)' }).optional(),
     RETENTION_DAYS: intFromEnv(APPROVED_RETENTION_DAYS, 1, APPROVED_RETENTION_DAYS),
     ADMIN_RETENTION_MONTHS: intFromEnv(
       APPROVED_ADMIN_RETENTION_MONTHS,
@@ -186,6 +188,14 @@ const EnvSchema = z
     }
     // G-T10: cine controlează furnizorul fals poate declara orice adresă de e-mail, deci setarea nu are voie să existe
     // pe staging sau în producție (aplicația nu pornește); și în dezvoltare, numai un furnizor de pe același calculator
+    // pagina de diagnostic arată adrese și anteturi: niciodată în producție (aplicația nu pornește)
+    if (env.DIAG_CLIENT_IP !== undefined && env.APP_ENV === 'production') {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['DIAG_CLIENT_IP'],
+        message: 'pagina de diagnostic nu este permisă în producție; ștergeți setarea',
+      });
+    }
     if (env.DEV_OIDC_PROVIDER_URL !== undefined) {
       if (env.APP_ENV !== 'development') {
         ctx.addIssue({
@@ -248,6 +258,8 @@ export type Config = {
   googleOAuth?: { clientId: string; clientSecret: string };
   /** G-T10: adresa furnizorului de identitate fals (testele E2E); există numai cu `appEnv === 'development'`. */
   devOidcProviderUrl?: string;
+  /** Faza 6, Pasul 2: pagina temporară `GET /api/v1/diag/client-ip`; niciodată în producție */
+  diagClientIp: boolean;
   retentionDays: number;
   adminRetentionMonths: number;
   logLevel: string;
@@ -345,6 +357,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
         ? { clientId: e.GOOGLE_OAUTH_CLIENT_ID, clientSecret: e.GOOGLE_OAUTH_CLIENT_SECRET }
         : undefined,
     devOidcProviderUrl: e.DEV_OIDC_PROVIDER_URL?.replace(/\/+$/, ''),
+    diagClientIp: e.DIAG_CLIENT_IP === 'on',
     retentionDays: e.RETENTION_DAYS,
     adminRetentionMonths: e.ADMIN_RETENTION_MONTHS,
     logLevel: e.LOG_LEVEL,
