@@ -22,6 +22,30 @@
 
 Despre numerotare: Planul v1.1 nu numerotează pașii Fazei 6. Îi numesc „Pasul 1 … Pasul 5 al Fazei 6”. Nu folosesc „6.1 … 6.5”, pentru că aceste numere aparțin deja Etapei 6 (istorice, închise).
 
+## 0.1 Amendamente și erate (11–12.10.2026)
+
+> Au prioritate față de textul de mai jos, acolo unde se contrazic. Textul original rămâne ca istoric.
+
+**Amendamentul D-2 (decizia proprietarului din 12.10.2026).** Sursa B pentru `TRUST_PROXY` este **pagina de diagnostic din aplicație** (`GET /api/v1/diag/client-ip`, commit `f982896`), nu o aplicație separată, cum cerea D-2. Motivul: măsoară exact drumul real al cererilor către Urbis Activ. Condițiile care o înlocuiesc pe prima („separată de Urbis Activ”):
+- pagina există numai cu `DIAG_CLIENT_IP=on` în `civic.env` (altfel 404); în producție configurarea refuză setarea (aplicația nu pornește);
+- pe staging stă în spatele lacătului, cu `noindex`; nu scrie nimic, nu atinge baza de date;
+- întoarce valori numai pentru 12 anteturi de adresă; pentru celelalte, numai numele (niciodată `Cookie`, `Authorization`, variabile de mediu);
+- pornirea și oprirea pe staging sunt intervenții pe găzduire, fiecare cu aprobare separată;
+- **după închiderea Pasului 2, codul paginii se scoate din aplicație, printr-un commit separat**, înaintea versiunii de lansare.
+Celelalte condiții ale D-2 rămân. Aprobarea paginii nu autorizează aplicarea configurației finale `TRUST_PROXY`.
+
+**Erată la Pasul 2, punctul 2 (constatarea R11).** Afirmația „aplicația acceptă un număr de niveluri” este greșită în efect: în Fastify 5.12.5, o valoare numerică pentru `TRUST_PROXY` este primită de configurare, dar **nu are niciun efect**. Formele cu efect sunt `true` și o listă de adrese. Comentariile din `server/src/config.ts` și `.env.example` se corectează odată cu Pasul 2.
+
+**Sursa A (furnizorul).** Tichetul din 09.10.2026 nu avea răspuns la 12.10.2026; a fost marcat „rezolvat” fără răspuns. La 12.10.2026 s-au trimis din nou întrebările, plus două noi (păstrarea jurnalului de accesări; copiile proprii ale contului), iar furnizorul a fost contactat telefonic.
+
+**M4 (rândul din tabelul Pasului 3B), după remedierea backup-ului (`961fc76`, `6da2f68`):**
+- copia folosită este făcută **după** instalarea remedierii pe staging (formatul `civic-backup/2`); copiile anterioare nu se restaurează;
+- întâi `restore:db <copie> --check`, apoi `--confirm`; țintele: o bază nouă, separată, cu utilizator propriu, și un director de fișiere **nou, gol**; copia stă direct în `BACKUP_DIR`;
+- scenariul: două sesizări de probă A și B (cu fotografie, fără transmitere către Primărie) → backup la cerere → A ștearsă din aplicație, C depusă → restaurare în baza nouă;
+- criterii: comanda se încheie fără erori; A lipsește, B există cu fotografia, C lipsește; contorul din baza nouă este numărul lui C; interogările de citire pe baza activă, lista bazelor de date și lista fișierelor active sunt identice înainte și după;
+- oprire la orice eroare sau la orice cale activă apărută în `--check`; la final se șterg baza de probă, utilizatorul ei, directorul, setările și sarcina cron de probă.
+Procedura completă: `docs/faza5/FAZA_5_1_BACKUP_RESTAURARE.md`, §6.
+
 ## 1. Obiectiv
 
 Planul v1.1 cere pentru Faza 6: verificarea fluxului critic de la un capăt la altul, reauditul de securitate și un checkpoint formal înainte de Etapa 7.

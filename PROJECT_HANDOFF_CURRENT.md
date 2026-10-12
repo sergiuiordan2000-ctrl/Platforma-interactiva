@@ -1,12 +1,40 @@
 # PROJECT_HANDOFF_CURRENT.md — Turnu Măgurele Civic
 
 **Stare documentată:** finalul Etapei 6.5 (26 septembrie 2026), actualizată după **Etapa 6.6** (comisă și publicată: `83b77ad`), după **auditul general** și pentru **remedierea P0 post-audit** (vezi B, G.5 și I), după checkpoint-ul Fazei 0 (`f6809f3`), după Fazele 1–2, după deciziile Fazei 3 (`PROJECT_RULES_AND_DECISIONS.md` §11) și după **Faza 4** (designul backend-ului, checkpoint aprobat de proprietar la 28.09.2026; `PROJECT_RULES_AND_DECISIONS.md` §12, `docs/faza4/`)
-**Actualizare 10.10.2026:** starea curentă (Faza 5 închisă la 10.10.2026; aplicația cu server) este în **Secțiunea 0**; ea are prioritate față de secțiunile de stare mai vechi.
+**Actualizare 12.10.2026:** starea Fazei 6 este în **Secțiunea 0A**, care are prioritate față de Secțiunea 0. **Actualizare 10.10.2026:** starea curentă (Faza 5 închisă la 10.10.2026; aplicația cu server) este în **Secțiunea 0**; ea are prioritate față de secțiunile de stare mai vechi.
 **Scop:** documentul principal de preluare pentru un chat nou. Înlocuiește, pentru starea curentă, secțiunile de stare din `PROJECT_HANDOFF.md`. Acela a fost scris la finalul Etapei 5 și este acum depășit la Git, securitate și pasul următor.
 
 > **Regula de pornire pentru noul chat:** citește acest document (întâi **Secțiunea 0**), apoi `PROJECT_RULES_AND_DECISIONS.md`, `docs/faza4/FAZA_4_REGISTRU_DECIZII.md`, `ETAPA_6_STATUS_FINAL.md` și documentele din `docs/faza5/` indicate în 0.3. Apoi **verifică starea Git real** (Secțiunea 0.1; B.4 este istorică și indică un branch vechi). Nu presupune nimic din memorie. **Codul și istoricul Git sunt sursa de adevăr.** Dacă documentul și codul se contrazic, codul are dreptate, iar contradicția se raportează.
 
 ---
+
+## 0A. FAZA 6 ÎN CURS (actualizat la 12.10.2026)
+
+> **Are prioritate față de Secțiunea 0.** Secțiunea 0 rămâne valabilă acolo unde 0A nu spune altceva.
+
+**Git.** Branch `faza-5-backend`, ultimul commit de cod `f982896`; `main` = `d9bc2c9`, neatins. CI verde pe toate cele 6 joburi (inclusiv MariaDB 11.4) la `961fc76`, `6da2f68` și `f982896`.
+
+**Faza 6, pe pașii planului (`docs/faza6/FAZA_6_PLAN.md`, cu amendamentele din §0.1):**
+
+| Pas | Stare |
+|---|---|
+| 1 — planul | închis |
+| 2 — `TRUST_PROXY` (T1–T4) | neînceput; sursa B = pagina de diagnostic din aplicație (`f982896`, amendamentul D-2 din 12.10.2026); furnizorul nu a răspuns la tichet |
+| 3A — testul automat cap-coadă | închis |
+| 3B — probele manuale M1–M3 | executate la 10–11.10.2026; raportul nu are încă verdict și nu este în depozit |
+| 3B — M4 (restaurarea) | după instalarea remedierii pe staging, cu o copie făcută după instalare |
+| 4 — reauditul de securitate | neînceput |
+| 5 — raportul Fazei 6 | neînceput |
+
+**Ce s-a schimbat în cod la 11–12.10.2026:**
+- `961fc76`: remedierea backup-ului și a numerotării TM (R1–R5), marcajul contorului pierdut (A1), linia din ieșirea backup-ului (A8), restaurarea cu marcaje lipsă sau vechi și formatul `civic-backup/2` (G1–G3);
+- `6da2f68`: decizia B (marcajele absente peste o bază cu numere nu se mai creează automat);
+- `f982896`: pagina temporară de diagnostic a adresei vizitatorului (`DIAG_CLIENT_IP=on`; interzisă în producție; se scoate din cod după Pasul 2).
+Procedura de backup și restaurare: `docs/faza5/FAZA_5_1_BACKUP_RESTAURARE.md`, §6.
+
+**Staging (`test.urbisactiv.ro`):** rulează încă `08f4dc3`, fără marcaje. Următoarea instalare aduce `f982896`. Ea cere, înainte de prima pornire, `markers:rebuild-counter --at-least <N>` (contorul de pe staging era 7 la 11.10.2026), apoi pornirea temporară a paginii de diagnostic pentru Pasul 2. Copiile `civic-backup/1` de pe staging nu se mai pot restaura după instalare.
+
+**Deschise:** verdictul asupra raportului M1–M3; răspunsul furnizorului (IP, `https`, jurnalul aplicației, păstrarea jurnalului de accesări, copiile proprii ale contului); constatările R7–R19 (curățări, `TRUST_PROXY`, jurnalul aplicației, sesiunile, mesajele de eroare interne R17, conturile șterse care reapar R18, e-mailurile retrimise după restaurare R19); confirmarea la acțiunile definitive din interfață (O3); matricea CI (joburile MySQL și Node 20 față de producția MariaDB, nedecisă).
 
 ## 0. STAREA CURENTĂ — FAZA 5 ÎNCHISĂ, URMEAZĂ FAZA 6 (actualizat la 10.10.2026)
 
