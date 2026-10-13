@@ -25,6 +25,21 @@ export async function hitRateLimit(
   return Number((rows as Array<{ count: number }>)[0]?.count ?? 0);
 }
 
+/**
+ * Faza 6, varianta B (D-B2, RA-9): o limită pe adresa IP a vizitatorului. Când limitele pe IP sunt oprite
+ * (`IP_RATE_LIMITS`, implicit pe staging și în producție), nu se numără nimic și limita nu se atinge niciodată:
+ * fără adresa reală, toți vizitatorii ar împărți aceeași găleată. Întoarce `true` dacă limita a fost depășită.
+ */
+export async function ipLimitExceeded(
+  ctx: AppContext,
+  bucketKey: string,
+  windowMinutes: number,
+  max: number,
+): Promise<boolean> {
+  if (!ctx.config.ipRateLimits) return false;
+  return (await hitRateLimit(ctx, bucketKey, windowMinutes)) > max;
+}
+
 /** Numărul fără incrementare (pentru plafoane verificate înainte de o acțiune). */
 export async function peekRateLimit(ctx: AppContext, bucketKey: string, windowMinutes: number): Promise<number> {
   const windowMs = windowMinutes * 60_000;

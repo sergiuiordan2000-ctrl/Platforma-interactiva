@@ -84,6 +84,8 @@ export function reportFlow(app: () => FastifyInstance, pool: () => mysql.Pool, c
         transmitToCityHall: false,
         hp: '',
         formStartedAt: token,
+        // D-B3 (13.10.2026): ALTCHA pornit implicit la sesizări; rezolvat ca în interfață (404 = oprit)
+        ...((pow) => (pow ? { pow } : {}))(await c.pow(`${V1}/citizen/reports/pow-challenge`)),
       },
       opts.photos ?? [],
     );

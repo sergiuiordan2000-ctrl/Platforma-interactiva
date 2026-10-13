@@ -9,7 +9,7 @@ import { SURVEY_ADVISORY_TEXT } from '@tmc/shared';
 import { bootstrapAdmin } from '../../src/accounts.ts';
 import { requestLogSerializer } from '../../src/app.ts';
 import { totpCodeAt } from '../../src/auth/totp.ts';
-import type { AppContext } from '../../src/context.ts';
+import { LIMITS, type AppContext } from '../../src/context.ts';
 import type { DbHandle } from '../../src/db/client.ts';
 import { migrate } from '../../src/db/migrations.ts';
 import { seedConfig } from '../../src/db/seeds.ts';
@@ -76,11 +76,16 @@ async function voter(ip = nextIp()): Promise<Client> {
   return c;
 }
 
-async function vote(c: Client, surveyId: string, answers: unknown[], opts: { wait?: boolean; hp?: string; pow?: string; token?: string } = {}) {
+/** D-B3 (13.10.2026): ALTCHA obligatoriu la vot; soluția se cere cu un client separat (fără cookie-ul votantului). */
+const powFor = (surveyId: string) => new Client(app).pow(`${V1}/public/surveys/${surveyId}/pow-challenge`);
+
+/** `pow`: fără el se rezolvă automat, ca în interfață; `null` = votul se trimite fără soluție. */
+async function vote(c: Client, surveyId: string, answers: unknown[], opts: { wait?: boolean; hp?: string; pow?: string | null; token?: string } = {}) {
   const d = await c.get(`${V1}/public/surveys/${surveyId}`);
   const token = opts.token ?? d.json().formStartedAt;
   if (opts.wait !== false) clock.advanceMinutes(0.2); // 12 s > 6 s (P-7)
-  return c.post(`${V1}/public/surveys/${surveyId}/submissions`, { answers, hp: opts.hp ?? '', formStartedAt: token, ...(opts.pow ? { pow: opts.pow } : {}) });
+  const pow = opts.pow === null ? undefined : (opts.pow ?? (await powFor(surveyId)));
+  return c.post(`${V1}/public/surveys/${surveyId}/submissions`, { answers, hp: opts.hp ?? '', formStartedAt: token, ...(pow ? { pow } : {}) });
 }
 
 const basicAnswers = (s: { questions: Array<{ id: string; options: Array<{ id: string }> }> }, text = 'Mai multe bănci, vă rog.') => [
@@ -154,8 +159,9 @@ describe('ciclul de viață și API-ul public (B2 §3, E-3, P-1)', () => {
     const c = await voter();
     const token = (await c.get(`${V1}/public/surveys/${s.id}`)).json().formStartedAt;
     clock.advanceMinutes(0.2);
+    const pows = await Promise.all(Array.from({ length: 6 }, () => powFor(s.id)));
     const all = await Promise.all(
-      Array.from({ length: 6 }, () => c.post(`${V1}/public/surveys/${s.id}/submissions`, { answers: basicAnswers(s), hp: '', formStartedAt: token })),
+      pows.map((pow) => c.post(`${V1}/public/surveys/${s.id}/submissions`, { answers: basicAnswers(s), hp: '', formStartedAt: token, pow })),
     );
     assert.equal(all.filter((r) => r.statusCode === 201).length, 1);
     assert.equal(all.filter((r) => r.statusCode === 409).length, 5);
@@ -346,7 +352,7 @@ describe('validarea votului și anti-abuzul (B7, P-7, T-2)', () => {
     const d = (await noCookie.get(`${V1}/public/surveys/${s.id}`)).json();
     noCookie.cookie = undefined;
     clock.advanceMinutes(0.2);
-    const r = await noCookie.post(`${V1}/public/surveys/${s.id}/submissions`, { answers: basicAnswers(s), hp: '', formStartedAt: d.formStartedAt });
+    const r = await noCookie.post(`${V1}/public/surveys/${s.id}/submissions`, { answers: basicAnswers(s), hp: '', formStartedAt: d.formStartedAt, pow: await powFor(s.id) });
     assert.equal(r.statusCode, 400);
     assert.equal(r.json().error.code, 'PARTICIPATION_REQUIRED');
     assert.equal((await vote(c, s.id, basicAnswers(s))).statusCode, 201, 'după erori, votul valid trece');
@@ -381,25 +387,36 @@ describe('validarea votului și anti-abuzul (B7, P-7, T-2)', () => {
     assert.equal((await vote(await voter(), s.id, basicAnswers(s))).statusCode, 201);
   });
 
-  it('ALTCHA per sondaj: pornit → fără soluție 400, cu soluție 201, reluată 400; oprit → provocarea 404', async () => {
-    // partea cu soluție rulează după ceasul real (mai jos): sondajul trebuie să fie deschis și la ora reală,
-    // altfel testul expiră singur (a picat din 08.10.2026, când „ceasul de test + 7 zile” a trecut)
-    const s = await createActive({ endAt: new Date(Math.max(Date.now(), clock.now().getTime()) + 7 * DAY * 60_000).toISOString() });
-    assert.equal((await new Client(app).get(`${V1}/public/surveys/${s.id}/pow-challenge`)).statusCode, 404);
-    assert.equal((await sa.send('PATCH', `${V1}/admin/surveys/${s.id}/pow`, { enabled: true })).statusCode, 200);
-    // altcha-lib verifică expirarea după ceasul real: partea cu soluție rulează cu ceasul la ora reală
-    const saved = clock.current;
-    clock.current = new Date();
+  it('D-B2: cu limitele pe IP oprite (ca pe staging și în producție), peste 10 voturi din aceeași rețea → toate 201', async () => {
+    const s = await createActive();
+    const { app: appOff } = await makeApp(h, clock, { IP_RATE_LIMITS: 'off' });
     try {
-      assert.equal((await vote(await voter(), s.id, basicAnswers(s))).statusCode, 400);
-      const challenge = (await new Client(app).get(`${V1}/public/surveys/${s.id}/pow-challenge`)).json();
-      const solution = await solveChallenge({ challenge, deriveKey: shaDeriveKey });
-      const pow = Buffer.from(JSON.stringify({ challenge, solution })).toString('base64');
-      assert.equal((await vote(await voter(), s.id, basicAnswers(s), { pow })).statusCode, 201);
-      assert.equal((await vote(await voter(), s.id, basicAnswers(s), { pow })).statusCode, 400, 'anti-reluare');
+      const ip = '10.99.0.8';
+      for (let i = 0; i < LIMITS.surveyVotesPerIpPerSurveyPerHour + 2; i++) {
+        const c = new Client(appOff, undefined, ip);
+        assert.equal((await c.get(`${V1}/public/surveys`)).statusCode, 200);
+        // aplicația a doua are alte chei: provocarea ALTCHA se cere de la ea
+        const pow = await new Client(appOff).pow(`${V1}/public/surveys/${s.id}/pow-challenge`);
+        assert.equal((await vote(c, s.id, basicAnswers(s), { pow })).statusCode, 201, `votul ${i + 1}`);
+      }
     } finally {
-      clock.current = saved;
+      await appOff.close();
     }
+  });
+
+  it('ALTCHA obligatoriu la vot (D-B3): provocarea există la orice sondaj; fără soluție 400, cu soluție 201, reluată 400; nu se poate opri (409)', async () => {
+    const s = await createActive();
+    assert.equal((await new Client(app).get(`${V1}/public/surveys/${s.id}/pow-challenge`)).statusCode, 200, 'fără nicio pornire');
+    assert.equal((await new Client(app).get(`${V1}/public/surveys/${s.id}`)).json().powEnabled, true);
+    const off = await sa.send('PATCH', `${V1}/admin/surveys/${s.id}/pow`, { enabled: false });
+    assert.equal(off.statusCode, 409);
+    assert.equal(off.json().error.code, 'POW_REQUIRED');
+    assert.equal((await vote(await voter(), s.id, basicAnswers(s), { pow: null })).statusCode, 400);
+    const challenge = (await new Client(app).get(`${V1}/public/surveys/${s.id}/pow-challenge`)).json();
+    const solution = await solveChallenge({ challenge, deriveKey: shaDeriveKey });
+    const pow = Buffer.from(JSON.stringify({ challenge, solution })).toString('base64');
+    assert.equal((await vote(await voter(), s.id, basicAnswers(s), { pow })).statusCode, 201);
+    assert.equal((await vote(await voter(), s.id, basicAnswers(s), { pow })).statusCode, 400, 'anti-reluare');
   });
 });
 

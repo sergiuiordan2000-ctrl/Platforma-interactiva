@@ -46,13 +46,16 @@ export const POW_ALGORITHM = 'SHA-256';
 export const POW_MAX_COUNTER = 100_000;
 export const POW_TTL_MS = 10 * 60_000;
 
+// Expirarea provocării se măsoară după ceasul real (`Date.now()`), nu după `ctx.now()`: `altcha-lib` verifică
+// expirarea după ceasul real, iar o provocare trebuie rezolvată în 10 minute reale. În producție cele două ceasuri
+// coincid; în teste, ceasul simulat al aplicației (zile înainte sau înapoi) nu mai face provocările nevalide.
 export async function createPowChallenge(ctx: AppContext): Promise<Challenge> {
   return createChallenge({
     algorithm: POW_ALGORITHM,
     cost: 1,
     counter: randomInt(0, POW_MAX_COUNTER),
     keyPrefixLength: 16,
-    expiresAt: new Date(ctx.now().getTime() + POW_TTL_MS),
+    expiresAt: new Date(Date.now() + POW_TTL_MS),
     hmacSignatureSecret: ctx.config.secrets.powHmac,
     deriveKey,
   });
@@ -81,7 +84,7 @@ export async function verifyPow(ctx: AppContext, pow: string | undefined): Promi
     return false;
   }
   const expiresAt = Number(challenge.parameters.expiresAt);
-  if (!Number.isFinite(expiresAt) || expiresAt * 1000 < ctx.now().getTime()) return false;
+  if (!Number.isFinite(expiresAt) || expiresAt * 1000 < Date.now()) return false;
   let result;
   try {
     result = await verifySolution({

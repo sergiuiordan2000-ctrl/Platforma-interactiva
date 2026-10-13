@@ -18,6 +18,9 @@
 | RA-6 | S8 | informativă | Fotografiile nu sunt re-codate: se scot metadatele EXIF/XMP/IPTC, dar rămân comentariile JPEG, profilul de culoare și eventuale date după sfârșitul imaginii | cod |
 | RA-7 | S9 | informativă | O vulnerabilitate „high” în `source-map-js`, numai în unealta de build (nu ajunge în aplicație); dependențe nefolosite în `package.json` | `npm audit` |
 | RA-8 | S10, S11 | informativă | Codul de autentificare al cetățeanului rămâne în clar în `email_outbox.body_text` | cod |
+| RA-9 | S6 | **blocantă pentru lansare** | Fără adresa reală a vizitatorului, fiecare limită pe IP devine o limită pentru tot orașul (de exemplu 5 sesizări / oră, 10 voturi / oră / sondaj) | `FAZA_6_ANTIABUZ_FARA_IP.md` §1 |
+
+**Remedieri (13.10.2026):** RA-1, RA-2 în `c69c146`. RA-5 (partea comună tuturor) și RA-9: varianta B, deciziile D-B1…D-B5 (`FAZA_6_ANTIABUZ_FARA_IP.md`), în commitul care urmează acestui document; neinstalate pe staging.
 
 Nicio constatare critică. Nicio vulnerabilitate care să permită acces fără autentificare la date sau acțiuni protejate.
 
@@ -173,6 +176,10 @@ Planul (S8) spune „rescrierea imaginii”; implementarea **elimină segmentele
 ### RA-8 — Codul de cetățean în clar în coada de e-mail (informativă)
 
 `email_outbox.body_text` păstrează textul cu codul (necesar pentru trimitere și pentru `dev:show-code` pe staging); în copii, corpul se păstrează numai în fereastra N3-8. Cine citește baza sau o copie recentă vede codurile încă valabile (≤ 15 minute). Propunere opțională: golirea `body_text` pentru `citizen_login_code` după trimitere, în modul `live`.
+
+### RA-9 — Limitele pe IP devin limite pentru tot orașul (blocantă pentru lansare)
+
+Detaliile, inventarul limitelor și deciziile: `docs/faza6/FAZA_6_ANTIABUZ_FARA_IP.md`. Remediere: limitele pe IP oprite pe staging și în producție (D-B2), ALTCHA (D-B3), limita de simultaneitate la parolele Admin (D-B4), limita pe cont la căutarea adresei (D-B5).
 
 ## 4. Constatările vechi (S12)
 

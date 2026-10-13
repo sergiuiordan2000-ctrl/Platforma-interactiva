@@ -16,10 +16,11 @@ import { LIMITS, type AppContext } from '../context.ts';
 import { apiError } from '../errors.ts';
 import { deriveKey, hmacHex, safeEqualHex, sixDigitCode } from '../auth/crypto.ts';
 import { anonymousProbe, loadCitizen, requestIpHash, requireAdmin, requireCitizen } from '../auth/guards.ts';
-import { hitRateLimit, peekRateLimit, recordRejected } from '../auth/rateLimit.ts';
+import { hitRateLimit, ipLimitExceeded, peekRateLimit, recordRejected } from '../auth/rateLimit.ts';
 import { clearSessionCookie, createSession, revokeSession, setSessionCookie } from '../auth/sessions.ts';
 import { parseBody } from '../validation.ts';
 import { kickOutbox } from '../reports/outbox.ts';
+import { createPowChallenge, verifyPow } from '../reports/antiabuse.ts';
 
 const DAY_MIN = 24 * 60;
 
@@ -74,12 +75,15 @@ async function enqueueAccountEmail(
 const ACCEPTED = { accepted: true, message: 'Dacă adresa poate fi folosită, veți primi un cod pe e-mail.' };
 
 export function registerCitizenRoutes(api: FastifyInstance, ctx: AppContext): void {
+  /** D-B3: provocarea ALTCHA pentru cererea de cod (publică; fiecare provocare se folosește o singură dată). */
+  api.get('/citizen/auth/pow-challenge', async () => createPowChallenge(ctx));
+
   api.post('/citizen/auth/start', async (request, reply) => {
     const body = parseBody(citizenStartRequest, request, reply);
     if (!body) return reply;
     const email = normalizeEmail(body.email);
     const ipH = requestIpHash(ctx, request);
-    if ((await hitRateLimit(ctx, `citizen:start:ip:${ipH}`, 60)) > LIMITS.citizenStartPerIpPerHour) {
+    if (await ipLimitExceeded(ctx, `citizen:start:ip:${ipH}`, 60, LIMITS.citizenStartPerIpPerHour)) {
       await recordRejected(ctx, 'citizen_code', 'rate_limited', ipH);
       reply.header('Retry-After', '3600');
       return reply.code(429).send(apiError('RATE_LIMITED', 'Prea multe cereri. Reveniți mai târziu.'));
@@ -90,6 +94,11 @@ export function registerCitizenRoutes(api: FastifyInstance, ctx: AppContext): vo
       return reply.code(422).send(apiError('POLICY_REQUIRED', 'Pentru a continua trebuie acceptată politica de utilizare.', {
         fields: { policyAccepted: 'obligatoriu' },
       }));
+    }
+    // D-B3 (13.10.2026): ALTCHA obligatoriu la cererea de cod, înainte de orice citire a contului (fără enumerare)
+    if (!(await verifyPow(ctx, body.pow))) {
+      await recordRejected(ctx, 'citizen_code', 'pow_invalid', ipH);
+      return reply.code(400).send(apiError('POW_INVALID', 'Verificarea anti-robot nu a reușit. Încercați din nou.'));
     }
     const hash = emailHash(ctx, email);
     const [rows] = await ctx.pool.query('SELECT id, status FROM citizen_accounts WHERE email_normalized = ?', [email]);
@@ -151,7 +160,7 @@ export function registerCitizenRoutes(api: FastifyInstance, ctx: AppContext): vo
       await recordRejected(ctx, 'citizen_code', 'invalid', ipH);
       return reply.code(401).send(apiError('INVALID_CODE', 'Cod incorect sau expirat.'));
     };
-    if ((await hitRateLimit(ctx, `citizen:verify:ip:${ipH}`, 60)) > LIMITS.citizenStartPerIpPerHour * 2) {
+    if (await ipLimitExceeded(ctx, `citizen:verify:ip:${ipH}`, 60, LIMITS.citizenStartPerIpPerHour * 2)) {
       return reply.code(429).send(apiError('RATE_LIMITED', 'Prea multe încercări. Reveniți mai târziu.'));
     }
     const email = normalizeEmail(body.email);

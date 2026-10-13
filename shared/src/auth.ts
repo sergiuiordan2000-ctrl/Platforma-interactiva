@@ -40,6 +40,8 @@ export const citizenStartRequest = z.strictObject({
   email: emailSchema,
   policyAccepted: z.boolean().optional(),
   policyVersion: z.string().trim().min(1).max(32).optional(),
+  /** D-B3 (13.10.2026): soluția ALTCHA (`GET /citizen/auth/pow-challenge`), obligatorie. */
+  pow: z.string().min(1).max(4000).optional(),
 });
 
 /** Amendamentul Google (§8 A, §11.1): pornirea fluxului; bifa politicii se verifică pe server la fiecare pornire. */

@@ -255,10 +255,24 @@ def citizen_code(email):
     return re.search(r'\b(\d{6})\b', rows[0]['b']).group(1)
 
 
+def solve_pow(context, url, challenge_path):
+    """D-B3 (13.10.2026): soluția ALTCHA, ca în browser (provocarea de la server, rezolvată cu `altcha-lib`).
+    `None` dacă serverul răspunde 404 (ALTCHA oprit acolo)."""
+    r = context.request.get(url + '/api/v1' + challenge_path)
+    if r.status == 404:
+        return None
+    assert r.status == 200, r.text()
+    out = subprocess.run(['node', os.path.join(os.path.dirname(os.path.abspath(__file__)), 'solve_pow.mjs')],
+                         input=r.text(), capture_output=True, text=True, timeout=60, cwd=REPO)
+    assert out.returncode == 0, out.stderr[-300:]
+    return out.stdout.strip()
+
+
 def citizen_login_api(context, url, email):
     """Autentificarea cetățeanului prin API (cookie-ul rămâne în contextul browserului)."""
     r = context.request.post(url + '/api/v1/citizen/auth/start', headers=CSRF,
-                             data={'email': email, 'policyAccepted': True, 'policyVersion': '2026-10'})
+                             data={'email': email, 'policyAccepted': True, 'policyVersion': '2026-10',
+                                   'pow': solve_pow(context, url, '/citizen/auth/pow-challenge')})
     assert r.status == 202, r.text()
     r = context.request.post(url + '/api/v1/citizen/auth/verify', headers=CSRF, data={'email': email, 'code': citizen_code(email)})
     assert r.status == 200, r.text()
@@ -272,10 +286,14 @@ def form_token(context, url):
     return r.json()['formStartedAt']
 
 
-def submit_report_api(context, url, token, description, location, transmit=False, notify=False, category='iluminat'):
+def submit_report_api(context, url, token, description, location, transmit=False, notify=False, category='iluminat', pow='auto'):
+    """`pow='auto'`: soluția ALTCHA se rezolvă ca în interfață (D-B3: pornit implicit); `pow=None`: fără soluție."""
     import uuid
     data = {'categoryId': category, 'description': description, 'location': location, 'notifyOptIn': notify,
             'transmitToCityHall': transmit, 'hp': '', 'formStartedAt': token}
+    solved = solve_pow(context, url, '/citizen/reports/pow-challenge') if pow == 'auto' else pow
+    if solved:
+        data['pow'] = solved
     r = context.request.post(url + '/api/v1/citizen/reports', headers={**CSRF, 'Idempotency-Key': str(uuid.uuid4())},
                              multipart={'data': json.dumps(data)})
     return r

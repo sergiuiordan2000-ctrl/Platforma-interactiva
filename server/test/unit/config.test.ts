@@ -227,3 +227,27 @@ describe('BACKUP_DIR: obligatoriu pe staging și în producție; separat de STOR
     assert.ok(loadConfig(testEnv({ STORAGE_DIR: '/var/civic/storage', BACKUP_DIR: '/var/civic/storage-backups' })).backupDir);
   });
 });
+
+// Faza 6, varianta B (D-B2, 13.10.2026): limitele pe IP, pornite implicit numai în dezvoltare (RA-9).
+describe('IP_RATE_LIMITS (D-B2): limitele pe IP numai cu adresa reală a vizitatorului', () => {
+  const HTTPS = { PUBLIC_BASE_URL: 'https://civic.exemplu.test' };
+  it('implicit: pornite în dezvoltare, oprite pe staging și în producție', () => {
+    assert.equal(loadConfig(testEnv()).ipRateLimits, true);
+    assert.equal(loadConfig(testEnv({ APP_ENV: 'staging', ...HTTPS })).ipRateLimits, false);
+    assert.equal(loadConfig(testEnv({ APP_ENV: 'production', ...HTTPS })).ipRateLimits, false);
+  });
+  it('„off” le oprește și în dezvoltare; „on” pe staging cu TRUST_PROXY setat este acceptat', () => {
+    assert.equal(loadConfig(testEnv({ IP_RATE_LIMITS: 'off' })).ipRateLimits, false);
+    assert.equal(loadConfig(testEnv({ APP_ENV: 'staging', ...HTTPS, IP_RATE_LIMITS: 'on', TRUST_PROXY: '127.0.0.1' })).ipRateLimits, true);
+  });
+  for (const appEnv of ['staging', 'production']) {
+    it(`„on” pe ${appEnv} fără TRUST_PROXY → refuz, cu numele setării (ar fi limite comune tuturor)`, () => {
+      const p = problems(testEnv({ APP_ENV: appEnv, ...HTTPS, IP_RATE_LIMITS: 'on' }));
+      assert.equal(p.length, 1);
+      assert.match(p[0]!, /^IP_RATE_LIMITS/);
+    });
+  }
+  it('altă valoare decât on / off → refuz', () => {
+    assert.match(problems(testEnv({ IP_RATE_LIMITS: 'true' }))[0]!, /^IP_RATE_LIMITS/);
+  });
+});

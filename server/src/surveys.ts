@@ -20,6 +20,10 @@ import { newId } from './ids.ts';
 
 type Conn = mysql.Pool | mysql.PoolConnection;
 
+
+/** D-B3 (13.10.2026): ALTCHA este obligatoriu la votul în orice sondaj (coloana `pow_enabled` nu mai are efect). */
+export const SURVEY_POW_REQUIRED = true;
+
 export interface SurveyRow {
   id: string;
   title: string;
@@ -101,7 +105,7 @@ export function toPublicSummary(s: SurveyRow, questionCount: number, now: Date):
     resultsVisibility: s.results_visibility,
     resultsAvailable: resultsAvailable(s, now),
     questionCount,
-    powEnabled: !!s.pow_enabled,
+    powEnabled: SURVEY_POW_REQUIRED || !!s.pow_enabled,
     // P-2 (01.10.2026): public numai în arhivă
     integrityFlag: closed && !!s.integrity_flag,
     integrityNote: closed && s.integrity_flag ? s.integrity_note : null,
@@ -283,7 +287,7 @@ export function toAdminSurvey(s: SurveyRow, questions: PublicSurveyQuestion[], s
     status: s.status,
     effectiveState: effectiveState(s, now),
     resultsVisibility: s.results_visibility,
-    powEnabled: !!s.pow_enabled,
+    powEnabled: SURVEY_POW_REQUIRED || !!s.pow_enabled,
     integrityFlag: !!s.integrity_flag,
     integrityNote: s.integrity_note,
     submissionsCount: submissions,

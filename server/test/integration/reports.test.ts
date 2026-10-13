@@ -121,12 +121,15 @@ async function submit(
     extra?: Record<string, unknown>;
     token?: string;
     wait?: boolean;
-    pow?: string;
+    /** soluția ALTCHA; fără ea se rezolvă automat, ca în interfață; `null` = trimisă fără soluție */
+    pow?: string | null;
     description?: string;
   } = {},
 ) {
   const token = opts.token ?? (await formToken(c));
   if (opts.wait !== false) clock.advanceMinutes(0.2); // 12 s > timpul minim de 8 s
+  // D-B3 (13.10.2026): ALTCHA pornit implicit la sesizări
+  const pow = opts.pow === null ? undefined : (opts.pow ?? (await c.pow(`${V1}/citizen/reports/pow-challenge`)));
   const data = {
     categoryId: 'iluminat',
     description: opts.description ?? 'Lampa de pe stâlp nu mai funcționează de o săptămână.',
@@ -135,7 +138,7 @@ async function submit(
     transmitToCityHall: opts.transmit ?? false,
     hp: '',
     formStartedAt: token,
-    ...(opts.pow ? { pow: opts.pow } : {}),
+    ...(pow ? { pow } : {}),
     ...(opts.extra ?? {}),
   };
   const mp = multipart(data, opts.photos ?? []);
@@ -619,29 +622,25 @@ describe('Admin: stadii, asumare / preluare, date personale (6.6, C-3, DN-02, A-
   });
 });
 
-describe('ALTCHA la sesizări (decizia A1, 30.09.2026)', () => {
-  it('oprit: provocarea → 404, depunerea fără `pow` trece; pornit: fără soluție → 422, cu soluție → 201, reluată → 422', async () => {
+describe('ALTCHA la sesizări (decizia A1, 30.09.2026; pornit implicit din D-B3, 13.10.2026)', () => {
+  it('implicit pornit: fără soluție → 422, cu soluție → 201, reluată → 422, semnătură străină → 422; oprit explicit: provocarea → 404, fără `pow` trece', async () => {
     const c = await citizen('pow@exemplu.test');
-    assert.equal((await c.get(`${V1}/citizen/reports/pow-challenge`)).statusCode, 404);
-    assert.equal((await submit(c)).statusCode, 201);
-    // altcha-lib verifică expirarea după ceasul real (Date.now()), nu după ceasul aplicației: partea „pornit”
-    // rulează cu ceasul testului adus la ora reală (altfel testul depinde de data calendaristică; picat la 01.10.2026)
-    const saved = clock.current;
-    clock.current = new Date();
-    await setSetting(h.pool, REPORT_POW_KEY, true, clock.now(), null);
+    assert.equal((await c.get(`${V1}/citizen/reports/pow-challenge`)).statusCode, 200, 'pornit fără nicio setare');
+    assert.equal((await submit(c, { pow: null })).statusCode, 422);
+    const challenge = (await c.get(`${V1}/citizen/reports/pow-challenge`)).json();
+    const solution = await solveChallenge({ challenge, deriveKey: shaDeriveKey });
+    const pow = Buffer.from(JSON.stringify({ challenge, solution })).toString('base64');
+    assert.equal((await submit(c, { pow })).statusCode, 201);
+    assert.equal((await submit(c, { pow })).statusCode, 422, 'anti-reluare');
+    const foreign = await createChallenge({ algorithm: 'SHA-256', cost: 1, counter: 3, keyPrefixLength: 16, hmacSignatureSecret: 'alt-secret', deriveKey: shaDeriveKey, expiresAt: new Date(Date.now() + 60_000) });
+    const fsol = await solveChallenge({ challenge: foreign, deriveKey: shaDeriveKey });
+    assert.equal((await submit(c, { pow: Buffer.from(JSON.stringify({ challenge: foreign, solution: fsol })).toString('base64') })).statusCode, 422, 'semnătură străină');
+    await setSetting(h.pool, REPORT_POW_KEY, false, clock.now(), null);
     try {
-      assert.equal((await submit(c)).statusCode, 422);
-      const challenge = (await c.get(`${V1}/citizen/reports/pow-challenge`)).json();
-      const solution = await solveChallenge({ challenge, deriveKey: shaDeriveKey });
-      const pow = Buffer.from(JSON.stringify({ challenge, solution })).toString('base64');
-      assert.equal((await submit(c, { pow })).statusCode, 201);
-      assert.equal((await submit(c, { pow })).statusCode, 422, 'anti-reluare');
-      const foreign = await createChallenge({ algorithm: 'SHA-256', cost: 1, counter: 3, keyPrefixLength: 16, hmacSignatureSecret: 'alt-secret', deriveKey: shaDeriveKey, expiresAt: new Date(clock.now().getTime() + 60_000) });
-      const fsol = await solveChallenge({ challenge: foreign, deriveKey: shaDeriveKey });
-      assert.equal((await submit(c, { pow: Buffer.from(JSON.stringify({ challenge: foreign, solution: fsol })).toString('base64') })).statusCode, 422, 'semnătură străină');
+      assert.equal((await c.get(`${V1}/citizen/reports/pow-challenge`)).statusCode, 404);
+      assert.equal((await submit(c, { pow: null })).statusCode, 201);
     } finally {
-      await setSetting(h.pool, REPORT_POW_KEY, false, clock.now(), null);
-      clock.current = saved;
+      await h.pool.query('DELETE FROM settings WHERE `key` = ?', [REPORT_POW_KEY]);
     }
   });
 });

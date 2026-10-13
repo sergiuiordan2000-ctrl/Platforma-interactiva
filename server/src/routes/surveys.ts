@@ -6,7 +6,7 @@ import { idSchema, publicSurveyListQuery, surveySubmissionRequest } from '@tmc/s
 import { LIMITS, type AppContext } from '../context.ts';
 import { apiError } from '../errors.ts';
 import { requestIpHash } from '../auth/guards.ts';
-import { hitRateLimit, recordRejected } from '../auth/rateLimit.ts';
+import { ipLimitExceeded, recordRejected } from '../auth/rateLimit.ts';
 import { checkFormToken, createPowChallenge, issueFormToken, verifyPow } from '../reports/antiabuse.ts';
 import {
   DuplicateVoteError,
@@ -20,6 +20,7 @@ import {
   participationToken,
   recordSubmission,
   resultsAvailable,
+  SURVEY_POW_REQUIRED,
   toPublicSummary,
   validateAnswers,
   type SurveyRow,
@@ -97,7 +98,7 @@ export function registerSurveyRoutes(api: FastifyInstance, ctx: AppContext): voi
 
   api.get<{ Params: { id: string } }>('/public/surveys/:id/pow-challenge', async (request, reply) => {
     const s = await visible(request.params.id);
-    if (!s || !s.pow_enabled) return notFound(reply);
+    if (!s || !(SURVEY_POW_REQUIRED || s.pow_enabled)) return notFound(reply);
     return createPowChallenge(ctx);
   });
 
@@ -115,9 +116,10 @@ export function registerSurveyRoutes(api: FastifyInstance, ctx: AppContext): voi
       return reply.code(403).send(apiError('SURVEY_CLOSED', 'Consultarea nu este deschisă pentru vot.'));
     }
     // B7 §2, P-7: limite pe IP-ul hash-uit (fără IP în clar); fiecare încercare contează
-    const perSurvey = await hitRateLimit(ctx, `vote:ip:${ipH}:${s.id}`, 60);
-    const global = await hitRateLimit(ctx, `vote:ip:${ipH}`, 60);
-    if (perSurvey > LIMITS.surveyVotesPerIpPerSurveyPerHour || global > LIMITS.surveyVotesPerIpPerHour) {
+    // D-B2: numai cu limitele pe IP pornite (altfel ar fi limite pentru toți votanții, RA-9)
+    const perSurvey = await ipLimitExceeded(ctx, `vote:ip:${ipH}:${s.id}`, 60, LIMITS.surveyVotesPerIpPerSurveyPerHour);
+    const global = await ipLimitExceeded(ctx, `vote:ip:${ipH}`, 60, LIMITS.surveyVotesPerIpPerHour);
+    if (perSurvey || global) {
       await reject('rate_limited');
       reply.header('Retry-After', '3600');
       return reply.code(429).send(apiError('RATE_LIMITED', 'Prea multe voturi din această rețea. Reveniți mai târziu.'));
@@ -133,7 +135,7 @@ export function registerSurveyRoutes(api: FastifyInstance, ctx: AppContext): voi
         .code(422)
         .send(apiError('VALIDATION', ft === 'expired' ? 'Formularul a expirat. Reîncărcați pagina.' : 'Datele trimise nu sunt valide.'));
     }
-    if (s.pow_enabled && !(await verifyPow(ctx, body.pow))) {
+    if ((SURVEY_POW_REQUIRED || s.pow_enabled) && !(await verifyPow(ctx, body.pow))) {
       await reject('pow_invalid');
       return reply.code(400).send(apiError('POW_INVALID', 'Verificarea anti-robot nu a reușit. Încercați din nou.'));
     }

@@ -10,8 +10,9 @@
  * Contul se cere numai pentru depunerea unei sesizări; restul aplicației rămâne fără cont.
  */
 
-import { CITIZEN_POLICY_VERSION, safeGoogleAuthorizationUrl } from '@tmc/shared';
+import { CITIZEN_POLICY_VERSION, safeGoogleAuthorizationUrl, type PowChallenge } from '@tmc/shared';
 import { api, ApiError } from './apiClient';
+import { solvePow } from './powSolver';
 
 export interface CitizenMe {
   email: string;
@@ -30,11 +31,18 @@ class CitizenService {
     }
   }
 
-  /** Același răspuns dacă adresa are cont sau nu (fără enumerare, B3 §8). */
-  start(email: string, policyAccepted: boolean) {
+  /**
+   * Același răspuns dacă adresa are cont sau nu (fără enumerare, B3 §8).
+   * D-B3 (13.10.2026): înainte de cerere, browserul rezolvă provocarea ALTCHA (câteva secunde).
+   */
+  async start(email: string, policyAccepted: boolean) {
+    const challenge = await api.get<PowChallenge>('/citizen/auth/pow-challenge');
+    const pow = await solvePow(challenge);
+    if (!pow) throw new ApiError(400, 'POW_INVALID', 'Verificarea anti-robot nu a reușit. Încercați din nou.');
     return api.post<{ accepted: boolean; message: string }>('/citizen/auth/start', {
       email,
       ...(policyAccepted ? { policyAccepted: true, policyVersion: CITIZEN_POLICY_VERSION } : {}),
+      pow,
     });
   }
 

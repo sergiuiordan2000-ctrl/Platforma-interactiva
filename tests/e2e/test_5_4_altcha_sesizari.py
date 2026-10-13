@@ -27,11 +27,13 @@ with backend_server(5999) as BACKEND, sync_playwright() as pw:
         citizen_login_api(ctx, URL, EMAIL)
 
         # reper: cu ALTCHA pornită, serverul refuză o depunere fără soluție (altfel verificarea din interfață nu ar dovedi nimic)
-        no_pow = submit_report_api(ctx, URL, form_token(ctx, URL), 'Depunere fără soluția ALTCHA, trebuie refuzată.', {'text': 'Str. Test', 'source': 'text'})
+        no_pow = submit_report_api(ctx, URL, form_token(ctx, URL), 'Depunere fără soluția ALTCHA, trebuie refuzată.', {'text': 'Str. Test', 'source': 'text'}, pow=None)
         rej = db_query("SELECT COALESCE(SUM(count), 0) AS n FROM rejected_attempts WHERE area = 'report' AND reason = 'pow_invalid'")[0]['n']
         res.check('AS-1 ALTCHA pornită: depunerea fără soluție este refuzată de server (422 generic, motiv înregistrat `pow_invalid`)',
                   no_pow.status == 422 and int(rej) == 1, f'{no_pow.status} respingeri pow_invalid={rej}')
 
+        # D-B3: autentificarea folosește și ea ALTCHA; se numără numai soluțiile folosite de aici încolo
+        pow_before = db_query('SELECT COUNT(*) AS n FROM used_pow_challenges')[0]['n']
         page = ctx.new_page(); page.on('pageerror', lambda e: errors.append(str(e)[:160]))
         calls = []
         page.on('requestfinished', lambda r: calls.append(r.url.rsplit('/api/v1', 1)[-1]) if '/api/v1/citizen/reports' in r.url else None)
@@ -53,7 +55,7 @@ with backend_server(5999) as BACKEND, sync_playwright() as pw:
                   ref is not None and '/citizen/reports/pow-challenge' in calls,
                   ref if ref else ('; '.join(page.locator('[role=alert]').all_inner_texts()) or body[:200]) + f' calls={calls}')
         n_rep = db_query('SELECT COUNT(*) AS n FROM reports WHERE description = ?', [DESC])[0]['n']
-        n_pow = db_query('SELECT COUNT(*) AS n FROM used_pow_challenges')[0]['n']
+        n_pow = db_query('SELECT COUNT(*) AS n FROM used_pow_challenges')[0]['n'] - pow_before
         res.check('AS-3 în DB: sesizarea salvată o singură dată; soluția ALTCHA marcată ca folosită', n_rep == 1 and n_pow == 1, f'sesizări={n_rep} soluții={n_pow}')
     except Exception as exc:  # orice excepție = FAIL raportat, nu oprire fără rezumat
         res.check('EXCEPTIE în scenariu', False, repr(exc)[:300])

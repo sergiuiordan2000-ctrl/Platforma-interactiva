@@ -148,6 +148,8 @@ async function submit(c: Client, transmit: boolean, notify: boolean) {
     transmitToCityHall: transmit,
     hp: '',
     formStartedAt: token,
+    // D-B3 (13.10.2026): ALTCHA pornit implicit la sesizări; rezolvat ca în interfață
+    ...((pow) => (pow ? { pow } : {}))(await c.pow(`${V1}/citizen/reports/pow-challenge`)),
   };
   const body = Buffer.concat([
     Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="data"\r\n\r\n${JSON.stringify(data)}\r\n`),

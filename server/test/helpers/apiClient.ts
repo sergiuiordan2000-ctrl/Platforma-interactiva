@@ -1,6 +1,8 @@
 // Aplicația completă (cu DB) pentru testele API + un client cu cookie și antetul CSRF.
 
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
+import { solveChallenge } from 'altcha-lib';
+import { deriveKey } from 'altcha-lib/algorithms/sha';
 import { buildApp } from '../../src/app.ts';
 import { loadConfig, type Config } from '../../src/config.ts';
 import type { AppContext } from '../../src/context.ts';
@@ -54,7 +56,26 @@ export class Client {
     );
   }
 
+  /**
+   * D-B3 (13.10.2026): soluția ALTCHA, ca în browser: provocarea de la `challengeUrl`, rezolvată local.
+   * `undefined` dacă serverul răspunde 404 (ALTCHA oprit acolo).
+   */
+  async pow(challengeUrl: string): Promise<string | undefined> {
+    const res = await this.get(challengeUrl);
+    if (res.statusCode === 404) return undefined;
+    if (res.statusCode !== 200) throw new Error(`provocarea ALTCHA: ${res.statusCode} ${res.body}`);
+    const challenge = res.json();
+    const solution = await solveChallenge({ challenge, deriveKey });
+    if (!solution) throw new Error('provocarea ALTCHA nu a putut fi rezolvată');
+    return Buffer.from(JSON.stringify({ challenge, solution: { counter: solution.counter, derivedKey: solution.derivedKey } })).toString('base64');
+  }
+
   async send(method: 'POST' | 'PUT' | 'PATCH' | 'DELETE', url: string, body?: unknown, headers: Record<string, string> = {}) {
+    // D-B3: cererea de cod cere ALTCHA; clientul de test o rezolvă automat, ca interfața (CitizenLogin), dacă
+    // testul nu trimite el însuși câmpul `pow` (un test care verifică lipsa lui trimite `pow: undefined`)
+    if (method === 'POST' && url === '/api/v1/citizen/auth/start' && body && typeof body === 'object' && !Buffer.isBuffer(body) && !('pow' in body)) {
+      body = { ...(body as object), pow: await this.pow('/api/v1/citizen/auth/pow-challenge') };
+    }
     return this.store(
       await this.app.inject({
         method,

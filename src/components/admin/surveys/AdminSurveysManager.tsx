@@ -195,21 +195,6 @@ export const AdminSurveysManager: React.FC<AdminSurveysManagerProps> = ({ onSucc
     refreshSurveys();
   };
 
-  // ALTCHA la vot, per sondaj (N4-5)
-  const handleTogglePow = async (survey: AdminSurvey, enabled: boolean) => {
-    if (!canEdit || busy) return;
-    setBusy(true);
-    setInspectError(null);
-    try {
-      applyInspected(await surveyService.adminSetPow(survey.id, enabled));
-      onSuccess(enabled ? 'Verificarea anti-robot a fost pornită pentru acest sondaj.' : 'Verificarea anti-robot a fost oprită pentru acest sondaj.');
-    } catch (err) {
-      setInspectError(errorMessage(err, 'Setarea nu a putut fi salvată.'));
-    } finally {
-      setBusy(false);
-    }
-  };
-
   // Marcajul „rezultate posibil afectate” (N4-10; public numai în arhivă, P-2)
   const handleSaveIntegrity = async (survey: AdminSurvey) => {
     if (!canEdit || busy) return;
@@ -629,21 +614,16 @@ export const AdminSurveysManager: React.FC<AdminSurveysManagerProps> = ({ onSucc
                 <div className="space-y-3 p-3.5 rounded-2xl border border-slate-200 bg-white" data-testid="survey-protection">
                   <div className="text-xs font-bold text-slate-900 uppercase tracking-wider">Protecție și integritate</div>
 
-                  <label className="flex items-start gap-2 cursor-pointer select-none text-xs font-semibold text-slate-700">
-                    <input
-                      type="checkbox"
-                      checked={inspectingSurvey.powEnabled}
-                      disabled={busy || displayStatus(inspectingSurvey) === 'closed'}
-                      onChange={(e) => void handleTogglePow(inspectingSurvey, e.target.checked)}
-                      className="w-4 h-4 mt-0.5 rounded text-purple-600 focus:ring-purple-500 border-slate-300"
-                    />
+                  {/* D-B3 (13.10.2026): ALTCHA este obligatoriu la vot în orice sondaj; nu se mai pornește / oprește */}
+                  <div className="flex items-start gap-2 text-xs font-semibold text-slate-700" data-testid="survey-pow-required">
+                    <span aria-hidden="true" className="mt-0.5">✓</span>
                     <span>
-                      Verificare anti-robot la vot (ALTCHA)
+                      Verificare anti-robot la vot (ALTCHA): obligatorie
                       <span className="block text-[11px] font-normal text-slate-500">
-                        Oprită implicit. Se pornește la nevoie, dacă apar voturi automate; votul durează atunci câteva secunde în plus.
+                        Se aplică la toate sondajele; votul durează câteva secunde în plus.
                       </span>
                     </span>
-                  </label>
+                  </div>
 
                   <div className="border-t border-slate-100 pt-3 space-y-2">
                     <label className="flex items-start gap-2 cursor-pointer select-none text-xs font-semibold text-slate-700">

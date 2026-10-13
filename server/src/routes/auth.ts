@@ -17,7 +17,7 @@ import { apiError } from '../errors.ts';
 import { decryptSecret, deriveKey, encryptSecret, hmacHex } from '../auth/crypto.ts';
 import { anonymousProbe, loadAdmin, requestIpHash, requireAdmin, type AdminPrincipal, type AdminUserRow } from '../auth/guards.ts';
 import { dummyVerify, hashPassword, needsRehash, passwordPolicyError, verifyPassword } from '../auth/password.ts';
-import { hitRateLimit, recordRejected } from '../auth/rateLimit.ts';
+import { hitRateLimit, ipLimitExceeded, recordRejected } from '../auth/rateLimit.ts';
 import {
   clearSessionCookie,
   createSession,
@@ -80,6 +80,9 @@ async function completeLogin(ctx: AppContext, request: FastifyRequest, reply: Fa
   });
 }
 
+/** D-B4: verificările de parolă în curs (în acest proces). */
+let passwordChecksInFlight = 0;
+
 function mfaMode(user: AdminUserRow): 'required' | 'enroll' | 'none' {
   if (user.totp_enabled_at) return 'required';
   return user.role === 'super_admin' ? 'enroll' : 'none';
@@ -94,61 +97,72 @@ export function registerAuthRoutes(api: FastifyInstance, ctx: AppContext): void 
     const body = parseBody(loginRequest, request, reply);
     if (!body) return reply;
     const ipH = requestIpHash(ctx, request);
-    const attempts = await hitRateLimit(ctx, `login:ip:${ipH}`, LIMITS.loginPerIpWindowMinutes);
-    if (attempts > LIMITS.loginPerIp) {
+    if (await ipLimitExceeded(ctx, `login:ip:${ipH}`, LIMITS.loginPerIpWindowMinutes, LIMITS.loginPerIp)) {
       await recordRejected(ctx, 'login', 'rate_limited', ipH);
       reply.header('Retry-After', String(LIMITS.loginPerIpWindowMinutes * 60));
       return reply.code(429).send(apiError('RATE_LIMITED', 'Prea multe încercări. Reveniți mai târziu.'));
     }
-    const [rows] = await ctx.pool.query('SELECT * FROM admin_users WHERE email = ?', [normalizeEmail(body.email)]);
-    const user = (rows as AdminUserRow[])[0];
-    const fail = async (reason: 'invalid' | 'blocked') => {
-      await recordRejected(ctx, 'login', reason, ipH);
-      return reply.code(401).send(apiError('INVALID_CREDENTIALS', GENERIC_LOGIN_ERROR));
-    };
-    if (!user || user.status !== 'active') {
-      await dummyVerify(body.password);
-      return fail('invalid');
+    // D-B4 (13.10.2026): cel mult LIMITS.loginConcurrentPasswordChecks verificări de parolă simultane (scrypt ≈ 32 MiB
+    // fiecare); restul primesc imediat 429 cu „reveniți peste câteva secunde”. Înlocuiește, pe găzduirea partajată,
+    // limita pe IP (RA-5, RA-9), fără să blocheze pe nimeni mai mult de câteva secunde.
+    if (passwordChecksInFlight >= LIMITS.loginConcurrentPasswordChecks) {
+      reply.header('Retry-After', '5');
+      return reply.code(429).send(apiError('BUSY', 'Se verifică alte autentificări. Reîncercați peste câteva secunde.'));
     }
-    const now = ctx.now();
-    if (user.locked_until && user.locked_until > now) {
-      await dummyVerify(body.password);
-      return fail('blocked');
-    }
-    if (!(await verifyPassword(body.password, user.password_hash))) {
-      const failures = user.failed_login_count + 1;
-      const lock = failures >= LIMITS.loginMaxFailures ? new Date(now.getTime() + LIMITS.loginLockMinutes * 60_000) : null;
-      await ctx.pool.query('UPDATE admin_users SET failed_login_count = ?, locked_until = ? WHERE id = ?', [
-        lock ? 0 : failures,
-        lock,
-        user.id,
-      ]);
-      return fail('invalid');
-    }
-    const updates: string[] = ['failed_login_count = 0', 'locked_until = NULL'];
-    const params: unknown[] = [];
-    if (needsRehash(user.password_hash)) {
-      updates.push('password_hash = ?');
-      params.push(await hashPassword(body.password));
-    }
-    await ctx.pool.query(`UPDATE admin_users SET ${updates.join(', ')} WHERE id = ?`, [...params, user.id]);
+    passwordChecksInFlight++;
+    try {
+      const [rows] = await ctx.pool.query('SELECT * FROM admin_users WHERE email = ?', [normalizeEmail(body.email)]);
+      const user = (rows as AdminUserRow[])[0];
+      const fail = async (reason: 'invalid' | 'blocked') => {
+        await recordRejected(ctx, 'login', reason, ipH);
+        return reply.code(401).send(apiError('INVALID_CREDENTIALS', GENERIC_LOGIN_ERROR));
+      };
+      if (!user || user.status !== 'active') {
+        await dummyVerify(body.password);
+        return fail('invalid');
+      }
+      const now = ctx.now();
+      if (user.locked_until && user.locked_until > now) {
+        await dummyVerify(body.password);
+        return fail('blocked');
+      }
+      if (!(await verifyPassword(body.password, user.password_hash))) {
+        const failures = user.failed_login_count + 1;
+        const lock = failures >= LIMITS.loginMaxFailures ? new Date(now.getTime() + LIMITS.loginLockMinutes * 60_000) : null;
+        await ctx.pool.query('UPDATE admin_users SET failed_login_count = ?, locked_until = ? WHERE id = ?', [
+          lock ? 0 : failures,
+          lock,
+          user.id,
+        ]);
+        return fail('invalid');
+      }
+      const updates: string[] = ['failed_login_count = 0', 'locked_until = NULL'];
+      const params: unknown[] = [];
+      if (needsRehash(user.password_hash)) {
+        updates.push('password_hash = ?');
+        params.push(await hashPassword(body.password));
+      }
+      await ctx.pool.query(`UPDATE admin_users SET ${updates.join(', ')} WHERE id = ?`, [...params, user.id]);
 
-    const mfa = mfaMode(user);
-    const token = await createSession(
-      ctx,
-      ctx.pool,
-      { type: 'admin', userId: user.id, mfaState: mfa === 'none' ? 'not_required' : 'pending' },
-      request,
-    );
-    setSessionCookie(ctx, reply, token);
-    if (mfa === 'none') {
-      await ctx.pool.query('UPDATE admin_users SET last_login_at = ? WHERE id = ?', [now, user.id]);
-      await writeAudit(ctx.pool, now, {
-        actorType: 'admin', actorUserId: user.id, action: 'auth.login', targetType: 'account', targetId: user.id,
-        details: { method: 'password' }, ipHash: ipH,
-      });
+      const mfa = mfaMode(user);
+      const token = await createSession(
+        ctx,
+        ctx.pool,
+        { type: 'admin', userId: user.id, mfaState: mfa === 'none' ? 'not_required' : 'pending' },
+        request,
+      );
+      setSessionCookie(ctx, reply, token);
+      if (mfa === 'none') {
+        await ctx.pool.query('UPDATE admin_users SET last_login_at = ? WHERE id = ?', [now, user.id]);
+        await writeAudit(ctx.pool, now, {
+          actorType: 'admin', actorUserId: user.id, action: 'auth.login', targetType: 'account', targetId: user.id,
+          details: { method: 'password' }, ipHash: ipH,
+        });
+      }
+      return { mfa, mustChangePassword: Boolean(user.must_change_password) };
+    } finally {
+      passwordChecksInFlight--;
     }
-    return { mfa, mustChangePassword: Boolean(user.must_change_password) };
   });
 
   api.post('/auth/mfa/verify', { preHandler: pendingOnly }, async (request, reply) => {

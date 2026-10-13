@@ -29,6 +29,7 @@ import {
   loadQuestions,
   lockedViolation,
   submissionCounts,
+  SURVEY_POW_REQUIRED,
   toAdminSurvey,
   updateHelpTexts,
   writeStructure,
@@ -253,6 +254,9 @@ export function registerAdminSurveyRoutes(api: FastifyInstance, ctx: AppContext)
     if (!body) return reply;
     const s = await load(request.params.id);
     if (!s) return notFound(reply);
+    if (SURVEY_POW_REQUIRED && !body.enabled) {
+      return conflict(reply, 'POW_REQUIRED', 'Verificarea anti-robot la vot este obligatorie (decizia D-B3) și nu se poate opri.');
+    }
     await ctx.pool.query('UPDATE surveys SET pow_enabled = ?, updated_at = ?, updated_by = ? WHERE id = ?',
       [body.enabled, ctx.now(), request.admin!.user.id, s.id]);
     await audit(request, 'survey.pow', s.id, { enabled: body.enabled });

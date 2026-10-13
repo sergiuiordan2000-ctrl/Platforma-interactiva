@@ -22,7 +22,7 @@ import { apiError } from '../errors.ts';
 import { newId } from '../ids.ts';
 import { storagePath } from '../storage.ts';
 import { requestIpHash, requireCitizen } from '../auth/guards.ts';
-import { hitRateLimit, recordRejected } from '../auth/rateLimit.ts';
+import { hitRateLimit, ipLimitExceeded, recordRejected } from '../auth/rateLimit.ts';
 import { sha256Hex } from '../auth/crypto.ts';
 import { allocateReportNumber } from '../db/reportCounter.ts';
 import { deleteReportsHard } from '../db/reportDeletion.ts';
@@ -134,7 +134,7 @@ export async function registerReportRoutes(api: FastifyInstance, ctx: AppContext
   api.post('/public/notifications/unsubscribe', async (request, reply) => {
     const body = z.strictObject({ token: z.string().regex(/^[A-Za-z0-9_-]{43}$/) }).safeParse(request.body ?? {});
     const ipH = requestIpHash(ctx, request);
-    if ((await hitRateLimit(ctx, `unsubscribe:ip:${ipH}`, HOUR)) > LIMITS.unsubscribePerIpPerHour) {
+    if (await ipLimitExceeded(ctx, `unsubscribe:ip:${ipH}`, HOUR, LIMITS.unsubscribePerIpPerHour)) {
       reply.header('Retry-After', '3600');
       return reply.code(429).send(apiError('RATE_LIMITED', 'Prea multe cereri. Reveniți mai târziu.'));
     }
@@ -181,8 +181,11 @@ export async function registerReportRoutes(api: FastifyInstance, ctx: AppContext
       return reply.code(unknown ? 400 : 422).send(apiError(unknown ? 'BAD_REQUEST' : 'VALIDATION', 'Adresa nu este validă.'));
     }
     const ipH = requestIpHash(ctx, request);
+    // D-B5 (13.10.2026): limita pe cont înlocuiește, pe găzduirea partajată, limita pe IP; limita globală
+    // rămâne (Nominatim: cel mult o cerere pe secundă)
     if (
-      (await hitRateLimit(ctx, `geocode:ip:${ipH}`, HOUR)) > LIMITS.geocodePerIpPerHour ||
+      (await ipLimitExceeded(ctx, `geocode:ip:${ipH}`, HOUR, LIMITS.geocodePerIpPerHour)) ||
+      (await hitRateLimit(ctx, `geocode:acct:${request.citizen!.account.id}`, HOUR)) > LIMITS.geocodePerAccountPerHour ||
       (await hitRateLimit(ctx, 'geocode:global', 1)) > LIMITS.geocodeGlobalPerMinute
     ) {
       reply.header('Retry-After', '60');
@@ -285,8 +288,8 @@ export async function registerReportRoutes(api: FastifyInstance, ctx: AppContext
         return reply.code(429).send(apiError('RATE_LIMITED', message));
       };
       if (
-        (await hitRateLimit(ctx, `report:ip:h:${ipH}`, HOUR)) > LIMITS.reportsPerIpPerHour ||
-        (await hitRateLimit(ctx, `report:ip:d:${ipH}`, DAY)) > LIMITS.reportsPerIpPerDay
+        (await ipLimitExceeded(ctx, `report:ip:h:${ipH}`, HOUR, LIMITS.reportsPerIpPerHour)) ||
+        (await ipLimitExceeded(ctx, `report:ip:d:${ipH}`, DAY, LIMITS.reportsPerIpPerDay))
       ) {
         return rateLimited('Prea multe sesizări trimise de la această conexiune. Reveniți mai târziu.');
       }

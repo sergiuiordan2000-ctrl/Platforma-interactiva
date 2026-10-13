@@ -33,6 +33,8 @@ export const LIMITS = {
   loginLockMinutes: 15,
   loginPerIpWindowMinutes: 15,
   loginPerIp: 20,
+  /** D-B4 (13.10.2026): verificări de parolă Admin simultane. */
+  loginConcurrentPasswordChecks: 2,
   citizenCodeMinutes: 15,
   citizenCodeMaxAttempts: 5,
   citizenStartPerAddressPerHour: 5,
@@ -63,6 +65,8 @@ export const LIMITS = {
   citizenNotificationsPerReportPerDay: 3,
   /** Geocodarea (2.4): propunere tehnică; Nominatim cere cel mult o cerere pe secundă. */
   geocodePerIpPerHour: 30,
+  /** D-B5 (13.10.2026): căutări de adresă pe cont, pe oră. */
+  geocodePerAccountPerHour: 20,
   geocodeGlobalPerMinute: 50,
   unsubscribePerIpPerHour: 30,
   /** B6 §1: pauzele între încercări (minute); după ultima → `failed`. */

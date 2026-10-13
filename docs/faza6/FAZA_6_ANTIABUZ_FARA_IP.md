@@ -65,6 +65,15 @@ Note:
 
 ## 4. Ce ar cere varianta B
 
+**Starea (13.10.2026, după deciziile din §5):** implementată în cod (commitul care urmează), cu teste noi și probe de control; neinstalată pe staging. Ce s-a făcut efectiv:
+- `IP_RATE_LIMITS` (`server/src/config.ts`): implicit pornit numai în dezvoltare; „on” în afara dezvoltării fără `TRUST_PROXY` → aplicația nu pornește; `ipLimitExceeded` (`server/src/auth/rateLimit.ts`) folosit la toate cele 11 limite pe IP;
+- ALTCHA: `GET /citizen/auth/pow-challenge` nou, obligatoriu la `POST /citizen/auth/start` (după bifa politicii, înaintea citirii contului); la sesizări pornit implicit; la vot obligatoriu (`SURVEY_POW_REQUIRED`; `PATCH /admin/surveys/:id/pow` cu `false` → 409; în Admin, comutatorul înlocuit cu o notă). Oprirea ALTCHA la sesizări rămâne numai prin comanda `settings:report-pow off` (nu există buton în Admin);
+- Admin: cel mult 2 verificări de parolă simultane (în fiecare proces al aplicației);
+- căutarea adresei: 20 / cont / oră;
+- expirarea provocărilor ALTCHA se măsoară după ceasul real (`altcha-lib` face la fel); în producție nu se schimbă nimic.
+
+Planul inițial:
+
 1. **Amendament de design** (B7 anti-abuz, DN-15), decis de proprietar: lista de mai sus.
 2. **Cod:** limitele pe IP dezactivate prin setare; ALTCHA la cererea de cod; ALTCHA implicit pentru sesizări și obligatoriu la vot; limita de simultaneitate la parolele Admin; eventual limita pe cont la căutarea adresei.
 3. **Teste** noi (cu probe de control) și adaptarea celor care verifică limitele pe IP (de explicat una câte una).

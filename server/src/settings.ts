@@ -50,6 +50,7 @@ export async function getRegistrySettings(conn: Conn): Promise<RegistrySettings>
 
 export const REPORT_POW_KEY = 'reports.pow_enabled';
 
+/** D-B3 (13.10.2026): ALTCHA la sesizări este PORNIT implicit (fără setare); se poate opri cu `settings:report-pow off`. */
 export async function isReportPowEnabled(conn: Conn): Promise<boolean> {
-  return (await getSetting<boolean>(conn, REPORT_POW_KEY, false)) === true;
+  return (await getSetting<boolean>(conn, REPORT_POW_KEY, true)) === true;
 }

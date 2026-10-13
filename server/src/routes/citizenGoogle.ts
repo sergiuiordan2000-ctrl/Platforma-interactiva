@@ -16,7 +16,7 @@ import { newId } from '../ids.ts';
 import { randomTokenB64url, sha256Hex } from '../auth/crypto.ts';
 import { requestIpHash } from '../auth/guards.ts';
 import { googleProvider, pkceChallenge, verifyIdToken, type OidcProvider } from '../auth/googleOAuth.ts';
-import { hitRateLimit, recordRejected } from '../auth/rateLimit.ts';
+import { ipLimitExceeded, recordRejected } from '../auth/rateLimit.ts';
 import { createSession, setSessionCookie } from '../auth/sessions.ts';
 import { parseBody } from '../validation.ts';
 import { activeBlock, emailHash } from './citizens.ts';
@@ -63,7 +63,7 @@ export function registerCitizenGoogleRoutes(api: FastifyInstance, ctx: AppContex
       }));
     }
     const ipH = requestIpHash(ctx, request);
-    if ((await hitRateLimit(ctx, `citizen:google:start:ip:${ipH}`, 60)) > LIMITS.citizenGooglePerIpPerHour) {
+    if (await ipLimitExceeded(ctx, `citizen:google:start:ip:${ipH}`, 60, LIMITS.citizenGooglePerIpPerHour)) {
       await recordRejected(ctx, 'citizen_code', 'rate_limited', ipH, 'google');
       reply.header('Retry-After', '3600');
       return reply.code(429).send(apiError('RATE_LIMITED', 'Prea multe cereri. Reveniți mai târziu.'));
@@ -109,7 +109,7 @@ export function registerCitizenGoogleRoutes(api: FastifyInstance, ctx: AppContex
       return reply.redirect(`/#sesizari?google=${code}`, 303);
     };
 
-    if ((await hitRateLimit(ctx, `citizen:google:callback:ip:${ipH}`, 60)) > LIMITS.citizenGooglePerIpPerHour) {
+    if (await ipLimitExceeded(ctx, `citizen:google:callback:ip:${ipH}`, 60, LIMITS.citizenGooglePerIpPerHour)) {
       return fail('limita', 'rate_limited');
     }
     const q = (request.query ?? {}) as Record<string, unknown>;

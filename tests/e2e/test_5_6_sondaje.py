@@ -140,12 +140,14 @@ with backend_server(5899) as B, sync_playwright() as pw:
         res.check('SA-8 inspectare: vizibilitate, voturi, textele libere numai după închidere',
                   'În timp real' in t and 'Răspunsurile libere se pot citi numai după închiderea sondajului' in t and ap.get_by_role('button', name='Citește răspunsurile libere').count() == 0, '')
         prot = ap.locator('[data-testid=survey-protection]')
-        prot.locator('input[type=checkbox]').nth(0).click(); ap.wait_for_timeout(900)
-        prot.locator('input[type=checkbox]').nth(1).check()
+        # D-B3 (13.10.2026): ALTCHA obligatoriu la vot; în locul comutatorului, o notă (singura bifă rămasă: integritatea)
+        pow_note = prot.locator('[data-testid=survey-pow-required]').inner_text() if prot.locator('[data-testid=survey-pow-required]').count() else ''
+        prot.locator('input[type=checkbox]').nth(0).check()
         prot.locator('textarea').fill('Voturi repetate observate din aceeași rețea.')
         prot.get_by_role('button', name='Salvează marcajul').click(); ap.wait_for_timeout(600)
         row = db_query('SELECT pow_enabled AS p, integrity_flag AS f, integrity_note AS n FROM surveys WHERE id = ?', [SID])[0]
-        res.check('SA-9 ALTCHA și marcajul de integritate salvate', row['p'] == 1 and row['f'] == 1 and 'aceeași rețea' in row['n'], json.dumps(row, ensure_ascii=False))
+        res.check('SA-9 ALTCHA afișat ca obligatoriu (fără comutator); marcajul de integritate salvat',
+                  'obligatorie' in pow_note and row['f'] == 1 and 'aceeași rețea' in row['n'], json.dumps(row, ensure_ascii=False) + ' | ' + pow_note)
         ap.get_by_role('button', name='Închide', exact=True).last.click(); ap.wait_for_timeout(200)
 
         # vot cu ALTCHA pornit (al treilea browser)

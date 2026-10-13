@@ -101,6 +101,14 @@ Antetele (`Subject`) sunt construite **numai** din `TM-XXX` și din categorie. C
 
 # B7 — PROTECȚII ANTI-SPAM ȘI ANTI-ABUZ
 
+> **Amendament (Faza 6, varianta B; deciziile proprietarului D-B1…D-B5 din 13.10.2026; `docs/faza6/FAZA_6_ANTIABUZ_FARA_IP.md`).** Pe găzduirea partajată adresa reală a vizitatorului nu poate fi aflată sigur (`docs/faza6/FAZA_6_TRUST_PROXY.md`), deci limitele de mai jos „pe IP” ar fi limite pentru tot orașul (RA-9). În vigoare, peste tabelele de mai jos:
+> - **D-B2:** limitele pe IP sunt **oprite** pe staging și în producție (`IP_RATE_LIMITS`, implicit pornite numai în dezvoltare); se pot porni numai cu `TRUST_PROXY` setat (altfel aplicația nu pornește). Codul lor rămâne, pentru o eventuală mutare pe o găzduire cu adresa reală;
+> - **D-B3:** ALTCHA este **obligatoriu** la cererea de cod de cont și la vot (orice sondaj; comutatorul per sondaj nu mai există) și **pornit implicit** la sesizări (se poate opri cu `settings:report-pow off`);
+> - **D-B4:** la autentificarea Admin, în locul limitei pe IP: cel mult **2 verificări de parolă simultane**; celelalte cereri primesc 429 `BUSY` cu `Retry-After: 5`. Blocarea contului după 5 eșecuri rămâne;
+> - **D-B5:** căutarea adresei: cel mult **20 / cont / oră**, plus limita globală (50 / minut, Nominatim);
+> - rămân fără schimbare: limitele pe cont și pe adresa de e-mail, capcana, timpul minim, idempotența, blocarea de către `super_admin`.
+> „Respectarea limitelor configurate pentru o sursă IP dată” (§3, „Garantat”) se aplică numai cu limitele pe IP pornite.
+
 ## 1. Mecanisme comune
 
 | Mecanism | Proiect |
