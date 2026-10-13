@@ -2,7 +2,7 @@
 
 **Data:** 13.10.2026. **Versiunea verificată:** `faza-5-backend` la `55ead0e` (cod identic cu `f982896`, instalat pe staging ca `27b1b5f`).
 **Planul:** `docs/faza6/FAZA_6_PLAN.md`, Pasul 4 (S1–S12), regula dovezilor §4.
-**Starea:** **în lucru.** S1–S5 și S8–S12 sunt verificate în cod și local. **S6** așteaptă Pasul 2 (`TRUST_PROXY`). **S7** și probele de pe staging sunt încă de făcut. Pasul 4 nu se închide înainte de verificarea `TRUST_PROXY` (D-4).
+**Starea:** **în lucru.** S1–S5 și S8–S12 sunt verificate în cod și local; **S7** verificat pe staging la 13.10.2026 (§2, S7). **S6:** Pasul 2 s-a încheiat prin varianta B (`FAZA_6_ANTIABUZ_FARA_IP.md`). Probele S1, S2, S4 pe staging sunt încă de făcut. Pasul 4 nu se închide înainte de verificarea `TRUST_PROXY` (D-4).
 **Limită:** reauditul este făcut de Claude, care a scris și codul. Auditul independent rămâne cel de la checkpoint.
 **Nimic nu a fost reparat.** Constatările și propunerile de remediere sunt separate; fiecare remediere cere aprobarea proprietarului.
 
@@ -44,7 +44,7 @@ Nicio constatare critică. Nicio vulnerabilitate care să permită acces fără 
 | Ce | Rezultat | Dovada |
 |---|---|---|
 | jeton aleator de 32 de octeți în cookie, numai SHA-256 în baza de date | conform | `server/src/auth/sessions.ts` |
-| cookie `__Host-civic_sid`, `HttpOnly`, `Secure`, `SameSite=Strict` (în afara dezvoltării) | conform în cod; **antetele reale de pe staging: de verificat (S7)** | `sessions.ts` `setSessionCookie` |
+| cookie `__Host-civic_sid`, `HttpOnly`, `Secure`, `SameSite=Strict` (în afara dezvoltării) | conform în cod; pe staging verificat cookie-ul de participare, construit cu aceleași atribute (S7) | `sessions.ts` `setSessionCookie` |
 | Admin: 60 min inactivitate, 12 h absolut, 5 min înainte de MFA; cookie de sesiune | conform | `context.ts` `LIMITS` |
 | cetățean: fără expirare pe server, cookie de 400 de zile, reînnoit | risc acceptat (decizia din 30.09.2026, varianta B) | `sessions.ts` |
 | ieșire și revocare | conform | `auth.ts` `/auth/logout`; `citizens.ts` `/citizen/auth/logout` |
@@ -82,6 +82,26 @@ Rezultat: **toate rutele `/admin/*` au gardă**; nicio rută de administrare nu 
 | validare strictă (`zod`, `strictObject`) pe corpurile cererilor | conform (eșantion: autentificare, conturi, conținut, sondaje) | `shared/src/*.ts`; `parseBody` |
 | SQL: valori numai parametrizate; numele de tabele și coloane interpolate provin numai din cod | conform | 20 de interogări cu interpolare, verificate una câte una (`adminContent.ts`, `outbox.ts`, `auth.ts`, `adminAccounts.ts`, `content.ts`, `surveys.ts`) |
 | XSS: React escapează; harta (Leaflet primește HTML) escapează toate valorile din sesizare | conform | `src/views/MapView.tsx` `escapeHtml`; nicio folosire `dangerouslySetInnerHTML` |
+
+### S7 — Antetele de securitate (staging, `cb4cc45`, 13.10.2026)
+
+Dovada: `curl -sI -u civic https://test.urbisactiv.ro/` și `curl -D - … /api/v1/public/surveys`, de pe calculatorul proprietarului (capturi; parola cerută de `curl`, neafișată; valoarea cookie-ului acoperită).
+
+| Antet | Valoarea reală | Rezultat |
+|---|---|---|
+| `Content-Security-Policy` | `default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.tile.openstreetmap.org; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests` | conform: identic cu `contentSecurityPolicy()` din `server/src/app.ts` |
+| `Strict-Transport-Security` | `max-age=15552000` (180 de zile, fără `includeSubDomains`) | conform designului |
+| `X-Frame-Options` | `DENY` | conform |
+| `X-Content-Type-Options` | `nosniff` | conform |
+| `Referrer-Policy` | `strict-origin-when-cross-origin` | conform |
+| `Cross-Origin-Opener-Policy` / `-Resource-Policy` | `same-origin` | conform |
+| `x-robots-tag` | `noindex, nofollow` | conform (staging) |
+| `set-cookie` (participare) | `__Host-civic_pid=…; Max-Age=31536000; Path=/; HttpOnly; Secure; SameSite=Strict` | conform |
+| redirecționarea `http` → `https` | 301 (jurnalul staging-ului, intervențiile 39–40) | conform pe staging; pentru `urbisactiv.ro`, la instalarea producției |
+
+Observație (informativă): serverul web al găzduirii adaugă `WWW-Authenticate: Basic` și la răspunsurile 200 de pe staging (lacătul); fără efect în browser. Nu există în producție (fără lacăt).
+
+Limită: cookie-ul de sesiune (`__Host-civic_sid`) apare numai la autentificare; atributele lui sunt verificate în cod și în testele automate, iar pe staging numai prin cookie-ul de participare, construit identic (deducție).
 
 ### S8 — Încărcarea fotografiilor
 
@@ -206,7 +226,6 @@ Auditul general (A-01 … A-27) și deciziile D1–D12 nu sunt integral în depo
 | Punct | Ce | Depinde de |
 |---|---|---|
 | S6 | limitele pe IP, pe cont, pe adresă; T2 | Pasul 2 (`TRUST_PROXY`) |
-| S7 | antetele reale de pe staging (CSP, HSTS, `frame-ancestors`, `nosniff`, cookie-ul); redirecționarea `https` (făcută, 301, jurnalul staging-ului, intervențiile 39–40) | o probă `curl` cu parola lacătului, cu aprobare |
 | S1, S2, S4 pe staging | probele din tabelul planului | aprobare separată |
 | S12 | auditul general | documentele lipsă |
 | remedierile RA-1 … RA-8 | numai după decizia proprietarului | — |
