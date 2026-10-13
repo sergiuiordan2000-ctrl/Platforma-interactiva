@@ -8,7 +8,7 @@
 
 | Sursa | Rezultat |
 |---|---|
-| A — furnizorul (tichetul din 09.10.2026, reluat la 12.10.2026) | fără răspuns; tichetul marcat „rezolvat” fără răspuns |
+| A — furnizorul (tichetul din 09.10.2026, reluat la 12.10.2026) | fără răspuns la întrebarea despre IP; la 13.10.2026 au răspuns numai despre copiile contului și jurnale (jurnalul staging-ului, observația 11). Tichetul nou (varianta A, 13.10.2026): fără răspuns |
 | B — pagina de diagnostic `GET /api/v1/diag/client-ip` (`DIAG_CLIENT_IP=on`) | pornită la 13.10.2026, ~06:48; oprită la ~07:04 (404 confirmat) |
 | probă `curl` din exterior, fără memoria HSTS a browserului | 12.10.2026, ~21:36 |
 

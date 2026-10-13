@@ -228,7 +228,7 @@ N = cel mai mare număr TM comunicat vreodată (din e-mailuri sau din Admin). O 
 
 ### 6.7 Limitele rămase (cunoscute)
 
-- **Numai arhiva:** dacă `BACKUP_DIR` este înlocuit cu totul de o arhivă veche (inclusiv la o restaurare a întregului cont de către furnizor), ștergerile de după arhivă nu pot fi cunoscute, iar numerele sunt protejate numai prin N. Se evită prin procedură. Întrebarea către furnizor despre copiile proprii ale contului este deschisă.
+- **Numai arhiva:** dacă `BACKUP_DIR` este înlocuit cu totul de o arhivă veche (inclusiv la o restaurare a întregului cont de către furnizor), ștergerile de după arhivă nu pot fi cunoscute, iar numerele sunt protejate numai prin N. Se evită prin procedură. Răspunsul furnizorului (13.10.2026): copiile proprii ale contului sunt incrementale, păstrate 3 luni (prima zi a fiecărei luni) și 7 zile (luna curentă); se restaurează numai pe serverele lor, fără arhive pentru client. O restaurare a contului de către furnizor este deci exact cazul „numai arhiva”: după ea, `restore:db` / `markers:rebuild-counter` cu `--at-least N`.
 - Evenimentele de după cea mai nouă copie supraviețuitoare (cel mult o zi), când marcajele curente sunt pierdute.
 - O restaurare făcută cu o versiune a aplicației dinaintea remedierii: o refuză singură pentru copiile `/2`, dar nu are niciuna dintre protecțiile de mai sus.
 
