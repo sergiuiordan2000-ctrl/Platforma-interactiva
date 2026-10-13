@@ -19,7 +19,7 @@
 | Pas | Stare |
 |---|---|
 | 1 — planul | închis |
-| 2 — `TRUST_PROXY` (T1–T4) | neînceput; sursa B = pagina de diagnostic din aplicație (`f982896`, amendamentul D-2 din 12.10.2026); furnizorul nu a răspuns la tichet |
+| 2 — `TRUST_PROXY` (T1–T4) | **oprit la condiția din plan (13.10.2026):** serverul web crede `X-Forwarded-For` trimis de vizitator; nicio setare nu este sigură; cerere precisă trimisă furnizorului (varianta A); `TRUST_PROXY` rămâne nesetat. Detalii: `docs/faza6/FAZA_6_TRUST_PROXY.md` |
 | 3A — testul automat cap-coadă | închis |
 | 3B — probele manuale M1–M3 | executate la 10–11.10.2026; raportul nu are încă verdict și nu este în depozit |
 | 3B — M4 (restaurarea) | după instalarea remedierii pe staging, cu o copie făcută după instalare |
@@ -32,7 +32,7 @@
 - `f982896`: pagina temporară de diagnostic a adresei vizitatorului (`DIAG_CLIENT_IP=on`; interzisă în producție; se scoate din cod după Pasul 2).
 Procedura de backup și restaurare: `docs/faza5/FAZA_5_1_BACKUP_RESTAURARE.md`, §6.
 
-**Staging (`test.urbisactiv.ro`):** rulează încă `08f4dc3`, fără marcaje. Următoarea instalare aduce `f982896`. Ea cere, înainte de prima pornire, `markers:rebuild-counter --at-least <N>` (contorul de pe staging era 7 la 11.10.2026), apoi pornirea temporară a paginii de diagnostic pentru Pasul 2. Copiile `civic-backup/1` de pe staging nu se mai pot restaura după instalare.
+**Staging (`test.urbisactiv.ro`):** rulează **`27b1b5f`** din 12.10.2026 (jurnalul staging-ului, intervențiile 29–38): marcajele create cu `markers:rebuild-counter --at-least 7` (următorul număr: TM-008); prima copie `civic-backup/2` făcută; pagina de diagnostic folosită la 13.10.2026 și oprită (404). Copiile `civic-backup/1` de pe staging nu se mai pot restaura. Fără redirecționare `http` → `https` (blocant pentru lansare).
 
 **Deschise:** verdictul asupra raportului M1–M3; răspunsul furnizorului (IP, `https`, jurnalul aplicației, păstrarea jurnalului de accesări, copiile proprii ale contului); constatările R7–R19 (curățări, `TRUST_PROXY`, jurnalul aplicației, sesiunile, mesajele de eroare interne R17, conturile șterse care reapar R18, e-mailurile retrimise după restaurare R19); confirmarea la acțiunile definitive din interfață (O3); matricea CI (joburile MySQL și Node 20 față de producția MariaDB, nedecisă).
 
