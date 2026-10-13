@@ -297,6 +297,11 @@ export async function processOne(ctx: AppContext, id: string): Promise<ProcessOu
          recipient = ?, mode_at_send = ?, transport = 'smtp', attempts = attempts + 1 WHERE id = ?`,
       [ctx.now(), providerMessageId, recipient, mode, id],
     );
+    // RA-8 (reaudit, 13.10.2026): în producție (`live`), codul de autentificare nu rămâne în clar în coadă după
+    // trimitere. Pe staging (`allowlist`) și în dezvoltare textul rămâne, pentru `dev:show-code`.
+    if (row.kind === 'citizen_login_code' && mode === 'live') {
+      await conn.query('UPDATE email_outbox SET body_text = NULL WHERE id = ?', [id]);
+    }
     if (row.kind === 'registry_notification' && row.report_id) {
       const [upd] = await conn.query(
         `UPDATE reports SET resolution_status = 'in_analysis', updated_at = ? WHERE id = ? AND resolution_status = 'new'`,

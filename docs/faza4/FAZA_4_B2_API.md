@@ -94,8 +94,8 @@ Aplicația se folosește **fără cont**; votul și dezabonarea rămân fără c
 | Metodă | Endpoint | Request | Răspuns | Reguli |
 |---|---|---|---|---|
 | POST | `/auth/login` | `{ email, password }` | 200 `{ mfa: "required"\|"enroll"\|"none", mustChangePassword }` + cookie | 401 generic; 429; blocarea contului răspunde tot 401 generic |
-| POST | `/auth/mfa/verify` | `{ code }` | 200 + cookie rotit | numai sesiune `pending`; anti-reluare |
-| POST | `/auth/mfa/recovery` | `{ code }` | 200 + cookie rotit | **2.15-A:** cod de recuperare de unică folosință, în locul codului TOTP; audit; recomandă reconfigurarea TOTP |
+| POST | `/auth/mfa/verify` | `{ code }` | 200 + cookie rotit | numai sesiune `pending`; anti-reluare (**amendament RA-3, 13.10.2026:** pasul TOTP se rezervă atomic; același cod trimis simultan trece o singură dată). **Amendament RA-4, 13.10.2026, decizia proprietarului:** cel mult 3 coduri greșite pe cont într-o oră; la al 3-lea, contul se blochează 15 minute, sesiunea se revocă și răspunsul este **429 `ACCOUNT_LOCKED`**; un cod corect resetează numărătoarea; `FAZA_6_REAUDIT_SECURITATE.md` |
+| POST | `/auth/mfa/recovery` | `{ code }` | 200 + cookie rotit | **2.15-A:** cod de recuperare de unică folosință, în locul codului TOTP; audit; recomandă reconfigurarea TOTP. **Amendament RA-4, 13.10.2026:** refuzat cât timp contul este blocat (429 `ACCOUNT_LOCKED`, sesiunea revocată, codul nu se consumă); la reușită resetează numărătoarea codurilor TOTP greșite |
 | POST | `/auth/mfa/recovery-codes/regenerate` | — | `{ codes[] }` (afișate o singură dată) | numai sesiune completă; invalidează setul anterior; audit |
 | POST | `/auth/mfa/enroll/start` | — | `{ otpauthUri, secretBase32 }` (o singură dată) | numai sesiune `pending` fără TOTP activ |
 | POST | `/auth/mfa/enroll/confirm` | `{ code }` | 200 + cookie rotit | activează TOTP |

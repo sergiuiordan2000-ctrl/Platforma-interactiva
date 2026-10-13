@@ -31,6 +31,8 @@ export const LIMITS = {
   preMfaMinutes: 5,
   loginMaxFailures: 5,
   loginLockMinutes: 15,
+  /** RA-4 (decizia proprietarului, 13.10.2026): coduri TOTP greșite pe cont, pe oră, înainte de blocare. */
+  totpMaxFailuresPerHour: 3,
   loginPerIpWindowMinutes: 15,
   loginPerIp: 20,
   /** D-B4 (13.10.2026): verificări de parolă Admin simultane. */

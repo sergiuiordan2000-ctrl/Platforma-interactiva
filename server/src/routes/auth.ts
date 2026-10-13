@@ -80,6 +80,10 @@ async function completeLogin(ctx: AppContext, request: FastifyRequest, reply: Fa
   });
 }
 
+/** RA-4: găleata codurilor TOTP greșite ale unui cont (fereastră de o oră). */
+const totpFailKey = (userId: string) => `mfa:fail:acct:${userId}`;
+const ACCOUNT_LOCKED_MESSAGE = 'Prea multe coduri greșite. Contul este blocat temporar; reveniți peste 15 minute.';
+
 /** D-B4: verificările de parolă în curs (în acest proces). */
 let passwordChecksInFlight = 0;
 
@@ -127,13 +131,13 @@ export function registerAuthRoutes(api: FastifyInstance, ctx: AppContext): void 
         return fail('blocked');
       }
       if (!(await verifyPassword(body.password, user.password_hash))) {
-        const failures = user.failed_login_count + 1;
-        const lock = failures >= LIMITS.loginMaxFailures ? new Date(now.getTime() + LIMITS.loginLockMinutes * 60_000) : null;
-        await ctx.pool.query('UPDATE admin_users SET failed_login_count = ?, locked_until = ? WHERE id = ?', [
-          lock ? 0 : failures,
-          lock,
-          user.id,
-        ]);
+        // RA-3 (reaudit, 13.10.2026): numărare atomică în baza de date (nu valoarea citită mai sus), apoi blocarea
+        // la atingerea pragului; cererile simultane nu mai pot pierde eșecuri
+        await ctx.pool.query('UPDATE admin_users SET failed_login_count = failed_login_count + 1 WHERE id = ?', [user.id]);
+        await ctx.pool.query(
+          'UPDATE admin_users SET failed_login_count = 0, locked_until = ? WHERE id = ? AND failed_login_count >= ?',
+          [new Date(now.getTime() + LIMITS.loginLockMinutes * 60_000), user.id, LIMITS.loginMaxFailures],
+        );
         return fail('invalid');
       }
       const updates: string[] = ['failed_login_count = 0', 'locked_until = NULL'];
@@ -173,17 +177,42 @@ export function registerAuthRoutes(api: FastifyInstance, ctx: AppContext): void 
       return reply.code(409).send(apiError('MFA_STATE', 'Pasul TOTP nu este disponibil.'));
     }
     const ipH = requestIpHash(ctx, request);
+    const now = ctx.now();
+    // RA-4: contul blocat (inclusiv după prea multe coduri TOTP greșite) nu continuă autentificarea
+    if (p.user.locked_until && p.user.locked_until > now) {
+      await revokeSession(ctx, p.session.id, 'locked');
+      return reply.code(429).send(apiError('ACCOUNT_LOCKED', ACCOUNT_LOCKED_MESSAGE));
+    }
     if ((await hitRateLimit(ctx, `mfa:${p.session.id}`, 5)) > 5) {
       await recordRejected(ctx, 'login', 'rate_limited', ipH);
       return reply.code(429).send(apiError('RATE_LIMITED', 'Prea multe încercări. Reveniți mai târziu.'));
     }
     const secret = decryptSecret(ctx.config.secrets.totpEncKey, p.user.totp_secret_enc);
-    const step = verifyTotp(secret, body.code, ctx.now(), p.user.totp_last_step);
+    const step = verifyTotp(secret, body.code, now, p.user.totp_last_step);
     if (step === null) {
+      await recordRejected(ctx, 'login', 'invalid', ipH);
+      // RA-4 (decizia proprietarului, 13.10.2026): pe cont, cel mult LIMITS.totpMaxFailuresPerHour coduri greșite
+      // într-o oră; la prag, contul se blochează LIMITS.loginLockMinutes, iar sesiunea dinaintea MFA se revocă
+      if ((await hitRateLimit(ctx, totpFailKey(p.user.id), 60)) >= LIMITS.totpMaxFailuresPerHour) {
+        await ctx.pool.query('UPDATE admin_users SET locked_until = ? WHERE id = ?', [
+          new Date(now.getTime() + LIMITS.loginLockMinutes * 60_000), p.user.id,
+        ]);
+        await ctx.pool.query('DELETE FROM rate_limits WHERE bucket_key = ?', [totpFailKey(p.user.id)]);
+        await revokeSession(ctx, p.session.id, 'locked');
+        return reply.code(429).send(apiError('ACCOUNT_LOCKED', ACCOUNT_LOCKED_MESSAGE));
+      }
+      return reply.code(401).send(apiError('INVALID_CODE', 'Cod incorect.'));
+    }
+    // RA-3: pasul se rezervă atomic; același cod trimis simultan în două cereri nu trece de două ori
+    const [claimed] = await ctx.pool.query(
+      'UPDATE admin_users SET totp_last_step = ? WHERE id = ? AND (totp_last_step IS NULL OR totp_last_step < ?)',
+      [step, p.user.id, step],
+    );
+    if ((claimed as { affectedRows: number }).affectedRows !== 1) {
       await recordRejected(ctx, 'login', 'invalid', ipH);
       return reply.code(401).send(apiError('INVALID_CODE', 'Cod incorect.'));
     }
-    await ctx.pool.query('UPDATE admin_users SET totp_last_step = ? WHERE id = ?', [step, p.user.id]);
+    await ctx.pool.query('DELETE FROM rate_limits WHERE bucket_key = ?', [totpFailKey(p.user.id)]);
     await completeLogin(ctx, request, reply, p, 'totp');
     return { ok: true };
   });
@@ -196,6 +225,11 @@ export function registerAuthRoutes(api: FastifyInstance, ctx: AppContext): void 
       return reply.code(409).send(apiError('MFA_STATE', 'Pasul TOTP nu este disponibil.'));
     }
     const ipH = requestIpHash(ctx, request);
+    // RA-4: contul blocat nu se poate debloca ocolind TOTP prin codurile de recuperare
+    if (p.user.locked_until && p.user.locked_until > ctx.now()) {
+      await revokeSession(ctx, p.session.id, 'locked');
+      return reply.code(429).send(apiError('ACCOUNT_LOCKED', ACCOUNT_LOCKED_MESSAGE));
+    }
     if ((await hitRateLimit(ctx, `mfa:${p.session.id}`, 5)) > 5) {
       return reply.code(429).send(apiError('RATE_LIMITED', 'Prea multe încercări. Reveniți mai târziu.'));
     }
@@ -211,6 +245,7 @@ export function registerAuthRoutes(api: FastifyInstance, ctx: AppContext): void 
       actorType: 'admin', actorUserId: p.user.id, action: 'auth.recovery_code.used', targetType: 'account',
       targetId: p.user.id, ipHash: ipH,
     });
+    await ctx.pool.query('DELETE FROM rate_limits WHERE bucket_key = ?', [totpFailKey(p.user.id)]);
     await completeLogin(ctx, request, reply, p, 'recovery_code');
     return { ok: true, recommendation: 'Reconfigurați TOTP și regenerați codurile de recuperare.' };
   });

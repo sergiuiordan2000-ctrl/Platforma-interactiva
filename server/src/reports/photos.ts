@@ -39,7 +39,9 @@ export function detectMime(buf: Buffer): PhotoMime | null {
 // ——— JPEG ———
 
 const SOF_MARKERS = new Set([0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf]);
-const STRIP_JPEG = new Set([0xe1, 0xed]); // APP1 (EXIF, XMP), APP13 (IPTC)
+// APP1 (EXIF, XMP), APP13 (IPTC); RA-6 (reaudit, 13.10.2026): și COM (comentariile, text liber)
+const STRIP_JPEG = new Set([0xe1, 0xed, 0xfe]);
+const JPEG_EOI = Buffer.from([0xff, 0xd9]);
 
 function cleanJpeg(buf: Buffer): CleanPhoto {
   const parts: Buffer[] = [buf.subarray(0, 2)];
@@ -67,8 +69,12 @@ function cleanJpeg(buf: Buffer): CleanPhoto {
       width = buf.readUInt16BE(pos + 7);
     }
     if (marker === 0xda) {
-      // SOS: de aici încolo sunt datele imaginii, copiate neschimbat până la final
-      parts.push(buf.subarray(pos));
+      // SOS: de aici încolo sunt datele imaginii, copiate neschimbat până la sfârșitul imaginii (EOI, FF D9).
+      // RA-6: ce urmează după EOI nu mai face parte din imagine și nu se păstrează. În datele comprimate, un
+      // octet FF este urmat numai de 00 (umplutură) sau de un marcaj, deci primul FF D9 este sfârșitul imaginii.
+      // Fără EOI (fișier fără marcajul final), datele se copiază până la capăt, ca înainte.
+      const eoi = buf.indexOf(JPEG_EOI, pos + 2 + len);
+      parts.push(eoi < 0 ? buf.subarray(pos) : buf.subarray(pos, eoi + 2));
       break;
     }
     if (!STRIP_JPEG.has(marker)) parts.push(buf.subarray(pos, pos + 2 + len));

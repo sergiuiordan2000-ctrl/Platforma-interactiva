@@ -4,7 +4,7 @@
 **Planul:** `docs/faza6/FAZA_6_PLAN.md`, Pasul 4 (S1–S12), regula dovezilor §4.
 **Starea:** **în lucru.** S1–S5 și S8–S12 sunt verificate în cod și local; **S7** verificat pe staging la 13.10.2026 (§2, S7). **S6:** Pasul 2 s-a încheiat prin varianta B (`FAZA_6_ANTIABUZ_FARA_IP.md`). Probele S1, S2, S4 pe staging sunt încă de făcut. Pasul 4 nu se închide înainte de verificarea `TRUST_PROXY` (D-4).
 **Limită:** reauditul este făcut de Claude, care a scris și codul. Auditul independent rămâne cel de la checkpoint.
-**Nimic nu a fost reparat.** Constatările și propunerile de remediere sunt separate; fiecare remediere cere aprobarea proprietarului.
+**Remedierile** sunt consemnate separat de constatări, fiecare cu decizia proprietarului (§1, „Remedieri”, și §3).
 
 ## 1. Rezumatul constatărilor noi
 
@@ -20,7 +20,7 @@
 | RA-8 | S10, S11 | informativă | Codul de autentificare al cetățeanului rămâne în clar în `email_outbox.body_text` | cod |
 | RA-9 | S6 | **blocantă pentru lansare** | Fără adresa reală a vizitatorului, fiecare limită pe IP devine o limită pentru tot orașul (de exemplu 5 sesizări / oră, 10 voturi / oră / sondaj) | `FAZA_6_ANTIABUZ_FARA_IP.md` §1 |
 
-**Remedieri (13.10.2026):** RA-1, RA-2 în `c69c146`. RA-5 (partea comună tuturor) și RA-9: varianta B, deciziile D-B1…D-B5 (`FAZA_6_ANTIABUZ_FARA_IP.md`), în commitul care urmează acestui document; neinstalate pe staging.
+**Remedieri (13.10.2026):** RA-1, RA-2 în `c69c146`. RA-5 (partea comună tuturor) și RA-9: varianta B, deciziile D-B1…D-B5 (`FAZA_6_ANTIABUZ_FARA_IP.md`), în `cb4cc45`, instalată pe staging la 13.10.2026. RA-3, RA-4, RA-6, RA-7, RA-8 (etapa B, deciziile proprietarului din 13.10.2026): în commitul care urmează; neinstalate pe staging.
 
 Nicio constatare critică. Nicio vulnerabilitate care să permită acces fără autentificare la date sau acțiuni protejate.
 
@@ -173,9 +173,13 @@ Recomandare: **A**.
 
 Dovada este numai codul (deducție, fără probă). Propunere: actualizări atomice condiționate, ca la RA-1.
 
+**Remediere (decizia proprietarului, 13.10.2026: A):** `server/src/routes/auth.ts`: eșecul de parolă se numără în baza de date (`failed_login_count = failed_login_count + 1`), iar blocarea se face printr-o a doua actualizare, condiționată de prag; pasul TOTP se rezervă atomic (`… AND (totp_last_step IS NULL OR totp_last_step < ?)`), iar cererea care nu-l obține primește 401. Teste noi în `server/test/integration/reauditB.test.ts`: 3 runde de câte 2 parole greșite simultane → contul blocat; același cod TOTP din două sesiuni simultane → o singură reușită. Probe de control pe o copie: vechiul cod → contul nu se blochează; vechiul cod → ambele cereri reușesc.
+
 ### RA-4 — Încercările TOTP sunt limitate pe sesiune (scăzută)
 
 Cine cunoaște parola poate deschide o sesiune nouă după fiecare 5 încercări. Plafonul real este limita de autentificare pe IP. Propunere: o limită suplimentară pe cont (de exemplu 10 încercări TOTP greșite pe oră, apoi blocare temporară).
+
+**Remediere (decizia proprietarului, 13.10.2026: A, cu 3 coduri greșite într-o oră):** pe cont se numără codurile TOTP greșite (fereastră de o oră, `LIMITS.totpMaxFailuresPerHour = 3`). La al 3-lea: contul se blochează 15 minute (`locked_until`, aceeași blocare ca la parolă), sesiunea dinaintea MFA se revocă, răspunsul este 429 `ACCOUNT_LOCKED`. Cât timp contul e blocat, sunt refuzate și parola corectă (401 generic, ca înainte), codul TOTP corect și **codurile de recuperare** (429, sesiunea revocată, codul nu se consumă). Un cod corect, TOTP sau de recuperare, resetează numărătoarea. Codurile de recuperare greșite nu intră în această numărătoare (rămân limitate pe sesiune, 5 / 5 min). Teste noi în `reauditB.test.ts`, cu probe de control pe o copie (fără numărare; fără verificarea blocării la TOTP; fără verificarea blocării la recuperare; fără resetare la TOTP; fără resetare la recuperare → fiecare test pică).
 
 ### RA-5 — Blocarea autentificării Admin de către terți (scăzută; ridicată cât timp `TRUST_PROXY` lipsește)
 
@@ -188,14 +192,20 @@ Se rezolvă odată cu Pasul 2 (S6). Propunere suplimentară, după Pasul 2: limi
 
 Planul (S8) spune „rescrierea imaginii”; implementarea **elimină segmentele de metadate** și copiază restul. Rămân: comentariile JPEG (`COM`), alte segmente `APPn` (de exemplu profilul de culoare) și eventuale date după sfârșitul imaginii. Nu se pot executa (tipul corect, `nosniff`), dar pot purta text. Propunere: eliminarea și a segmentelor `COM` și a datelor de după `EOI`; formularea din plan se corectează.
 
+**Remediere (decizia proprietarului, 13.10.2026: A):** `server/src/reports/photos.ts`: se elimină și segmentele `COM` (FF FE); datele imaginii se copiază numai până la primul `EOI` (FF D9) de după `SOS` (în datele comprimate, un octet FF este urmat numai de 00 sau de un marcaj). Fără `EOI`, comportamentul rămâne cel vechi. Rămân, intenționat: profilul de culoare și celelalte segmente `APPn`; imaginea nu se re-codează. Teste noi în `server/test/unit/photosRA6.test.ts`, cu probe de control (COM păstrat; date după EOI păstrate → testele pică).
+
 ### RA-7 — Dependențele de build și cele nefolosite (informativă)
 
 - `source-map-js` 1.2.1 → 1.2.2 (numai la build).
 - `package.json` din rădăcină păstrează pachete nefolosite de cod (`express`, `@google/genai`, `dotenv`, `motion`), constatarea m15 din auditul Etapei 6. Nu ajung în interfață; măresc suprafața la instalare. Propunere: scoaterea lor, cu build și teste.
 
+**Remediere (decizia proprietarului, 13.10.2026: A):** `npm uninstall @google/genai dotenv express motion @types/express` și `npm audit fix`. În `package-lock.json` s-a schimbat o singură versiune (`source-map-js` 1.2.1 → 1.2.2); 53 de pachete au fost scoase, niciunul adăugat. `npm audit`: 0 vulnerabilități. Niciun fișier din depozit nu importa pachetele scoase. Build și toate suitele: trec.
+
 ### RA-8 — Codul de cetățean în clar în coada de e-mail (informativă)
 
 `email_outbox.body_text` păstrează textul cu codul (necesar pentru trimitere și pentru `dev:show-code` pe staging); în copii, corpul se păstrează numai în fereastra N3-8. Cine citește baza sau o copie recentă vede codurile încă valabile (≤ 15 minute). Propunere opțională: golirea `body_text` pentru `citizen_login_code` după trimitere, în modul `live`.
+
+**Remediere (decizia proprietarului, 13.10.2026: A):** `server/src/reports/outbox.ts`: în modul `live`, după trimiterea reușită a unui `citizen_login_code`, `body_text` devine NULL, în aceeași tranzacție cu `status = 'sent'`. În `allowlist` (staging) și `simulated` (dezvoltare) textul rămâne, pentru `dev:show-code`. Pe staging nu se schimbă nimic. Teste noi în `reauditB.test.ts` (live: textul șters, codul primit funcționează; allowlist: textul rămâne), cu probe de control (fără ștergere → pică; ștergere și în allowlist → pică).
 
 ### RA-9 — Limitele pe IP devin limite pentru tot orașul (blocantă pentru lansare)
 
@@ -217,7 +227,7 @@ Auditul Etapei 6 (`RAPORT_AUDIT_ETAPA_6.md`, 6D), pe aplicația fără server:
 | S8 / m2: permisiuni pe acțiune lipsă | **închisă**: o permisiune pe rută |
 | S9 / m3: sesiunea nu expiră | **închisă** pentru Admin; pentru cetățean, fără expirare prin decizie (S2) |
 | S10: jurnalul de e-mail în `localStorage` | **închisă**: jurnalul pe server, `super_admin` |
-| m15: dependențe moarte | **deschisă** (RA-7) |
+| m15: dependențe moarte | **închisă** (RA-7, etapa B) |
 
 Auditul general (A-01 … A-27) și deciziile D1–D12 nu sunt integral în depozit (`PROJECT_HANDOFF_CURRENT.md`, G.5). Starea lor nu se poate verifica rând cu rând; rămâne **neefectuat**.
 
@@ -228,4 +238,4 @@ Auditul general (A-01 … A-27) și deciziile D1–D12 nu sunt integral în depo
 | S6 | limitele pe IP, pe cont, pe adresă; T2 | Pasul 2 (`TRUST_PROXY`) |
 | S1, S2, S4 pe staging | probele din tabelul planului | aprobare separată |
 | S12 | auditul general | documentele lipsă |
-| remedierile RA-1 … RA-8 | numai după decizia proprietarului | — |
+| remedierile RA-1 … RA-8 | RA-1, RA-2 instalate pe staging; RA-3, RA-4, RA-6, RA-7, RA-8 în cod, neinstalate; RA-5 acceptat (varianta B) | instalarea, cu aprobare |
