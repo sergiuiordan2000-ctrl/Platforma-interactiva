@@ -21,7 +21,7 @@
 | RA-10 | S11 | scăzută | Erorile rutelor `/api/v1` ocolesc handlerul aplicației: clientul primește mesajul brut al erorii (la 500, de exemplu textul erorii bazei de date, care pe găzduire poate conține numele contului) și mesajele tehnice ale Fastify la 4xx; fără identificator de corelare. Este constatarea R17 (11.10.2026). **Adăugată la 13.10.2026: inițial, S11 a fost trecut greșit „conform”** | probă locală (§3, RA-10) |
 | RA-9 | S6 | **blocantă pentru lansare** | Fără adresa reală a vizitatorului, fiecare limită pe IP devine o limită pentru tot orașul (de exemplu 5 sesizări / oră, 10 voturi / oră / sondaj) | `FAZA_6_ANTIABUZ_FARA_IP.md` §1 |
 
-**Remedieri (13.10.2026):** RA-1, RA-2 în `c69c146`. RA-5 (partea comună tuturor) și RA-9: varianta B, deciziile D-B1…D-B5 (`FAZA_6_ANTIABUZ_FARA_IP.md`), în `cb4cc45`, instalată pe staging la 13.10.2026. RA-3, RA-4, RA-6, RA-7, RA-8 (etapa B, deciziile proprietarului din 13.10.2026): în `9a1e08b`; neinstalate pe staging. RA-10 (decizia proprietarului din 13.10.2026: A): în commitul care urmează; neinstalată pe staging.
+**Remedieri (13.10.2026):** RA-1, RA-2 în `c69c146`. RA-5 (partea comună tuturor) și RA-9: varianta B, deciziile D-B1…D-B5 (`FAZA_6_ANTIABUZ_FARA_IP.md`), în `cb4cc45`, instalată pe staging la 13.10.2026. RA-3, RA-4, RA-6, RA-7, RA-8 (etapa B, deciziile proprietarului din 13.10.2026): în `9a1e08b`. RA-10 (decizia proprietarului din 13.10.2026: A): în `f6d5f2d`. Toate instalate pe staging la 14.10.2026 (`f6d5f2d`, jurnalul staging-ului, intervențiile 55–59).
 
 Nicio constatare critică. Nicio vulnerabilitate care să permită acces fără autentificare la date sau acțiuni protejate.
 
@@ -247,4 +247,4 @@ Auditul general (A-01 … A-27) și deciziile D1–D12 nu sunt integral în depo
 | S6 | limitele pe IP, pe cont, pe adresă; T2 | Pasul 2 (`TRUST_PROXY`) |
 | S1, S2, S4 pe staging | probele din tabelul planului | aprobare separată |
 | S12 | auditul general | documentele lipsă |
-| remedierile RA-1 … RA-10 | RA-1, RA-2, RA-9 instalate pe staging; RA-3, RA-4, RA-6, RA-7, RA-8, RA-10 în cod, neinstalate; RA-5 acceptat (varianta B) | instalarea, cu aprobare |
+| remedierile RA-1 … RA-10 | toate instalate pe staging (`f6d5f2d`, 14.10.2026); RA-5 acceptată (varianta B) | — |

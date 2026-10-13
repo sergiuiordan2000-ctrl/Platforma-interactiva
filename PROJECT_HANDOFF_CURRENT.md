@@ -8,23 +8,23 @@
 
 ---
 
-## 0A. FAZA 6 ÎN CURS (actualizat la 12.10.2026)
+## 0A. FAZA 6 ÎN CURS (actualizat la 14.10.2026)
 
 > **Are prioritate față de Secțiunea 0.** Secțiunea 0 rămâne valabilă acolo unde 0A nu spune altceva.
 
-**Git.** Branch `faza-5-backend`, ultimul commit de cod `f982896`; `main` = `d9bc2c9`, neatins. CI verde pe toate cele 6 joburi (inclusiv MariaDB 11.4) la `961fc76`, `6da2f68` și `f982896`.
+**Git.** Branch `faza-5-backend`, ultimul commit de cod `f6d5f2d` (RA-10); `main` = `d9bc2c9`, neatins. CI verde pe toate cele 6 joburi (inclusiv MariaDB 11.4) la `9a1e08b` și `f6d5f2d`. **Raportul Fazei 6: `docs/faza6/FAZA_6_RAPORT.md` (cerere de checkpoint, 14.10.2026); are prioritate față de tabelul de mai jos.**
 
 **Faza 6, pe pașii planului (`docs/faza6/FAZA_6_PLAN.md`, cu amendamentele din §0.1):**
 
 | Pas | Stare |
 |---|---|
 | 1 — planul | închis |
-| 2 — `TRUST_PROXY` (T1–T4) | **oprit la condiția din plan (13.10.2026):** serverul web crede `X-Forwarded-For` trimis de vizitator; nicio setare nu este sigură; cerere precisă trimisă furnizorului (varianta A); `TRUST_PROXY` rămâne nesetat. Detalii: `docs/faza6/FAZA_6_TRUST_PROXY.md` |
+| 2 — `TRUST_PROXY` (T1–T4) | **oprit la condiția din plan (13.10.2026):** serverul web crede `X-Forwarded-For` trimis de vizitator; furnizorul a refuzat schimbarea; **varianta B** aleasă (D-B1…D-B5, `FAZA_6_ANTIABUZ_FARA_IP.md`), instalată în `cb4cc45`; `TRUST_PROXY` rămâne nesetat |
 | 3A — testul automat cap-coadă | închis |
-| 3B — probele manuale M1–M3 | executate la 10–11.10.2026; raportul nu are încă verdict și nu este în depozit |
+| 3B — probele manuale M1–M3 | executate la 10–11.10.2026; raportul **acceptat de proprietar la 14.10.2026** (`docs/faza6/FAZA_6_PROBE_M1_M3_RAPORT.md`) |
 | 3B — M4 (restaurarea) | **executat la 13.10.2026, criteriile îndeplinite** (jurnalul staging-ului, intervențiile 41–48): A ștearsă lipsește, B există cu fotografia, C lipsește, contorul 10; datele active identice înainte și după; a doua restaurare refuzată. Abatere: 5 rulări cron au citit baza activă, fără scriere (observația 9: `nodevenv` înlocuiește `CIVIC_ENV_FILE` din linia cron) |
-| 4 — reauditul de securitate | neînceput |
-| 5 — raportul Fazei 6 | neînceput |
+| 4 — reauditul de securitate | făcut (`FAZA_6_REAUDIT_SECURITATE.md`): RA-1…RA-10, toate remediate și instalate pe staging (`f6d5f2d`); RA-5 acceptată |
+| 5 — raportul Fazei 6 | `FAZA_6_RAPORT.md`, cerere de checkpoint (14.10.2026); așteaptă decizia proprietarului (§9) |
 
 **Ce s-a schimbat în cod la 11–12.10.2026:**
 - `961fc76`: remedierea backup-ului și a numerotării TM (R1–R5), marcajul contorului pierdut (A1), linia din ieșirea backup-ului (A8), restaurarea cu marcaje lipsă sau vechi și formatul `civic-backup/2` (G1–G3);
@@ -32,9 +32,9 @@
 - `f982896`: pagina temporară de diagnostic a adresei vizitatorului (`DIAG_CLIENT_IP=on`; interzisă în producție; se scoate din cod după Pasul 2).
 Procedura de backup și restaurare: `docs/faza5/FAZA_5_1_BACKUP_RESTAURARE.md`, §6.
 
-**Staging (`test.urbisactiv.ro`):** rulează **`cb4cc45`** din 13.10.2026, ~19:33 (RA-1, RA-2, varianta B; jurnalul staging-ului, intervențiile 49–54: ALTCHA la cod, sesizare și vot, limitele pe IP oprite, Admin normal; contorul: 11). Anterior: **`27b1b5f`** din 12.10.2026 (jurnalul staging-ului, intervențiile 29–38): marcajele create cu `markers:rebuild-counter --at-least 7` (următorul număr: TM-008); prima copie `civic-backup/2` făcută; pagina de diagnostic folosită la 13.10.2026 și oprită (404). Copiile `civic-backup/1` de pe staging nu se mai pot restaura. Redirecționarea `http` → `https` pusă la 13.10.2026 (regulă `.htaccess`, 301, intervențiile 39–40); pentru producție se repetă la instalare. M4 executat la 13.10.2026 (contorul: 10; B = TM-009 și C = TM-010 rămân).
+**Staging (`test.urbisactiv.ro`):** rulează **`f6d5f2d`** din 14.10.2026, ~00:16 (RA-3, RA-4, RA-6, RA-7, RA-8, RA-10; intervențiile 55–59; contorul: 12). Anterior: **`cb4cc45`** din 13.10.2026, ~19:33 (RA-1, RA-2, varianta B; jurnalul staging-ului, intervențiile 49–54: ALTCHA la cod, sesizare și vot, limitele pe IP oprite, Admin normal; contorul: 11). Anterior: **`27b1b5f`** din 12.10.2026 (jurnalul staging-ului, intervențiile 29–38): marcajele create cu `markers:rebuild-counter --at-least 7` (următorul număr: TM-008); prima copie `civic-backup/2` făcută; pagina de diagnostic folosită la 13.10.2026 și oprită (404). Copiile `civic-backup/1` de pe staging nu se mai pot restaura. Redirecționarea `http` → `https` pusă la 13.10.2026 (regulă `.htaccess`, 301, intervențiile 39–40); pentru producție se repetă la instalare. M4 executat la 13.10.2026 (contorul: 10; B = TM-009 și C = TM-010 rămân).
 
-**Deschise:** verdictul asupra raportului M1–M3; răspunsul furnizorului la tichetul `TRUST_PROXY` (13.10.2026) și la jurnalul aplicației; **urmările răspunsului din 13.10.2026** (copiile furnizorului păstrate 3 luni, peste regula de 45 de zile; jurnalul de accesări o lună, cu IP-ul lângă cereri, inclusiv la sondaje), de decis odată cu politica de confidențialitate; reauditul (`docs/faza6/FAZA_6_REAUDIT_SECURITATE.md`: RA-1 și RA-2 remediate în `c69c146`, RA-5 (partea comună) și RA-9 prin varianta B în `cb4cc45`, ambele instalate pe staging la 13.10.2026; RA-3…RA-8 deschise; S6, S7 de făcut); constatările R7–R19 (curățări, `TRUST_PROXY`, jurnalul aplicației, sesiunile, mesajele de eroare interne R17, conturile șterse care reapar R18, e-mailurile retrimise după restaurare R19); confirmarea la acțiunile definitive din interfață (O3); matricea CI (joburile MySQL și Node 20 față de producția MariaDB, nedecisă).
+**Deschise (lista completă, la zi: `FAZA_6_RAPORT.md`, Listele 3, 5 și 6):** decizia de checkpoint; jurnalul aplicației pe găzduire (R12; furnizorul a răspuns la `TRUST_PROXY` cu refuz, 13.10.2026); **urmările răspunsului din 13.10.2026** (copiile furnizorului păstrate 3 luni, peste regula de 45 de zile; jurnalul de accesări o lună, cu IP-ul lângă cereri, inclusiv la sondaje), de decis odată cu politica de confidențialitate; constatările R7–R19 rămase (curățări, jurnalul aplicației, sesiunile; R17 remediată ca RA-10; conturile șterse care reapar R18, e-mailurile retrimise după restaurare R19); confirmarea la acțiunile definitive din interfață (O3); matricea CI (joburile MySQL și Node 20 față de producția MariaDB, nedecisă).
 
 ## 0. STAREA CURENTĂ — FAZA 5 ÎNCHISĂ, URMEAZĂ FAZA 6 (actualizat la 10.10.2026)
 
