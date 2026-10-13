@@ -272,7 +272,8 @@ describe('Google: întoarcerea — reușită și același cont (G-3, §9.2)', ()
     assert.equal(after!.status, 'active', 'Google confirmă adresa, ca primul cod');
     assert.equal(after!.policy_version, '2025-01');
     // și invers: contul creat cu Google primește cod pe aceeași adresă (fără cont nou)
-    await new Client(app).post(`${V1}/citizen/auth/start`, { email: 'ana.google@exemplu.test' });
+    assert.equal((await new Client(app).post(`${V1}/citizen/auth/start`,
+      { email: 'ana.google@exemplu.test', policyAccepted: true, policyVersion: CITIZEN_POLICY_VERSION })).statusCode, 202);
     assert.equal(await accountCount('ana.google@exemplu.test'), 1);
   });
 

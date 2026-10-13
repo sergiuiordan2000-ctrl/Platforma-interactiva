@@ -84,6 +84,13 @@ export function registerCitizenRoutes(api: FastifyInstance, ctx: AppContext): vo
       reply.header('Retry-After', '3600');
       return reply.code(429).send(apiError('RATE_LIMITED', 'Prea multe cereri. Reveniți mai târziu.'));
     }
+    // RA-2 (reaudit, decizia proprietarului din 13.10.2026, varianta A): bifa politicii se cere la FIECARE cerere,
+    // înainte de orice citire a contului; răspunsul nu mai arată dacă adresa are cont (ca la Google, §8 A)
+    if (body.policyAccepted !== true || body.policyVersion !== CITIZEN_POLICY_VERSION) {
+      return reply.code(422).send(apiError('POLICY_REQUIRED', 'Pentru a continua trebuie acceptată politica de utilizare.', {
+        fields: { policyAccepted: 'obligatoriu' },
+      }));
+    }
     const hash = emailHash(ctx, email);
     const [rows] = await ctx.pool.query('SELECT id, status FROM citizen_accounts WHERE email_normalized = ?', [email]);
     const account = (rows as Array<{ id: string; status: 'pending' | 'active' }>)[0];
@@ -97,11 +104,6 @@ export function registerCitizenRoutes(api: FastifyInstance, ctx: AppContext): vo
             'Această adresă nu mai poate fi folosită pentru un cont nou.');
         }
         return reply.code(202).send(ACCEPTED);
-      }
-      if (body.policyAccepted !== true || body.policyVersion !== CITIZEN_POLICY_VERSION) {
-        return reply.code(422).send(apiError('POLICY_REQUIRED', 'Pentru un cont nou trebuie acceptată politica de utilizare.', {
-          fields: { policyAccepted: 'obligatoriu' },
-        }));
       }
     }
     // plafoane pe adresă: fără enumerare (același 202), dar fără e-mail nou
@@ -163,11 +165,15 @@ export function registerCitizenRoutes(api: FastifyInstance, ctx: AppContext): vo
       [account.id, now],
     );
     const row = (codes as Array<{ id: string; code_hash: string; attempts: number }>)[0];
-    if (!row || row.attempts >= LIMITS.citizenCodeMaxAttempts) return fail();
-    if (!safeEqualHex(row.code_hash, codeHash(ctx, account.id, body.code))) {
-      await ctx.pool.query('UPDATE citizen_login_codes SET attempts = attempts + 1 WHERE id = ?', [row.id]);
-      return fail();
-    }
+    if (!row) return fail();
+    // RA-1 (reaudit): încercarea se rezervă atomic ÎNAINTE de comparare; cererile simultane nu pot depăși
+    // limita (o citire urmată de o scriere lăsa să treacă oricâte comparații în paralel)
+    const [claimed] = await ctx.pool.query(
+      'UPDATE citizen_login_codes SET attempts = attempts + 1 WHERE id = ? AND attempts < ? AND consumed_at IS NULL',
+      [row.id, LIMITS.citizenCodeMaxAttempts],
+    );
+    if ((claimed as { affectedRows: number }).affectedRows !== 1) return fail();
+    if (!safeEqualHex(row.code_hash, codeHash(ctx, account.id, body.code))) return fail();
     const [consumed] = await ctx.pool.query(
       'UPDATE citizen_login_codes SET consumed_at = ? WHERE id = ? AND consumed_at IS NULL',
       [now, row.id],

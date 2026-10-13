@@ -152,10 +152,28 @@ describe('conturile cetățenilor (B3 §8)', () => {
   });
 
   it('fără enumerare: adresă existentă sau nu → același 202', async () => {
-    const a = await new Client(app).post(`${V1}/citizen/auth/start`, { email: 'ion@exemplu.test' });
+    const a = await new Client(app).post(`${V1}/citizen/auth/start`, { email: 'ion@exemplu.test', policyAccepted: true, policyVersion: CITIZEN_POLICY_VERSION });
     const b = await new Client(app).post(`${V1}/citizen/auth/start`, { email: 'nou@exemplu.test', policyAccepted: true, policyVersion: CITIZEN_POLICY_VERSION });
     assert.equal(a.statusCode, 202);
     assert.deepEqual(a.json(), b.json());
+  });
+
+  it('RA-2: fără bifă, adresă existentă sau nu → același 422, fără cod și fără cont nou', async () => {
+    const mails = async () => (await q<{ n: number }>("SELECT COUNT(*) AS n FROM email_outbox WHERE kind = 'citizen_login_code'"))[0]!.n;
+    const before = await mails();
+    for (const body of [
+      { email: 'ion@exemplu.test' },
+      { email: 'ion@exemplu.test', policyAccepted: true },
+      { email: 'ion@exemplu.test', policyAccepted: true, policyVersion: '2000-01' },
+    ]) {
+      const existing = await new Client(app).post(`${V1}/citizen/auth/start`, body);
+      const missing = await new Client(app).post(`${V1}/citizen/auth/start`, { ...body, email: 'nimeni.ra2@exemplu.test' });
+      assert.equal(existing.statusCode, 422);
+      assert.equal(missing.statusCode, 422);
+      assert.deepEqual(existing.json(), missing.json(), 'același răspuns, cu cont sau fără');
+    }
+    assert.equal(await mails(), before, 'niciun cod nou');
+    assert.equal((await q("SELECT id FROM citizen_accounts WHERE email_normalized = 'nimeni.ra2@exemplu.test'")).length, 0, 'niciun cont nou');
   });
 
   it('cod greșit → 401; codul corect activează contul; un cod nu se refolosește', async () => {
@@ -172,13 +190,41 @@ describe('conturile cetățenilor (B3 §8)', () => {
   });
 
   it('codul expiră după 15 minute; 5 încercări greșite epuizează codul', async () => {
-    await new Client(app).post(`${V1}/citizen/auth/start`, { email: 'ion@exemplu.test' });
+    assert.equal((await new Client(app).post(`${V1}/citizen/auth/start`, { email: 'ion@exemplu.test', policyAccepted: true, policyVersion: CITIZEN_POLICY_VERSION })).statusCode, 202);
     const [row] = await q<{ b: string }>("SELECT body_text AS b FROM email_outbox WHERE recipient = 'ion@exemplu.test' ORDER BY created_at DESC, id DESC LIMIT 1");
     const code = row!.b.match(/\b(\d{6})\b/)![1]!;
     const c = new Client(app);
     for (let i = 0; i < 5; i++) await c.post(`${V1}/citizen/auth/verify`, { email: 'ion@exemplu.test', code: code === '111111' ? '222222' : '111111' });
     assert.equal((await c.post(`${V1}/citizen/auth/verify`, { email: 'ion@exemplu.test', code })).statusCode, 401);
     clock.advanceMinutes(61);
+  });
+
+  it('RA-1: încercările simultane nu depășesc limita de 5 comparații pe cod', async () => {
+    const email = 'cursa.ra1@exemplu.test';
+    const start = await new Client(app, undefined, '10.9.0.1').post(`${V1}/citizen/auth/start`, { email, policyAccepted: true, policyVersion: CITIZEN_POLICY_VERSION });
+    assert.equal(start.statusCode, 202);
+    const [row] = await q<{ b: string }>('SELECT body_text AS b FROM email_outbox WHERE recipient = ? ORDER BY created_at DESC, id DESC LIMIT 1', [email]);
+    const code = row!.b.match(/\b(\d{6})\b/)![1]!;
+    const wrong = (i: number) => String(100000 + i) === code ? '999999' : String(100000 + i);
+    // IP-uri diferite: limita pe IP nu intervine; numai limita pe cod
+    const res = await Promise.all(Array.from({ length: 20 }, (_, i) =>
+      new Client(app, undefined, `10.9.${i + 1}.1`).post(`${V1}/citizen/auth/verify`, { email, code: wrong(i) })));
+    assert.ok(res.every((r) => r.statusCode === 401));
+    const [att] = await q<{ attempts: number }>(
+      'SELECT c.attempts FROM citizen_login_codes c JOIN citizen_accounts a ON a.id = c.account_id WHERE a.email_normalized = ?', [email]);
+    assert.equal(att!.attempts, 5, 'exact 5 comparații, oricâte cereri simultane');
+    // codul corect nu mai trece după epuizare
+    assert.equal((await new Client(app, undefined, '10.9.99.1').post(`${V1}/citizen/auth/verify`, { email, code })).statusCode, 401);
+  });
+
+  it('RA-1: codul corect trece și după 4 încercări greșite (a 5-a încercare)', async () => {
+    const email = 'patru.ra1@exemplu.test';
+    await new Client(app, undefined, '10.8.0.1').post(`${V1}/citizen/auth/start`, { email, policyAccepted: true, policyVersion: CITIZEN_POLICY_VERSION });
+    const [row] = await q<{ b: string }>('SELECT body_text AS b FROM email_outbox WHERE recipient = ? ORDER BY created_at DESC, id DESC LIMIT 1', [email]);
+    const code = row!.b.match(/\b(\d{6})\b/)![1]!;
+    const c = new Client(app, undefined, '10.8.0.2');
+    for (let i = 0; i < 4; i++) assert.equal((await c.post(`${V1}/citizen/auth/verify`, { email, code: code === '111111' ? '222222' : '111111' })).statusCode, 401);
+    assert.equal((await c.post(`${V1}/citizen/auth/verify`, { email, code })).statusCode, 200);
   });
 
   it('sesiunea de cetățean nu accesează /admin/* și nici /auth/me', async () => {

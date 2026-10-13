@@ -139,6 +139,10 @@ Designul cere două lucruri care se contrazic:
 
 Recomandare: **A**.
 
+**Decizia proprietarului (13.10.2026): varianta A.** Amendament la B2 §4.1 / 2.9: bifa politicii (cu versiunea curentă) se cere la fiecare `POST /citizen/auth/start`, nu numai la crearea contului. Implementarea cere aprobare separată.
+
+**Remediere (aprobată la 13.10.2026, varianta A pentru RA-1 și RA-2):** `server/src/routes/citizens.ts`: bifa se verifică la fiecare `start`, înaintea citirii contului (RA-2); încercarea de cod se rezervă atomic înaintea comparării (RA-1). Teste noi în `server/test/integration/accounts.test.ts` (RA-2: același 422 cu cont sau fără; RA-1: 20 de cereri simultane → exact 5 comparații; codul corect la a 5-a încercare), cu probe de control pe o copie (vechiul comportament → 202 în loc de 422; 20 de comparații în loc de 5). Pe staging nu este instalată.
+
 ### RA-3 — Contoare citite, apoi scrise, la Admin (scăzută)
 
 - `failed_login_count`: cererile simultane cu parole greșite pot număra mai puțin de 5, deci blocarea întârzie. Plafonul rămâne limita pe IP (20 / 15 min, atomică).
