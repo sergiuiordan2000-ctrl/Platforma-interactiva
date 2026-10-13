@@ -18,9 +18,10 @@
 | RA-6 | S8 | informativă | Fotografiile nu sunt re-codate: se scot metadatele EXIF/XMP/IPTC, dar rămân comentariile JPEG, profilul de culoare și eventuale date după sfârșitul imaginii | cod |
 | RA-7 | S9 | informativă | O vulnerabilitate „high” în `source-map-js`, numai în unealta de build (nu ajunge în aplicație); dependențe nefolosite în `package.json` | `npm audit` |
 | RA-8 | S10, S11 | informativă | Codul de autentificare al cetățeanului rămâne în clar în `email_outbox.body_text` | cod |
+| RA-10 | S11 | scăzută | Erorile rutelor `/api/v1` ocolesc handlerul aplicației: clientul primește mesajul brut al erorii (la 500, de exemplu textul erorii bazei de date, care pe găzduire poate conține numele contului) și mesajele tehnice ale Fastify la 4xx; fără identificator de corelare. Este constatarea R17 (11.10.2026). **Adăugată la 13.10.2026: inițial, S11 a fost trecut greșit „conform”** | probă locală (§3, RA-10) |
 | RA-9 | S6 | **blocantă pentru lansare** | Fără adresa reală a vizitatorului, fiecare limită pe IP devine o limită pentru tot orașul (de exemplu 5 sesizări / oră, 10 voturi / oră / sondaj) | `FAZA_6_ANTIABUZ_FARA_IP.md` §1 |
 
-**Remedieri (13.10.2026):** RA-1, RA-2 în `c69c146`. RA-5 (partea comună tuturor) și RA-9: varianta B, deciziile D-B1…D-B5 (`FAZA_6_ANTIABUZ_FARA_IP.md`), în `cb4cc45`, instalată pe staging la 13.10.2026. RA-3, RA-4, RA-6, RA-7, RA-8 (etapa B, deciziile proprietarului din 13.10.2026): în commitul care urmează; neinstalate pe staging.
+**Remedieri (13.10.2026):** RA-1, RA-2 în `c69c146`. RA-5 (partea comună tuturor) și RA-9: varianta B, deciziile D-B1…D-B5 (`FAZA_6_ANTIABUZ_FARA_IP.md`), în `cb4cc45`, instalată pe staging la 13.10.2026. RA-3, RA-4, RA-6, RA-7, RA-8 (etapa B, deciziile proprietarului din 13.10.2026): în `9a1e08b`; neinstalate pe staging. RA-10 (decizia proprietarului din 13.10.2026: A): în commitul care urmează; neinstalată pe staging.
 
 Nicio constatare critică. Nicio vulnerabilitate care să permită acces fără autentificare la date sau acțiuni protejate.
 
@@ -131,10 +132,10 @@ Limită: cookie-ul de sesiune (`__Host-civic_sid`) apare numai la autentificare;
 
 | Ce | Rezultat | Dovada |
 |---|---|---|
-| erorile 4xx: mesaj generic; 500: mesaj generic + identificator de corelare | conform | `server/src/app.ts` `setErrorHandler` |
+| erorile 4xx: mesaj generic; 500: mesaj generic + identificator de corelare | **neconform la `55ead0e`…`9a1e08b`** (RA-10). **Corectură:** prima formă a acestui raport scria „conform” pe baza codului handlerului, fără să verifice că se aplică rutelor; proba din 13.10.2026 arată că nu se aplica. Remediat (RA-10) | `server/src/app.ts` `setErrorHandler`; `server/test/api/errorsRA10.test.ts` |
 | jurnalul: fără `Cookie`, `Authorization`, `Set-Cookie`; fără `code`/`state` de la Google; fără IP pe rutele sondajelor | conform | `app.ts` (`redact`, `requestLogSerializer`) |
 | codul de autentificare în `email_outbox` | vezi RA-8 | `citizens.ts` `enqueueAccountEmail` |
-| mesajele de eroare interne ale comenzilor (R17) | deschis, cunoscut | `PROJECT_HANDOFF_CURRENT.md` |
+| mesajele de eroare interne (R17) | aceeași cauză ca RA-10; remediat odată cu ea | RA-10 |
 
 ## 3. Constatările, în detaliu
 
@@ -207,6 +208,14 @@ Planul (S8) spune „rescrierea imaginii”; implementarea **elimină segmentele
 
 **Remediere (decizia proprietarului, 13.10.2026: A):** `server/src/reports/outbox.ts`: în modul `live`, după trimiterea reușită a unui `citizen_login_code`, `body_text` devine NULL, în aceeași tranzacție cu `status = 'sent'`. În `allowlist` (staging) și `simulated` (dezvoltare) textul rămâne, pentru `dev:show-code`. Pe staging nu se schimbă nimic. Teste noi în `reauditB.test.ts` (live: textul șters, codul primit funcționează; allowlist: textul rămâne), cu probe de control (fără ștergere → pică; ștergere și în allowlist → pică).
 
+### RA-10 — Erorile rutelor `/api/v1` ocolesc handlerul aplicației (scăzută)
+
+În `server/src/app.ts`, `setErrorHandler` era apelat **după** înregistrarea rutelor `/api/v1`. În Fastify, un context copil primește handlerul existent în clipa înregistrării, deci rutele aplicației foloseau handlerul implicit al Fastify.
+
+**Probă locală (13.10.2026)**, cu o bază de date care aruncă o eroare: `GET /api/v1/public/surveys` → `500` cu `"message"` = textul erorii interne, fără identificator de corelare; `POST /api/v1/auth/login` cu JSON stricat → `400` cu `FST_ERR_CTP_INVALID_JSON_BODY` și mesajul tehnic. Urmarea: o eroare MySQL (de exemplu „Access denied for user …”) ar putea arăta vizitatorului numele bazei sau al utilizatorului, care pe găzduire încep cu numele contului cPanel. Nu permite accesul la date.
+
+**Remediere (decizia proprietarului, 13.10.2026: A):** handlerul de erori se setează înaintea înregistrării rutelor (mutat, neschimbat). Test nou: `server/test/api/errorsRA10.test.ts` (eroare internă → 500 `INTERNAL`, mesaj generic, identificator de corelare, fără textul erorii; JSON invalid → 400 `BAD_REQUEST` generic; tip de conținut nepermis → 415). Proba de control pe o copie: cu `app.ts` vechi, toate cele 3 teste pică.
+
 ### RA-9 — Limitele pe IP devin limite pentru tot orașul (blocantă pentru lansare)
 
 Detaliile, inventarul limitelor și deciziile: `docs/faza6/FAZA_6_ANTIABUZ_FARA_IP.md`. Remediere: limitele pe IP oprite pe staging și în producție (D-B2), ALTCHA (D-B3), limita de simultaneitate la parolele Admin (D-B4), limita pe cont la căutarea adresei (D-B5).
@@ -238,4 +247,4 @@ Auditul general (A-01 … A-27) și deciziile D1–D12 nu sunt integral în depo
 | S6 | limitele pe IP, pe cont, pe adresă; T2 | Pasul 2 (`TRUST_PROXY`) |
 | S1, S2, S4 pe staging | probele din tabelul planului | aprobare separată |
 | S12 | auditul general | documentele lipsă |
-| remedierile RA-1 … RA-8 | RA-1, RA-2 instalate pe staging; RA-3, RA-4, RA-6, RA-7, RA-8 în cod, neinstalate; RA-5 acceptat (varianta B) | instalarea, cu aprobare |
+| remedierile RA-1 … RA-10 | RA-1, RA-2, RA-9 instalate pe staging; RA-3, RA-4, RA-6, RA-7, RA-8, RA-10 în cod, neinstalate; RA-5 acceptat (varianta B) | instalarea, cu aprobare |

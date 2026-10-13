@@ -123,6 +123,38 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
     });
   }
 
+  // RA-10 (reaudit, 13.10.2026; constatarea R17): handlerul de erori se setează înaintea înregistrării rutelor.
+  // În Fastify, un context copil (rutele `/api/v1`) primește handlerul existent în clipa înregistrării; setat
+  // după, nu li se aplica, iar clientul primea mesajul brut al erorii (de exemplu, al bazei de date).
+  app.setErrorHandler((error, request, reply) => {
+    const statusCode =
+      typeof (error as { statusCode?: unknown }).statusCode === 'number'
+        ? (error as { statusCode: number }).statusCode
+        : 500;
+    if (statusCode === 413) {
+      reply.code(413).send(apiError('PAYLOAD_TOO_LARGE', 'Cererea este prea mare.'));
+      return;
+    }
+    if (statusCode === 415) {
+      reply.code(415).send(apiError('UNSUPPORTED_MEDIA_TYPE', 'Tipul conținutului nu este permis.'));
+      return;
+    }
+    if (statusCode >= 400 && statusCode < 500) {
+      reply
+        .code(statusCode)
+        .send(apiError(statusCode === 400 ? 'BAD_REQUEST' : 'REQUEST_ERROR', 'Cererea nu poate fi procesată.'));
+      return;
+    }
+    request.log.error({ err: error }, 'eroare internă');
+    reply
+      .code(500)
+      .send(
+        apiError('INTERNAL', 'A apărut o eroare internă. Încercați din nou mai târziu.', {
+          correlationId: request.id,
+        }),
+      );
+  });
+
   // ---- API ----
   await app.register(cookie);
   if (options.ctx) registerCsrf(app, options.ctx);
@@ -177,35 +209,6 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
 
   app.setNotFoundHandler((request, reply) => {
     reply.code(404).send(apiError('NOT_FOUND', 'Resursa nu există.'));
-  });
-
-  app.setErrorHandler((error, request, reply) => {
-    const statusCode =
-      typeof (error as { statusCode?: unknown }).statusCode === 'number'
-        ? (error as { statusCode: number }).statusCode
-        : 500;
-    if (statusCode === 413) {
-      reply.code(413).send(apiError('PAYLOAD_TOO_LARGE', 'Cererea este prea mare.'));
-      return;
-    }
-    if (statusCode === 415) {
-      reply.code(415).send(apiError('UNSUPPORTED_MEDIA_TYPE', 'Tipul conținutului nu este permis.'));
-      return;
-    }
-    if (statusCode >= 400 && statusCode < 500) {
-      reply
-        .code(statusCode)
-        .send(apiError(statusCode === 400 ? 'BAD_REQUEST' : 'REQUEST_ERROR', 'Cererea nu poate fi procesată.'));
-      return;
-    }
-    request.log.error({ err: error }, 'eroare internă');
-    reply
-      .code(500)
-      .send(
-        apiError('INTERNAL', 'A apărut o eroare internă. Încercați din nou mai târziu.', {
-          correlationId: request.id,
-        }),
-      );
   });
 
   return app;
