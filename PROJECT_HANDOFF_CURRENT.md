@@ -32,7 +32,7 @@
 - `f982896`: pagina temporară de diagnostic a adresei vizitatorului (`DIAG_CLIENT_IP=on`; interzisă în producție; se scoate din cod după Pasul 2).
 Procedura de backup și restaurare: `docs/faza5/FAZA_5_1_BACKUP_RESTAURARE.md`, §6.
 
-**Staging (`test.urbisactiv.ro`):** rulează **`27b1b5f`** din 12.10.2026 (jurnalul staging-ului, intervențiile 29–38): marcajele create cu `markers:rebuild-counter --at-least 7` (următorul număr: TM-008); prima copie `civic-backup/2` făcută; pagina de diagnostic folosită la 13.10.2026 și oprită (404). Copiile `civic-backup/1` de pe staging nu se mai pot restaura. Fără redirecționare `http` → `https` (blocant pentru lansare).
+**Staging (`test.urbisactiv.ro`):** rulează **`27b1b5f`** din 12.10.2026 (jurnalul staging-ului, intervențiile 29–38): marcajele create cu `markers:rebuild-counter --at-least 7` (următorul număr: TM-008); prima copie `civic-backup/2` făcută; pagina de diagnostic folosită la 13.10.2026 și oprită (404). Copiile `civic-backup/1` de pe staging nu se mai pot restaura. Redirecționarea `http` → `https` pusă la 13.10.2026 (regulă `.htaccess`, 301, intervențiile 39–40); pentru producție se repetă la instalare.
 
 **Deschise:** verdictul asupra raportului M1–M3; răspunsul furnizorului (IP, `https`, jurnalul aplicației, păstrarea jurnalului de accesări, copiile proprii ale contului); constatările R7–R19 (curățări, `TRUST_PROXY`, jurnalul aplicației, sesiunile, mesajele de eroare interne R17, conturile șterse care reapar R18, e-mailurile retrimise după restaurare R19); confirmarea la acțiunile definitive din interfață (O3); matricea CI (joburile MySQL și Node 20 față de producția MariaDB, nedecisă).
 

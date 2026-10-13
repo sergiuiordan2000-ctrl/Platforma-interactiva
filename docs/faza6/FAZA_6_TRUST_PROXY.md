@@ -46,6 +46,6 @@ Alte observații: `X-Forwarded-Proto` = `https` (corect); pagina de diagnostic a
 1. La răspunsul furnizorului: proba se reface (pagina de diagnostic pornită temporar, cu aprobare separată), inclusiv brațul cu antetul falsificat.
 2. Numai dacă adresa reală apare, nefalsificabil: configurația `TRUST_PROXY` se stabilește aici, motivată, apoi se aplică pe staging cu aprobare și se verifică după T1–T4.
 3. După închiderea Pasului 2: codul paginii de diagnostic se scoate din aplicație, printr-un commit separat (amendamentul D-2).
-4. Redirecționarea `http` → `https`: de propus separat (o regulă `.htaccess` sau prin furnizor), cu probă `curl`. **Blocant pentru lansare**, mai ales pentru `urbisactiv.ro`.
+4. Redirecționarea `http` → `https`: **rezolvată pe staging la 13.10.2026** printr-o regulă `.htaccess` cu 301, aplicată înaintea lacătului (jurnalul staging-ului, intervențiile 39–40). Pentru `urbisactiv.ro` aceeași regulă se pune la instalarea producției, cu aceeași probă `curl`.
 
 **Lansarea nu este posibilă** cât timp 1c rămâne așa: este o condiție obligatorie a Fazei 6.
