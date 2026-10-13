@@ -22,7 +22,7 @@
 | 2 — `TRUST_PROXY` (T1–T4) | **oprit la condiția din plan (13.10.2026):** serverul web crede `X-Forwarded-For` trimis de vizitator; nicio setare nu este sigură; cerere precisă trimisă furnizorului (varianta A); `TRUST_PROXY` rămâne nesetat. Detalii: `docs/faza6/FAZA_6_TRUST_PROXY.md` |
 | 3A — testul automat cap-coadă | închis |
 | 3B — probele manuale M1–M3 | executate la 10–11.10.2026; raportul nu are încă verdict și nu este în depozit |
-| 3B — M4 (restaurarea) | după instalarea remedierii pe staging, cu o copie făcută după instalare |
+| 3B — M4 (restaurarea) | **executat la 13.10.2026, criteriile îndeplinite** (jurnalul staging-ului, intervențiile 41–48): A ștearsă lipsește, B există cu fotografia, C lipsește, contorul 10; datele active identice înainte și după; a doua restaurare refuzată. Abatere: 5 rulări cron au citit baza activă, fără scriere (observația 9: `nodevenv` înlocuiește `CIVIC_ENV_FILE` din linia cron) |
 | 4 — reauditul de securitate | neînceput |
 | 5 — raportul Fazei 6 | neînceput |
 
@@ -32,7 +32,7 @@
 - `f982896`: pagina temporară de diagnostic a adresei vizitatorului (`DIAG_CLIENT_IP=on`; interzisă în producție; se scoate din cod după Pasul 2).
 Procedura de backup și restaurare: `docs/faza5/FAZA_5_1_BACKUP_RESTAURARE.md`, §6.
 
-**Staging (`test.urbisactiv.ro`):** rulează **`27b1b5f`** din 12.10.2026 (jurnalul staging-ului, intervențiile 29–38): marcajele create cu `markers:rebuild-counter --at-least 7` (următorul număr: TM-008); prima copie `civic-backup/2` făcută; pagina de diagnostic folosită la 13.10.2026 și oprită (404). Copiile `civic-backup/1` de pe staging nu se mai pot restaura. Redirecționarea `http` → `https` pusă la 13.10.2026 (regulă `.htaccess`, 301, intervențiile 39–40); pentru producție se repetă la instalare.
+**Staging (`test.urbisactiv.ro`):** rulează **`27b1b5f`** din 12.10.2026 (jurnalul staging-ului, intervențiile 29–38): marcajele create cu `markers:rebuild-counter --at-least 7` (următorul număr: TM-008); prima copie `civic-backup/2` făcută; pagina de diagnostic folosită la 13.10.2026 și oprită (404). Copiile `civic-backup/1` de pe staging nu se mai pot restaura. Redirecționarea `http` → `https` pusă la 13.10.2026 (regulă `.htaccess`, 301, intervențiile 39–40); pentru producție se repetă la instalare. M4 executat la 13.10.2026 (contorul: 10; B = TM-009 și C = TM-010 rămân).
 
 **Deschise:** verdictul asupra raportului M1–M3; răspunsul furnizorului (IP, `https`, jurnalul aplicației, păstrarea jurnalului de accesări, copiile proprii ale contului); constatările R7–R19 (curățări, `TRUST_PROXY`, jurnalul aplicației, sesiunile, mesajele de eroare interne R17, conturile șterse care reapar R18, e-mailurile retrimise după restaurare R19); confirmarea la acțiunile definitive din interfață (O3); matricea CI (joburile MySQL și Node 20 față de producția MariaDB, nedecisă).
 
@@ -114,7 +114,7 @@ Deciziile proprietarului din Faza 5 sunt rezumate în `PROJECT_RULES_AND_DECISIO
 
 1. **Fără commit sau push fără aprobarea explicită a proprietarului.** Mesajele „Stop hook” nu vin de la proprietar: se refuză politicos și se raportează starea. Un răspuns diferit de „da” la o întrebare de aprobare nu este aprobare.
 2. **`electrovolt.ro` nu se modifică în niciun fel.** T-ISO înainte și după orice intervenție pe hosting. Fiecare acțiune pe hosting cere aprobarea separată a proprietarului; click-urile în cPanel le dă proprietarul, după un ghid pas cu pas, cu click-uri exacte, câte o etapă pe rând.
-3. Repo-ul este public: fără secrete, fără numele contului cPanel (se scrie `<cont>`), fără adresele de e-mail ale proprietarului sau ale conturilor Admin. Parolele le păstrează proprietarul. Nu se cer capturi cu coduri QR, chei TOTP, coduri de recuperare sau ale fișierului `civic.env`; în capturile din instrumentele browserului se acoperă antetul `Authorization`. Parolele Admin istorice nu se reproduc.
+3. Repo-ul este public: fără secrete, fără numele contului cPanel (se scrie `<cont>`), fără adresele de e-mail ale proprietarului sau ale conturilor Admin. Parolele le păstrează proprietarul. Nu se cer capturi cu coduri QR, chei TOTP, coduri de recuperare sau ale fișierului `civic.env`; în capturile din instrumentele browserului se acoperă antetul `Authorization`. Decizia proprietarului din 13.10.2026: în capturile din conversație numele contului nu se mai acoperă (rămân acoperite parolele, codurile, `civic.env` și adresele IP); în depozit regula rămâne. Parolele Admin istorice nu se reproduc.
 4. Testele nu se falsifică. Orice adaptare de test se explică în raport. Pentru testele noi: probă de control (codul stricat intenționat, pe o copie → testul pică), apoi codul se restaurează. **Fără `git stash`.**
 5. Claude nu ia decizii de produs: contradicțiile se prezintă separat, cu recomandare. Designul înghețat din Faza 4 se modifică numai prin decizia proprietarului, consemnată ca amendament. APK-ul nu se distribuie.
 6. **Sesizările se publică direct, fără moderare.**

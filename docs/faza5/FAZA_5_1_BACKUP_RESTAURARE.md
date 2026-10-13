@@ -224,6 +224,8 @@ Un director din `BACKUP_DIR` fără manifest lizibil produce numai un avertismen
 
 N = cel mai mare număr TM comunicat vreodată (din e-mailuri sau din Admin). O valoare sub contorul copiei este refuzată.
 
+**Pe găzduirea cPanel (constatat la M4, 13.10.2026; jurnalul staging-ului, observația 9):** comenzile rulează prin sarcini cron, iar `node` din `nodevenv` pune `CIVIC_ENV_FILE` al aplicației peste cel din linie, deci un al doilea fișier de setări este ignorat. Baza țintă și directorul nou se dau direct în linia cron: `DATABASE_URL='…' STORAGE_DIR=… node server/dist/app.js restore:db … --check` (variabilele din linie au prioritate față de `civic.env`). Linia conține parola bazei: sarcina se șterge imediat după rulare. Orice comandă se verifică întâi cu `--check` (sau `migrate:status`), care arată baza și directorul țintă.
+
 ### 6.7 Limitele rămase (cunoscute)
 
 - **Numai arhiva:** dacă `BACKUP_DIR` este înlocuit cu totul de o arhivă veche (inclusiv la o restaurare a întregului cont de către furnizor), ștergerile de după arhivă nu pot fi cunoscute, iar numerele sunt protejate numai prin N. Se evită prin procedură. Întrebarea către furnizor despre copiile proprii ale contului este deschisă.
