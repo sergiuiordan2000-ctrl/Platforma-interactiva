@@ -3,6 +3,7 @@
 **Data:** 13.10.2026. **Staging:** `test.urbisactiv.ro` (ClausWeb, LiteSpeed, Node 24), versiunea `27b1b5f`.
 **Planul:** `docs/faza6/FAZA_6_PLAN.md`, Pasul 2, cu amendamentul D-2 din 12.10.2026 (sursa B = pagina de diagnostic din aplicație).
 **Starea:** **oprit la condiția din plan** („serverul web nu curăță antetul primit de la vizitator”). **Nu s-a activat nimic.** `TRUST_PROXY` rămâne nesetat.
+**Actualizare (14.10.2026):** Pasul 2 este **încheiat** prin decizia proprietarului din 14.10.2026, AI-1, varianta A: verificarea a fost făcută, o configurație sigură nu s-a putut obține, iar protecția anti-abuz trece pe varianta B (§6). Adresa reală a vizitatorului **nu** a fost obținută.
 
 ## 1. Sursele
 
@@ -41,11 +42,21 @@ Alte observații: `X-Forwarded-Proto` = `https` (corect); pagina de diagnostic a
 
 **Variantele neluate, de reconsiderat dacă A eșuează:** B ca soluție de durată (limitele pe IP rămân comune; se întăresc alte protecții: pe cont, pe adresa de e-mail, ALTCHA; analiză și cod nou) sau C, altă găzduire pentru producție.
 
+**Urmarea (13.10.2026):** furnizorul a refuzat schimbarea și a recomandat VPS sau server dedicat; proprietarul a ales **B** ca soluție de durată (D-B1, `FAZA_6_ANTIABUZ_FARA_IP.md` §5), instalată pe staging în `cb4cc45`.
+
 ## 5. Pașii următori
 
-1. La răspunsul furnizorului: proba se reface (pagina de diagnostic pornită temporar, cu aprobare separată), inclusiv brațul cu antetul falsificat.
-2. Numai dacă adresa reală apare, nefalsificabil: configurația `TRUST_PROXY` se stabilește aici, motivată, apoi se aplică pe staging cu aprobare și se verifică după T1–T4.
-3. După închiderea Pasului 2: codul paginii de diagnostic se scoate din aplicație, printr-un commit separat (amendamentul D-2).
+1. ~~La răspunsul furnizorului: proba se reface~~ — furnizorul a refuzat (13.10.2026). Proba se reface numai la o schimbare a găzduirii (varianta C) sau a configurației furnizorului (pagina de diagnostic pornită temporar, cu aprobare separată), inclusiv brațul cu antetul falsificat.
+2. Numai dacă adresa reală apare, nefalsificabil: configurația `TRUST_PROXY` se stabilește aici, motivată, apoi se aplică pe staging cu aprobare și se verifică după T1–T4. Până atunci, `TRUST_PROXY` rămâne nesetat.
+3. După închiderea Pasului 2: codul paginii de diagnostic se scoate din aplicație, printr-un commit separat (amendamentul D-2). **Pasul 2 fiind încheiat (14.10.2026), condiția se aplică acum;** rămâne o problemă de lansare (`FAZA_6_RAPORT.md`, Lista 6, L5).
 4. Redirecționarea `http` → `https`: **rezolvată pe staging la 13.10.2026** printr-o regulă `.htaccess` cu 301, aplicată înaintea lacătului (jurnalul staging-ului, intervențiile 39–40). Pentru `urbisactiv.ro` aceeași regulă se pune la instalarea producției, cu aceeași probă `curl`.
 
-**Lansarea nu este posibilă** cât timp 1c rămâne așa: este o condiție obligatorie a Fazei 6.
+~~**Lansarea nu este posibilă** cât timp 1c rămâne așa: este o condiție obligatorie a Fazei 6.~~ Înlocuit prin §6 (14.10.2026).
+
+## 6. Amendament: încheierea Pasului 2 prin varianta B (decizia proprietarului din 14.10.2026, AI-1, varianta A)
+
+- **Verificarea a fost făcută** (13.10.2026, intervențiile 36–38 din jurnalul staging-ului): serverul web crede antetul `X-Forwarded-For` trimis de vizitator (1c); **o configurație sigură a `TRUST_PROXY` nu se poate obține** pe această găzduire.
+- **Proprietarul a acceptat varianta B:** protecția anti-abuz nu se mai bazează pe adresa IP a vizitatorului (D-B1…D-B5 și riscurile acceptate, `FAZA_6_ANTIABUZ_FARA_IP.md` §5).
+- **Acceptarea nu echivalează cu obținerea adresei IP reale.** Criteriile T1–T4 rămân **neîndeplinite** și nu se consemnează ca trecute (`FAZA_6_RAPORT.md`, Listele 2 și 3). Lipsa adresei reale este o **limitare acceptată**, nu o problemă rezolvată.
+- **Urmarea pentru Faza 6:** 1c nu mai este o condiție de închidere a Fazei 6. Condiția D-4 a planului (verificarea `TRUST_PROXY` înaintea închiderii reauditului) este îndeplinită prin verificarea făcută (`FAZA_6_PLAN.md`, §0.2).
+- **Ce nu schimbă:** blocajele pentru pilot, pentru folosirea datelor reale și pentru lansarea publică rămân separate (`FAZA_6_RAPORT.md`, Lista 6) și nu sunt rezolvate prin această decizie. Varianta C (altă găzduire, cu adresa reală) rămâne calea de reevaluare.

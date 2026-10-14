@@ -2,7 +2,7 @@
 
 **Data:** 13.10.2026. **Versiunea verificată:** `faza-5-backend` la `55ead0e` (cod identic cu `f982896`, instalat pe staging ca `27b1b5f`).
 **Planul:** `docs/faza6/FAZA_6_PLAN.md`, Pasul 4 (S1–S12), regula dovezilor §4.
-**Starea:** **în lucru.** S1–S5 și S8–S12 sunt verificate în cod și local; **S7** verificat pe staging la 13.10.2026 (§2, S7). **S6:** Pasul 2 s-a încheiat prin varianta B (`FAZA_6_ANTIABUZ_FARA_IP.md`). Probele S1, S2, S4 pe staging sunt încă de făcut. Pasul 4 nu se închide înainte de verificarea `TRUST_PROXY` (D-4).
+**Starea:** **în lucru.** S1–S5 și S8–S12 sunt verificate în cod și local; **S7** verificat pe staging la 13.10.2026 (§2, S7). **S6:** evaluat pe varianta B (§2, S6). Probele S1, S2, S4 pe staging sunt încă de făcut. ~~Pasul 4 nu se închide înainte de verificarea `TRUST_PROXY` (D-4).~~ **D-4 (14.10.2026):** verificarea `TRUST_PROXY` a fost făcută, iar închiderea Pasului 4 se aprobă în condițiile variantei B (decizia proprietarului din 14.10.2026, AI-1, varianta A; `FAZA_6_PLAN.md` §0.2); S12 și probele S1, S2, S4 pe staging rămân la deciziile lor.
 **Limită:** reauditul este făcut de Claude, care a scris și codul. Auditul independent rămâne cel de la checkpoint.
 **Remedierile** sunt consemnate separat de constatări, fiecare cu decizia proprietarului (§1, „Remedieri”, și §3).
 
@@ -83,6 +83,26 @@ Rezultat: **toate rutele `/admin/*` au gardă**; nicio rută de administrare nu 
 | validare strictă (`zod`, `strictObject`) pe corpurile cererilor | conform (eșantion: autentificare, conturi, conținut, sondaje) | `shared/src/*.ts`; `parseBody` |
 | SQL: valori numai parametrizate; numele de tabele și coloane interpolate provin numai din cod | conform | 20 de interogări cu interpolare, verificate una câte una (`adminContent.ts`, `outbox.ts`, `auth.ts`, `adminAccounts.ts`, `content.ts`, `surveys.ts`) |
 | XSS: React escapează; harta (Leaflet primește HTML) escapează toate valorile din sesizare | conform | `src/views/MapView.tsx` `escapeHtml`; nicio folosire `dangerouslySetInnerHTML` |
+
+### S6 — Limitele anti-abuz (varianta B; adăugat la 14.10.2026, decizia proprietarului AI-1, varianta A)
+
+Fără adresa reală a vizitatorului (`FAZA_6_TRUST_PROXY.md`), protecția nu se mai bazează pe IP. Deciziile: D-B1…D-B5 (`FAZA_6_ANTIABUZ_FARA_IP.md` §5). Rândurile sunt de la `f6d5f2d`.
+
+**Ce înseamnă „conform” aici:** comportamentul este impus de cod, iar afirmațiile indicate ca verificate sunt susținute de testele automate menționate în tabel. Producția nu a fost instalată și verificată în această fază. Pentru staging, probele efectiv executate sunt delimitate explicit în ultimele trei rânduri ale tabelului.
+
+| Ce | Rezultat | Dovada |
+|---|---|---|
+| limitele pe IP oprite implicit în afara dezvoltării, deci pe staging și în producție (`IP_RATE_LIMITS`, implicit pornite numai în dezvoltare); pornirea lor în afara dezvoltării fără `TRUST_PROXY` → aplicația nu pornește | conform în cod și în teste (pentru producție: numai prin cod) | `server/src/config.ts:144, 196, 375`; `server/test/unit/config.test.ts:232–247` |
+| toate cele 11 limite pe IP trec prin `ipLimitExceeded` (cu limitele oprite: nimic numărat); nicio limită pe IP în afara ei | conform | `server/src/auth/rateLimit.ts`; `auth.ts:104`, `citizenGoogle.ts:66, 112`, `citizens.ts:86, 163`, `reports.ts:137, 187, 291, 292`, `surveys.ts:120, 121`; `antiabuseB.test.ts` (D-B2), `surveys.test.ts:390` |
+| ALTCHA: obligatoriu la cererea de cod și la vot; la sesizări pornit implicit, oprit numai prin `settings:report-pow off` | conform în cod și în teste (formularea D-B3 despre Admin: constatarea AI-2, deschisă) | `citizens.ts:99`; `reports.ts:278–279`, `settings.ts` `isReportPowEnabled`; `surveys.ts:138`; `antiabuseB.test.ts` (D-B3), `reports.test.ts:626`, `surveys.test.ts:407` |
+| Admin: cel mult 2 verificări de parolă simultane (429 `BUSY`) | conform; limită **pe proces** | `auth.ts:88, 112–116, 168`; `antiabuseB.test.ts` (D-B4) |
+| căutarea adresei: 20 / cont / oră + limita globală | conform | `reports.ts:185–190`; `antiabuseB.test.ts` (D-B5) |
+| protecțiile existente, independente de IP (cont confirmat, limite pe cont și pe adresa de e-mail, încercările de cod atomice, blocarea Admin, TOTP, blocarea cetățenilor) | conform; RA-1, RA-3, RA-4 remediate | `FAZA_6_ANTIABUZ_FARA_IP.md` §2; S1 |
+| pe staging, la `cb4cc45`: **probele variantei B** | ALTCHA la cod, sesizare și vot, fără respingeri; nicio limită pe IP numărată după instalare; `reports.pow_enabled` nesetat (ALTCHA pornit implicit); Admin normal cu limita de simultaneitate | jurnalul staging-ului, intervențiile 50–54 (capturi, interogarea `3 · 0 · 0`) |
+| pe staging, la `f6d5f2d` (versiunea curentă) | **numai** instalarea și probele scurte: `RELEASE.txt` și `health` cu versiunea nouă, autentificarea cetățeanului, o sesizare de probă, autentificarea Admin cu TOTP. **Nu repetă** integral verificările S6; codul variantei B nu s-a schimbat între `cb4cc45` și `f6d5f2d` (`git diff`: numai RA-3, RA-4, RA-6, RA-7, RA-8, RA-10) | jurnalul staging-ului, intervențiile 55–59 |
+| comportamentul cu adresa reală a vizitatorului; T2 | **neefectuat**: imposibil pe această găzduire; limitare acceptată | `FAZA_6_TRUST_PROXY.md` §6 |
+
+**Riscurile rămase, acceptate de proprietar (13.10.2026):** voturile repetate de cine golește jetonul din browser și rezolvă ALTCHA din nou; conturile multiple create cu adrese de e-mail diferite; blocarea temporară a unui cont Admin de cine îi știe adresa (RA-5); limita de simultaneitate se înmulțește cu numărul de procese ale aplicației. Detalii: `FAZA_6_ANTIABUZ_FARA_IP.md`, „Limitare acceptată explicit”.
 
 ### S7 — Antetele de securitate (staging, `cb4cc45`, 13.10.2026)
 
@@ -244,7 +264,7 @@ Auditul general (A-01 … A-27) și deciziile D1–D12 nu sunt integral în depo
 
 | Punct | Ce | Depinde de |
 |---|---|---|
-| S6 | limitele pe IP, pe cont, pe adresă; T2 | Pasul 2 (`TRUST_PROXY`) |
+| S6 | ~~limitele pe IP, pe cont, pe adresă; T2~~ evaluat pe varianta B (§2, S6); comportamentul cu adresa reală și T2: neefectuate, limitare acceptată | — (decizia proprietarului din 14.10.2026, AI-1, varianta A) |
 | S1, S2, S4 pe staging | probele din tabelul planului | aprobare separată |
 | S12 | auditul general | documentele lipsă |
 | remedierile RA-1 … RA-10 | toate instalate pe staging (`f6d5f2d`, 14.10.2026); RA-5 acceptată (varianta B) | — |

@@ -46,6 +46,16 @@ Celelalte condiții ale D-2 rămân. Aprobarea paginii nu autorizează aplicarea
 - oprire la orice eroare sau la orice cale activă apărută în `--check`; la final se șterg baza de probă, utilizatorul ei, directorul, setările și sarcina cron de probă.
 Procedura completă: `docs/faza5/FAZA_5_1_BACKUP_RESTAURARE.md`, §6.
 
+## 0.2 Amendament: D-4 și închiderea Pașilor 2 și 4 (decizia proprietarului din 14.10.2026, AI-1, varianta A)
+
+> Are prioritate față de D-4 (§0), de Pasul 2 și de Pasul 4, acolo unde se contrazic. Textul original rămâne ca istoric.
+
+- **Verificarea cerută de D-4 a fost efectuată** (13.10.2026; `FAZA_6_TRUST_PROXY.md` §2, jurnalul staging-ului, intervențiile 36–38). Rezultatul: o configurație sigură a `TRUST_PROXY` nu se poate obține pe această găzduire (condiția de oprire a Pasului 2), deci **soluția inițială** (limitele pe IP cu adresa reală a vizitatorului, criteriile T1–T4) **nu poate fi implementată**.
+- Cazul era prevăzut în §6 („găzduirea nu permite o configurație sigură → … variantele, ca decizie a proprietarului”). Decizia: **varianta B** (D-B1…D-B5, 13.10.2026; `FAZA_6_ANTIABUZ_FARA_IP.md` §5), cu riscurile rămase acceptate explicit.
+- **Pasul 2 este încheiat** cu acest rezultat. T1–T4 rămân neîndeplinite și nu se declară trecute.
+- **Închiderea Pasului 4 se aprobă în condițiile variantei B:** condiția D-4 nu mai împiedică închiderea reauditului; punctul S6 se evaluează pe varianta B (`FAZA_6_REAUDIT_SECURITATE.md`, S6), nu pe adresa reală. Celelalte puncte deschise ale Pasului 4 (S12; probele S1, S2, S4 pe staging) **nu** sunt închise prin această decizie și rămân la deciziile lor separate.
+- Decizia **nu** rezolvă blocajele pentru pilot, pentru folosirea datelor reale sau pentru lansarea publică (`FAZA_6_RAPORT.md`, Lista 6) și **nu** echivalează cu obținerea adresei IP reale. Închiderea formală a Fazei 6 rămâne decizia de checkpoint.
+
 ## 1. Obiectiv
 
 Planul v1.1 cere pentru Faza 6: verificarea fluxului critic de la un capăt la altul, reauditul de securitate și un checkpoint formal înainte de Etapa 7.
