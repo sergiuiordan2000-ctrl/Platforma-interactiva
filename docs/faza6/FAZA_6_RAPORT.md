@@ -34,6 +34,7 @@
 | S9 | dependențele | `npm audit`: 0 vulnerabilități (server și rădăcină), după RA-7 | 13.10.2026 |
 | S10 | secrete și configurare | căutare în fișiere și în tot istoricul Git; `civic.env` 0600 pe staging (captură) | 13.10.2026 |
 | S11 | erori și jurnal | după RA-10: `server/test/api/errorsRA10.test.ts`, cu probă de control | 13.10.2026 |
+| S12 | constatările vechi: Etapa 6 (11) și auditul general (A-01…A-32, D1–D12), cu starea de acum | reauditul §4: tabelul verificat la `f6d5f2d`, în cod și în documente (fără probe noi pe staging; fără A-21 și A-24, Lista 3) | 14.10.2026 |
 | varianta B pe staging | ALTCHA la cod, sesizare și vot; limitele pe IP oprite; Admin cu limita de simultaneitate | jurnalul staging-ului, intervențiile 50–54 (capturi, interogări) | 13.10.2026 |
 | instalarea `f6d5f2d` pe staging | `RELEASE.txt`, `health` cu versiunea nouă; autentificarea cetățeanului; sesizare de probă (TM-012); autentificarea Admin cu TOTP | jurnalul staging-ului, intervențiile 55–59 (capturi) | 14.10.2026 |
 
@@ -61,7 +62,7 @@ Constatările informative RA-6, RA-7, RA-8 nu sunt eșecuri ale unei verificări
 | T2, T3, T4 | limitele separate pe client; antetul falsificat respins; comportamentul cu setarea aplicată | precondiția (T1) nu poate fi îndeplinită; nicio setare nu a fost aplicată; Pasul 2 încheiat fără ele (14.10.2026) |
 | S6 | limitele cu adresa reală a clientului | idem; protecția a trecut pe cont, pe adresa de e-mail și pe ALTCHA (varianta B); varianta B este evaluată în reaudit, S6 |
 | S1, S2, S4 pe staging | probele de pe staging cerute în tabelul Pasului 4 | atinse numai informal (intervențiile 52–54: autentificări, sesizare, vot); fără probe dedicate |
-| S12 | auditul general A-01…A-27 și deciziile D1–D12 | documentele nu sunt în depozit (`PROJECT_HANDOFF_CURRENT.md`, G.5); constatările Etapei 6 sunt verificate (reauditul §4) |
+| S12, A-21 și A-24 | auditul general: A-21 (afișarea pe mobil: banner, ținte sub 44 px, tab-uri) și A-24 (declarații nefolosite, cod mort) | cer o probă în browser, respectiv `tsc --noUnusedLocals`; nefăcute. Restul S12 este verificat (Lista 1). ~~„A-01…A-27 … documentele nu sunt în depozit”~~: auditul are 32 de constatări și a fost dat de proprietar la 14.10.2026 |
 | M3, S-5 | refuzul celui de-al doilea vot **de către server** | numai dedus (captură + confirmarea proprietarului + numărătoarea din bază); `FAZA_6_PROBE_M1_M3_RAPORT.md` §5 |
 | M2, F10 | ștergerea fișierelor fotografiilor de pe disc și a rândurilor de audit, după ștergerea definitivă | neverificată direct pe staging (același raport, §9); acoperită de testele automate |
 | RA-4 pe staging | blocarea după 3 coduri TOTP greșite | intenționat: ar bloca un cont Admin real 15 minute; acoperită de testele automate, cu probe de control |
@@ -110,6 +111,7 @@ Constatările informative RA-6, RA-7, RA-8 nu sunt eșecuri ale unei verificări
 | L8 | decizii pentru R18 (contul de cetățean șters reapare după restaurare) și R19 (e-mailurile din coadă retrimise după restaurare) | constatările din 11.10.2026 |
 | L9 | curățările lipsă (R7: `rate_limits`, coduri expirate, `rejected_attempts`, sesiuni; R8: fotografii orfane; R9: provocările ALTCHA fără sarcină cron) | idem |
 | L10 | jurnalul aplicației pe găzduire (R12): erorile de pornire ajung în `stderr.log`; ieșirea obișnuită nu s-a găsit (`LSNODE_CONSOLE_LOG`, neverificat) | jurnalul staging-ului, observația 4 |
+| L11 | **înainte de pilot:** footerul spune public că „trimiterea automată pe e-mail către autoritatea locală nu este activă”; din Faza 5, transmiterea către Primărie, la cererea cetățeanului, funcționează (constatarea N1) | reauditul §4 (S12, N1); `src/components/layout/Footer.tsx:39` |
 
 **Rezolvată pentru lansare:** RA-9 (limitele pe IP ca plafoane pentru tot orașul), prin varianta B. **`TRUST_PROXY` (decizia proprietarului din 14.10.2026, AI-1, varianta A):** verificarea a fost făcută, iar adresa reală a vizitatorului nu se poate obține nefalsificabil pe această găzduire. Lipsa ei nu mai este o condiție de închidere a Fazei 6, ci o **limitare acceptată** (Lista 4), **nu o problemă rezolvată**; `TRUST_PROXY` nesetat nu este falsificabil. Limitele variantei B (riscurile acceptate la 13.10.2026) rămân valabile și se reevaluează după lansare; varianta C (altă găzduire) rămâne calea de întărire. **Blocajele de mai sus (L1–L10) rămân, independent de această decizie.**
 

@@ -258,7 +258,74 @@ Auditul Etapei 6 (`RAPORT_AUDIT_ETAPA_6.md`, 6D), pe aplicația fără server:
 | S10: jurnalul de e-mail în `localStorage` | **închisă**: jurnalul pe server, `super_admin` |
 | m15: dependențe moarte | **închisă** (RA-7, etapa B) |
 
-Auditul general (A-01 … A-27) și deciziile D1–D12 nu sunt integral în depozit (`PROJECT_HANDOFF_CURRENT.md`, G.5). Starea lor nu se poate verifica rând cu rând; rămâne **neefectuat**.
+~~Auditul general (A-01 … A-27) și deciziile D1–D12 nu sunt integral în depozit (`PROJECT_HANDOFF_CURRENT.md`, G.5). Starea lor nu se poate verifica rând cu rând; rămâne **neefectuat**.~~ **Actualizare (14.10.2026):** proprietarul a dat raportul auditului general; verificarea este mai jos. **Corectură:** auditul are **32 de constatări (A-01…A-32)**, nu 27, cum scria aici.
+
+### Auditul general (26.09.2026), față de `f6d5f2d`
+
+**Sursa:** `RAPORT_AUDIT_GENERAL_PRE_ETAPA_7.md` (ChatGPT, 26.09.2026, la `83b77ad`, aplicația fără server), dat de proprietar la 14.10.2026; documentul nu este în depozit. **Verificat la:** `f6d5f2d`, prin `git show` / `git grep` pe commit (14.10.2026). **Metoda** este scrisă la fiecare rând: *cod* = verificat în fișier; *test* = acoperit de o suită existentă; *document* = consemnat în depozit; *neverificat* = cere o probă în browser, nefăcută; *staging* = o probă existentă, făcută **anterior**, la versiunea ei (M1–M3: `08f4dc3`; intervențiile 50–54: `cb4cc45`; 55–59: `f6d5f2d`), citată ca dovadă. **Pentru S12 nu s-a executat nicio probă nouă pe staging; cele 32 de constatări nu au fost testate individual pe staging.**
+
+| ID | Constatarea (pe scurt) | Starea la `f6d5f2d` | Dovada (metoda) |
+|---|---|---|---|
+| A-01 | fără backend | **închisă**: aplicație cu server (Faza 5), pe staging | `server/`; staging (cod, test, staging) |
+| A-02 | sesiune falsificabilă (P7) | **închisă**: sesiune pe server, cookie `HttpOnly` | `tests/regression/…:98` (R6D-SES-01 trece; orice FAIL e regresie); reauditul S2 (test) |
+| A-03 | parole în bundle; `demo@` | **închisă**: nicio parolă și niciun `demo@` în `src/`, `shared/src` | `git grep` (cod); reauditul S10 |
+| A-04 | e-mail simulat | **închisă în cod**: SMTP real (Brevo), `allowlist` pe staging, probat (M1). Modul `live` neactivat | `outbox.ts`, `smtp.ts`; M1 (cod, staging). `live`: Lista 6, L2 |
+| A-05 | ecran alb pe `#sondaje` (M5) | **închisă** în P0 (`f6809f3`); sondajele vin acum de pe server | P0; suita E2E sondaje (test) |
+| A-06 | footer: „redirecționate pe e-mail” | **închisă în P0, dar textul pus atunci a devenit fals: vezi N1** | `Footer.tsx:39` (cod) |
+| A-07 | login: „programată pentru Etapa 5” | **închisă**: textul nu mai există | `git grep` (cod) |
+| A-08 | Moderare: „cetățeanul alege publicarea” | **închisă**: textul nu mai există; moderarea a fost eliminată | `git grep` (cod) |
+| A-09 | ~60 de etichete de etapă vizibile | **deschisă**: 49 de apariții în afara comentariilor (de exemplu „CMS ACTIV • ETAPA 2C”, „Comunicate (5B)”, „Sondaje Civice (4B)”, văzute și pe staging la 14.10) | `git grep` (cod); captura din intervenția 59 |
+| A-10 | culori lipsă pentru 4 categorii | **închisă**: toate cele 8 categorii au culoare | `MapView.tsx:40–47` (cod) |
+| A-11 | seed TM-003 cu `spatii-verzi` | **închisă**: seed-ul folosește `spatii_verzi`, categorie existentă | `server/seeds/demo/reports.json:20` (cod) |
+| A-12 | nicio limitare a trimiterilor | **închisă**: limite pe cont, pe adresă, ALTCHA (B7, varianta B) | reauditul S6 (cod, test, staging) |
+| A-13 | „Trimite” activ în timpul compresiei | **închisă**: butonul e dezactivat cât timp se prelucrează fotografiile | `ReportForm.tsx:652` (cod) |
+| A-14 | voturi orfane la ștergerea sondajului | **închisă**: un sondaj cu voturi nu se mai poate șterge (409); cheia străină `RESTRICT` | `adminSurveys.ts:200–211`; migrarea `0001`, rândul 514 (cod) |
+| A-15 | rezultate vizibile în timpul consultării (N2) | **închisă prin decizie** (D3): vizibilitatea rezultatelor se alege pe sondaj | `shared/src/surveys.ts` `resultsVisibility` (cod); M3 (staging) |
+| A-16 | `resetToDemo` în producție (N4) | **închisă**: funcția nu mai există; datele demo sunt refuzate în producție | `git grep` (cod); reauditul S10 |
+| A-17 | adresa demo a registraturii e reală | **închisă pentru trimitere**: destinatarul e o setare din Admin (pe staging, adresa de test). Ghidul demo afișează încă adresele publice ale Primăriei (D10: producția pornește curată) | `outbox.ts` (setările registrului); `seeds/demo/directory.json` (cod) |
+| A-18 | eșec invizibil; fără jurnal e-mail | **închisă**: jurnalul e-mail în Admin (`super_admin`), stările `sent` / `failed` / `blocked` | M2 pasul 25 (staging, `08f4dc3`: numai stări `sent`); stările `failed` / `blocked`: cod |
+| A-19 | date de contact în `localStorage` | **închisă**: singura cheie e indiciul de participare | handoff §0.2 (document); reauditul S4 |
+| A-20 | sesiunea nu expiră | **închisă pentru Admin** (60 min / 12 h); pentru cetățean: fără expirare, **risc acceptat** (30.09.2026) | reauditul S2 (cod, test) |
+| A-21 | banner peste zoom; ținte sub 44 px; mobil | **neverificat acum** (cere o probă în browser); de reverificat în 7B | — |
+| A-22 | conflict `esbuild`; 7 dependențe moarte | **parțial**: `esbuild` nu mai e declarat; `express`, `@google/genai`, `dotenv`, `motion`, `@types/express` scoase (RA-7). `tsx` e folosit (server). **`autoprefixer` rămâne declarat și nefolosit** (vezi N3) | `package.json` (cod) |
+| A-23 | bundle mare | **deschisă**: build-ul avertizează încă la peste 500 kB | `npm run build` (13.10.2026) |
+| A-24 | declarații nefolosite, cod mort | **neverificat acum** (cere `tsc --noUnusedLocals`); 7C | — |
+| A-25 | README, `metadata.json`, `.env.example`, numele pachetului din AI Studio | **parțial**: numele pachetului, README și `.env.example` refăcute; `metadata.json` are text corect, dar rămâne un fișier al AI Studio; **README spune încă „moderate”** (vezi N2) | fișierele (cod) |
+| A-26 | nicio suită de teste în depozit | **închisă**: `tests/`, `server/test/`, CI pe 6 joburi | CI 38465768311 (test) |
+| A-27 | documentația vie depășită | **închisă** în P0; documentația se ține la zi pe faze | P0; handoff §0A (document) |
+| A-28 | Master Planul lipsă; ANALIZA contrazice 6.6 | **deschisă (D2)**: Planul v1.1 și Master Planul rămân la proprietar, prin decizie; amendamentele sunt în depozit | `docs/AMENDAMENTE_PLAN_V1_1_SI_MASTER_PLAN.md` (document) |
+| A-29 | fără Rating, pin, PWA, conturi, sondaj pe Acasă | **parțial**: pin pe hartă (D6, `AMENDAMENT_LOCATIE_FORMULAR.md`) și gestionarea conturilor (D8, Admin „Conturi”) **făcute**; Rating (D5), PWA (D7) **deschise**; pe Acasă există un card către sondaje, nu votul pe loc | cod; handoff G.5 |
+| A-30 | imagini de pe Unsplash | **închisă**: serverul refuză adrese externe de imagini (testat) | `content.test.ts:44`, `adminContent.test.ts:89` (test) |
+| A-31 | validarea URL-urilor numai în UI | **închisă**: validare pe server (`httpUrl` în schemele comune) | `shared/src/content.ts:16` (cod) |
+| A-32 | stocarea coruptă golită tăcut | **închisă (depășită)**: datele nu mai stau în browser | arhitectura (cod) |
+
+**Totaluri:** închise 22 (din care A-15 prin decizie, A-17 pentru trimitere, A-20 pentru Admin); parțiale 3 (A-22, A-25, A-29); deschise 3 (A-09, A-23, A-28); neverificate acum 2 (A-21, A-24); închisă, dar cu o constatare nouă 1 (A-06 → N1); depășită 1 (A-32).
+
+**Deciziile D1–D12:**
+
+| Decizie | Valoarea | Sursa |
+|---|---|---|
+| D1 | **B**: pilot real cu backend | handoff G.5; RULES |
+| D2 | **deschisă** (Master Planul, ANALIZA) | handoff G.5 |
+| D3 | decisă în Faza 3 (rezultatele sondajelor) | RULES §11.6 |
+| D4 | decisă în Faza 3 (`resetToDemo`) | RULES §11.6 |
+| D5 | **deschisă** (Rating 1–5) | handoff G.5 |
+| D6 | decisă în Faza 3 (pin pe hartă); implementată | RULES §11.3; `AMENDAMENT_LOCATIE_FORMULAR.md` |
+| D7 | **deschisă** (PWA) | handoff G.5 |
+| D8 | decisă în Faza 3 (conturi); implementată | RULES §11.5 |
+| D9 | **A** (notificări; detaliată în Faza 3) | RULES §11.9 |
+| D10 | **V2** (demo numai în dezvoltare și staging; producția pornește curată) | RULES §11.8 |
+| D11 | **B** (fără linkuri publice către Admin); implementată | `HomeView.tsx:362` |
+| D12 | **A** (testele în depozit); implementată | `tests/` |
+
+**Constatări noi, găsite la această verificare:**
+
+| Nr. | Ce | Gravitate | Unde s-ar rezolva |
+|---|---|---|---|
+| **N1** | **Footerul spune public „Trimiterea automată pe e-mail către autoritatea locală nu este activă în această versiune.”** Textul a fost pus corect în P0 (A-06), dar **acum e fals**: transmiterea către Primărie, la cererea cetățeanului, funcționează din Faza 5 (probată în M1) | importantă (afirmație publică falsă); **de reformulat înainte de pilot** | text în interfață (cod); 7A sau înainte |
+| N2 | `README.md` descrie sesizările ca „moderate”; sesizările se publică direct, fără moderare | minoră (documentație) | 7D |
+| N3 | `autoprefixer` rămâne în `devDependencies`, nefolosit (Tailwind 4 nu îl cere) | minoră | 7C |
+| N4 | documentele spun „A-01…A-27”; auditul are A-01…A-32 | documentară | odată cu S12 |
 
 ## 5. Ce rămâne de făcut în Pasul 4
 
@@ -266,5 +333,5 @@ Auditul general (A-01 … A-27) și deciziile D1–D12 nu sunt integral în depo
 |---|---|---|
 | S6 | ~~limitele pe IP, pe cont, pe adresă; T2~~ evaluat pe varianta B (§2, S6); comportamentul cu adresa reală și T2: neefectuate, limitare acceptată | — (decizia proprietarului din 14.10.2026, AI-1, varianta A) |
 | S1, S2, S4 pe staging | probele din tabelul planului | aprobare separată |
-| S12 | auditul general | documentele lipsă |
+| S12 | ~~auditul general~~ verificat în cod și în documente (§4, 14.10.2026); rămân neverificate A-21 (mobil) și A-24 (cod mort) | o probă în browser (A-21); `tsc --noUnusedLocals` (A-24) |
 | remedierile RA-1 … RA-10 | toate instalate pe staging (`f6d5f2d`, 14.10.2026); RA-5 acceptată (varianta B) | — |
