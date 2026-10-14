@@ -3,7 +3,7 @@
 **Proiect:** Urbis Activ · **Branch:** `faza-5-backend`, ultimul commit de cod `32e082e` · `main` = `d9bc2c9`, neatins · **Data:** 14.10.2026
 **Staging (`test.urbisactiv.ro`):** rulează **`32e082e`**, versiunea pentru care se cere checkpoint-ul (instalată la 14.10.2026, ~16:50; jurnalul staging-ului, intervențiile 72–76). Anterior: `f6d5f2d` (intervențiile 55–59), versiunea pe care s-au făcut probele K3 și AI-5; între cele două s-au schimbat numai RA-6 și CL-5 (completările K2, Lista 2).
 **Planul:** `docs/faza6/FAZA_6_PLAN.md` (aprobat la 10.10.2026), Pasul 5, cu amendamentele din §0.1 ale planului.
-**Starea:** **cerere de checkpoint.** Faza 6 se închide numai prin decizia proprietarului (§9).
+**Starea:** **Faza 6 închisă la `32e082e`** (decizia proprietarului din 14.10.2026, varianta A; §9). Listele 4 și 6 trec în Faza 7. **Lansarea nu este aprobată.**
 **Limită:** raportul și reauditul sunt scrise de Claude, care a scris și codul. Planul prevede un audit independent la checkpoint.
 
 ## 1. Rezumat
@@ -97,7 +97,7 @@ Constatările informative RA-6, RA-7, RA-8 nu sunt eșecuri ale unei verificări
 | Nr. | Problema | Propunerea |
 |---|---|---|
 | K1 | ~~staging-ul nu rulează versiunea pentru care se cere checkpoint-ul~~ | **rezolvată la 14.10.2026:** versiunea nouă `f6d5f2d` instalată (înainte rula versiunea mai veche `cb4cc45`), cu proba scurtă (intervențiile 55–59) |
-| K2 | auditul independent prevăzut de plan la checkpoint | auditul acestui raport și al reauditului, înaintea deciziei |
+| K2 | ~~auditul independent prevăzut de plan la checkpoint~~ | **Rezolvată la 14.10.2026:** auditul independent făcut (verdict „checkpoint cu condiții”); condițiile îndeplinite: AI-1, AI-2, AI-4, AI-5 decise; AI-3 prin K3; CL-1, CL-2, CL-3 corectate în documente; RA-6 (completare) și CL-5 remediate și instalate (`32e082e`); CL-4 transferată în 7A |
 | K3 | ~~probele S1, S2, S4 pe staging~~ | ~~blocante **sau** acceptate explicit ca limitare (Lista 4); recomandarea mea: acceptate, fiindcă sunt acoperite de cod, de teste și parțial de intervențiile 52–54~~ **Rezolvată la 14.10.2026** (decizia proprietarului: probele executate): P1–P10 pe staging (`f6d5f2d`), toate conforme (intervențiile 60–69); rămân neexecutate, intenționat, cele din Lista 3 |
 
 ## 7. Lista 6 — probleme care blochează lansarea publică
@@ -149,6 +149,8 @@ Detaliile, probele și testele noi: `FAZA_6_REAUDIT_SECURITATE.md` §3. Fiecare 
 1. Decizia asupra Listei 5 (K2; K1 și K3 rezolvate).
 2. Auditul independent al raportului (K2), dacă îl menții.
 3. Decizia de checkpoint: Faza 6 închisă, cu Listele 4 și 6 preluate în Faza 7 (7A și poarta „date reale”), sau ce trebuie refăcut.
+
+**Decizia (14.10.2026, varianta A):** Lista 5 rezolvată (K1, K2, K3); **Faza 6 închisă la `32e082e`**, versiunea instalată pe staging. Listele 4 și 6 sunt preluate în Faza 7 (7A; 7B cu A-21; 7C cu A-24; poarta „date reale”). Limitările din Lista 4 rămân limitări, nu probleme rezolvate. **Lansarea publică nu este aprobată**; ea cere rezolvarea Listei 6 și o decizie separată.
 
 ## 10. Referințe
 
