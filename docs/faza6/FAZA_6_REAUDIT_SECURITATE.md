@@ -1,6 +1,6 @@
 # Faza 6, Pasul 4 — Reauditul de securitate
 
-**Data:** 13.10.2026. **Versiunea verificată (reauditul inițial, 13.10.2026):** `faza-5-backend` la `55ead0e` (cod identic cu `f982896`, instalat pe staging ca `27b1b5f`). **Verificările ulterioare, fiecare la versiunea ei:** S7 pe staging la `cb4cc45` (13.10.2026); S6 și S12 în cod la `f6d5f2d` (14.10.2026); probele K3 P1–P10 pe staging la `f6d5f2d` (14.10.2026).
+**Data:** 13.10.2026. **Versiunea verificată (reauditul inițial, 13.10.2026):** `faza-5-backend` la `55ead0e` (cod identic cu `f982896`, instalat pe staging ca `27b1b5f`). **Verificările ulterioare, fiecare la versiunea ei:** S7 pe staging la `cb4cc45` (13.10.2026) și, din nou, la `f6d5f2d` (14.10.2026, antetele identice); S6 și S12 în cod la `f6d5f2d` (14.10.2026); probele K3 P1–P10 pe staging la `f6d5f2d` (14.10.2026).
 **Planul:** `docs/faza6/FAZA_6_PLAN.md`, Pasul 4 (S1–S12), regula dovezilor §4.
 **Starea:** **în lucru.** S1–S5 și S8–S12 sunt verificate în cod și local; **S7** verificat pe staging la 13.10.2026 (§2, S7). **S6:** evaluat pe varianta B (§2, S6). Probele S1, S2, S4 pe staging: **făcute la 14.10.2026, pe staging la `f6d5f2d`** (K3, P1–P10, toate conforme; jurnalul staging-ului, intervențiile 60–69); rămân neexecutate, intenționat, blocările și expirările (acoperite de testele automate). ~~Pasul 4 nu se închide înainte de verificarea `TRUST_PROXY` (D-4).~~ **D-4 (14.10.2026):** verificarea `TRUST_PROXY` a fost făcută, iar închiderea Pasului 4 se aprobă în condițiile variantei B (decizia proprietarului din 14.10.2026, AI-1, varianta A; `FAZA_6_PLAN.md` §0.2); S12 și probele S1, S2, S4 pe staging rămân la deciziile lor.
 **Limită:** reauditul este făcut de Claude, care a scris și codul. Auditul independent rămâne cel de la checkpoint.
@@ -104,7 +104,9 @@ Fără adresa reală a vizitatorului (`FAZA_6_TRUST_PROXY.md`), protecția nu se
 
 **Riscurile rămase, acceptate de proprietar (13.10.2026):** voturile repetate de cine golește jetonul din browser și rezolvă ALTCHA din nou; conturile multiple create cu adrese de e-mail diferite; blocarea temporară a unui cont Admin de cine îi știe adresa (RA-5); limita de simultaneitate se înmulțește cu numărul de procese ale aplicației. Detalii: `FAZA_6_ANTIABUZ_FARA_IP.md`, „Limitare acceptată explicit”.
 
-### S7 — Antetele de securitate (staging, `cb4cc45`, 13.10.2026)
+### S7 — Antetele de securitate (staging, `cb4cc45`, 13.10.2026; reverificat la `f6d5f2d`, 14.10.2026)
+
+**Reverificare (14.10.2026, AI-5):** `curl -sI -u civic https://test.urbisactiv.ro/` pe `f6d5f2d` arată aceleași antete și aceleași valori ca în tabelul de mai jos (jurnalul staging-ului, intervenția 71). Diferențele de cod dintre `cb4cc45` și `f6d5f2d` nu ating antetele (`git diff`); proba o confirmă direct.
 
 Dovada: `curl -sI -u civic https://test.urbisactiv.ro/` și `curl -D - … /api/v1/public/surveys`, de pe calculatorul proprietarului (capturi; parola cerută de `curl`, neafișată; valoarea cookie-ului acoperită).
 

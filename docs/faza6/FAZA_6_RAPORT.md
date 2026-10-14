@@ -29,7 +29,7 @@
 | S3 | autorizarea: fiecare rută cu garda ei; matricea 26 / 12 | reauditul §2, tabelul rută → gardă generat din cod (91 de înregistrări); `permissions.test.ts` | 13.10.2026 |
 | S4 | datele expuse public | reauditul §2 (cod, testele de suprafață publică); RA-2 remediată. **Pe staging (`f6d5f2d`, probe K3):** proiecția publică a hărții; fotografia publică fără metadate (verificată octet cu octet); tabelul voturilor fără IP / cont; același răspuns cu cont sau fără (intervențiile 66–69) | 13.10.2026; 14.10.2026 |
 | S5 | datele de intrare: validare, SQL parametrizat, XSS | reauditul §2 (cod: 20 de interogări cu interpolare verificate una câte una) | 13.10.2026 |
-| S7 | antetele de securitate și `http` → `https` (301) pe staging | `curl` de pe calculatorul proprietarului (capturi); jurnalul staging-ului, intervențiile 39–40 | 13.10.2026 |
+| S7 | antetele de securitate și `http` → `https` (301) pe staging | `curl` de pe calculatorul proprietarului (capturi); jurnalul staging-ului, intervențiile 39–40; antetele reverificate pe `f6d5f2d`, identice (intervenția 71) | 13.10.2026; 14.10.2026 |
 | S8 | încărcarea fotografiilor | reauditul §2 (cod, teste); RA-6 remediată | 13.10.2026 |
 | S9 | dependențele | `npm audit`: 0 vulnerabilități (server și rădăcină), după RA-7 | 13.10.2026 |
 | S10 | secrete și configurare | căutare în fișiere și în tot istoricul Git; `civic.env` 0600 pe staging (captură) | 13.10.2026 |
