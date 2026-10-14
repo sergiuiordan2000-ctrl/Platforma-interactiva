@@ -1,7 +1,7 @@
 # FAZA 6 — RAPORTUL (cerere de checkpoint)
 
-**Proiect:** Urbis Activ · **Branch:** `faza-5-backend` = `f6d5f2d` · `main` = `d9bc2c9`, neatins · **Data:** 14.10.2026
-**Staging (`test.urbisactiv.ro`):** rulează **`f6d5f2d`**, versiunea pentru care se cere checkpoint-ul (instalată la 14.10.2026, ~00:16; jurnalul staging-ului, intervențiile 55–59).
+**Proiect:** Urbis Activ · **Branch:** `faza-5-backend`, ultimul commit de cod `32e082e` · `main` = `d9bc2c9`, neatins · **Data:** 14.10.2026
+**Staging (`test.urbisactiv.ro`):** rulează **`32e082e`**, versiunea pentru care se cere checkpoint-ul (instalată la 14.10.2026, ~16:50; jurnalul staging-ului, intervențiile 72–76). Anterior: `f6d5f2d` (intervențiile 55–59), versiunea pe care s-au făcut probele K3 și AI-5; între cele două s-au schimbat numai RA-6 și CL-5 (completările K2, Lista 2).
 **Planul:** `docs/faza6/FAZA_6_PLAN.md` (aprobat la 10.10.2026), Pasul 5, cu amendamentele din §0.1 ale planului.
 **Starea:** **cerere de checkpoint.** Faza 6 se închide numai prin decizia proprietarului (§9).
 **Limită:** raportul și reauditul sunt scrise de Claude, care a scris și codul. Planul prevede un audit independent la checkpoint.
@@ -11,7 +11,7 @@
 - **Fluxul critic** (F1–F10) trece: automat (local și în CI) și manual, pe staging (M1–M3, raport acceptat de proprietar la 14.10.2026).
 - **Restaurarea unui backup** (M4) trece pe staging, cu datele active neatinse.
 - **`TRUST_PROXY`** (Pasul 2) **nu se poate rezolva** pe această găzduire: serverul web crede antetul `X-Forwarded-For` trimis de vizitator. Proprietarul a ales **varianta B** (13.10.2026): protecția anti-abuz nu se mai bazează pe adresa IP. Criteriile T1–T4 rămân neîndeplinite. **Prin decizia proprietarului din 14.10.2026, AI-1, varianta A, Pasul 2 este încheiat** (verificarea făcută, fără configurație sigură), iar închiderea Pasului 4 se aprobă în condițiile variantei B (`FAZA_6_PLAN.md` §0.2). Adresa reală a vizitatorului **nu** a fost obținută.
-- **Reauditul de securitate** (Pasul 4) a găsit 10 constatări (RA-1…RA-10), niciuna critică. Toate sunt remediate în cod sau acceptate prin decizie; remedierile sunt **toate instalate pe staging** (`f6d5f2d`).
+- **Reauditul de securitate** (Pasul 4) a găsit 10 constatări (RA-1…RA-10), niciuna critică. Toate sunt remediate în cod sau acceptate prin decizie; remedierile sunt **toate instalate pe staging** (`32e082e`, inclusiv completările K2).
 - **Greșeli ale lui Claude** în această fază, corectate: §8.
 
 ## 2. Lista 1 — verificări trecute
@@ -37,8 +37,9 @@
 | S12 | constatările vechi: Etapa 6 (11) și auditul general (A-01…A-32, D1–D12), cu starea de acum | reauditul §4: tabelul verificat la `f6d5f2d`, în cod și în documente (fără probe noi pe staging; fără A-21 și A-24, Lista 3) | 14.10.2026 |
 | varianta B pe staging | ALTCHA la cod, sesizare și vot; limitele pe IP oprite; Admin cu limita de simultaneitate | jurnalul staging-ului, intervențiile 50–54 (capturi, interogări) | 13.10.2026 |
 | instalarea `f6d5f2d` pe staging | `RELEASE.txt`, `health` cu versiunea nouă; autentificarea cetățeanului; sesizare de probă (TM-012); autentificarea Admin cu TOTP | jurnalul staging-ului, intervențiile 55–59 (capturi) | 14.10.2026 |
+| instalarea `32e082e` pe staging (K2) | `RELEASE.txt`, `health` cu versiunea nouă; autentificarea cetățeanului; sesizare de probă cu fotografie JPEG întreagă (TM-014, rămâne); autentificarea Admin cu TOTP. Respingerea JPEG-ului fără EOI și CL-5 nu s-au probat pe staging (testele automate; CL-5 cere modul `live`) | jurnalul staging-ului, intervențiile 72–76 (capturi) | 14.10.2026 |
 
-**Suitele, la `f6d5f2d`:** serverul **409 / 409**, suita Python **167 / 167** (local: MySQL 8.0, Node 22, Chromium, 13.10.2026); CI: toate cele 6 joburi verzi, inclusiv MariaDB 11.4 (rularea 38465768311).
+**Suitele, la `f6d5f2d`:** serverul **409 / 409**, suita Python **167 / 167** (local: MySQL 8.0, Node 22, Chromium, 13.10.2026); CI: toate cele 6 joburi verzi, inclusiv MariaDB 11.4 (rularea 38465768311). **La `32e082e`:** serverul **414 / 414**, suita Python **167 / 167** (local, 14.10.2026); CI: toate cele 6 joburi verzi (rularea 38574244041).
 
 ## 3. Lista 2 — verificări eșuate
 
@@ -128,8 +129,8 @@ Constatările informative RA-6, RA-7, RA-8 nu sunt eșecuri ale unei verificări
 | RA-5 | scăzută | acceptată (Lista 4) | — | — |
 | RA-6 | informativă | JPEG fără `COM` și fără datele de după EOI | `9a1e08b` | da |
 | RA-7 | informativă | dependențe nefolosite scoase; `source-map-js` 1.2.2 | `9a1e08b` | da (efect numai la build) |
-| RA-6 (K2) | scăzută | JPEG fără EOI respins (cazurile A, B); cazul C rămâne limitare (Lista 4) | commitul care urmează | nu |
-| CL-5 (K2) | scăzută | codul de cetățean golit și la eșecul definitiv al trimiterii, în `live` | commitul care urmează | nu (fără efect pe staging, `allowlist`) |
+| RA-6 (K2) | scăzută | JPEG fără EOI respins (cazurile A, B); cazul C rămâne limitare (Lista 4) | `32e082e` | da (`32e082e`) |
+| CL-5 (K2) | scăzută | codul de cetățean golit și la eșecul definitiv al trimiterii, în `live` | `32e082e` | da (`32e082e`; fără efect pe staging, `allowlist`) |
 | RA-8 | informativă | codul de cetățean șters din coadă după trimitere, în `live` | `9a1e08b` | da (fără efect pe staging, `allowlist`) |
 | RA-9 | blocantă pentru lansare | varianta B | `cb4cc45` | da |
 | RA-10 | scăzută | handlerul de erori aplicat rutelor `/api/v1` | `f6d5f2d` | da |

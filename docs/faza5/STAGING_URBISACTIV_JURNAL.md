@@ -99,6 +99,11 @@ Verificat din exterior de Claude (DNS public): `urbisactiv.ro` folosește server
 | 69 | 14.10.2026 ~12:58–13:02 | **K3, P10 (S4):** `curl` către `POST /api/v1/citizen/auth/start`, fără bifa politicii, pentru adresa de test (cu cont) și pentru o adresă inventată; parola lacătului cerută de `curl`, neafișată | ambele: `{"error":{"code":"POLICY_REQUIRED",…}}`, `HTTP 422`, identice; nicio cerere nu a creat cont sau e-mail. O primă rulare cu textul `ADRESA_TA` necompletat a dat `VALIDATION` (adresă invalidă), apoi a fost repetată corect (capturi; adresa acoperită) | **OK** |
 | 70 | 14.10.2026 ~13:08–13:10 | **curățenia după P8:** sesizarea TM-013 ștearsă de autor, din „Contul meu” → „Sesizările mele” (decizia proprietarului) | „Sesizările mele”: 5 sesizări, fără TM-013; `GET /api/v1/public/map-reports`: numai TM-001…TM-004 (capturi) | **OK** |
 | 71 | 14.10.2026 ~13:15 | **AI-5 (S7 pe versiunea curentă):** `curl -sI -u civic https://test.urbisactiv.ro/`, de pe calculatorul proprietarului (parola cerută de `curl`, neafișată) | antetele identice cu cele din 13.10.2026 (`cb4cc45`): `Content-Security-Policy` (cu `frame-ancestors 'none'`), `Strict-Transport-Security: max-age=15552000`, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Cross-Origin-Opener-Policy` / `-Resource-Policy: same-origin`, `x-robots-tag: noindex, nofollow`; `last-modified` 13.10.2026 21:10:12 GMT (pagina din pachetul `f6d5f2d`) (captură) | **OK** |
+| 72 | 14.10.2026 ~16:47 | „Run JS script” → `civic-backup-db` înaintea instalării (pe `f6d5f2d`) | `civic-backup-20261014T134742562Z`, `stderr` gol (captură) | **OK** |
+| 73 | 14.10.2026 ~16:48–16:50 | **instalarea `32e082e`** (K2: RA-6, JPEG fără EOI respins; CL-5, codul golit la eșecul definitiv în `live`): STOP APP; `civic-32e082e.zip` (SHA-256 `d19a8656…f67472`, construit dintr-o clonă curată a commitului) urcat și extras în `civic-test-app`. Fără migrări, `civic.env` neschimbat | `RELEASE.txt`: `commit: 32e082e` (captură) | **OK** |
+| 74 | 14.10.2026 ~16:50 | START APP | `health`: `{"status":"ok","version":"0.0.0+32e082e"}` (captură) | **OK** |
+| 75 | 14.10.2026 ~16:51 | autentificarea cetățeanului; sesizarea `[PROBĂ 32e082e]` cu o fotografie JPEG întreagă (martorul RA-6: imaginile normale trec), fără transmitere, fără notificări; pinul pe hartă a fost pus din neatenție (ghidul cerea „fără poziție”) → **TM-014**, publică | confirmarea TM-014, cu fotografia atașată (captură) | **OK** |
+| 76 | 14.10.2026 ~16:52 | autentificarea Admin (parolă + TOTP) | panoul Admin deschis (captură) | **OK** |
 
 **Rezultat:** aplicația rulează pe găzduirea nouă, cu Node 24.21.0 și MariaDB 11.4.13: migrarea, seed-urile, pornirea, `health` și un backup au reușit în mediul real.
 
@@ -120,6 +125,8 @@ Verificat din exterior de Claude (DNS public): `urbisactiv.ro` folosește server
 12. **Urmele instalării `f6d5f2d` (14.10.2026):** sesizarea TM-012 (`[PROBĂ f6d5f2d]`, fără poziție) rămâne pe staging (retenția de 45 de zile); contorul: 12.
 
 13. **Urmele probelor K3 (14.10.2026):** sesizarea TM-013 (`[PROBĂ P8]`, cu fotografie și pin) a fost **ștearsă de autor** la 14.10.2026 (intervenția 70), deci nu mai apare pe harta publică; numărul TM-013 nu se refolosește; contorul: 13. O parolă Admin greșită numărată (resetată la autentificarea reușită de la P5); un cod de cetățean consumat. Probele intenționat neexecutate pe staging (blocarea Admin după 5 parole, blocarea după 3 coduri TOTP, expirarea codului după 15 minute, limita zilnică de coduri) rămân acoperite numai de testele automate.
+
+14. **Urmele instalării `32e082e` (14.10.2026):** sesizarea TM-014 (`[PROBĂ 32e082e]`, cu fotografie și pin) este publică și **rămâne** pe staging (retenția de 45 de zile; decizia proprietarului, 14.10.2026); contorul: 14. Respingerea unui JPEG fără EOI **nu** s-a probat pe staging (acoperită de testele automate și de probele de control); nici CL-5, care cere modul `live` (staging-ul este în `allowlist`).
 
 ## 5. Nefăcut încă
 
