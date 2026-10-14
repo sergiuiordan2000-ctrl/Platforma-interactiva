@@ -72,9 +72,13 @@ function cleanJpeg(buf: Buffer): CleanPhoto {
       // SOS: de aici încolo sunt datele imaginii, copiate neschimbat până la sfârșitul imaginii (EOI, FF D9).
       // RA-6: ce urmează după EOI nu mai face parte din imagine și nu se păstrează. În datele comprimate, un
       // octet FF este urmat numai de 00 (umplutură) sau de un marcaj, deci primul FF D9 este sfârșitul imaginii.
-      // Fără EOI (fișier fără marcajul final), datele se copiază până la capăt, ca înainte.
+      // K2 (auditul independent, decizia proprietarului din 14.10.2026): un fișier fără EOI (trunchiat sau cu date
+      // lipite în locul sfârșitului) se respinge; înainte, se copia până la capăt, cu tot ce urma.
+      // Limită cunoscută (cazul C): fără re-codarea imaginii, datele inserate ÎNAINTEA unui EOI valid, în fluxul
+      // comprimat, nu pot fi deosebite de imagine și rămân; re-codarea cere o decizie de produs separată.
       const eoi = buf.indexOf(JPEG_EOI, pos + 2 + len);
-      parts.push(eoi < 0 ? buf.subarray(pos) : buf.subarray(pos, eoi + 2));
+      if (eoi < 0) throw new PhotoError('corrupt', 'Fișier JPEG incomplet (lipsește sfârșitul imaginii).');
+      parts.push(buf.subarray(pos, eoi + 2));
       break;
     }
     if (!STRIP_JPEG.has(marker)) parts.push(buf.subarray(pos, pos + 2 + len));

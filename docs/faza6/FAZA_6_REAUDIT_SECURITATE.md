@@ -21,7 +21,7 @@
 | RA-10 | S11 | scăzută | Erorile rutelor `/api/v1` ocolesc handlerul aplicației: clientul primește mesajul brut al erorii (la 500, de exemplu textul erorii bazei de date, care pe găzduire poate conține numele contului) și mesajele tehnice ale Fastify la 4xx; fără identificator de corelare. Este constatarea R17 (11.10.2026). **Adăugată la 13.10.2026: inițial, S11 a fost trecut greșit „conform”** | probă locală (§3, RA-10) |
 | RA-9 | S6 | **blocantă pentru lansare** | Fără adresa reală a vizitatorului, fiecare limită pe IP devine o limită pentru tot orașul (de exemplu 5 sesizări / oră, 10 voturi / oră / sondaj) | `FAZA_6_ANTIABUZ_FARA_IP.md` §1 |
 
-**Remedieri (13.10.2026):** RA-1, RA-2 în `c69c146`. RA-5 (partea comună tuturor) și RA-9: varianta B, deciziile D-B1…D-B5 (`FAZA_6_ANTIABUZ_FARA_IP.md`), în `cb4cc45`, instalată pe staging la 13.10.2026. RA-3, RA-4, RA-6, RA-7, RA-8 (etapa B, deciziile proprietarului din 13.10.2026): în `9a1e08b`. RA-10 (decizia proprietarului din 13.10.2026: A): în `f6d5f2d`. Toate instalate pe staging la 14.10.2026 (`f6d5f2d`, jurnalul staging-ului, intervențiile 55–59).
+**Remedieri (13.10.2026):** RA-1, RA-2 în `c69c146`. RA-5 (partea comună tuturor) și RA-9: varianta B, deciziile D-B1…D-B5 (`FAZA_6_ANTIABUZ_FARA_IP.md`), în `cb4cc45`, instalată pe staging la 13.10.2026. RA-3, RA-4, RA-6, RA-7, RA-8 (etapa B, deciziile proprietarului din 13.10.2026): în `9a1e08b`. RA-10 (decizia proprietarului din 13.10.2026: A): în `f6d5f2d`. Toate instalate pe staging la 14.10.2026 (`f6d5f2d`, jurnalul staging-ului, intervențiile 55–59). **K2 (14.10.2026):** RA-6 completată (JPEG fără EOI respins) și CL-5 (codul golit și la eșecul definitiv, în `live`), în commitul care urmează; neinstalate pe staging. CL-4 transferată în 7A, nerezolvată.
 
 Nicio constatare critică. Nicio vulnerabilitate care să permită acces fără autentificare la date sau acțiuni protejate.
 
@@ -137,9 +137,11 @@ Limită: cookie-ul de sesiune (`__Host-civic_sid`) apare numai la autentificare;
 
 ### S9 — Dependențele
 
-`npm audit --omit=dev` (13.10.2026):
+`npm audit --omit=dev` (13.10.2026, **înainte de RA-7**):
 - serverul (`--workspace server`, pachetele incluse în `server/dist/app.js`): **0 vulnerabilități**;
 - rădăcina: **1 „high”**, `source-map-js` 1.2.1 (GHSA-68fv-2mgg-jv7q, blocarea buclei de evenimente), adus de `@tailwindcss/vite` și `autoprefixer`/`postcss`. Se folosește **numai la construirea** interfeței; nu ajunge în fișierele servite. Remedierea există (1.2.2). Vezi RA-7.
+
+**După remediere (RA-7, `9a1e08b`):** `source-map-js` 1.2.2 în `package-lock.json`; `npm audit` (rădăcină, cu și fără `--omit=dev`) și `npm audit --workspace server --omit=dev`: **0 vulnerabilități**; reverificat la `f6d5f2d`, la 14.10.2026 (rezultatul depinde de baza de avertismente din ziua rulării).
 
 ### S10 — Secrete și configurare
 
@@ -204,6 +206,8 @@ Cine cunoaște parola poate deschide o sesiune nouă după fiecare 5 încercări
 
 **Remediere (decizia proprietarului, 13.10.2026: A, cu 3 coduri greșite într-o oră):** pe cont se numără codurile TOTP greșite (fereastră de o oră, `LIMITS.totpMaxFailuresPerHour = 3`). La al 3-lea: contul se blochează 15 minute (`locked_until`, aceeași blocare ca la parolă), sesiunea dinaintea MFA se revocă, răspunsul este 429 `ACCOUNT_LOCKED`. Cât timp contul e blocat, sunt refuzate și parola corectă (401 generic, ca înainte), codul TOTP corect și **codurile de recuperare** (429, sesiunea revocată, codul nu se consumă). Un cod corect, TOTP sau de recuperare, resetează numărătoarea. Codurile de recuperare greșite nu intră în această numărătoare (rămân limitate pe sesiune, 5 / 5 min). Teste noi în `reauditB.test.ts`, cu probe de control pe o copie (fără numărare; fără verificarea blocării la TOTP; fără verificarea blocării la recuperare; fără resetare la TOTP; fără resetare la recuperare → fiecare test pică).
 
+**Limită rămasă (CL-4; auditul independent K2; decizia proprietarului din 14.10.2026: transfer în 7A):** limita RA-4 (3 coduri TOTP greșite) se numără pe o fereastră de o oră **aliniată la ora fixă** (`hitRateLimit`, `server/src/auth/rateLimit.ts`), nu pe ultimele 60 de minute: la trecerea orei pot trece până la 4 coduri greșite fără blocare (2 la sfârșitul orei, 2 la începutul următoarei); al 5-lea blochează. Atacul presupune parola deja cunoscută. **Nu este remediată;** limitare acceptată pentru MVP, cu remediere în 7A (fereastră mobilă sau o regulă echivalentă, de exemplu numărul eșecurilor din ultimele 60 de minute).
+
 ### RA-5 — Blocarea autentificării Admin de către terți (scăzută; ridicată cât timp `TRUST_PROXY` lipsește)
 
 - Cine știe adresa unui cont Admin îl poate bloca 15 minute, cu 5 parole greșite. Compromis cunoscut al blocării pe cont.
@@ -217,6 +221,16 @@ Planul (S8) spune „rescrierea imaginii”; implementarea **elimină segmentele
 
 **Remediere (decizia proprietarului, 13.10.2026: A):** `server/src/reports/photos.ts`: se elimină și segmentele `COM` (FF FE); datele imaginii se copiază numai până la primul `EOI` (FF D9) de după `SOS` (în datele comprimate, un octet FF este urmat numai de 00 sau de un marcaj). Fără `EOI`, comportamentul rămâne cel vechi. Rămân, intenționat: profilul de culoare și celelalte segmente `APPn`; imaginea nu se re-codează. Teste noi în `server/test/unit/photosRA6.test.ts`, cu probe de control (COM păstrat; date după EOI păstrate → testele pică).
 
+**Completare (auditul independent K2; decizia proprietarului din 14.10.2026):** remedierea de mai sus păstra comportamentul vechi pentru un JPEG **fără EOI**: restul fișierului se copia, cu orice date lipite (constatare confirmată prin probă locală la `f6d5f2d`). **Acum un JPEG fără EOI se respinge** ca fotografie coruptă (`cleanJpeg`; prin ruta de depunere: 422, nimic salvat). Cele trei cazuri:
+
+| Caz | Înainte (`f6d5f2d`) | Acum |
+|---|---|---|
+| A: JPEG trunchiat (fără EOI), cu date lipite | acceptat, datele rămâneau | **respins** |
+| B: JPEG trunchiat mai adânc (fără EOI) | acceptat | **respins** |
+| C: date inserate **înaintea** unui EOI valid, în fluxul comprimat | acceptat, datele rămân | **acceptat, datele rămân: limită cunoscută** |
+
+**Limita (cazul C), acceptată de proprietar:** remedierea minimă **nu garantează** eliminarea datelor inserate în interiorul fluxului JPEG; fără re-codarea imaginii, serverul nu le poate deosebi de imagine. Re-codarea pe server cere o **decizie de produs separată** (schimbă decizia RA-6 și adaugă o dependență). Utilizatorul obișnuit nu ajunge pe această cale: interfața trimite o imagine WebP nouă (proba P8). Teste: `server/test/unit/photosRA6.test.ts` (A și B respinse; C documentat ca limită; testul vechi „fără EOI … se copiază până la capăt” **înlocuit**, fiindcă descria comportamentul schimbat) și `server/test/integration/k2Remedieri.test.ts` (prin rută: 422, nicio sesizare, niciun fișier; martor: JPEG-ul întreg trece); probe de control pe o copie (codul vechi → testele pică).
+
 ### RA-7 — Dependențele de build și cele nefolosite (informativă)
 
 - `source-map-js` 1.2.1 → 1.2.2 (numai la build).
@@ -229,6 +243,8 @@ Planul (S8) spune „rescrierea imaginii”; implementarea **elimină segmentele
 `email_outbox.body_text` păstrează textul cu codul (necesar pentru trimitere și pentru `dev:show-code` pe staging); în copii, corpul se păstrează numai în fereastra N3-8. Cine citește baza sau o copie recentă vede codurile încă valabile (≤ 15 minute). Propunere opțională: golirea `body_text` pentru `citizen_login_code` după trimitere, în modul `live`.
 
 **Remediere (decizia proprietarului, 13.10.2026: A):** `server/src/reports/outbox.ts`: în modul `live`, după trimiterea reușită a unui `citizen_login_code`, `body_text` devine NULL, în aceeași tranzacție cu `status = 'sent'`. În `allowlist` (staging) și `simulated` (dezvoltare) textul rămâne, pentru `dev:show-code`. Pe staging nu se schimbă nimic. Teste noi în `reauditB.test.ts` (live: textul șters, codul primit funcționează; allowlist: textul rămâne), cu probe de control (fără ștergere → pică; ștergere și în allowlist → pică).
+
+**Completare (CL-5; auditul independent K2; decizia proprietarului din 14.10.2026):** remedierea de mai sus golea `body_text` numai după trimiterea **reușită**. Acum, în `live`, și la **eșecul definitiv** (după toate reîncercările) `body_text` devine NULL pentru `citizen_login_code`. La reîncercări corpul rămâne (mesajul trebuie să poată pleca); în `allowlist` (staging) corpul rămâne. Test: `server/test/integration/k2Remedieri.test.ts` (transport care eșuează mereu: în `live`, corpul păstrat pe parcursul reîncercărilor și NULL la `failed`; în `allowlist`, păstrat), cu probe de control pe o copie (fără ștergere la eșec → pică; ștergere și în `allowlist` → pică; ștergere și la reîncercare → pică).
 
 ### RA-10 — Erorile rutelor `/api/v1` ocolesc handlerul aplicației (scăzută)
 

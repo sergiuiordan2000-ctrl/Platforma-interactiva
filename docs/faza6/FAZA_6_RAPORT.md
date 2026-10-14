@@ -62,7 +62,7 @@ Constatările informative RA-6, RA-7, RA-8 nu sunt eșecuri ale unei verificări
 | T2, T3, T4 | limitele separate pe client; antetul falsificat respins; comportamentul cu setarea aplicată | precondiția (T1) nu poate fi îndeplinită; nicio setare nu a fost aplicată; Pasul 2 încheiat fără ele (14.10.2026) |
 | S6 | limitele cu adresa reală a clientului | idem; protecția a trecut pe cont, pe adresa de e-mail și pe ALTCHA (varianta B); varianta B este evaluată în reaudit, S6 |
 | S1, S2 pe staging, rămase | blocarea Admin după 5 parole; blocarea după 3 coduri TOTP; expirarea codului de cetățean după 15 minute; limita zilnică de coduri; expirarea sesiunii Admin după 60 de minute | intenționat neexecutate (ar bloca sau ar întârzia conturi reale); acoperite de testele automate. ~~„probele S1, S2, S4 pe staging … fără probe dedicate”~~: făcute la 14.10.2026 (Lista 1; intervențiile 60–69) |
-| S12, A-21 și A-24 | auditul general: A-21 (afișarea pe mobil: banner, ținte sub 44 px, tab-uri) și A-24 (declarații nefolosite, cod mort) | cer o probă în browser, respectiv `tsc --noUnusedLocals`; nefăcute. Restul S12 este verificat (Lista 1). ~~„A-01…A-27 … documentele nu sunt în depozit”~~: auditul are 32 de constatări și a fost dat de proprietar la 14.10.2026 |
+| S12, A-21 și A-24 | auditul general: A-21 (afișarea pe mobil: banner, ținte sub 44 px, tab-uri) și A-24 (declarații nefolosite, cod mort) | cer o probă în browser, respectiv `tsc --noUnusedLocals`; nefăcute. **Activități restante (K2, 14.10.2026):** A-21 în 7B (probă în browser pe mobil: bannerul hărții, ținte sub 44 px, tab-urile și mesajele Admin); A-24 în 7C (`tsc --noUnusedLocals --noUnusedParameters`, metodele fără apelanți). Restul S12 este verificat (Lista 1). ~~„A-01…A-27 … documentele nu sunt în depozit”~~: auditul are 32 de constatări și a fost dat de proprietar la 14.10.2026 |
 | M3, S-5 | refuzul celui de-al doilea vot **de către server** | numai dedus (captură + confirmarea proprietarului + numărătoarea din bază); `FAZA_6_PROBE_M1_M3_RAPORT.md` §5 |
 | M2, F10 | ștergerea fișierelor fotografiilor de pe disc și a rândurilor de audit, după ștergerea definitivă | neverificată direct pe staging (același raport, §9); acoperită de testele automate |
 | RA-4 pe staging | blocarea după 3 coduri TOTP greșite | intenționat: ar bloca un cont Admin real 15 minute; acoperită de testele automate, cu probe de control |
@@ -80,6 +80,8 @@ Constatările informative RA-6, RA-7, RA-8 nu sunt eșecuri ale unei verificări
 | RA-5: un cont Admin poate fi blocat 15 minute de cine îi știe adresa (5 parole greșite); adresele Admin nu sunt publice | D-B4 (riscul rămas al limitei de simultaneitate) | 13.10.2026 |
 | ALTCHA pornit implicit la sesizări, oprirea numai prin comandă (`settings:report-pow off`), fără comutator în Admin | D-B3, cu erata din 14.10.2026 (AI-2, varianta A; decizia A1 din 30.09.2026) | 13.10.2026; 14.10.2026 |
 | RA-6: profilul de culoare și celelalte segmente `APPn` rămân; imaginea nu se re-codează | decizia A la RA-6 | 13.10.2026 |
+| RA-6, cazul C: datele inserate **înaintea** unui EOI valid, în fluxul JPEG, rămân; remedierea minimă (JPEG fără EOI respins) nu garantează eliminarea lor; re-codarea: decizie de produs separată | K2, decizia proprietarului | 14.10.2026 |
+| CL-4: limita RA-4 se numără pe ora fixă (la trecerea orei, până la 4 coduri TOTP greșite fără blocare); **nerezolvată**, transferată în 7A | K2, decizia proprietarului | 14.10.2026 |
 | RA-8: pe staging (`allowlist`), codul de cetățean rămâne în coadă, pentru `dev:show-code` | decizia A la RA-8 | 13.10.2026 |
 | sesiunea de cetățean fără expirare pe server (cookie 400 de zile) | varianta B | 30.09.2026 |
 | renunțarea la ecranul Google („Anulează”) nu s-a probat | excepție documentată (`docs/faza5/AMENDAMENT_AUTENTIFICARE_GOOGLE_PLAN.md`, §16.4 și tabelul probelor, rândul 6) | 09.10.2026 |
@@ -126,6 +128,8 @@ Constatările informative RA-6, RA-7, RA-8 nu sunt eșecuri ale unei verificări
 | RA-5 | scăzută | acceptată (Lista 4) | — | — |
 | RA-6 | informativă | JPEG fără `COM` și fără datele de după EOI | `9a1e08b` | da |
 | RA-7 | informativă | dependențe nefolosite scoase; `source-map-js` 1.2.2 | `9a1e08b` | da (efect numai la build) |
+| RA-6 (K2) | scăzută | JPEG fără EOI respins (cazurile A, B); cazul C rămâne limitare (Lista 4) | commitul care urmează | nu |
+| CL-5 (K2) | scăzută | codul de cetățean golit și la eșecul definitiv al trimiterii, în `live` | commitul care urmează | nu (fără efect pe staging, `allowlist`) |
 | RA-8 | informativă | codul de cetățean șters din coadă după trimitere, în `live` | `9a1e08b` | da (fără efect pe staging, `allowlist`) |
 | RA-9 | blocantă pentru lansare | varianta B | `cb4cc45` | da |
 | RA-10 | scăzută | handlerul de erori aplicat rutelor `/api/v1` | `f6d5f2d` | da |

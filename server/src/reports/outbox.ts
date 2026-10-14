@@ -274,7 +274,10 @@ export async function processOne(ctx: AppContext, id: string): Promise<ProcessOu
     const delays = LIMITS.emailRetryMinutes;
     const errText = (err instanceof Error ? err.message : String(err)).slice(0, 500);
     if (attempts >= delays.length) {
-      await release('failed', { attempts, last_error: errText, recipient, mode_at_send: mode, transport: 'smtp' });
+      // CL-5 (K2, decizia proprietarului din 14.10.2026): ca la succes (RA-8), în `live` codul de autentificare nu
+      // rămâne în clar nici după eșecul definitiv. La reîncercări (mai jos), corpul rămâne, ca mesajul să poată pleca.
+      const clearCode = row.kind === 'citizen_login_code' && mode === 'live' ? { body_text: null } : {};
+      await release('failed', { attempts, last_error: errText, recipient, mode_at_send: mode, transport: 'smtp', ...clearCode });
       return 'failed';
     }
     await release('queued', {
