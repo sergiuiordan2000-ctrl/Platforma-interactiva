@@ -35,16 +35,18 @@ Regulile rămân cele din G3 (RULES §11.1): docroot propriu în afara `public_h
 
 | Înregistrare | Valoare |
 |---|---|
-| `electrovolt.ro` A | `80.96.7.228` |
+| `electrovolt.ro` A | `80.96.x.x` |
 | `electrovolt.ro` AAAA | niciuna |
 | `electrovolt.ro` MX | `0 mail.electrovolt.ro.` |
-| `electrovolt.ro` TXT | `google-site-verification=w7v7ecAmVqd_a9OgST5Np8wYg0qUwnK-blU5ftJgoHM`; `v=spf1 +a +mx +ip4:80.96.6.249 ~all` |
+| `electrovolt.ro` TXT | `google-site-verification=w7v7ecAmVqd_a9OgST5Np8wYg0qUwnK-blU5ftJgoHM`; `v=spf1 +a +mx +ip4:80.96.x.x ~all` |
 | `_dmarc.electrovolt.ro` TXT | `v=DMARC1; p=none;` |
 | `electrovolt.ro` NS | `ns1.hostgate.ro.`, `ns2.hostgate.ro.` |
-| `www.electrovolt.ro` | CNAME `electrovolt.ro.` → `80.96.7.228` |
-| `mail.electrovolt.ro` A | `80.96.7.228` |
+| `www.electrovolt.ro` | CNAME `electrovolt.ro.` → `80.96.x.x` |
+| `mail.electrovolt.ro` A | `80.96.x.x` |
 | `civic-test.electrovolt.ro` | nu există (NXDOMAIN) |
 | SOA (serial) | `2026090900`. **Se va schimba** la crearea subdomeniului (o înregistrare nouă); înregistrările de mai sus nu trebuie să se schimbe. |
+
+> Adresele IP acoperite la 14.10.2026 (regula proiectului: fără adrese IP complete). Sunt înregistrări DNS publice ale `electrovolt.ro`.
 
 **T-ISO-2: prima pagină**
 - titlu: „Verificări PRAM, Proiectare și Consultanță Electrică în Teleorman | ElectroVolt”;
@@ -77,7 +79,7 @@ Regulile rămân cele din G3 (RULES §11.1): docroot propriu în afara `public_h
 | # | Data | Pas | T-ISO după | Rezultat |
 |---|---|---|---|---|
 | 1 | 29.09.2026 05:30 | subdomeniul `civic-test.electrovolt.ro` creat de proprietar (cPanel → Domains → Create A New Domain); „Share document root” **debifat**; Document Root `/home2/<cont>/civic-test.electrovolt.ro` (în afara `public_html`); Force HTTPS: Off (certificat SSL încă neemis) | T-ISO-1…4, 6: identice cu referința (DNS-ul existent neschimbat; noul nume nu apare încă în DNS-ul public: cache negativ, ≤ 30 min); T-ISO-5: proprietarul | **OK**: T-ISO-5 identic (proprietarul, 05:43) |
-| 2 | 29.09.2026 05:40 | DB `<cont>_civic_test` și utilizatorul `<cont>_civic` create de proprietar (Manage My Databases), utilizatorul legat numai de această DB; parola păstrată numai de proprietar; MySQL **8.0.37** (= G2) | T-ISO-1, 2, 4 (cu ocolirea cache-ului): identice; T-ISO-6: `civic-test.electrovolt.ro` → `80.96.7.228` (IP-ul comun al contului), HTTPS activ, servește numai „Index of /” (folderul nou, gol: `cgi-bin`, `php.ini`), **niciun conținut Electrovolt**; serverul web este **LiteSpeed** | OK |
+| 2 | 29.09.2026 05:40 | DB `<cont>_civic_test` și utilizatorul `<cont>_civic` create de proprietar (Manage My Databases), utilizatorul legat numai de această DB; parola păstrată numai de proprietar; MySQL **8.0.37** (= G2) | T-ISO-1, 2, 4 (cu ocolirea cache-ului): identice; T-ISO-6: `civic-test.electrovolt.ro` → `80.96.x.x` (IP-ul comun al contului), HTTPS activ, servește numai „Index of /” (folderul nou, gol: `cgi-bin`, `php.ini`), **niciun conținut Electrovolt**; serverul web este **LiteSpeed** | OK |
 | 3 | 29.09.2026 05:52 | aplicația Node creată de proprietar (cPanel → Node.js → Create Application): Node **20.20.2**, Production, Application root `civic-test-app` (`/home2/<cont>/civic-test-app`, în afara `public_html` și a docroot-ului), URL `civic-test.electrovolt.ro/`, startup `server/dist/app.js`; fără „Run NPM Install”. **K2 (mecanismul Node în cPanel): funcționează**; aplicația de probă cPanel răspunde „It works! NodeJS 20.20.2” | T-ISO-1, 2, 4, 6 (cu ocolirea cache-ului): identice; `electrovolt.ro/civic-test-app` → 404; T-ISO-5: identic (proprietarul, 05:56) | **OK** |
 | 4 | 29.09.2026 06:00–06:50 | deploy `civic-2ce0d98.zip` în `civic-test-app` (File Manager, Upload + Extract); folderul `/home2/<cont>/civic-test-data` (`storage`, `backups`) și fișierul de setări `civic.env` (drepturi 0600, decizia 5.1-A); parola utilizatorului DB schimbată (numai litere și cifre); variabila `CIVIC_ENV_FILE` în aplicația Node (**prima încercare nesalvată → aplicația a refuzat pornirea cu „configurare invalidă”, cum era proiectat**; a doua, salvată); `migrate`, `seed:config`, `seed:demo`, `migrate:status` prin Cron Jobs (rulat de 2 ori, a doua fără efect; `cli.log`: „Versiunea schemei: 1 (așteptată: 1)”), apoi comanda cron ștearsă | aplicația rulează: prima pagină afișată; `GET /api/v1/health` → `{"status":"ok","version":"0.0.0+2ce0d98"}`; `robots.txt` interzice indexarea (confirmat de un robot extern); T-ISO-1, 2, 4: identice; T-ISO-5, 7: identice (proprietarul, 06:55; e-mailul a sosit cu ~1 min întârziere, normal) | **OK** |
 | 5 | 29.09.2026 07:00 | protecție cu parolă (cPanel → Directory Privacy) pe folderul subdomeniului `civic-test.electrovolt.ro` (nu `public_html`), utilizator `civic`, parola păstrată numai de proprietar | proprietarul: browserul cere utilizator și parolă; cu ele aplicația se deschide | **OK** |
