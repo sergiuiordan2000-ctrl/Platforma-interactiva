@@ -88,7 +88,7 @@ Estimare: o sesiune de lucru pentru cod și teste, plus instalarea.
 |---|---|---|
 | D-B1 | Varianta de durată | **B** (această analiză) sau **C** (VPS / altă găzduire). **Decis la 13.10.2026: B.** |
 | D-B2 | Limitele pe IP | dezactivate prin setare (recomandat) sau eliminate din cod. **Decis la 13.10.2026: dezactivate prin setare.** |
-| D-B3 | ALTCHA | la cererea de cod (nou), implicit la sesizări, obligatoriu la vot: da / nu, pe rând. **Decis la 13.10.2026: toate trei** (cererea de cod; sesizări pornit implicit, Admin îl poate opri; vot obligatoriu) |
+| D-B3 | ALTCHA | la cererea de cod (nou), implicit la sesizări, obligatoriu la vot: da / nu, pe rând. **Decis la 13.10.2026: toate trei** (cererea de cod; sesizări pornit implicit, ~~Admin îl poate opri~~; vot obligatoriu). **Erată (decizia proprietarului din 14.10.2026, AI-2, varianta A):** ALTCHA la sesizări se oprește **numai prin comanda** `settings:report-pow off` („Run JS script”), fără comutator în Admin, conform deciziei A1 din 30.09.2026 (`docs/faza5/FAZA_5_4_PLAN.md`); formularea „Admin îl poate opri” a fost o greșeală a lui Claude la prezentarea variantei |
 | D-B4 | Parolele Admin | limită de simultaneitate în loc de limita pe IP. **Decis la 13.10.2026: cel mult 2 verificări simultane, fără ALTCHA la Admin** |
 | D-B5 | Căutarea adresei | 30 / cont / oră în plus față de limita globală. **Decis la 13.10.2026: 20 / cont / oră** + limita globală |
 

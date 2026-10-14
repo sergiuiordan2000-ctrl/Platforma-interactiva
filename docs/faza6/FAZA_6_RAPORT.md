@@ -77,7 +77,7 @@ Constatările informative RA-6, RA-7, RA-8 nu sunt eșecuri ale unei verificări
 | Pasul 2 încheiat fără adresa reală a vizitatorului (T1–T4 neîndeplinite); închiderea Pasului 4 în condițiile variantei B, cu S6 evaluat pe varianta B | AI-1, varianta A (`FAZA_6_PLAN.md` §0.2; `FAZA_6_TRUST_PROXY.md` §6) | 14.10.2026 |
 | riscurile rămase după varianta B: voturi repetate (jeton golit + ALTCHA rezolvat din nou), conturi multiple cu adrese diferite; reevaluare după lansare | același document, „Limitare acceptată explicit” | 13.10.2026 |
 | RA-5: un cont Admin poate fi blocat 15 minute de cine îi știe adresa (5 parole greșite); adresele Admin nu sunt publice | D-B4 (riscul rămas al limitei de simultaneitate) | 13.10.2026 |
-| ALTCHA pornit implicit la sesizări, oprirea numai prin comandă (`settings:report-pow off`) | D-B3 | 13.10.2026 |
+| ALTCHA pornit implicit la sesizări, oprirea numai prin comandă (`settings:report-pow off`), fără comutator în Admin | D-B3, cu erata din 14.10.2026 (AI-2, varianta A; decizia A1 din 30.09.2026) | 13.10.2026; 14.10.2026 |
 | RA-6: profilul de culoare și celelalte segmente `APPn` rămân; imaginea nu se re-codează | decizia A la RA-6 | 13.10.2026 |
 | RA-8: pe staging (`allowlist`), codul de cetățean rămâne în coadă, pentru `dev:show-code` | decizia A la RA-8 | 13.10.2026 |
 | sesiunea de cetățean fără expirare pe server (cookie 400 de zile) | varianta B | 30.09.2026 |
