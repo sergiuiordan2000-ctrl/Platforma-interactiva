@@ -24,10 +24,10 @@
 | M2 | tranziții și permisiuni pe staging (F6n, F8n, F9, F10) | același raport, §4 | 11.10.2026 |
 | M3 | votul pe staging: un vot numărat, rezultatele după regula sondajului | același raport, §5 (S-1…S-4, S-6…S-10). **Fără S-5** (Lista 3) | 11.10.2026 |
 | M4 | restaurarea unui backup într-o bază și un director noi | jurnalul staging-ului, intervențiile 41–48 (capturi, ieșirea comenzilor); datele active identice înainte și după; a doua restaurare refuzată | 13.10.2026 |
-| S1 | autentificarea: parole, blocare, TOTP, coduri de recuperare, codul pe e-mail, Google | reauditul §2 (cod) și testele automate; RA-1, RA-3, RA-4 remediate (Lista 2) | 13.10.2026 |
-| S2 | sesiunile: cookie, durate, ieșire, CSRF | reauditul §2 (cod, teste); atributele cookie-ului verificate pe staging pe cookie-ul de participare (S7) | 13.10.2026 |
+| S1 | autentificarea: parole, blocare, TOTP, coduri de recuperare, codul pe e-mail, Google | reauditul §2 (cod) și testele automate; RA-1, RA-3, RA-4 remediate (Lista 2). **Pe staging (`f6d5f2d`, probe K3):** mesajul generic la parolă greșită / adresă inexistentă, cod TOTP greșit apoi corect, cod pe e-mail greșit apoi corect (intervențiile 63–65) | 13.10.2026; 14.10.2026 |
+| S2 | sesiunile: cookie, durate, ieșire, CSRF | reauditul §2 (cod, teste); atributele cookie-ului verificate pe staging pe cookie-ul de participare (S7). **Pe staging (`f6d5f2d`, probe K3):** cookie-ul de sesiune Admin (Session) și cetățean (400 de zile), cu atributele lor; ieșirea revocă sesiunea pe server (`logout`), iar autentificarea cu TOTP o rotește (`rotated`) (intervențiile 60–62) | 13.10.2026; 14.10.2026 |
 | S3 | autorizarea: fiecare rută cu garda ei; matricea 26 / 12 | reauditul §2, tabelul rută → gardă generat din cod (91 de înregistrări); `permissions.test.ts` | 13.10.2026 |
-| S4 | datele expuse public | reauditul §2 (cod, testele de suprafață publică); RA-2 remediată | 13.10.2026 |
+| S4 | datele expuse public | reauditul §2 (cod, testele de suprafață publică); RA-2 remediată. **Pe staging (`f6d5f2d`, probe K3):** proiecția publică a hărții; fotografia publică fără metadate (verificată octet cu octet); tabelul voturilor fără IP / cont; același răspuns cu cont sau fără (intervențiile 66–69) | 13.10.2026; 14.10.2026 |
 | S5 | datele de intrare: validare, SQL parametrizat, XSS | reauditul §2 (cod: 20 de interogări cu interpolare verificate una câte una) | 13.10.2026 |
 | S7 | antetele de securitate și `http` → `https` (301) pe staging | `curl` de pe calculatorul proprietarului (capturi); jurnalul staging-ului, intervențiile 39–40 | 13.10.2026 |
 | S8 | încărcarea fotografiilor | reauditul §2 (cod, teste); RA-6 remediată | 13.10.2026 |
@@ -61,7 +61,7 @@ Constatările informative RA-6, RA-7, RA-8 nu sunt eșecuri ale unei verificări
 |---|---|---|
 | T2, T3, T4 | limitele separate pe client; antetul falsificat respins; comportamentul cu setarea aplicată | precondiția (T1) nu poate fi îndeplinită; nicio setare nu a fost aplicată; Pasul 2 încheiat fără ele (14.10.2026) |
 | S6 | limitele cu adresa reală a clientului | idem; protecția a trecut pe cont, pe adresa de e-mail și pe ALTCHA (varianta B); varianta B este evaluată în reaudit, S6 |
-| S1, S2, S4 pe staging | probele de pe staging cerute în tabelul Pasului 4 | atinse numai informal (intervențiile 52–54: autentificări, sesizare, vot); fără probe dedicate |
+| S1, S2 pe staging, rămase | blocarea Admin după 5 parole; blocarea după 3 coduri TOTP; expirarea codului de cetățean după 15 minute; limita zilnică de coduri; expirarea sesiunii Admin după 60 de minute | intenționat neexecutate (ar bloca sau ar întârzia conturi reale); acoperite de testele automate. ~~„probele S1, S2, S4 pe staging … fără probe dedicate”~~: făcute la 14.10.2026 (Lista 1; intervențiile 60–69) |
 | S12, A-21 și A-24 | auditul general: A-21 (afișarea pe mobil: banner, ținte sub 44 px, tab-uri) și A-24 (declarații nefolosite, cod mort) | cer o probă în browser, respectiv `tsc --noUnusedLocals`; nefăcute. Restul S12 este verificat (Lista 1). ~~„A-01…A-27 … documentele nu sunt în depozit”~~: auditul are 32 de constatări și a fost dat de proprietar la 14.10.2026 |
 | M3, S-5 | refuzul celui de-al doilea vot **de către server** | numai dedus (captură + confirmarea proprietarului + numărătoarea din bază); `FAZA_6_PROBE_M1_M3_RAPORT.md` §5 |
 | M2, F10 | ștergerea fișierelor fotografiilor de pe disc și a rândurilor de audit, după ștergerea definitivă | neverificată direct pe staging (același raport, §9); acoperită de testele automate |
@@ -95,7 +95,7 @@ Constatările informative RA-6, RA-7, RA-8 nu sunt eșecuri ale unei verificări
 |---|---|---|
 | K1 | ~~staging-ul nu rulează versiunea pentru care se cere checkpoint-ul~~ | **rezolvată la 14.10.2026:** versiunea nouă `f6d5f2d` instalată (înainte rula versiunea mai veche `cb4cc45`), cu proba scurtă (intervențiile 55–59) |
 | K2 | auditul independent prevăzut de plan la checkpoint | auditul acestui raport și al reauditului, înaintea deciziei |
-| K3 | probele S1, S2, S4 pe staging | blocante **sau** acceptate explicit ca limitare (Lista 4); recomandarea mea: acceptate, fiindcă sunt acoperite de cod, de teste și parțial de intervențiile 52–54 |
+| K3 | ~~probele S1, S2, S4 pe staging~~ | ~~blocante **sau** acceptate explicit ca limitare (Lista 4); recomandarea mea: acceptate, fiindcă sunt acoperite de cod, de teste și parțial de intervențiile 52–54~~ **Rezolvată la 14.10.2026** (decizia proprietarului: probele executate): P1–P10 pe staging (`f6d5f2d`), toate conforme (intervențiile 60–69); rămân neexecutate, intenționat, cele din Lista 3 |
 
 ## 7. Lista 6 — probleme care blochează lansarea publică
 
@@ -141,7 +141,7 @@ Detaliile, probele și testele noi: `FAZA_6_REAUDIT_SECURITATE.md` §3. Fiecare 
 
 ## 9. Ce se cere proprietarului
 
-1. Decizia asupra Listei 5 (K2, K3; K1 rezolvată).
+1. Decizia asupra Listei 5 (K2; K1 și K3 rezolvate).
 2. Auditul independent al raportului (K2), dacă îl menții.
 3. Decizia de checkpoint: Faza 6 închisă, cu Listele 4 și 6 preluate în Faza 7 (7A și poarta „date reale”), sau ce trebuie refăcut.
 

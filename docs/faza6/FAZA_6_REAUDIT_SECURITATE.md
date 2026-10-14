@@ -1,8 +1,8 @@
 # Faza 6, Pasul 4 — Reauditul de securitate
 
-**Data:** 13.10.2026. **Versiunea verificată:** `faza-5-backend` la `55ead0e` (cod identic cu `f982896`, instalat pe staging ca `27b1b5f`).
+**Data:** 13.10.2026. **Versiunea verificată (reauditul inițial, 13.10.2026):** `faza-5-backend` la `55ead0e` (cod identic cu `f982896`, instalat pe staging ca `27b1b5f`). **Verificările ulterioare, fiecare la versiunea ei:** S7 pe staging la `cb4cc45` (13.10.2026); S6 și S12 în cod la `f6d5f2d` (14.10.2026); probele K3 P1–P10 pe staging la `f6d5f2d` (14.10.2026).
 **Planul:** `docs/faza6/FAZA_6_PLAN.md`, Pasul 4 (S1–S12), regula dovezilor §4.
-**Starea:** **în lucru.** S1–S5 și S8–S12 sunt verificate în cod și local; **S7** verificat pe staging la 13.10.2026 (§2, S7). **S6:** evaluat pe varianta B (§2, S6). Probele S1, S2, S4 pe staging sunt încă de făcut. ~~Pasul 4 nu se închide înainte de verificarea `TRUST_PROXY` (D-4).~~ **D-4 (14.10.2026):** verificarea `TRUST_PROXY` a fost făcută, iar închiderea Pasului 4 se aprobă în condițiile variantei B (decizia proprietarului din 14.10.2026, AI-1, varianta A; `FAZA_6_PLAN.md` §0.2); S12 și probele S1, S2, S4 pe staging rămân la deciziile lor.
+**Starea:** **în lucru.** S1–S5 și S8–S12 sunt verificate în cod și local; **S7** verificat pe staging la 13.10.2026 (§2, S7). **S6:** evaluat pe varianta B (§2, S6). Probele S1, S2, S4 pe staging: **făcute la 14.10.2026, pe staging la `f6d5f2d`** (K3, P1–P10, toate conforme; jurnalul staging-ului, intervențiile 60–69); rămân neexecutate, intenționat, blocările și expirările (acoperite de testele automate). ~~Pasul 4 nu se închide înainte de verificarea `TRUST_PROXY` (D-4).~~ **D-4 (14.10.2026):** verificarea `TRUST_PROXY` a fost făcută, iar închiderea Pasului 4 se aprobă în condițiile variantei B (decizia proprietarului din 14.10.2026, AI-1, varianta A; `FAZA_6_PLAN.md` §0.2); S12 și probele S1, S2, S4 pe staging rămân la deciziile lor.
 **Limită:** reauditul este făcut de Claude, care a scris și codul. Auditul independent rămâne cel de la checkpoint.
 **Remedierile** sunt consemnate separat de constatări, fiecare cu decizia proprietarului (§1, „Remedieri”, și §3).
 
@@ -332,6 +332,6 @@ Auditul Etapei 6 (`RAPORT_AUDIT_ETAPA_6.md`, 6D), pe aplicația fără server:
 | Punct | Ce | Depinde de |
 |---|---|---|
 | S6 | ~~limitele pe IP, pe cont, pe adresă; T2~~ evaluat pe varianta B (§2, S6); comportamentul cu adresa reală și T2: neefectuate, limitare acceptată | — (decizia proprietarului din 14.10.2026, AI-1, varianta A) |
-| S1, S2, S4 pe staging | probele din tabelul planului | aprobare separată |
+| S1, S2, S4 pe staging | ~~probele din tabelul planului~~ făcute la 14.10.2026 (P1–P10, intervențiile 60–69); rămân neexecutate, intenționat, blocările și expirările | — |
 | S12 | ~~auditul general~~ verificat în cod și în documente (§4, 14.10.2026); rămân neverificate A-21 (mobil) și A-24 (cod mort) | o probă în browser (A-21); `tsc --noUnusedLocals` (A-24) |
 | remedierile RA-1 … RA-10 | toate instalate pe staging (`f6d5f2d`, 14.10.2026); RA-5 acceptată (varianta B) | — |
