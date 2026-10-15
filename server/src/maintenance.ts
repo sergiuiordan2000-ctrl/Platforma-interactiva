@@ -8,7 +8,8 @@
 // - R7 (7A): `rate_limits` expirate (≤ 48 h, N4-4), codurile de cetățean expirate (B1 §3.9), `rejected_attempts`
 //   după 30 de zile (N4-8), sesiunile la 6 luni după expirare sau revocare (A05-1);
 // - amendamentul Google: încercările OAuth expirate (`citizen_oauth_attempts`);
-// - R8 (7A): fotografiile orfane din `STORAGE_DIR/photos` (fără rând în `report_photos`, mai vechi de o oră).
+// - R8 (7A): fotografiile orfane din `STORAGE_DIR/photos` (fără rând în `report_photos`, mai vechi de o oră);
+// - R15 / D7-5 (7A): conturile de cetățean `pending` neactivate, la 45 de zile de la creare (cu excepțiile din funcție).
 
 import { lstat, readdir, rm, stat, unlink } from 'node:fs/promises';
 import type { Dirent } from 'node:fs';
@@ -16,6 +17,7 @@ import { join } from 'node:path';
 import { LIMITS, type AppContext } from './context.ts';
 import { writeAudit } from './audit.ts';
 import { deleteReportsHard, expiredReportIds } from './db/reportDeletion.ts';
+import { activeBlock, emailHash } from './routes/citizens.ts';
 import { purgeSurveyFreeTexts } from './surveys.ts';
 
 export interface RetentionResult {
@@ -44,6 +46,8 @@ export interface RetentionResult {
   orphanPhotos: number;
   /** R8 (7A): rândurile `report_photos` al căror fișier lipsește de pe disc; numai numărate, nimic nu se repară. */
   missingPhotoFiles: number;
+  /** R15 / D7-5 (7A): conturile de cetățean `pending` neactivate șterse la 45 de zile. */
+  pendingAccounts: number;
 }
 
 export async function purgeRetention(ctx: AppContext): Promise<RetentionResult> {
@@ -104,6 +108,8 @@ export async function purgeRetention(ctx: AppContext): Promise<RetentionResult> 
   const powChallenges = await purgePow(ctx);
   // 13. R8 (7A): fotografiile orfane (după pasul 1, care a șters deja fișierele sesizărilor expirate)
   const orphans = await purgeOrphanPhotos(ctx);
+  // 14. R15 / D7-5 (7A): conturile `pending` neactivate (după pasul 2, care a șters blocările temporare expirate)
+  const pendingAccounts = await purgePendingAccounts(ctx);
   return {
     reports: ids.length,
     photoFiles,
@@ -120,7 +126,42 @@ export async function purgeRetention(ctx: AppContext): Promise<RetentionResult> 
     powChallenges,
     orphanPhotos: orphans.orphanPhotos,
     missingPhotoFiles: orphans.missingPhotoFiles,
+    pendingAccounts,
   };
+}
+
+/**
+ * R15 / D7-5 (7A, deciziile proprietarului din 15.10.2026: B = 45 de zile; A = fără ștergere cu blocare activă).
+ * Un cont de cetățean se șterge numai dacă: este încă `pending`; a fost creat STRICT înainte de acum − 45 de zile;
+ * nu are un cod de autentificare încă valabil (un cont vechi poate cere azi un cod nou); nu are o blocare activă.
+ * Blocarea activă se verifică cu aceeași funcție ca la cererea unui cod (`activeBlock`: după amprenta adresei SAU după
+ * cont; definitivă, sau temporară cu `ends_at` în viitor), iar condițiile pe cont (stare, vechime, cod valabil,
+ * blocare legată de cont) se repetă chiar în `DELETE`, pentru un cont activat sau blocat între timp.
+ * Codurile contului se șterg odată cu el (cheia străină); limitele pe adresă (`rate_limits`) nu se ating.
+ */
+export async function purgePendingAccounts(ctx: AppContext): Promise<number> {
+  const now = ctx.now();
+  const cutoff = new Date(now.getTime() - LIMITS.pendingAccountRetentionDays * 86_400_000);
+  const [rows] = await ctx.pool.query(
+    `SELECT a.id, a.email_normalized AS email FROM citizen_accounts a
+      WHERE a.status = 'pending' AND a.created_at < ?
+        AND NOT EXISTS (SELECT 1 FROM citizen_login_codes c WHERE c.account_id = a.id AND c.expires_at >= ?)`,
+    [cutoff, now],
+  );
+  let deleted = 0;
+  for (const a of rows as Array<{ id: string; email: string }>) {
+    if (await activeBlock(ctx, ctx.pool, a.id, emailHash(ctx, a.email))) continue; // decizia A: blocarea rămâne vizibilă
+    const [res] = await ctx.pool.query(
+      `DELETE FROM citizen_accounts
+        WHERE id = ? AND status = 'pending' AND created_at < ?
+          AND NOT EXISTS (SELECT 1 FROM citizen_login_codes c WHERE c.account_id = citizen_accounts.id AND c.expires_at >= ?)
+          AND NOT EXISTS (SELECT 1 FROM citizen_blocks b WHERE b.account_id = citizen_accounts.id
+                            AND (b.kind = 'permanent' OR b.ends_at > ?))`,
+      [a.id, cutoff, now, now],
+    );
+    deleted += (res as { affectedRows: number }).affectedRows;
+  }
+  return deleted;
 }
 
 /** Numele generate de aplicație pentru fotografii (`routes/reports.ts`): 16 octeți aleatori în hex + extensia. */

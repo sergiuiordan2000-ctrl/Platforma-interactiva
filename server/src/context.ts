@@ -59,6 +59,8 @@ export const LIMITS = {
   sessionRetentionMonths: 6,
   /** R7 (7A; N4-8, B1 §3.6): jurnalul agregat al respingerilor se păstrează 30 de zile. */
   rejectedAttemptsRetentionDays: 30,
+  /** D7-5 (7A; decizia proprietarului din 15.10.2026): conturile de cetățean `pending` neactivate se șterg la 45 de zile. */
+  pendingAccountRetentionDays: 45,
   // ——— sesizări (B7 §2, B5 §2, 2.14; propuneri DN-15) ———
   reportMinFormSeconds: 8,
   /** Jetonul formularului expiră după 24 h (propunere tehnică). */
