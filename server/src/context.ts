@@ -55,6 +55,10 @@ export const LIMITS = {
    * RFC 6265bis) și se reînnoiește la fiecare folosire.
    */
   citizenCookieMaxAgeDays: 400,
+  /** R7 (7A; A05-1, B1 §3.9): sesiunile se șterg la 6 luni după expirare sau revocare. */
+  sessionRetentionMonths: 6,
+  /** R7 (7A; N4-8, B1 §3.6): jurnalul agregat al respingerilor se păstrează 30 de zile. */
+  rejectedAttemptsRetentionDays: 30,
   // ——— sesizări (B7 §2, B5 §2, 2.14; propuneri DN-15) ———
   reportMinFormSeconds: 8,
   /** Jetonul formularului expiră după 24 h (propunere tehnică). */

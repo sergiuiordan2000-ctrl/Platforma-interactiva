@@ -245,36 +245,6 @@ describe('D3: rezultatele, arhiva, marcajul de integritate (P-2)', () => {
   });
 });
 
-describe('textele libere (N4-9, DN-03) și retenția (A05-2, T-7)', () => {
-  it('numai super_admin, numai după închidere, cu audit; golite la 6 luni de la închidere, nu mai devreme; numărul rămâne', async () => {
-    const s = await createActive();
-    assert.equal((await vote(await voter(), s.id, basicAnswers(s, 'Text liber de păstrat'))).statusCode, 201);
-    assert.equal((await sa.get(`${V1}/admin/surveys/${s.id}/free-text`)).statusCode, 403, 'deschis');
-    await sa.send('PATCH', `${V1}/admin/surveys/${s.id}/status`, { status: 'closed' });
-    assert.equal((await op.get(`${V1}/admin/surveys/${s.id}/free-text`)).statusCode, 403, 'operatorul nu are surveys.edit');
-    const ft = await sa.get(`${V1}/admin/surveys/${s.id}/free-text`);
-    assert.equal(ft.statusCode, 200);
-    assert.deepEqual(ft.json().items[0].answers, ['Text liber de păstrat']);
-    assert.equal((await q("SELECT id FROM audit_log WHERE action = 'survey.free_text.read' AND target_id = ?", [s.id])).length, 1);
-
-    const saved = clock.current;
-    try {
-      clock.current = new Date(saved.getTime() + 179 * DAY * 60_000);
-      await purgeRetention(ctx);
-      assert.equal((await q<{ t: string | null }>('SELECT a.text_value AS t FROM survey_answers a JOIN survey_submissions s ON s.id = a.submission_id WHERE s.survey_id = ? AND a.option_id IS NULL', [s.id]))[0]!.t, 'Text liber de păstrat');
-      clock.current = new Date(saved.getTime() + 186 * DAY * 60_000);
-      const r = await purgeRetention(ctx);
-      assert.ok(r.surveyFreeTexts >= 1);
-      assert.equal((await q<{ t: string | null }>('SELECT a.text_value AS t FROM survey_answers a JOIN survey_submissions s ON s.id = a.submission_id WHERE s.survey_id = ? AND a.option_id IS NULL', [s.id]))[0]!.t, null);
-      const res = (await new Client(app).get(`${V1}/public/surveys/${s.id}/results`)).json();
-      assert.equal(res.questions[2].freeTextCount, 1, 'T-7: numărul rămâne');
-      assert.equal(res.totalSubmissions, 1, 'voturile și arhiva rămân');
-    } finally {
-      clock.current = saved;
-    }
-  });
-});
-
 describe('integritatea structurii (T-4, P-1, P-6) și permisiunile (B4)', () => {
   it('după primul vot: opțiuni / întrebări / vizibilitate / start → 409; titlu, descriere, ajutor, end_at viitor → 200', async () => {
     const s = await createActive();
@@ -440,5 +410,39 @@ describe('jurnalul fără IP (T-5), tabloul de bord, respingerile', () => {
     const rej = (await op.get(`${V1}/admin/surveys/${s!.target_id}/rejections`)).json();
     assert.ok(rej.items.some((r: { reason: string; count: number }) => r.reason === 'rate_limited' && r.count >= 1));
     assert.doesNotMatch(JSON.stringify(rej), /ip/i);
+  });
+});
+
+// Adaptare (7A, R7 + R9, 15.10.2026): blocul de mai jos a fost MUTAT la sfârșitul fișierului, fără nicio schimbare
+// în conținut. El mută ceasul cu 186 de zile înainte, rulează `purge:retention`, apoi readuce ceasul înapoi. De la R7,
+// curățarea șterge și sesiunile Admin expirate de peste 6 luni, deci sesiunile `sa` / `op` folosite de testele următoare
+// ar fi dispărut (o întoarcere a ceasului nu există în producție). La sfârșit, niciun test nu mai depinde de ele.
+describe('textele libere (N4-9, DN-03) și retenția (A05-2, T-7)', () => {
+  it('numai super_admin, numai după închidere, cu audit; golite la 6 luni de la închidere, nu mai devreme; numărul rămâne', async () => {
+    const s = await createActive();
+    assert.equal((await vote(await voter(), s.id, basicAnswers(s, 'Text liber de păstrat'))).statusCode, 201);
+    assert.equal((await sa.get(`${V1}/admin/surveys/${s.id}/free-text`)).statusCode, 403, 'deschis');
+    await sa.send('PATCH', `${V1}/admin/surveys/${s.id}/status`, { status: 'closed' });
+    assert.equal((await op.get(`${V1}/admin/surveys/${s.id}/free-text`)).statusCode, 403, 'operatorul nu are surveys.edit');
+    const ft = await sa.get(`${V1}/admin/surveys/${s.id}/free-text`);
+    assert.equal(ft.statusCode, 200);
+    assert.deepEqual(ft.json().items[0].answers, ['Text liber de păstrat']);
+    assert.equal((await q("SELECT id FROM audit_log WHERE action = 'survey.free_text.read' AND target_id = ?", [s.id])).length, 1);
+
+    const saved = clock.current;
+    try {
+      clock.current = new Date(saved.getTime() + 179 * DAY * 60_000);
+      await purgeRetention(ctx);
+      assert.equal((await q<{ t: string | null }>('SELECT a.text_value AS t FROM survey_answers a JOIN survey_submissions s ON s.id = a.submission_id WHERE s.survey_id = ? AND a.option_id IS NULL', [s.id]))[0]!.t, 'Text liber de păstrat');
+      clock.current = new Date(saved.getTime() + 186 * DAY * 60_000);
+      const r = await purgeRetention(ctx);
+      assert.ok(r.surveyFreeTexts >= 1);
+      assert.equal((await q<{ t: string | null }>('SELECT a.text_value AS t FROM survey_answers a JOIN survey_submissions s ON s.id = a.submission_id WHERE s.survey_id = ? AND a.option_id IS NULL', [s.id]))[0]!.t, null);
+      const res = (await new Client(app).get(`${V1}/public/surveys/${s.id}/results`)).json();
+      assert.equal(res.questions[2].freeTextCount, 1, 'T-7: numărul rămâne');
+      assert.equal(res.totalSubmissions, 1, 'voturile și arhiva rămân');
+    } finally {
+      clock.current = saved;
+    }
   });
 });
