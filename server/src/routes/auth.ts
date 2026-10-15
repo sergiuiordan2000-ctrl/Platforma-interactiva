@@ -17,7 +17,7 @@ import { apiError } from '../errors.ts';
 import { decryptSecret, deriveKey, encryptSecret, hmacHex } from '../auth/crypto.ts';
 import { anonymousProbe, loadAdmin, requestIpHash, requireAdmin, type AdminPrincipal, type AdminUserRow } from '../auth/guards.ts';
 import { dummyVerify, hashPassword, needsRehash, passwordPolicyError, verifyPassword } from '../auth/password.ts';
-import { hitRateLimit, ipLimitExceeded, recordRejected } from '../auth/rateLimit.ts';
+import { hitRateLimit, hitSlidingCount, ipLimitExceeded, recordRejected } from '../auth/rateLimit.ts';
 import {
   clearSessionCookie,
   createSession,
@@ -192,8 +192,9 @@ export function registerAuthRoutes(api: FastifyInstance, ctx: AppContext): void 
     if (step === null) {
       await recordRejected(ctx, 'login', 'invalid', ipH);
       // RA-4 (decizia proprietarului, 13.10.2026): pe cont, cel mult LIMITS.totpMaxFailuresPerHour coduri greșite
-      // într-o oră; la prag, contul se blochează LIMITS.loginLockMinutes, iar sesiunea dinaintea MFA se revocă
-      if ((await hitRateLimit(ctx, totpFailKey(p.user.id), 60)) >= LIMITS.totpMaxFailuresPerHour) {
+      // într-o oră; la prag, contul se blochează LIMITS.loginLockMinutes, iar sesiunea dinaintea MFA se revocă.
+      // CL-4 (7A, 15.10.2026): ora se numără pe fereastră mobilă (ultimele 60 de minute), nu pe ora fixă.
+      if ((await hitSlidingCount(ctx, totpFailKey(p.user.id), 60)) >= LIMITS.totpMaxFailuresPerHour) {
         await ctx.pool.query('UPDATE admin_users SET locked_until = ? WHERE id = ?', [
           new Date(now.getTime() + LIMITS.loginLockMinutes * 60_000), p.user.id,
         ]);
