@@ -7,9 +7,11 @@
 // - provocările proof-of-work expirate (R9, 7A: și în `purge:retention`, nu numai prin `purge:pow`);
 // - R7 (7A): `rate_limits` expirate (≤ 48 h, N4-4), codurile de cetățean expirate (B1 §3.9), `rejected_attempts`
 //   după 30 de zile (N4-8), sesiunile la 6 luni după expirare sau revocare (A05-1);
-// - amendamentul Google: încercările OAuth expirate (`citizen_oauth_attempts`).
+// - amendamentul Google: încercările OAuth expirate (`citizen_oauth_attempts`);
+// - R8 (7A): fotografiile orfane din `STORAGE_DIR/photos` (fără rând în `report_photos`, mai vechi de o oră).
 
-import { readdir, rm, stat } from 'node:fs/promises';
+import { lstat, readdir, rm, stat, unlink } from 'node:fs/promises';
+import type { Dirent } from 'node:fs';
 import { join } from 'node:path';
 import { LIMITS, type AppContext } from './context.ts';
 import { writeAudit } from './audit.ts';
@@ -38,6 +40,10 @@ export interface RetentionResult {
   sessions: number;
   /** R9 (7A): provocările proof-of-work expirate. */
   powChallenges: number;
+  /** R8 (7A): fișierele de fotografie orfane șterse din `STORAGE_DIR/photos`. */
+  orphanPhotos: number;
+  /** R8 (7A): rândurile `report_photos` al căror fișier lipsește de pe disc; numai numărate, nimic nu se repară. */
+  missingPhotoFiles: number;
 }
 
 export async function purgeRetention(ctx: AppContext): Promise<RetentionResult> {
@@ -96,6 +102,8 @@ export async function purgeRetention(ctx: AppContext): Promise<RetentionResult> 
   );
   // 12. R9 (7A): provocările proof-of-work expirate; cele încă valabile rămân și blochează reluarea
   const powChallenges = await purgePow(ctx);
+  // 13. R8 (7A): fotografiile orfane (după pasul 1, care a șters deja fișierele sesizărilor expirate)
+  const orphans = await purgeOrphanPhotos(ctx);
   return {
     reports: ids.length,
     photoFiles,
@@ -110,7 +118,65 @@ export async function purgeRetention(ctx: AppContext): Promise<RetentionResult> 
     rejectedAttempts: (rej as { affectedRows: number }).affectedRows,
     sessions: (sess as { affectedRows: number }).affectedRows,
     powChallenges,
+    orphanPhotos: orphans.orphanPhotos,
+    missingPhotoFiles: orphans.missingPhotoFiles,
   };
+}
+
+/** Numele generate de aplicație pentru fotografii (`routes/reports.ts`): 16 octeți aleatori în hex + extensia. */
+const PHOTO_FILE_RE = /^[0-9a-f]{32}\.(?:jpg|webp)$/;
+
+/**
+ * R8 (7A, decizia proprietarului din 15.10.2026): fișierele din `STORAGE_DIR/photos` rămase fără rând în
+ * `report_photos` (de exemplu, după o cădere între COMMIT-ul ștergerii unei sesizări și ștergerea fișierelor).
+ * Se șterge un fișier numai dacă: numele are exact forma generată de aplicație; este un fișier obișnuit (legăturile
+ * simbolice, subdirectoarele și orice alt tip nu se ating și nu se urmează; directorul nu se parcurge recursiv);
+ * cheia lui nu apare în `report_photos.storage_key`; are data modificării mai veche decât `maxAgeMs` (o oră).
+ * Marja acoperă o depunere în curs: fișierul ajunge în `photos/` abia după COMMIT, cu data fișierului temporar.
+ * Un fișier care dispare între enumerare și ștergere (sau orice eroare pe un fișier) nu oprește curățarea.
+ * Cazul invers (rând fără fișier) se numără în `missingPhotoFiles`, fără nicio acțiune.
+ * `onBeforeRemove` există numai pentru teste (simularea unui fișier care dispare între enumerare și ștergere).
+ */
+export async function purgeOrphanPhotos(
+  ctx: AppContext,
+  opts: { maxAgeMs?: number; onBeforeRemove?: (path: string) => Promise<void> } = {},
+): Promise<{ orphanPhotos: number; missingPhotoFiles: number }> {
+  const maxAgeMs = opts.maxAgeMs ?? 3_600_000;
+  const dir = join(ctx.config.storageDir, 'photos');
+  const [rows] = await ctx.pool.query('SELECT storage_key AS k FROM report_photos');
+  const known = new Set((rows as Array<{ k: string }>).map((r) => r.k));
+  let entries: Dirent[];
+  try {
+    entries = await readdir(dir, { withFileTypes: true });
+  } catch {
+    entries = []; // directorul lipsește (sau nu poate fi citit): nimic de curățat
+  }
+  const limit = ctx.now().getTime() - maxAgeMs;
+  let orphanPhotos = 0;
+  for (const e of entries) {
+    if (!e.isFile() || !PHOTO_FILE_RE.test(e.name) || known.has(`photos/${e.name}`)) continue;
+    const p = join(dir, e.name);
+    try {
+      const st = await lstat(p); // fără a urma o eventuală legătură simbolică apărută între timp
+      if (!st.isFile() || st.mtimeMs >= limit) continue;
+      if (opts.onBeforeRemove) await opts.onBeforeRemove(p);
+      await unlink(p); // `unlink` nu urmează legăturile simbolice și nu șterge directoare
+      orphanPhotos += 1;
+    } catch {
+      // dispărut între timp sau inaccesibil: se trece la următorul
+    }
+  }
+  let missingPhotoFiles = 0;
+  for (const key of known) {
+    const name = key.startsWith('photos/') ? key.slice('photos/'.length) : '';
+    if (!PHOTO_FILE_RE.test(name)) continue; // numai cheile cu forma generată de aplicație
+    try {
+      if (!(await lstat(join(dir, name))).isFile()) missingPhotoFiles += 1;
+    } catch {
+      missingPhotoFiles += 1;
+    }
+  }
+  return { orphanPhotos, missingPhotoFiles };
 }
 
 /**
