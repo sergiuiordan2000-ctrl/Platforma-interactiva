@@ -121,9 +121,15 @@ with backend_server(5499) as BACKEND, sync_playwright() as pw:
     for route in ROUTES:
         page.goto(URL + '/#' + route); page.wait_for_load_state('networkidle')
         ft = page.locator('footer').inner_text() if page.locator('footer').count() else ''
-        if 'redirecționate pe e-mail' in ft or 'nu este activă în această versiune' not in ft:
+        # 7A (D7-1, decizia proprietarului din 15.10.2026): fraza „Trimiterea automată … nu este activă în această
+        # versiune” a devenit inexactă (transmiterea la cererea cetățeanului există din Faza 5). Testul cere acum
+        # textul nou și verifică în continuare delimitarea față de registratura oficială și lipsa frazei vechi.
+        if ('redirecționate pe e-mail' in ft or 'nu este activă în această versiune' in ft
+                or 'nu reprezintă registratura oficială' not in ft
+                or 'numai dacă alegeți această opțiune la depunere și dacă serviciul de transmitere este activ' not in ft
+                or 'nu înlocuiește înregistrarea oficială a sesizării la Primărie' not in ft):
             bad_footer.append(route)
-    res.check('A-06 footer: fără „redirecționate pe e-mail”, cu mențiunea că trimiterea automată nu e activă (6 pagini)', bad_footer == [], str(bad_footer))
+    res.check('A-06 / D7-1 footer: delimitarea oficială, transmiterea numai la alegere și dacă serviciul e activ, fără fraza veche (6 pagini)', bad_footer == [], str(bad_footer))
 
     # 7. Date personale: DOM complet al tuturor paginilor publice, cu o sesizare preluată + asumată (5.4: prin API)
     cctx = b.new_context()

@@ -36,7 +36,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
               <span>Notă privind delimitarea oficială</span>
             </div>
             <p className="text-xs text-slate-300 leading-relaxed">
-              Această platformă este <strong>administrată independent</strong> și nu reprezintă registratura oficială a Primăriei Municipiului Turnu Măgurele. Sesizările transmise primesc un număr de evidență intern al platformei. Trimiterea automată pe e-mail către autoritatea locală nu este activă în această versiune.
+              Această platformă este <strong>administrată independent</strong> și nu reprezintă registratura oficială a Primăriei Municipiului Turnu Măgurele. Sesizările transmise primesc un număr de evidență intern al platformei. Sesizarea se transmite prin e-mail către Primărie numai dacă alegeți această opțiune la depunere și dacă serviciul de transmitere este activ. Această transmitere nu înlocuiește înregistrarea oficială a sesizării la Primărie.
             </p>
           </div>
 
