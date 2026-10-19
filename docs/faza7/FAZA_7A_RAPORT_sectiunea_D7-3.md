@@ -41,6 +41,7 @@
   - `backupSafety`, `counterWatermarkA1`, `restoreMarkersFormat`, `markers`: numai lista fișierelor din `BACKUP_DIR` (apar `account-deletions/`, `account-deletions-pending/` și martorul `account-markers-initialized.json`);
   - în `d73RestaurareConturiEmail`: T3 (lipsa directorului de intenții), T12 (marcajul creat prin intenție și mutare), T10 (două câmpuri noi în sinteza auditului), T14 (3 interogări pe `citizen_accounts`, toate după ID), T5 (un `BACKUP_DIR` de dinaintea R18 nu are nici directorul intențiilor, nici martorul).
 - **Suite (MySQL 8.0.46, local):** serverul 489/489 (0 eșecuri, 0 anulate), înaintea testului D6; după D6 (19.10.2026) au rulat numai testele țintite: `d73DirectoareR18` 11/11 și fișierele care apelează inițializarea marcajelor (toate trec); suita Python 167/167; `tsc` fără erori; `git diff --check` curat.
+- **CI pentru `cbcd444` (rularea 39302591937, 19.10.2026):** verde pe toate cele 6 joburi — backend Node 20 și Node 24 cu MySQL 8.0 și 8.4, backend Node 24 cu MariaDB 11.4, E2E (Python + Playwright); suita completă, inclusiv D6.
 
 ### Probele de control (pe o copie cu `dist`, nu în depozit)
 
@@ -76,7 +77,7 @@ Fiecare probă: înlocuiri exacte (textul vechi trebuie să apară exact o dată
 
 ### Ce nu este verificat (limitări)
 
-- **MariaDB 11.4:** nimic nu a rulat pe MariaDB; semantica blocării (I5, I5b) și `innodb_lock_wait_timeout` (I1, I9b) se confirmă prin CI, după publicare.
+- **MariaDB 11.4:** verificat numai prin CI (rularea 39302591937, verde): comportamentul blocării (I5, I5b) și `innodb_lock_wait_timeout` (I1, I9b); local s-a testat numai pe MySQL 8.0.46.
 - **I3** simulează oprirea după COMMIT prin omiterea mutării, nu prin oprirea efectivă a procesului (oprirea reală este testată numai înainte de COMMIT, I2).
 - **`fsync`** la o cădere de curent nu poate fi verificat prin teste.
 - **T14 și I10** sunt gărzi statice (verifică textul codului).

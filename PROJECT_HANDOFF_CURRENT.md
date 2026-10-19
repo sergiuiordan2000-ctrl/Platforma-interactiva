@@ -23,20 +23,20 @@
 | R7 + R9 | `d53b28a` |
 | R8 | `f2b49bd` |
 | R15 (D7-5) | `c6ea8b7` |
-| R18 + R19 (D7-3, D7-3a, deciziile de după audit, inclusiv detectarea directoarelor R18 pierdute) | implementare verificată local (MySQL 8.0.46): server 489/489, Python 167/167; **necommitată**; detaliile, probele și limitările în `docs/faza7/FAZA_7A_RAPORT_sectiunea_D7-3.md`; procedura în `docs/faza5/FAZA_5_1_BACKUP_RESTAURARE.md` §7 |
+| R18 + R19 (D7-3, D7-3a, deciziile de după audit, inclusiv detectarea directoarelor R18 pierdute) | commit **`cbcd444`**, publicat la 19.10.2026; local (MySQL 8.0.46): server 489/489, Python 167/167; CI verde 6/6, inclusiv MariaDB 11.4; detaliile, probele și limitările în `docs/faza7/FAZA_7A_RAPORT_sectiunea_D7-3.md`; procedura în `docs/faza5/FAZA_5_1_BACKUP_RESTAURARE.md` §7 |
 | R20 (procedura cu furnizorul; corectura „M4 nefăcut” din `FAZA_5_1_BACKUP_RESTAURARE.md` §6.8) | de făcut |
 
-**Git (verificat la 19.10.2026):** `faza-5-backend` = `c6ea8b7`, indexul gol; R18 + R19 există **numai în directorul de lucru** al sesiunii (12 fișiere modificate, 5 noi, verificat la 19.10.2026, seara; copie integrală în `R18-R19-cod.diff` și `R18-R19-documentatie.diff`, la proprietar). **Nu s-au făcut commit, push sau instalare pe staging.** `main` = `d9bc2c9`, neatins.
+**Git (verificat la 19.10.2026, după push):** `faza-5-backend` = `cbcd444` (R18 + R19, cu documentația), publicat pe GitHub, sincronizat cu `origin`. `main` = `d9bc2c9`, neatins. **Staging-ul nu a fost atins.**
 
-**CI pentru R18 + R19 (MySQL 8.0, MySQL 8.4, MariaDB 11.4): neverificat** până la publicarea commitului. **MariaDB nu a fost verificat** pentru R18 + R19 (semantica blocării la reconciliere, testele I5 și I5b): se confirmă numai prin CI. CI pentru `c6ea8b7` nu a fost verificat din sesiunea din 16.10.2026.
+**CI pentru `cbcd444` (rularea 39302591937, 19.10.2026): verde pe toate cele 6 joburi** — backend Node 20 și Node 24 cu MySQL 8.0 și 8.4, backend Node 24 cu **MariaDB 11.4**, E2E (Python + Playwright). Astfel, comportamentul blocării la reconciliere (I5, I5b) și `innodb_lock_wait_timeout` (I1, I9b) sunt confirmate și pe MariaDB 11.4, iar suita completă a rulat cu testul D6. CI pentru `c6ea8b7` (rularea 38797262092): verde.
 
 **Limitările testelor R18 + R19:** I3 simulează omiterea mutării intenției, nu oprirea efectivă a procesului după COMMIT; `fsync` nu este verificat la cădere de curent; T14 și I10 sunt gărzi statice.
 
 **Staging:** rulează **`32e082e`**; commiturile 7A nu sunt instalate. Propunerea: o singură instalare la sfârșitul 7A, cu aprobare separată (procedura din `FAZA_5_1_BACKUP_RESTAURARE.md` și jurnalul staging-ului). **Nicio migrare nouă** în 7A (după `0002`).
 
-**Observația din auditul static (19.10.2026): confirmată și remediată local (varianta A, aprobată).** `initBackupMarkers` sincroniza contorul TM (bază și marcaj, numai creșteri) înainte ca `initMarkerDirs` să detecteze pierderea directoarelor R18. Acum pierderea se verifică înaintea sincronizării: la refuz, contorul TM din bază și marcajul lui rămân neschimbate (operațiile dinainte de verificare sunt descrise în `FAZA_5_1_BACKUP_RESTAURARE.md` §7.2). Testul D6 (ambele sensuri ale diferenței contor / marcaj) și proba Mf. Suita completă nu a fost reluată după această modificare (numai testele țintite).
+**Observația din auditul static (19.10.2026): confirmată și remediată local (varianta A, aprobată).** `initBackupMarkers` sincroniza contorul TM (bază și marcaj, numai creșteri) înainte ca `initMarkerDirs` să detecteze pierderea directoarelor R18. Acum pierderea se verifică înaintea sincronizării: la refuz, contorul TM din bază și marcajul lui rămân neschimbate (operațiile dinainte de verificare sunt descrise în `FAZA_5_1_BACKUP_RESTAURARE.md` §7.2). Testul D6 (ambele sensuri ale diferenței contor / marcaj) și proba Mf. Local au rulat numai testele țintite; suita completă a rulat apoi în CI, verde (vezi mai jos).
 
-**Pașii următori (fiecare cu aprobarea separată a proprietarului; nimic nu este autorizat automat):** auditul final al diff-ului; commitul R18 + R19 (fișierele adăugate unul câte unul), apoi push-ul; verificarea CI, inclusiv MariaDB 11.4; R20; raportul 7A complet; instalarea pe staging la sfârșitul 7A.
+**Pașii următori (fiecare cu aprobarea separată a proprietarului; nimic nu este autorizat automat):** R20; MINOR-3 din auditul final (decizie de produs: un mesaj de stadiu `sending` al unui cont șters devine, la restaurare, `failed` și poate fi reîncercat către adresa titularului care și-a șters contul); raportul 7A complet; instalarea pe staging la sfârșitul 7A.
 
 **Deschise în 7A:** R20; raportul 7A complet (la sfârșitul 7A); D7-2 (RA-6 cazul C) de confirmat formal; R6, R14, R16 fără descriere; nota R1 (marcajul de sesizare rămas după o tranzacție anulată; numele fișierelor în mesaje), de evaluat separat.
 
