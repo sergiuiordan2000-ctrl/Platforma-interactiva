@@ -34,6 +34,7 @@ import {
   MarkerError,
   REBUILD_COUNTER_COMMAND,
   assertCounterWatermarkCoherent,
+  assertAccountMarkersNotLost,
   initMarkerDirs,
   prepareBackupDir,
   readReportCounterWatermark,
@@ -140,6 +141,9 @@ export async function syncReportCounterWatermark(pool: mysql.Pool, backupDir: st
  */
 export async function initBackupMarkers(pool: mysql.Pool, backupDir: string): Promise<CounterSync> {
   prepareBackupDir(backupDir);
+  // R18 (auditul static, 19.10.2026): pierderea directoarelor de conturi se verifică ÎNAINTEA sincronizării
+  // contorului TM, ca refuzul să nu modifice nici contorul din bază, nici marcajul lui
+  assertAccountMarkersNotLost(backupDir);
   const sync = await syncReportCounterWatermark(pool, backupDir);
   initMarkerDirs(backupDir);
   return sync;

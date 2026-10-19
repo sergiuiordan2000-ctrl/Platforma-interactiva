@@ -398,7 +398,8 @@ describe('datele demo, pornirea și backup-ul țin marcajul contorului la zi', (
     assert.deepEqual(await initBackupMarkers(h.pool, fresh), { counter, watermark: counter, counterRaisedFrom: null });
     assert.equal(watermarkOnDisk(fresh), counter);
     assert.equal(existsSync(join(fresh, 'deletions')), true);
-    assert.deepEqual(readdirSync(fresh).sort(), ['deletions', 'report-counter-watermark.json'], 'fără fișiere de probă sau temporare rămase');
+    // adaptare R18 (7A, D7-3): inițializarea creează și `account-deletions/` și `account-deletions-pending/` (marcajele și intențiile de ștergere a conturilor) și martorul `account-markers-initialized.json`
+    assert.deepEqual(readdirSync(fresh).sort(), ['account-deletions', 'account-deletions-pending', 'account-markers-initialized.json', 'deletions', 'report-counter-watermark.json'], 'fără fișiere de probă sau temporare rămase');
     // un marcaj mai mic decât contorul este ridicat; contorul nu coboară
     writeFileSync(join(fresh, 'report-counter-watermark.json'), JSON.stringify({ lastValue: counter - 1 }));
     assert.deepEqual(await initBackupMarkers(h.pool, fresh), { counter, watermark: counter, counterRaisedFrom: null });

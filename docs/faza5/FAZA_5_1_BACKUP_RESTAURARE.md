@@ -125,10 +125,12 @@ BACKUP_DIR/
   report-counter-watermark.json      ← { lastValue }: cel mai mare număr TM rezervat
   deletions/
     <ID intern>.json                 ← { reportId, reportCreatedAt, deletedAt }, câte un fișier pe sesizare ștearsă
+  account-deletions/                 ← R18 (Etapa 7, §7): câte un fișier pe cont de cetățean șters de titular
+    <ID intern>.json                 ← { accountId, deletedAt }; fără adresă de e-mail; nu expiră
   civic-backup-<data UTC>/
     manifest.json                    ← format „civic-backup/2”, schema, numărul de rânduri, SHA-256
     db.jsonl.gz                      ← rândurile tabelelor
-    markers.json                     ← fotografia marcajelor (contorul și ștergerile), luată după instantaneul bazei (§6.4)
+    markers.json                     ← fotografia marcajelor (contorul, ștergerile de sesizări și, din formatul „civic-markers/2”, ștergerile de conturi), luată după instantaneul bazei (§6.4)
     photos/…
 ```
 
@@ -198,12 +200,13 @@ Comanda nu coboară niciodată contorul, refuză dacă marcajul există deja și
    node server/dist/app.js restore:db "$BACKUP_DIR/civic-backup-<data>" --confirm
    ```
 7. **Porniți aplicația cu `STORAGE_DIR` pe directorul nou** și verificați `health`.
+8. **Mesajele reținute (R19, §7.3):** raportul comenzii de la pasul 6 listează mesajele sesizărilor neplecate în copie, trecute în starea „failed”. Pentru fiecare, un `super_admin` verifică **întâi** dacă mesajul a ajuns la destinatar și abia apoi decide, în detaliul sesizării din Admin, dacă îl reîncearcă. Nimic nu se retrimite automat.
 
 **Refuzuri fără nicio ocolire, toate înainte de prima scriere:**
 - DB țintă cu rânduri sau cu schema nu la zi;
 - director de fișiere care nu este gol sau se suprapune cu `BACKUP_DIR`;
 - copia în afara `BACKUP_DIR`;
-- **marcaje corupte** (marcajul contorului sau o intrare de ștergere ilizibilă): refuz **inclusiv cu `--allow-missing-markers`**;
+- **marcaje corupte** (marcajul contorului, o intrare de ștergere a unei sesizări sau, din Etapa 7, a unui cont, ilizibilă sau cu alte câmpuri decât cele permise): refuz **inclusiv cu `--allow-missing-markers`**;
 - marcajul contorului sub contorul copiei;
 - copie în formatul `/1`;
 - fotografia marcajelor dintr-o copie `/2` nefolosibilă (lipsă, coruptă sau cu suma SHA-256 greșită);
@@ -237,3 +240,52 @@ N = cel mai mare număr TM comunicat vreodată (din e-mailuri sau din Admin). O 
 Local (MySQL 8.0.46, Node 22) și în CI (MySQL 8.0 / 8.4, MariaDB 11.4): server 375/375 la `6da2f68`. Fișierele: `backup.test.ts`, `backupRoutes.test.ts`, `backupSafety.test.ts`, `counterWatermarkA1.test.ts`, `restoreMarkersFormat.test.ts`, `restoreArchiveG2.test.ts`, `markers.test.ts`. 65 de probe cu cod stricat intenționat, toate detectate. Refuzul copiilor `/2` de către versiunea veche este verificat pe codul real `d23ddd5` (identic, pe `server/src`, cu `08f4dc3`).
 
 Proba de restaurare pe găzduire (M4) **nu este încă făcută**; se face după instalarea remedierii pe staging, cu o copie făcută după instalare.
+
+## 7. Amendament (Etapa 7, 7A, 16.10.2026): conturile șterse (R18) și coada de e-mail (R19) la restaurare
+
+**Deciziile proprietarului (16.10.2026):** D7-3 partea 1 — R18: varianta A; D7-3a — marcajele de cont fără termen: varianta A; D7-3 partea 2 — R19: varianta B, inclusiv mesajele `on_hold`; după auditul D7-3: intenții de ștergere cu reconciliere, intențiile nereconciliate neaplicate la restaurare (varianta B), backup-ul refuzat la intenții ilizibile (A), fără ID-uri de cont în mesajele pentru operator (B), avertismentul pentru intențiile nereconciliate (D). **Cod:** branch `faza-5-backend`, commitul care introduce acest paragraf.
+
+### 7.1 De ce
+
+- **R18:** restaurarea re-ștergea sesizările marcate, dar nu avea marcaje pentru conturi. Un cont șters de cetățean după data copiei reapărea, cu adresa și acceptarea politicii.
+- **R19:** coada de e-mail se restaura cu starea din copie. Un mesaj `queued` sau `sending` în copie, plecat între timp, pleca a doua oară (pentru Primărie: aceeași sesizare, același număr TM).
+
+### 7.2 Conturile șterse (R18): intenție, confirmare, reconciliere
+
+| Regulă | Detaliu |
+|---|---|
+| Intenția | în tranzacția de ștergere, după blocarea rândului contului și **înainte** de confirmare, se scrie durabil `account-deletions-pending/<ID intern>.json` = `{ accountId, deletedAt }`. Dacă nu poate fi scrisă, contul **nu** se șterge (eroare 500) |
+| Marcajul definitiv | după confirmarea tranzacției, intenția este mutată atomic în `account-deletions/`. Numai câmpurile `accountId` și `deletedAt`, **fără adresă de e-mail** |
+| Păstrarea | marcajele definitive se păstrează **fără termen**, fără curățare automată (D7-3a) |
+| Reconcilierea | la pornirea aplicației și la fiecare backup (înaintea fotografiei marcajelor): contul lipsește → marcaj definitiv; contul există, creat înaintea intenției → tranzacția nu a fost confirmată, intenția se elimină; contul creat după intenție → intenția rămâne, cazul se raportează; eroare (bază, citire, mutare) → intenția rămâne neschimbată, pentru o rulare ulterioară |
+| Backup-ul | **refuzat** dacă există intenții ilizibile, înaintea oricărei scrieri: copiile existente și rotația lor nu sunt atinse. O eroare temporară de reconciliere **nu** oprește backup-ul: copia reflectă baza, iar intenția rămâne pentru rularea următoare |
+| Restaurarea | marcajele definitive și intențiile (curente și din fotografiile copiilor) se citesc și se validează **înainte de prima scriere**; un marcaj sau o intenție coruptă → refuz. Restaurarea repetă ștergerea făcută de titular (blocarea definitivă redusă la datele minime, mesajele de stadiu neplecate anulate, mesajele de cont șterse, contul șters), **numai după ID** și numai pentru un cont creat **înainte** de `deletedAt` |
+| Intențiile nereconciliate | **nu se aplică** la restaurare. Se raportează separat: „Starea ștergerii este necunoscută: poate fi o ștergere anulată sau o ștergere confirmată înainte de reconciliere. Contul rămâne în baza de date; administratorul trebuie să investigheze situația și să decidă ce urmează.” |
+| Mesajele pentru operator | numai numere și directoare, fără ID-uri de cont și fără adrese (`--check`, raportul restaurării, ieșirea backup-ului, jurnalul mutării eșuate) |
+| Inițializarea directoarelor | `account-deletions/` și `account-deletions-pending/` se creează automat **numai la prima inițializare** (instalare nouă sau `BACKUP_DIR` de dinaintea R18); după ele se scrie martorul `account-markers-initialized.json` |
+| Directoare pierdute după inițializare | dovada: martorul sau o copie `civic-markers/2` din `BACKUP_DIR`. Pornirea, backup-ul și `seed:demo` **refuză**; verificarea se face înaintea sincronizării contorului. La refuz: **contorul TM din bază și marcajul lui rămân neschimbate**; **directorul temporar al backup-ului și copia propriu-zisă nu sunt create**. Înaintea verificării rulează numai pregătirea `BACKUP_DIR` (`prepareBackupDir`), comună tuturor pornirilor: **creează `BACKUP_DIR` numai dacă acesta lipsește** și **scrie un fișier de probă, șters imediat**; restaurarea refuză și continuă numai cu `--allow-missing-markers --at-least N`, care reface directoarele și intrările cunoscute din copii. Refacerea pe instalarea vie: comanda `markers:recreate-account-deletions` (intrările din fotografiile copiilor, cu suma SHA-256 verificată). Ștergerile de după cea mai nouă copie nu pot fi cunoscute. **Dacă lipsesc atât marcajul contorului, cât și directoarele R18:** întâi `markers:recreate-account-deletions`, apoi `markers:rebuild-counter` (aceasta din urmă cere directoarele R18 prezente) |
+| Copiile vechi | fotografiile `civic-markers/1` (fără conturi) rămân restaurabile; fără nicio dovadă de inițializare R18, un `account-deletions/` absent produce numai un avertisment |
+| Conturile `pending` (D7-5) | nu primesc marcaj: `purge:retention` le șterge din nou |
+| Dezvoltare, fără `BACKUP_DIR` | nu se scrie nicio intenție și niciun marcaj (ca la sesizări) |
+
+**Limita cunoscută:** dacă ștergerea a fost confirmată, dar intenția nu a fost încă reconciliată (oprire bruscă după confirmare), iar baza de date este pierdută sau readusă la o stare anterioară înainte de reconciliere, contul poate reapărea. Acest caz **nu** este rezolvat automat la restaurare: este raportat cu avertismentul de mai sus.
+
+### 7.3 Coada de e-mail (R19)
+
+**Starea din copie nu arată dacă un mesaj a plecat după copie.** De aceea, la restaurare:
+
+| Mesaje neplecate în copie | Devin |
+|---|---|
+| codurile de autentificare și anunțurile de blocare (`queued`, `sending`) | `cancelled`, motivul „anulat la restaurare (R19)” |
+| mesajele sesizărilor de tip `registry_notification` și `citizen_status_update` (`queued`, `sending`, `on_hold`) | `failed`, motivul „reținut la restaurare (R19): verificați dacă a plecat înainte de reîncercare”; `next_attempt_at` și `locked_until` golite |
+| orice alt mesaj (alt tip sau stare finală) | neschimbat |
+
+- **Nicio retrimitere automată**, nici la reactivarea fluxului către Primărie.
+- Raportul `restore:db` listează fiecare mesaj reținut: numărul TM, tipul, starea din copie, data creării și ID-ul mesajului; fără destinatar.
+- Auditul: câte o intrare `email.held_on_restore` pe mesaj reținut și o intrare `restore.completed` cu numerele restaurării.
+- **Starea `failed` cuprinde două situații:** o eroare de transmitere sau un mesaj reținut deliberat la restaurare; motivul din `last_error`, vizibil în Admin, le deosebește.
+- **Reîncercarea poate produce un duplicat** dacă mesajul a plecat totuși după copie. Înainte de reîncercare se verifică la destinatar, mai ales pentru `registry_notification`.
+
+### 7.4 Teste
+
+`server/test/integration/d73RestaurareConturiEmail.test.ts`, `server/test/integration/d73IntentiiConturi.test.ts` și `server/test/integration/d73DirectoareR18.test.ts`. Rezultatele, adaptările testelor existente și probele de control: `docs/faza7/FAZA_7A_RAPORT_sectiunea_D7-3.md`.

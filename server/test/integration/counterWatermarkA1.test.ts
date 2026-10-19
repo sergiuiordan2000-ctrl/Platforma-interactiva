@@ -166,7 +166,8 @@ describe('A1: prima inițializare rămâne automată, iar ordinea ei nu poate pr
     assert.equal(existsSync(join(fresh, 'deletions')), false);
     await rebuildReportCounterWatermark(h.pool, fresh, null);
     assert.deepEqual(await initBackupMarkers(h.pool, fresh), { counter, watermark: counter, counterRaisedFrom: null });
-    assert.deepEqual(readdirSync(fresh).sort(), ['deletions', WATERMARK]);
+    // adaptare R18 (7A, D7-3): inițializarea creează și `account-deletions/` și `account-deletions-pending/` (marcajele și intențiile de ștergere a conturilor) și martorul `account-markers-initialized.json`
+    assert.deepEqual(readdirSync(fresh).sort(), ['account-deletions', 'account-deletions-pending', 'account-markers-initialized.json', 'deletions', WATERMARK]);
   });
 
   it('decizia B: contorul 0, dar există sesizări → tot refuz (baza nu este nouă)', async () => {

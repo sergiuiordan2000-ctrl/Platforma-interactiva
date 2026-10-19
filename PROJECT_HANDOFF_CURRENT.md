@@ -1,12 +1,44 @@
 # PROJECT_HANDOFF_CURRENT.md — Turnu Măgurele Civic
 
 **Stare documentată:** finalul Etapei 6.5 (26 septembrie 2026), actualizată după **Etapa 6.6** (comisă și publicată: `83b77ad`), după **auditul general** și pentru **remedierea P0 post-audit** (vezi B, G.5 și I), după checkpoint-ul Fazei 0 (`f6809f3`), după Fazele 1–2, după deciziile Fazei 3 (`PROJECT_RULES_AND_DECISIONS.md` §11) și după **Faza 4** (designul backend-ului, checkpoint aprobat de proprietar la 28.09.2026; `PROJECT_RULES_AND_DECISIONS.md` §12, `docs/faza4/`)
-**Actualizare 12.10.2026:** starea Fazei 6 este în **Secțiunea 0A**, care are prioritate față de Secțiunea 0. **Actualizare 10.10.2026:** starea curentă (Faza 5 închisă la 10.10.2026; aplicația cu server) este în **Secțiunea 0**; ea are prioritate față de secțiunile de stare mai vechi.
+**Actualizare 19.10.2026:** starea Etapei 7 (7A) este în **Secțiunea 0B**, care are prioritate față de 0A și 0. **Actualizare 12.10.2026:** starea Fazei 6 este în **Secțiunea 0A**, care are prioritate față de Secțiunea 0. **Actualizare 10.10.2026:** starea curentă (Faza 5 închisă la 10.10.2026; aplicația cu server) este în **Secțiunea 0**; ea are prioritate față de secțiunile de stare mai vechi.
 **Scop:** documentul principal de preluare pentru un chat nou. Înlocuiește, pentru starea curentă, secțiunile de stare din `PROJECT_HANDOFF.md`. Acela a fost scris la finalul Etapei 5 și este acum depășit la Git, securitate și pasul următor.
 
 > **Regula de pornire pentru noul chat:** citește acest document (întâi **Secțiunea 0**), apoi `PROJECT_RULES_AND_DECISIONS.md`, `docs/faza4/FAZA_4_REGISTRU_DECIZII.md`, `ETAPA_6_STATUS_FINAL.md` și documentele din `docs/faza5/` indicate în 0.3. Apoi **verifică starea Git real** (Secțiunea 0.1; B.4 este istorică și indică un branch vechi). Nu presupune nimic din memorie. **Codul și istoricul Git sunt sursa de adevăr.** Dacă documentul și codul se contrazic, codul are dreptate, iar contradicția se raportează.
 
 ---
+
+## 0B. ETAPA 7, 7A ÎN LUCRU (actualizat la 19.10.2026)
+
+> **Are prioritate față de Secțiunile 0A și 0.** Ele rămân valabile acolo unde 0B nu spune altceva.
+
+**Planul Etapei 7** (`docs/faza7/FAZA_7_PLAN.md`) aprobat la 15.10.2026 (D7-0): 7A probleme rămase → 7B UI/UX → 7C curățarea codului → 7D documentație minimă → 7E build final, găzduire, CI → poarta „date reale” → 7F acceptanță → MVP 1.0 READY. Lansarea publică este o decizie separată, **neaprobată**.
+
+**7A, ordinea aprobată** (`docs/faza7/FAZA_7A_INVENTAR_R.md` §5):
+
+| Punct | Stare |
+|---|---|
+| L11 / N1, footerul (D7-1) | `a1c6858` |
+| CL-4 | `2366157` |
+| R7 + R9 | `d53b28a` |
+| R8 | `f2b49bd` |
+| R15 (D7-5) | `c6ea8b7` |
+| R18 + R19 (D7-3, D7-3a, deciziile de după audit, inclusiv detectarea directoarelor R18 pierdute) | implementare verificată local (MySQL 8.0.46): server 489/489, Python 167/167; **necommitată**; detaliile, probele și limitările în `docs/faza7/FAZA_7A_RAPORT_sectiunea_D7-3.md`; procedura în `docs/faza5/FAZA_5_1_BACKUP_RESTAURARE.md` §7 |
+| R20 (procedura cu furnizorul; corectura „M4 nefăcut” din `FAZA_5_1_BACKUP_RESTAURARE.md` §6.8) | de făcut |
+
+**Git (verificat la 19.10.2026):** `faza-5-backend` = `c6ea8b7`, indexul gol; R18 + R19 există **numai în directorul de lucru** al sesiunii (12 fișiere modificate, 5 noi, verificat la 19.10.2026, seara; copie integrală în `R18-R19-cod.diff` și `R18-R19-documentatie.diff`, la proprietar). **Nu s-au făcut commit, push sau instalare pe staging.** `main` = `d9bc2c9`, neatins.
+
+**CI pentru R18 + R19 (MySQL 8.0, MySQL 8.4, MariaDB 11.4): neverificat** până la publicarea commitului. **MariaDB nu a fost verificat** pentru R18 + R19 (semantica blocării la reconciliere, testele I5 și I5b): se confirmă numai prin CI. CI pentru `c6ea8b7` nu a fost verificat din sesiunea din 16.10.2026.
+
+**Limitările testelor R18 + R19:** I3 simulează omiterea mutării intenției, nu oprirea efectivă a procesului după COMMIT; `fsync` nu este verificat la cădere de curent; T14 și I10 sunt gărzi statice.
+
+**Staging:** rulează **`32e082e`**; commiturile 7A nu sunt instalate. Propunerea: o singură instalare la sfârșitul 7A, cu aprobare separată (procedura din `FAZA_5_1_BACKUP_RESTAURARE.md` și jurnalul staging-ului). **Nicio migrare nouă** în 7A (după `0002`).
+
+**Observația din auditul static (19.10.2026): confirmată și remediată local (varianta A, aprobată).** `initBackupMarkers` sincroniza contorul TM (bază și marcaj, numai creșteri) înainte ca `initMarkerDirs` să detecteze pierderea directoarelor R18. Acum pierderea se verifică înaintea sincronizării: la refuz, contorul TM din bază și marcajul lui rămân neschimbate (operațiile dinainte de verificare sunt descrise în `FAZA_5_1_BACKUP_RESTAURARE.md` §7.2). Testul D6 (ambele sensuri ale diferenței contor / marcaj) și proba Mf. Suita completă nu a fost reluată după această modificare (numai testele țintite).
+
+**Pașii următori (fiecare cu aprobarea separată a proprietarului; nimic nu este autorizat automat):** auditul final al diff-ului; commitul R18 + R19 (fișierele adăugate unul câte unul), apoi push-ul; verificarea CI, inclusiv MariaDB 11.4; R20; raportul 7A complet; instalarea pe staging la sfârșitul 7A.
+
+**Deschise în 7A:** R20; raportul 7A complet (la sfârșitul 7A); D7-2 (RA-6 cazul C) de confirmat formal; R6, R14, R16 fără descriere; nota R1 (marcajul de sesizare rămas după o tranzacție anulată; numele fișierelor în mesaje), de evaluat separat.
 
 ## 0A. FAZA 6 ÎNCHISĂ LA `32e082e` (actualizat la 14.10.2026)
 

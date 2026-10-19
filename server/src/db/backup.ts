@@ -18,6 +18,17 @@
 // 7. marcajul contorului TM (`markers.ts`, `reportCounter.ts`): scris de fiecare emitere înainte de
 //    COMMIT; la pornire și la fiecare backup, contorul din bază și marcajul sunt aduse la maximul
 //    dintre ele; restaurarea nu coboară contorul sub marcaj. Un număr rezervat nu se mai emite.
+// 8. R18 (D7-3, D7-3a): marcajele de ștergere a conturilor (`account-deletions/<ID>.json`, fără termen).
+//    Restaurarea repetă ștergerea făcută de titular (`accountDeletion.ts`), numai după ID și numai pentru
+//    un cont creat înaintea ștergerii notate. Un `account-deletions/` absent (BACKUP_DIR de dinaintea
+//    R18) produce numai un avertisment; un marcaj corupt oprește restaurarea înainte de orice scriere.
+// 9. R19 (D7-3): starea cozii de e-mail din copie nu arată dacă un mesaj a plecat după copie. La
+//    restaurare: codurile de autentificare și anunțurile de blocare neplecate → `cancelled`; mesajele
+//    sesizărilor neplecate (`queued`, `sending`, `on_hold`) → `failed`, cu motivul în `last_error`, fără
+//    nicio retrimitere automată: le reîncearcă numai un `super_admin`, după verificare (risc de duplicat).
+//
+// Toate marcajele (cele curente și fotografiile din copii) se citesc și se validează în `inspectRestore`,
+// ÎNAINTE de prima scriere; restaurarea folosește numai rezultatul inspecției, nu le mai citește din nou.
 //
 // Nu intră în backup datele efemere: sesiunile, codurile de autentificare, limitele de rată,
 // provocările proof-of-work folosite (după o restaurare, utilizatorii se autentifică din nou).
@@ -38,13 +49,22 @@ import { createGunzip, createGzip } from 'node:zlib';
 import mysql from 'mysql2/promise';
 import { storagePath } from '../storage.ts';
 import { deleteReportRows, expiredReportIds } from './reportDeletion.ts';
+import { dbDate, deleteCitizenAccountRows, reconcileAccountDeletionIntents, type IntentReconciliation } from './accountDeletion.ts';
+import { writeAudit } from '../audit.ts';
 import { SESSION_SQL_MODE } from './client.ts';
 import { MIGRATIONS_TABLE, compare, readApplied, readMigrationFiles, schemaStatus } from './migrations.ts';
 import {
+  ACCOUNT_DELETIONS_DIR,
+  ACCOUNT_DELETIONS_PENDING_DIR,
   COUNTER_WATERMARK_FILE,
   DELETIONS_DIR,
   MARKER_SNAPSHOT_FILE,
   MarkerError,
+  accountMarkersLost,
+  readAccountDeletionIntents,
+  readAccountDeletionMarkers,
+  writeMissingAccountDeletionEntries,
+  type AccountDeletionEntry,
   deletionMarkerExpiry,
   initMarkerDirs,
   parseMarkerSnapshot,
@@ -242,19 +262,27 @@ async function rawConnection(databaseUrl: string): Promise<mysql.Connection> {
 
 export async function createBackup(
   opts: BackupOptions,
-): Promise<{ dir: string; manifest: BackupManifest; removed: string[]; markers: CounterSync }> {
+): Promise<{ dir: string; manifest: BackupManifest; removed: string[]; markers: CounterSync; accountIntents: IntentReconciliation }> {
   const now = opts.now ?? new Date();
   const w = backupWindows(now, opts.retentionDays, opts.adminRetentionMonths);
   mkdirSync(opts.backupDir, { recursive: true });
   const name = `civic-backup-${stamp(now)}`;
   const finalDir = join(opts.backupDir, name);
   const tmpDir = join(opts.backupDir, `.tmp-${name}`);
-  rmSync(tmpDir, { recursive: true, force: true });
-  mkdirSync(join(tmpDir, 'photos'), { recursive: true });
+  // decizia A (16.10.2026): intențiile ilizibile opresc backup-ul înaintea oricărei scrieri în BACKUP_DIR (copie
+  // nouă, rotație, curățare); copiile existente rămân neatinse. Numai numărul, fără nume de fișiere (decizia B).
+  const unreadable = readAccountDeletionIntents(opts.backupDir).invalid.length;
+  if (unreadable > 0) {
+    throw new MarkerError(
+      `Backup refuzat: ${unreadable} intenții de ștergere a conturilor ilizibile în „${ACCOUNT_DELETIONS_PENDING_DIR}/”. ` +
+        'Copiile existente nu au fost atinse. Cercetați fișierele, apoi repetați backup-ul.',
+    );
+  }
 
   const pool = mysql.createPool({ uri: opts.databaseUrl, connectionLimit: 1 });
   let status: Awaited<ReturnType<typeof schemaStatus>>;
   let markers: CounterSync;
+  let accountIntents: IntentReconciliation;
   try {
     status = await schemaStatus(pool, opts.migrationsDir);
     if (!status.ok) throw new Error('Backup refuzat: schema DB nu este la versiunea așteptată.');
@@ -263,9 +291,14 @@ export async function createBackup(
     // backup: ridicarea contorului rămas sub marcaj). Astfel nicio copie nu are contorul diferit de marcaj.
     // A8: ridicarea contorului (singura scriere în bază) este întoarsă apelantului, care o consemnează
     markers = await initBackupMarkers(pool, opts.backupDir);
+    // R18: intențiile rămase se rezolvă înaintea fotografiei marcajelor (o ștergere confirmată intră în copie)
+    accountIntents = await reconcileAccountDeletionIntents(pool, opts.backupDir);
   } finally {
     await pool.end();
   }
+  // directorul temporar abia după verificarea marcajelor: un refuz nu lasă nimic în BACKUP_DIR (auditul D7-3)
+  rmSync(tmpDir, { recursive: true, force: true });
+  mkdirSync(join(tmpDir, 'photos'), { recursive: true });
 
   const conn = await rawConnection(opts.databaseUrl);
   const counts: Record<string, number> = {};
@@ -330,7 +363,7 @@ export async function createBackup(
 
   const removed = rotateBackups(opts.backupDir, now);
   pruneDeletionList(opts.backupDir, now);
-  return { dir: finalDir, manifest, removed, markers };
+  return { dir: finalDir, manifest, removed, markers, accountIntents };
 }
 
 /** Șterge backup-urile mai vechi de R = 7 zile. */
@@ -381,7 +414,29 @@ export type RestoreResult = {
   reportCounter: number;
   /** G1: marcajele refăcute de restaurare (numai cu `allowMissingMarkers`) */
   markersWritten: string[];
+  /** R18: conturile șterse din nou conform marcajelor */
+  accountsDeleted: number;
+  /** R18: conturi cu ID-ul unui marcaj, dar create după ștergerea notată: păstrate */
+  accountsKeptCreatedAfter: number;
+  /** auditul D7-3 (decizia B): intenții nereconciliate (neaplicate) și conturile lor rămase în baza restaurată */
+  unreconciledIntents: number;
+  accountsKeptUnreconciled: number;
+  /** R19: codurile de autentificare și anunțurile de blocare neplecate, anulate */
+  emailsCancelled: number;
+  /** R19: mesajele sesizărilor neplecate, reținute (`failed`) pentru decizia unui super_admin */
+  emailsHeld: HeldEmail[];
 };
+
+/** R19: un mesaj reținut la restaurare, cu datele necesare găsirii lui în Admin (fără destinatar). */
+export type HeldEmail = { emailId: string; kind: string; previousStatus: string; referenceNumber: string; createdAt: string };
+
+/** R19: motivul scris în `last_error` (aprobat de proprietar la 16.10.2026). */
+export const R19_HELD_REASON = 'reținut la restaurare (R19): verificați dacă a plecat înainte de reîncercare';
+export const R19_CANCELLED_REASON = 'anulat la restaurare (R19)';
+/** Avertismentul pentru intențiile nereconciliate (decizia D, 16.10.2026, text aprobat). */
+export const R18_UNRECONCILED_WARNING =
+  'Starea ștergerii este necunoscută: poate fi o ștergere anulată sau o ștergere confirmată înainte de reconciliere. ' +
+  'Contul rămâne în baza de date; administratorul trebuie să investigheze situația și să decidă ce urmează.';
 
 /** Verificările dinaintea restaurării au găsit probleme. Până aici nu s-a scris nimic, nicăieri. */
 export class RestoreRefusedError extends Error {
@@ -413,6 +468,21 @@ export type RestoreInspection = {
     staleAgainst: string[];
     /** G2: intrările de ștergere cunoscute numai din fotografii (încă neexpirate) */
     snapshotOnlyEntries: DeletionEntry[];
+    /** R18: `account-deletions/` există în BACKUP_DIR */
+    accountDeletionsDirExists: boolean;
+    /** R18: ștergerile de conturi efective (curente + fotografiile copiilor), validate integral */
+    accountDeletions: AccountDeletionEntry[];
+    /** R18: intrări cunoscute numai din fotografii (se aduc în BACKUP_DIR împreună cu celelalte marcaje) */
+    snapshotOnlyAccountEntries: AccountDeletionEntry[];
+    /** R18: în copia sursă — conturi care vor fi șterse din nou / conturi cu ID marcat, create după ștergere */
+    accountsToDelete: number | null;
+    accountsKeptCreatedAfter: number | null;
+    /** auditul D7-3 (decizia B): intențiile nereconciliate — validate, raportate, NEaplicate */
+    unreconciledIntentIds: string[];
+    /** R18: directoarele de conturi pierdute după inițializare (refacerea numai cu --allow-missing-markers) */
+    accountMarkersLost: boolean;
+    /** câte dintre conturile vizate de intenții sunt în copie (rămân după restaurare) */
+    unreconciledIntentsInCopy: number | null;
   };
   warnings: string[];
   /** lista goală = restaurarea ar fi permisă */
@@ -458,6 +528,25 @@ async function readBackupCounter(dbFile: string): Promise<number | null> {
   return value;
 }
 
+/** R18: ID-ul și data creării fiecărui cont din copie (pentru `--check`), fără a încărca nimic în bază. */
+async function readBackupAccounts(dbFile: string): Promise<Map<string, Date>> {
+  const rl = createInterface({ input: createReadStream(dbFile).pipe(createGunzip()), crlfDelay: Infinity });
+  let idIdx = -1;
+  let createdIdx = -1;
+  const out = new Map<string, Date>();
+  for await (const line of rl) {
+    if (!line.includes('citizen_accounts')) continue;
+    const rec = JSON.parse(line) as { type?: string; name?: string; columns?: string[]; t?: string; v?: unknown[] };
+    if (rec.type === 'table' && rec.name === 'citizen_accounts') {
+      idIdx = rec.columns!.indexOf('id');
+      createdIdx = rec.columns!.indexOf('created_at');
+    } else if (rec.t === 'citizen_accounts' && idIdx >= 0 && createdIdx >= 0) {
+      out.set(String(rec.v![idIdx]), dbDate(rec.v![createdIdx]));
+    }
+  }
+  return out;
+}
+
 /**
  * Verifică, fără nicio scriere, tot ce ar folosi restaurarea: copia sursă, căile, marcajele și baza
  * țintă. Interogările rulează într-o tranzacție READ ONLY (serverul însuși ar refuza o scriere).
@@ -482,6 +571,7 @@ export async function inspectRestore(opts: RestoreOptions): Promise<RestoreInspe
   // 1. copia sursă
   let manifest: BackupManifest | null = null;
   let backupCounter: number | null = null;
+  let backupAccounts: Map<string, Date> | null = null;
   const manifestFile = join(opts.source, 'manifest.json');
   const dbFile = join(opts.source, 'db.jsonl.gz');
   if (!existsSync(manifestFile) || !existsSync(dbFile)) {
@@ -505,6 +595,7 @@ export async function inspectRestore(opts: RestoreOptions): Promise<RestoreInspe
         problems.push('Backup corupt: suma SHA-256 a db.jsonl.gz nu corespunde manifestului.');
       } else {
         backupCounter = await readBackupCounter(dbFile);
+        backupAccounts = await readBackupAccounts(dbFile);
       }
       const expected = readMigrationFiles(opts.migrationsDir).length;
       if (manifest.schemaVersion !== expected) {
@@ -535,6 +626,7 @@ export async function inspectRestore(opts: RestoreOptions): Promise<RestoreInspe
   }
 
   // 3. marcajele (numai citire)
+  let accountMarkersWereLost = false;
   let watermark: number | null = null;
   let deletionsDirExists = false;
   let legacyListExists = false;
@@ -556,6 +648,9 @@ export async function inspectRestore(opts: RestoreOptions): Promise<RestoreInspe
     const missing: string[] = [];
     if (watermarkReadable && watermark === null) missing.push('marcajul contorului TM');
     if (!del.dirExists && !del.legacyFileExists) missing.push('marcajele de ștergere');
+    // R18 (auditul static): directoarele de conturi lipsă, deși inițializate (martor / copie „civic-markers/2”) = pierdere
+    accountMarkersWereLost = accountMarkersLost(opts.backupDir);
+    if (accountMarkersWereLost) missing.push(`marcajele de ștergere a conturilor („${ACCOUNT_DELETIONS_DIR}/”, „${ACCOUNT_DELETIONS_PENDING_DIR}/”)`);
     if (missing.length > 0) {
       const what = missing.join(' și ');
       if (opts.allowMissingMarkers) {
@@ -575,6 +670,38 @@ export async function inspectRestore(opts: RestoreOptions): Promise<RestoreInspe
     }
   }
 
+  // 3a. R18: marcajele de ștergere a conturilor (numai citire, validare integrală înainte de orice scriere)
+  let accountDeletionsDirExists = false;
+  let unreconciledIntentIds: string[] = [];
+  const currentAccountEntries = new Map<string, AccountDeletionEntry>();
+  if (backupDirExists) {
+    const acc = readAccountDeletionMarkers(opts.backupDir);
+    accountDeletionsDirExists = acc.dirExists;
+    for (const e of acc.entries) currentAccountEntries.set(e.accountId, e);
+    if (acc.invalid.length > 0) {
+      problems.push(`Marcaje de ștergere a conturilor corupte în „${ACCOUNT_DELETIONS_DIR}/”: ${acc.invalid.length} fișiere. Un cont șters ar putea reapărea: cercetați fișierele înainte de restaurare.`);
+    }
+    // intențiile nereconciliate (auditul D7-3, decizia B): validate înainte de prima scriere, NU aplicate
+    const intents = readAccountDeletionIntents(opts.backupDir);
+    unreconciledIntentIds = intents.entries.map((x) => x.accountId);
+    if (intents.invalid.length > 0) {
+      problems.push(`Intenții de ștergere a conturilor corupte în „${ACCOUNT_DELETIONS_PENDING_DIR}/”: ${intents.invalid.length} fișiere. Cercetați fișierele înainte de restaurare.`);
+    }
+    if (intents.entries.length > 0) {
+      warnings.push(
+        `${intents.entries.length} intenții de ștergere a conturilor nereconciliate (NU se aplică). ` +
+          R18_UNRECONCILED_WARNING,
+      );
+    }
+    if (!acc.dirExists && !accountMarkersWereLost) {
+      // fără nicio dovadă de inițializare: BACKUP_DIR de dinaintea R18 (compatibil)
+      warnings.push(
+        `„${ACCOUNT_DELETIONS_DIR}/” lipsește din BACKUP_DIR: nu se cunoaște nicio ștergere de cont (marcajele sunt de dinaintea R18: ` +
+          'niciun martor de inițializare și nicio copie „civic-markers/2”).',
+      );
+    }
+  }
+
   // 3b. G2: fotografiile marcajelor din copiile aflate în BACKUP_DIR (numai citire). Marcajele efective
   // sunt cele mai noi cunoscute: cel mai mare marcaj al contorului și reuniunea ștergerilor neexpirate.
   // Dacă o copie cunoaște numere sau ștergeri pe care marcajele curente nu le au, marcajele curente sunt
@@ -584,6 +711,7 @@ export async function inspectRestore(opts: RestoreOptions): Promise<RestoreInspe
   const staleAgainst: string[] = [];
   const snapshotEntries = new Map<string, DeletionEntry>();
   const legacySnapshotIds = new Set<string>();
+  const snapshotAccountEntries = new Map<string, AccountDeletionEntry>();
   const nowForExpiry = opts.now ?? new Date();
   if (backupDirExists) {
     const sourceName = basename(sourcePath);
@@ -630,11 +758,37 @@ export async function inspectRestore(opts: RestoreOptions): Promise<RestoreInspe
         legacySnapshotIds.add(id);
         if (currentPresent && !currentIds.has(id)) stale = true;
       }
+      // R18: ștergerile de conturi nu expiră; una cunoscută numai de copie înseamnă marcaje curente mai vechi
+      for (const e of snap.accountDeletions) {
+        if (!snapshotAccountEntries.has(e.accountId)) snapshotAccountEntries.set(e.accountId, e);
+        if (!currentAccountEntries.has(e.accountId)) stale = true;
+      }
       if (stale) staleAgainst.push(name);
     }
   }
   const snapshotOnlyEntries = [...snapshotEntries.values()].filter((e) => !deletionIds.includes(e.reportId));
   const effectiveDeletionIds = [...new Set([...deletionIds, ...snapshotEntries.keys(), ...legacySnapshotIds])];
+  // R18: intrarea curentă are prioritate (este ștergerea notată de rută); fotografiile completează
+  const snapshotOnlyAccountEntries = [...snapshotAccountEntries.values()].filter((e) => !currentAccountEntries.has(e.accountId));
+  const accountDeletions = [...currentAccountEntries.values(), ...snapshotOnlyAccountEntries];
+  let accountsToDelete: number | null = null;
+  let accountsKeptCreatedAfter: number | null = null;
+  if (backupAccounts) {
+    accountsToDelete = 0;
+    accountsKeptCreatedAfter = 0;
+    for (const e of accountDeletions) {
+      const created = backupAccounts.get(e.accountId);
+      if (!created) continue;
+      if (created.getTime() < Date.parse(e.deletedAt)) accountsToDelete++;
+      else accountsKeptCreatedAfter++;
+    }
+    if (accountsKeptCreatedAfter > 0) {
+      warnings.push(
+        `${accountsKeptCreatedAfter} conturi din copie au ID-ul unui marcaj de ștergere, dar au fost create după ștergerea notată: ` +
+          'nu sunt conturile șterse și se păstrează (R18).',
+      );
+    }
+  }
   const isStale = staleAgainst.length > 0;
 
   // G1 / G2: --at-least este obligatoriu cu --allow-missing-markers și cu marcaje mai vechi decât o copie;
@@ -721,6 +875,14 @@ export async function inspectRestore(opts: RestoreOptions): Promise<RestoreInspe
       snapshotCopies,
       staleAgainst,
       snapshotOnlyEntries,
+      accountDeletionsDirExists,
+      accountDeletions,
+      snapshotOnlyAccountEntries,
+      accountsToDelete,
+      accountsKeptCreatedAfter,
+      unreconciledIntentIds,
+      accountMarkersLost: accountMarkersWereLost,
+      unreconciledIntentsInCopy: backupAccounts ? unreconciledIntentIds.filter((id) => backupAccounts!.has(id)).length : null,
     },
     warnings,
     problems,
@@ -750,6 +912,14 @@ export function formatRestoreInspection(i: RestoreInspection): string[] {
     }; ștergeri cunoscute numai din copii: ${i.markers.snapshotOnlyEntries.length}; marcaje curente mai vechi decât: ${
       i.markers.staleAgainst.length === 0 ? 'nicio copie' : i.markers.staleAgainst.join(', ')
     }`,
+    // R18: numai numere (fără ID-uri, fără adrese)
+    `ștergerile de conturi (R18): ${i.markers.accountDeletionsDirExists ? 'marcaje prezente' : 'directorul lipsește'}; ${
+      i.markers.accountDeletions.length
+    } marcaje cunoscute (din care ${i.markers.snapshotOnlyAccountEntries.length} numai din copii); conturi din copie de șters din nou: ${
+      i.markers.accountsToDelete ?? 'necunoscut'
+    }; păstrate (create după ștergere): ${i.markers.accountsKeptCreatedAfter ?? 'necunoscut'}; intenții nereconciliate (NEaplicate): ${
+      i.markers.unreconciledIntentIds.length
+    }, din care conturi în copie: ${i.markers.unreconciledIntentsInCopy ?? 'necunoscut'}`,
   ];
   for (const w of i.warnings) lines.push(`AVERTISMENT: ${w}`);
   for (const p of i.problems) lines.push(`PROBLEMĂ: ${p}`);
@@ -758,10 +928,71 @@ export function formatRestoreInspection(i: RestoreInspection): string[] {
 }
 
 /**
+ * R18 (auditul static): `markers:recreate-account-deletions` — refacerea explicită a directoarelor de conturi
+ * pierdute. Refuză dacă nu lipsesc. Intrările se iau din fotografiile copiilor `/2` din BACKUP_DIR (cu suma
+ * SHA-256 verificată; o fotografie nefolosibilă oprește comanda înainte de orice scriere). Ștergerile de după
+ * cea mai nouă copie nu pot fi cunoscute: pe baza vie conturile respective sunt deja șterse; riscul rămâne
+ * numai pentru o restaurare ulterioară a unei copii mai vechi decât ștergerea.
+ */
+export function recreateAccountMarkers(backupDir: string): { entries: number; copiesRead: number } {
+  if (!accountMarkersLost(backupDir)) {
+    const both = existsSync(join(backupDir, ACCOUNT_DELETIONS_DIR)) && existsSync(join(backupDir, ACCOUNT_DELETIONS_PENDING_DIR));
+    throw new MarkerError(both ? 'Directoarele de conturi există: nu este nimic de refăcut.' : 'Nicio dovadă de inițializare R18: directoarele se creează la pornire, fără această comandă.');
+  }
+  const entries = new Map<string, AccountDeletionEntry>();
+  let copiesRead = 0;
+  for (const name of listBackups(backupDir)) {
+    const dir = join(backupDir, name);
+    let m: BackupManifest;
+    try {
+      m = JSON.parse(readFileSync(join(dir, 'manifest.json'), 'utf8')) as BackupManifest;
+    } catch {
+      continue;
+    }
+    if (m.format !== BACKUP_FORMAT) continue;
+    const text = readFileSync(join(dir, MARKER_SNAPSHOT_FILE), 'utf8');
+    if (!m.markersSha256 || createHash('sha256').update(text).digest('hex') !== m.markersSha256) {
+      throw new MarkerError(`Fotografia marcajelor din copia „${name}” nu corespunde manifestului: refacerea este oprită.`);
+    }
+    for (const e of parseMarkerSnapshot(text).accountDeletions) if (!entries.has(e.accountId)) entries.set(e.accountId, e);
+    copiesRead++;
+  }
+  initMarkerDirs(backupDir, { recoverAccountMarkers: true });
+  return { entries: writeMissingAccountDeletionEntries(backupDir, [...entries.values()]), copiesRead };
+}
+
+/**
+ * R18 / R19: partea raportului `restore:db` despre conturi și coada de e-mail. Numai numere, numere TM și
+ * ID-uri interne ale mesajelor (pentru corelarea cu Admin): fără destinatar și fără adrese de e-mail.
+ */
+export function formatRestoreAftercare(res: RestoreResult): string[] {
+  const lines = [
+    `restore:db: conturi șterse din nou conform marcajelor (R18): ${res.accountsDeleted}; ` +
+      `păstrate (create după ștergerea notată): ${res.accountsKeptCreatedAfter}`,
+    `restore:db: intenții de ștergere a conturilor nereconciliate (NEaplicate): ${res.unreconciledIntents}; conturi vizate rămase în baza restaurată: ${res.accountsKeptUnreconciled}` +
+      (res.unreconciledIntents > 0 ? ` — ${R18_UNRECONCILED_WARNING} (fișierele: „${ACCOUNT_DELETIONS_PENDING_DIR}/”)` : ''),
+    `restore:db: e-mailuri de cont neplecate, anulate (R19): ${res.emailsCancelled}`,
+    `restore:db: mesaje ale sesizărilor reținute (R19), trecute în starea „failed”: ${res.emailsHeld.length}`,
+  ];
+  for (const m of res.emailsHeld) {
+    lines.push(`  ${m.referenceNumber}  ${m.kind}  stare în copie: ${m.previousStatus}  creat: ${m.createdAt}  mesaj: ${m.emailId}`);
+  }
+  if (res.emailsHeld.length > 0) {
+    lines.push(
+      'restore:db: ATENȚIE — starea din copie NU arată dacă aceste mesaje au plecat sau nu după copie. Nimic nu se retrimite automat. ' +
+        'Reîncercarea din Admin (super_admin, în detaliul sesizării cu numărul TM de mai sus) poate produce un DUPLICAT ' +
+        '(pentru Primărie: aceeași sesizare, cu același număr TM). Verificați întâi dacă mesajul a ajuns la destinatar.',
+    );
+  }
+  return lines;
+}
+
+/**
  * Restaurarea. Ordinea:
  *   0. toate verificările (`inspectRestore`): la orice problemă se oprește, fără nicio scriere;
  *   1. într-o SINGURĂ tranzacție pe baza țintă: încărcarea rândurilor, verificarea numărului de rânduri
- *      și a cheilor străine, contorul TM ridicat la marcaj, ștergerile din marcaje, retenția;
+ *      și a cheilor străine, contorul TM ridicat la marcaj, ștergerile din marcaje, retenția, conturile
+ *      șterse din nou (R18), tratarea cozii de e-mail (R19) și auditul restaurării;
  *   2. copierea fotografiilor sesizărilor rămase în directorul de fișiere (gol), fără suprascriere;
  *   3. COMMIT.
  *
@@ -832,6 +1063,68 @@ export async function restoreBackup(opts: RestoreOptions): Promise<RestoreResult
     // retenția: sesizările ajunse între timp la 45 de zile de la depunere dispar
     const expired = await deleteReportRows(conn, await expiredReportIds(conn, opts.retentionDays, now));
 
+    // R18: conturile șterse de titular nu reapar. Numai după ID; numai un cont creat înaintea ștergerii
+    // notate (un cont creat după aceea nu este contul șters și se păstrează). Marcajele provin exclusiv
+    // din inspecție (validate integral înainte de prima scriere); aici nu se mai citește niciun fișier.
+    let accountsDeleted = 0;
+    let accountsKeptCreatedAfter = 0;
+    for (const e of inspection.markers.accountDeletions) {
+      const outcome = await deleteCitizenAccountRows(conn, e.accountId, { guard: { createdBefore: new Date(e.deletedAt) } });
+      if (outcome === 'deleted') accountsDeleted++;
+      else if (outcome === 'kept_created_after_marker') accountsKeptCreatedAfter++;
+    }
+
+    // decizia B: intențiile nereconciliate NU se aplică; conturile vizate rămân și se raportează
+    const intentIds = inspection.markers.unreconciledIntentIds;
+    let accountsKeptUnreconciled = 0;
+    if (intentIds.length > 0) {
+      const [k] = await conn.query('SELECT COUNT(*) AS n FROM citizen_accounts WHERE id IN (?)', [intentIds]);
+      accountsKeptUnreconciled = Number((k as Array<{ n: number }>)[0]!.n);
+    }
+
+    // R19: starea cozii din copie nu arată dacă un mesaj a plecat după copie; nimic nu pleacă automat
+    const [cancelRes] = await conn.query(
+      `UPDATE email_outbox SET status = 'cancelled', locked_until = NULL, next_attempt_at = NULL, last_error = ?
+        WHERE report_id IS NULL AND kind IN ('citizen_login_code', 'citizen_account_blocked') AND status IN ('queued', 'sending')`,
+      [R19_CANCELLED_REASON],
+    );
+    const emailsCancelled = (cancelRes as { affectedRows: number }).affectedRows;
+    const [heldRows] = await conn.query(
+      `SELECT e.id AS emailId, e.kind, e.status AS previousStatus, e.report_id AS reportId, r.reference_number AS referenceNumber,
+              e.created_at AS createdAt
+         FROM email_outbox e JOIN reports r ON r.id = e.report_id
+        WHERE e.kind IN ('registry_notification', 'citizen_status_update')
+          AND e.status IN ('queued', 'sending', 'on_hold')
+        ORDER BY e.created_at, e.id`,
+    );
+    const held = heldRows as Array<HeldEmail & { reportId: string; createdAt: unknown }>;
+    if (held.length > 0) {
+      await conn.query(
+        `UPDATE email_outbox SET status = 'failed', locked_until = NULL, next_attempt_at = NULL, last_error = ?
+          WHERE id IN (?) AND kind IN ('registry_notification', 'citizen_status_update')
+            AND status IN ('queued', 'sending', 'on_hold')`,
+        [R19_HELD_REASON, held.map((m) => m.emailId)],
+      );
+    }
+    const emailsHeld: HeldEmail[] = held.map((m) => ({
+      emailId: m.emailId,
+      kind: m.kind,
+      previousStatus: m.previousStatus,
+      referenceNumber: m.referenceNumber,
+      createdAt: dbDate(m.createdAt).toISOString(),
+    }));
+    // auditul: câte o intrare pe mesaj reținut (ținta: sesizarea) și o sinteză a restaurării; fără adrese
+    const auditConn = conn as unknown as mysql.PoolConnection;
+    for (const m of held) {
+      await writeAudit(auditConn, now, {
+        actorType: 'system',
+        action: 'email.held_on_restore',
+        targetType: 'report',
+        targetId: m.reportId,
+        details: { emailId: m.emailId, kind: m.kind, previousStatus: m.previousStatus },
+      });
+    }
+
     // 2. fotografiile sesizărilor rămase; directorul țintă este gol, deci nimic nu se suprascrie
     const [photoRows] = await conn.query('SELECT storage_key AS k FROM report_photos');
     for (const { k } of photoRows as Array<{ k: string }>) {
@@ -857,12 +1150,35 @@ export async function restoreBackup(opts: RestoreOptions): Promise<RestoreResult
         markersWritten.push(`${COUNTER_WATERMARK_FILE} = ${reportCounter}`);
       }
       if (!inspection.markers.deletionsDirExists && !inspection.markers.legacyListExists) {
-        initMarkerDirs(opts.backupDir);
+        initMarkerDirs(opts.backupDir, { recoverAccountMarkers: opts.allowMissingMarkers === true });
         markersWritten.push(`${DELETIONS_DIR}/ (gol)`);
+      }
+      if (inspection.markers.accountMarkersLost) {
+        // refacere explicită (--allow-missing-markers); intrările cunoscute din copii se scriu imediat după
+        initMarkerDirs(opts.backupDir, { recoverAccountMarkers: true });
+        markersWritten.push(`${ACCOUNT_DELETIONS_DIR}/ și ${ACCOUNT_DELETIONS_PENDING_DIR}/ (refăcute)`);
       }
       const n = writeMissingDeletionEntries(opts.backupDir, inspection.markers.snapshotOnlyEntries);
       if (n > 0) markersWritten.push(`${n} intrări de ștergere din fotografiile copiilor`);
+      const na = writeMissingAccountDeletionEntries(opts.backupDir, inspection.markers.snapshotOnlyAccountEntries);
+      if (na > 0) markersWritten.push(`${na} intrări de ștergere a conturilor din fotografiile copiilor`);
     }
+
+    await writeAudit(auditConn, now, {
+      actorType: 'system',
+      action: 'restore.completed',
+      details: {
+        source: manifest.name,
+        deletedFromList: deleted.reportIds.length,
+        purgedByRetention: expired.reportIds.length,
+        accountsDeleted,
+        accountsKeptCreatedAfter,
+        unreconciledIntents: intentIds.length,
+        accountsKeptUnreconciled,
+        emailsHeld: emailsHeld.length,
+        emailsCancelled,
+      },
+    });
 
     // 3. totul sau nimic
     await conn.commit();
@@ -874,6 +1190,12 @@ export async function restoreBackup(opts: RestoreOptions): Promise<RestoreResult
       purgedByRetention: expired.reportIds.length,
       reportCounter,
       markersWritten,
+      accountsDeleted,
+      accountsKeptCreatedAfter,
+      unreconciledIntents: intentIds.length,
+      accountsKeptUnreconciled,
+      emailsCancelled,
+      emailsHeld,
     };
   } catch (err) {
     await conn.rollback().catch(() => {});

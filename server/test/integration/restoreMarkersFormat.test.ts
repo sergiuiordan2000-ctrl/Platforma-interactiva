@@ -178,7 +178,8 @@ describe('G1: --allow-missing-markers cere --at-least N și reface marcajele', (
     });
     const res = await restoreBackup(restoreOpts({ ...v, allowMissingMarkers: true, atLeast: lastNumber }));
     assert.deepEqual(res.markersWritten, [`${WATERMARK} = ${lastNumber}`, 'deletions/ (gol)']);
-    assert.deepEqual(readdirSync(v.backupDir).filter((n) => !n.startsWith('civic-backup-')).sort(), ['deletions', WATERMARK]);
+    // adaptare R18 (7A, D7-3): marcajele refăcute cuprind și `account-deletions/` și `account-deletions-pending/` (marcajele și intențiile de ștergere a conturilor) și martorul `account-markers-initialized.json`
+    assert.deepEqual(readdirSync(v.backupDir).filter((n) => !n.startsWith('civic-backup-')).sort(), ['account-deletions', 'account-deletions-pending', 'account-markers-initialized.json', 'deletions', WATERMARK]);
     assert.equal(await flow.counter(), lastNumber);
     assert.deepEqual(await initBackupMarkers(h.pool, v.backupDir), { counter: lastNumber, watermark: lastNumber, counterRaisedFrom: null });
     const next = await nextNumber(v.backupDir);

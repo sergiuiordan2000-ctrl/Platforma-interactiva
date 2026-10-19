@@ -12,6 +12,18 @@
 //    autor sau de `super_admin`): se scriu ÎNAINTE de confirmarea ștergerii din baza de date.
 //    Restaurarea șterge din nou aceste sesizări: o sesizare ștearsă nu reapare.
 //
+// 3. Marcajele de ștergere a conturilor (`account-deletions/<ID>.json`, R18 / D7-3, Etapa 7): câte un
+//    fișier pentru fiecare cont de cetățean șters la cererea titularului, cu NUMAI ID-ul intern și data
+//    ștergerii (fără adresă de e-mail). În două etape (auditul D7-3, 16.10.2026): înainte de COMMIT se
+//    scrie o INTENȚIE în `account-deletions-pending/`; după COMMIT, intenția este mutată atomic în
+//    `account-deletions/`. O intenție rămasă (tranzacție anulată, oprire bruscă) este rezolvată de
+//    reconciliere (`accountDeletion.ts`) și nu este aplicată niciodată automat de restaurare.
+//    Restaurarea șterge din nou contul, numai după ID și numai dacă a fost creat înaintea ștergerii
+//    (`created_at < deletedAt`): un cont creat ulterior, chiar cu același ID, nu este atins.
+//    D7-3a (decizia proprietarului din 16.10.2026): aceste intrări NU expiră și NU se curăță niciodată
+//    automat. Un cont nu are termen de retenție, deci orice copie, oricât de veche, îl poate readuce.
+//    Conturile `pending` șterse de `purge:retention` (D7-5) nu primesc marcaj: retenția le șterge din nou.
+//
 // Reguli comune:
 // - scriere durabilă: fișier temporar cu nume unic → fsync → redenumire atomică → fsync pe director;
 //   un fișier vizibil sub numele final este întotdeauna complet;
@@ -55,6 +67,10 @@ import { APPROVED_RETENTION_DAYS } from '../config.ts';
 
 export const COUNTER_WATERMARK_FILE = 'report-counter-watermark.json';
 export const DELETIONS_DIR = 'deletions';
+/** R18: ștergerile conturilor de cetățean (fără termen, D7-3a). */
+export const ACCOUNT_DELETIONS_DIR = 'account-deletions';
+/** R18: intențiile de ștergere, scrise înainte de COMMIT; devin marcaje definitive numai după confirmare. */
+export const ACCOUNT_DELETIONS_PENDING_DIR = 'account-deletions-pending';
 /** Formatul vechi (un singur fișier); nu a fost scris niciodată de rute. Se mai citește, nu se mai scrie. */
 export const LEGACY_DELETION_LIST_FILE = 'deletion-list.jsonl';
 /** Rezerva peste termenul de retenție, înainte ca o intrare de ștergere să poată fi eliminată. */
@@ -134,19 +150,80 @@ export function prepareBackupDir(backupDir: string): void {
   rmSync(join(backupDir, probe), { force: true });
 }
 
+/** R18: martorul inițializării directoarelor de conturi (scris DUPĂ crearea lor; nu conține date). */
+export const ACCOUNT_MARKERS_WITNESS = 'account-markers-initialized.json';
+/** Comanda prin care proprietarul reface explicit directoarele de conturi pierdute. Numită în mesajele de refuz. */
+export const RECREATE_ACCOUNT_MARKERS_COMMAND = 'markers:recreate-account-deletions';
+const COPY_NAME_RE = /^civic-backup-\d{8}T\d{9}Z$/;
+
+/**
+ * R18: dovezile că directoarele de conturi au fost deja inițializate în acest BACKUP_DIR: martorul sau o
+ * copie făcută de o versiune cu R18 (fotografia `civic-markers/2`). Fără nicio dovadă: instalare nouă sau
+ * BACKUP_DIR de dinaintea R18. Numai citire.
+ */
+export function accountMarkersEvidence(backupDir: string): { witness: boolean; r18Copies: number } {
+  const witness = existsSync(join(backupDir, ACCOUNT_MARKERS_WITNESS));
+  let r18Copies = 0;
+  if (existsSync(backupDir)) {
+    for (const name of readdirSync(backupDir)) {
+      if (!COPY_NAME_RE.test(name)) continue;
+      try {
+        const format = (JSON.parse(readFileSync(join(backupDir, name, MARKER_SNAPSHOT_FILE), 'utf8')) as { format?: unknown }).format;
+        if (format === MARKER_SNAPSHOT_FORMAT) r18Copies++;
+      } catch {
+        // copie fără fotografie lizibilă: nu este o dovadă (restaurarea o verifică separat)
+      }
+    }
+  }
+  return { witness, r18Copies };
+}
+
+/** R18: directoarele de conturi lipsesc, deși au fost inițializate (pierdere, nu prima folosire). */
+export function accountMarkersLost(backupDir: string): boolean {
+  const present = existsSync(join(backupDir, ACCOUNT_DELETIONS_DIR)) && existsSync(join(backupDir, ACCOUNT_DELETIONS_PENDING_DIR));
+  if (present) return false;
+  const e = accountMarkersEvidence(backupDir);
+  return e.witness || e.r18Copies > 0;
+}
+
+/**
+ * R18: refuz explicit dacă directoarele de conturi au fost pierdute după inițializare. Numai citire. Se apelează
+ * la începutul `initBackupMarkers` (înaintea oricărei scrieri: contorul TM și marcajul lui) și în `initMarkerDirs`
+ * (protecția pentru ceilalți apelanți).
+ */
+export function assertAccountMarkersNotLost(backupDir: string): void {
+  if (!accountMarkersLost(backupDir)) return;
+  throw new MarkerError(
+    `Marcajele de ștergere a conturilor lipsesc („${ACCOUNT_DELETIONS_DIR}/” sau „${ACCOUNT_DELETIONS_PENDING_DIR}/”), deși au fost inițializate ` +
+      `(martorul „${ACCOUNT_MARKERS_WITNESS}” sau o copie „${MARKER_SNAPSHOT_FORMAT}” o dovedesc). Nu se refac automat: un cont șters ar putea reapărea la o restaurare. ` +
+      `Aduceți directoarele înapoi (dintr-o arhivă) sau refaceți-le explicit cu comanda „${RECREATE_ACCOUNT_MARKERS_COMMAND}”.`,
+  );
+}
+
 /**
  * Creează directoarele marcajelor și verifică, printr-o scriere de probă, că se poate scrie durabil în
  * ele. Aruncă `MarkerError` dacă nu se poate. În aplicație se apelează numai prin `initBackupMarkers`,
  * DUPĂ scrierea marcajului contorului (A1).
+ *
+ * R18 (auditul static, 16.10.2026): directoarele de conturi se creează automat NUMAI la prima inițializare
+ * (instalare nouă sau BACKUP_DIR de dinaintea R18). Dacă lipsesc după ce au fost inițializate (martorul sau o
+ * copie `civic-markers/2` o dovedesc), pierderea NU este ascunsă prin recreare: refuz explicit. Refacerea se
+ * face numai la cerere explicită (`recoverAccountMarkers`: comanda de refacere, restaurarea cu
+ * `--allow-missing-markers`). Martorul se scrie după directoare: martor fără directoare = pierdere.
  */
-export function initMarkerDirs(backupDir: string): void {
+export function initMarkerDirs(backupDir: string, opts: { recoverAccountMarkers?: boolean } = {}): void {
   const deletions = join(backupDir, DELETIONS_DIR);
+  const accountDeletions = join(backupDir, ACCOUNT_DELETIONS_DIR);
+  const accountPending = join(backupDir, ACCOUNT_DELETIONS_PENDING_DIR);
+  if (!opts.recoverAccountMarkers) assertAccountMarkersNotLost(backupDir);
   try {
     mkdirSync(deletions, { recursive: true });
+    mkdirSync(accountDeletions, { recursive: true });
+    mkdirSync(accountPending, { recursive: true });
   } catch (err) {
     throw new MarkerError(`BACKUP_DIR nu poate fi folosit: directoarele marcajelor nu pot fi create (${errCode(err)}).`, { cause: err });
   }
-  for (const dir of [backupDir, deletions]) {
+  for (const dir of [backupDir, deletions, accountDeletions, accountPending]) {
     const probe = `.probe.${process.pid}.${randomBytes(6).toString('hex')}`;
     try {
       writeFileDurable(dir, probe, '');
@@ -155,6 +232,10 @@ export function initMarkerDirs(backupDir: string): void {
       throw new MarkerError(`BACKUP_DIR nu poate fi folosit: scrierea de probă a eșuat (${code}).`, { cause: err });
     }
     rmSync(join(dir, probe), { force: true });
+  }
+  // martorul, abia după ce ambele directoare există (idempotent)
+  if (!existsSync(join(backupDir, ACCOUNT_MARKERS_WITNESS))) {
+    writeFileDurable(backupDir, ACCOUNT_MARKERS_WITNESS, JSON.stringify({ format: 'civic-account-markers/1' }) + '\n');
   }
 }
 
@@ -320,17 +401,151 @@ export function deletionListIds(backupDir: string): string[] {
   return [...new Set([...m.entries.map((e) => e.reportId), ...m.legacyIds])];
 }
 
+// ---- R18: marcajele de ștergere a conturilor (fără termen, D7-3a) ----
+
+/** Numai ID-ul intern și data ștergerii: fără adresă de e-mail, fără alt conținut. */
+export type AccountDeletionEntry = { accountId: string; deletedAt: string };
+
+function parseAccountEntry(text: string, expectedId: string): AccountDeletionEntry | null {
+  try {
+    const e = JSON.parse(text) as Record<string, unknown>;
+    // exact două câmpuri: un marcaj cu alte date (de exemplu, o adresă) nu este acceptat
+    if (Object.keys(e).sort().join(',') !== 'accountId,deletedAt') return null;
+    if (e.accountId !== expectedId) return null;
+    if (typeof e.deletedAt !== 'string' || Number.isNaN(Date.parse(e.deletedAt))) return null;
+    return { accountId: expectedId, deletedAt: e.deletedAt };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Etapa 1 (în tranzacția de ștergere, după blocarea rândului contului, înainte de orice modificare):
+ * INTENȚIA de ștergere, în `account-deletions-pending/`. Nu este un marcaj definitiv: restaurarea nu o
+ * aplică. Dacă scrierea aruncă, apelantul anulează tranzacția și contul rămâne. Directorul NU se creează
+ * din mers: lipsa lui înseamnă un BACKUP_DIR neinițializat sau pierdut → eroare explicită.
+ */
+export function recordAccountDeletionIntent(backupDir: string, accountId: string, now: Date): void {
+  if (!REPORT_ID_RE.test(accountId)) throw new MarkerError('ID de cont invalid pentru marcajul de ștergere.');
+  const entry: AccountDeletionEntry = { accountId, deletedAt: now.toISOString() };
+  try {
+    writeFileDurable(join(backupDir, ACCOUNT_DELETIONS_PENDING_DIR), `${accountId}${ENTRY_SUFFIX}`, JSON.stringify(entry) + '\n');
+  } catch (err) {
+    // mesajul lui writeFileDurable numește fișierul (= ID-ul contului): se înlocuiește (decizia B)
+    throw new MarkerError(`Intenția de ștergere a unui cont nu a putut fi scrisă în „${ACCOUNT_DELETIONS_PENDING_DIR}/” (${errCode((err as { cause?: unknown }).cause)}).`, { cause: err });
+  }
+}
+
+/**
+ * Etapa 2 (numai după confirmarea ștergerii): intenția devine marcaj definitiv printr-o redenumire atomică
+ * (același sistem de fișiere), urmată de fsync pe ambele directoare. Idempotentă: dacă intenția a fost deja
+ * mutată (de reconciliere, concurent), iar marcajul definitiv există, nu face nimic.
+ */
+export function promoteAccountDeletionIntent(backupDir: string, accountId: string): void {
+  if (!REPORT_ID_RE.test(accountId)) throw new MarkerError('ID de cont invalid pentru marcajul de ștergere.');
+  const name = `${accountId}${ENTRY_SUFFIX}`;
+  const pendingDir = join(backupDir, ACCOUNT_DELETIONS_PENDING_DIR);
+  const finalDir = join(backupDir, ACCOUNT_DELETIONS_DIR);
+  try {
+    renameSync(join(pendingDir, name), join(finalDir, name));
+  } catch (err) {
+    if (errCode(err) === 'ENOENT' && existsSync(join(finalDir, name)) && !existsSync(join(pendingDir, name))) return;
+    // fără ID-ul contului în mesaj (decizia B, 16.10.2026); `cause` nu se jurnalizează (conține calea)
+    throw new MarkerError(`O intenție de ștergere a unui cont nu a putut deveni marcaj definitiv în „${ACCOUNT_DELETIONS_DIR}/” (${errCode(err)}).`, { cause: err });
+  }
+  fsyncDir(finalDir);
+  fsyncDir(pendingDir);
+}
+
+/** Reconcilierea: elimină o intenție a cărei ștergere nu a fost confirmată (fsync pe director). */
+export function discardAccountDeletionIntent(backupDir: string, accountId: string): void {
+  if (!REPORT_ID_RE.test(accountId)) throw new MarkerError('ID de cont invalid pentru marcajul de ștergere.');
+  const dir = join(backupDir, ACCOUNT_DELETIONS_PENDING_DIR);
+  try {
+    rmSync(join(dir, `${accountId}${ENTRY_SUFFIX}`));
+  } catch (err) {
+    if (errCode(err) === 'ENOENT') return;
+    throw new MarkerError(`O intenție de ștergere a unui cont nu a putut fi eliminată din „${ACCOUNT_DELETIONS_PENDING_DIR}/” (${errCode(err)}).`, { cause: err });
+  }
+  fsyncDir(dir);
+}
+
+export type AccountDeletionMarkers = {
+  /** directorul există (`account-deletions/` lipsește la un BACKUP_DIR de dinaintea R18) */
+  dirExists: boolean;
+  entries: AccountDeletionEntry[];
+  /** fișiere care nu pot fi înțelese (nume sau conținut) */
+  invalid: string[];
+};
+
+/** Intențiile nereconciliate din `account-deletions-pending/`. Citire fără nicio scriere. */
+export function readAccountDeletionIntents(backupDir: string): AccountDeletionMarkers {
+  return readAccountEntriesIn(join(backupDir, ACCOUNT_DELETIONS_PENDING_DIR));
+}
+
+/** Citire fără nicio scriere. Fișierele temporare (scrieri neterminate) se ignoră. */
+export function readAccountDeletionMarkers(backupDir: string): AccountDeletionMarkers {
+  return readAccountEntriesIn(join(backupDir, ACCOUNT_DELETIONS_DIR));
+}
+
+function readAccountEntriesIn(dir: string): AccountDeletionMarkers {
+  const out: AccountDeletionMarkers = { dirExists: false, entries: [], invalid: [] };
+  if (!existsSync(dir)) return out;
+  out.dirExists = true;
+  for (const name of readdirSync(dir).sort()) {
+    if (name.startsWith(TMP_PREFIX) || name.startsWith('.probe.')) continue;
+    const id = name.endsWith(ENTRY_SUFFIX) ? name.slice(0, -ENTRY_SUFFIX.length) : '';
+    let entry: AccountDeletionEntry | null = null;
+    if (REPORT_ID_RE.test(id)) {
+      try {
+        entry = parseAccountEntry(readFileSync(join(dir, name), 'utf8'), id);
+      } catch {
+        entry = null;
+      }
+    }
+    if (entry) out.entries.push(entry);
+    else out.invalid.push(name);
+  }
+  return out;
+}
+
+/** G2 pentru conturi: aduce în `account-deletions/` intrările cunoscute numai din fotografiile copiilor. */
+export function writeMissingAccountDeletionEntries(backupDir: string, entries: AccountDeletionEntry[]): number {
+  const dir = join(backupDir, ACCOUNT_DELETIONS_DIR);
+  if (entries.length === 0) return 0;
+  try {
+    mkdirSync(dir, { recursive: true });
+  } catch (err) {
+    throw new MarkerError(`Directorul „${ACCOUNT_DELETIONS_DIR}/” nu poate fi creat (${errCode(err)}).`, { cause: err });
+  }
+  let written = 0;
+  for (const e of entries) {
+    if (!REPORT_ID_RE.test(e.accountId)) throw new MarkerError('ID de cont invalid pentru marcajul de ștergere.');
+    if (existsSync(join(dir, `${e.accountId}${ENTRY_SUFFIX}`))) continue;
+    try {
+      writeFileDurable(dir, `${e.accountId}${ENTRY_SUFFIX}`, JSON.stringify({ accountId: e.accountId, deletedAt: e.deletedAt }) + '\n');
+    } catch (err) {
+      throw new MarkerError(`Un marcaj de ștergere a unui cont nu a putut fi scris în „${ACCOUNT_DELETIONS_DIR}/” (${errCode((err as { cause?: unknown }).cause)}).`, { cause: err });
+    }
+    written++;
+  }
+  return written;
+}
+
 // ---- G2: fotografia marcajelor păstrată în fiecare copie (formatul „civic-backup/2”) ----
 
 export const MARKER_SNAPSHOT_FILE = 'markers.json';
-export const MARKER_SNAPSHOT_FORMAT = 'civic-markers/1';
+/** R18: formatul 2 adaugă `accountDeletions`. Fotografiile în formatul 1 se citesc în continuare (fără conturi). */
+export const MARKER_SNAPSHOT_FORMAT = 'civic-markers/2';
+export const MARKER_SNAPSHOT_FORMAT_V1 = 'civic-markers/1';
 
-/** Marcajele din momentul copiei: marcajul contorului și intrările de ștergere (ID intern + două date). */
+/** Marcajele din momentul copiei: contorul, ștergerile de sesizări și (R18) ștergerile de conturi. */
 export type MarkerSnapshot = {
   format: typeof MARKER_SNAPSHOT_FORMAT;
   watermark: number | null;
   deletions: DeletionEntry[];
   legacyIds: string[];
+  accountDeletions: AccountDeletionEntry[];
 };
 
 /** Citire strictă, pentru backup: un marcaj corupt oprește backup-ul (copia nu ar putea fi restaurată). */
@@ -339,19 +554,36 @@ export function takeMarkerSnapshot(backupDir: string): MarkerSnapshot {
   const m = readDeletionMarkers(backupDir);
   if (m.invalid.length > 0) throw new MarkerError(`Marcaje de ștergere corupte în „${DELETIONS_DIR}/”: ${m.invalid.join(', ')}`);
   if (m.legacyInvalid) throw new MarkerError(`Lista veche de ștergeri („${LEGACY_DELETION_LIST_FILE}”) este coruptă.`);
-  return { format: MARKER_SNAPSHOT_FORMAT, watermark, deletions: m.entries, legacyIds: m.legacyIds };
+  const a = readAccountDeletionMarkers(backupDir);
+  if (a.invalid.length > 0) {
+    throw new MarkerError(`Marcaje de ștergere a conturilor corupte în „${ACCOUNT_DELETIONS_DIR}/”: ${a.invalid.length} fișiere.`);
+  }
+  return { format: MARKER_SNAPSHOT_FORMAT, watermark, deletions: m.entries, legacyIds: m.legacyIds, accountDeletions: a.entries };
 }
 
-/** Validarea fotografiei citite dintr-o copie. Aruncă `MarkerError` la orice abatere. */
+/** Validarea fotografiei citite dintr-o copie (formatul 1 sau 2). Aruncă `MarkerError` la orice abatere. */
 export function parseMarkerSnapshot(text: string): MarkerSnapshot {
-  let raw: Partial<MarkerSnapshot>;
+  let raw: Partial<Omit<MarkerSnapshot, 'format'>> & { format?: string };
   try {
     raw = JSON.parse(text) as Partial<MarkerSnapshot>;
   } catch (err) {
     throw new MarkerError('Fotografia marcajelor din copie nu este JSON valid.', { cause: err });
   }
   const bad = () => new MarkerError('Fotografia marcajelor din copie are un conținut neașteptat.');
-  if (raw.format !== MARKER_SNAPSHOT_FORMAT) throw bad();
+  if (raw.format !== MARKER_SNAPSHOT_FORMAT && raw.format !== MARKER_SNAPSHOT_FORMAT_V1) throw bad();
+  // R18: formatul 1 nu are ștergeri de conturi (copii de dinaintea R18); formatul 2 trebuie să le aibă
+  const accountDeletions: AccountDeletionEntry[] = [];
+  if (raw.format === MARKER_SNAPSHOT_FORMAT) {
+    if (!Array.isArray(raw.accountDeletions)) throw bad();
+    for (const e of raw.accountDeletions as unknown[]) {
+      const id = e && typeof e === 'object' ? (e as { accountId?: unknown }).accountId : undefined;
+      const ok = typeof id === 'string' && REPORT_ID_RE.test(id) ? parseAccountEntry(JSON.stringify(e), id) : null;
+      if (!ok) throw bad();
+      accountDeletions.push(ok);
+    }
+  } else if ('accountDeletions' in raw) {
+    throw bad();
+  }
   const w = raw.watermark;
   if (w !== null && (typeof w !== 'number' || !Number.isSafeInteger(w) || w < 0)) throw bad();
   if (!Array.isArray(raw.deletions) || !Array.isArray(raw.legacyIds)) throw bad();
@@ -364,7 +596,7 @@ export function parseMarkerSnapshot(text: string): MarkerSnapshot {
     deletions.push(ok);
   }
   for (const id of raw.legacyIds) if (typeof id !== 'string' || !REPORT_ID_RE.test(id)) throw bad();
-  return { format: MARKER_SNAPSHOT_FORMAT, watermark: w ?? null, deletions, legacyIds: raw.legacyIds as string[] };
+  return { format: MARKER_SNAPSHOT_FORMAT, watermark: w ?? null, deletions, legacyIds: raw.legacyIds as string[], accountDeletions };
 }
 
 /**
@@ -415,6 +647,14 @@ export function pruneDeletionList(backupDir: string, now: Date): number {
     if (now.getTime() >= deletionMarkerExpiry(entry).getTime()) {
       rmSync(file, { force: true });
       removed++;
+    }
+  }
+  // R18 / D7-3a: intrările de ștergere a conturilor NU expiră; se elimină numai temporarele abandonate
+  // (intențiile se rezolvă numai prin reconciliere, `accountDeletion.ts`)
+  for (const accountDir of [join(backupDir, ACCOUNT_DELETIONS_DIR), join(backupDir, ACCOUNT_DELETIONS_PENDING_DIR)]) {
+    if (!existsSync(accountDir)) continue;
+    for (const name of readdirSync(accountDir)) {
+      if (name.startsWith(TMP_PREFIX) || name.startsWith('.probe.')) removeIfStale(join(accountDir, name));
     }
   }
   // temporarele rămase în rădăcină de la o scriere întreruptă a marcajului contorului

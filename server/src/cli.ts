@@ -14,8 +14,8 @@ import { BootstrapRefusedError, bootstrapAdmin } from './accounts.ts';
 import { encryptSecret } from './auth/crypto.ts';
 import { hashPassword } from './auth/password.ts';
 import { newId } from './ids.ts';
-import { createBackup, formatRestoreInspection, inspectRestore, listBackups, restoreBackup } from './db/backup.ts';
-import { REBUILD_COUNTER_COMMAND } from './db/markers.ts';
+import { createBackup, recreateAccountMarkers, formatRestoreAftercare, formatRestoreInspection, inspectRestore, listBackups, restoreBackup } from './db/backup.ts';
+import { REBUILD_COUNTER_COMMAND, RECREATE_ACCOUNT_MARKERS_COMMAND } from './db/markers.ts';
 import { initBackupMarkers, rebuildReportCounterWatermark } from './db/reportCounter.ts';
 import { createDb } from './db/client.ts';
 import { migrate, schemaStatus } from './db/migrations.ts';
@@ -52,6 +52,7 @@ export const CLI_COMMANDS = [
   'rotate:totp-key',
   'surveys:close-expired',
   REBUILD_COUNTER_COMMAND,
+  RECREATE_ACCOUNT_MARKERS_COMMAND,
 ] as const;
 
 export type CliCommand = (typeof CLI_COMMANDS)[number];
@@ -71,6 +72,24 @@ export async function runCli(
 ): Promise<number> {
   if (command === 'backup:db' || command === 'restore:db') return runBackupCommand(command, config, out, args);
   if (command === 'bootstrap-admin') return runBootstrap(config, out, args);
+  if (command === RECREATE_ACCOUNT_MARKERS_COMMAND) {
+    // R18: refacere explicită, numai fișiere (fără bază); numai numere în ieșire
+    if (!config.backupDir) {
+      out.error(`${RECREATE_ACCOUNT_MARKERS_COMMAND}: BACKUP_DIR nu este configurat.`);
+      return 2;
+    }
+    try {
+      const r = recreateAccountMarkers(config.backupDir);
+      out.log(
+        `${RECREATE_ACCOUNT_MARKERS_COMMAND}: directoarele de conturi refăcute; ${r.entries} marcaje aduse din ${r.copiesRead} copii. ` +
+          'Ștergerile de conturi de după cea mai nouă copie nu pot fi cunoscute (vezi FAZA_5_1_BACKUP_RESTAURARE.md §7).',
+      );
+      return 0;
+    } catch (err) {
+      out.error(err instanceof Error ? err.message : String(err));
+      return 1;
+    }
+  }
   if (command === 'dev:show-code') return runShowCode(config, out, args);
   if (command === 'dev:e2e-setup') return runE2eSetup(config, out);
   if (command === 'rotate:keys') return runRotateKeys(config, out);
@@ -223,6 +242,14 @@ async function runBackupCommand(
       const res = await createBackup(base);
       out.log(`backup:db: ${res.manifest.name} (${JSON.stringify(res.manifest.counts)}; fotografii: ${res.manifest.photos})`);
       if (res.removed.length > 0) out.log(`backup:db: șterse (mai vechi de 7 zile): ${res.removed.join(', ')}`);
+      const ai = res.accountIntents;
+      if (ai.confirmed + ai.discarded + ai.keptCreatedAfter + ai.errors + ai.invalid > 0) {
+        // R18: numai numere (fără ID-uri și adrese)
+        out.log(
+          `backup:db: intenții de ștergere a conturilor reconciliate — confirmate ${ai.confirmed}, eliminate ${ai.discarded}; ` +
+            `rămase: create după intenție ${ai.keptCreatedAfter}, erori ${ai.errors}, ilizibile ${ai.invalid}`,
+        );
+      }
       if (res.markers.counterRaisedFrom !== null) {
         // A8: singura scriere în bază făcută de backup; după o depunere anulată sau o cădere este normală,
         // altfel este semn că baza a fost readusă la o stare mai veche
@@ -263,6 +290,8 @@ async function runBackupCommand(
     );
     out.log(`restore:db: contorul TM restaurat: ${res.reportCounter}`);
     if (res.markersWritten.length > 0) out.log(`restore:db: marcaje refăcute în BACKUP_DIR: ${res.markersWritten.join('; ')}`);
+    // R18 / R19: conturile șterse din nou și mesajele reținute (fără destinatar, fără adrese)
+    for (const line of formatRestoreAftercare(res)) out.log(line);
     return 0;
   } catch (err) {
     out.error(err instanceof Error ? err.message : String(err));

@@ -17,6 +17,7 @@ import { createDb, pingDb } from './db/client.ts';
 import { schemaStatus } from './db/migrations.ts';
 import { checkNoDemo } from './db/noDemo.ts';
 import { initBackupMarkers, type CounterSync } from './db/reportCounter.ts';
+import { reconcileAccountDeletionIntents } from './db/accountDeletion.ts';
 import { FRONTEND_DIST_DIR, MIGRATIONS_DIR } from './paths.ts';
 import { loadAnnouncementImages } from './images.ts';
 import { DEFAULT_UAT_FILE, loadUatBoundary } from './uat.ts';
@@ -53,6 +54,11 @@ async function startServer(config: Config): Promise<void> {
   if (config.backupDir) {
     try {
       markers = await initBackupMarkers(handle.pool, config.backupDir);
+      // R18 (auditul D7-3): intențiile de ștergere a conturilor rămase după o oprire bruscă se rezolvă la pornire
+      const intents = await reconcileAccountDeletionIntents(handle.pool, config.backupDir);
+      if (intents.confirmed + intents.discarded + intents.keptCreatedAfter + intents.errors + intents.invalid > 0) {
+        console.log(`Marcajele de ștergere a conturilor, reconciliere: ${JSON.stringify(intents)}`);
+      }
     } catch (err) {
       await handle.close();
       fail(`Aplicația nu pornește: marcajele din BACKUP_DIR nu pot fi folosite. ${err instanceof Error ? err.message : String(err)}`);

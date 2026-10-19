@@ -4,6 +4,8 @@
 import type { FastifyInstance } from 'fastify';
 import type mysql from 'mysql2/promise';
 import { newId } from '../ids.ts';
+import { deleteCitizenAccountRows } from '../db/accountDeletion.ts';
+import { promoteAccountDeletionIntent } from '../db/markers.ts';
 import {
   CITIZEN_POLICY_VERSION,
   blockRequest,
@@ -212,34 +214,35 @@ export function registerCitizenRoutes(api: FastifyInstance, ctx: AppContext): vo
     };
   });
 
-  /** 2.7: ștergerea contului; sesizările rămân fără autor; blocarea definitivă se reduce la datele minime (T-C6). */
+  /**
+   * 2.7: ștergerea contului; sesizările rămân fără autor; blocarea definitivă se reduce la datele minime (T-C6).
+   * R18: intenția de ștergere (ID intern + data) se scrie înainte de COMMIT; dacă nu poate fi scrisă → 500,
+   * contul rămâne. După COMMIT devine marcaj definitiv. Aceeași funcție este aplicată de restaurare.
+   */
   api.delete('/citizen/account', { preHandler: requireCitizen(ctx) }, async (request, reply) => {
     const { account } = request.citizen!;
+    const marker = ctx.config.backupDir ? { backupDir: ctx.config.backupDir, now: ctx.now() } : undefined;
     const conn = await ctx.pool.getConnection();
     try {
       await conn.beginTransaction();
-      await conn.query(
-        `UPDATE citizen_blocks SET account_id = NULL, note = NULL, created_by = NULL, starts_at = NULL
-         WHERE account_id = ? AND kind = 'permanent'`,
-        [account.id],
-      );
-      await conn.query(
-        `UPDATE email_outbox SET status = 'cancelled' WHERE kind = 'citizen_status_update'
-           AND status IN ('queued', 'on_hold') AND report_id IN (SELECT id FROM reports WHERE author_account_id = ?)`,
-        [account.id],
-      );
-      await conn.query(
-        `DELETE FROM email_outbox WHERE report_id IS NULL AND recipient = ?
-           AND kind IN ('citizen_login_code', 'citizen_account_blocked')`,
-        [account.email_normalized],
-      );
-      await conn.query('DELETE FROM citizen_accounts WHERE id = ?', [account.id]);
+      await deleteCitizenAccountRows(conn, account.id, { marker });
       await conn.commit();
     } catch (err) {
       await conn.rollback();
       throw err;
     } finally {
       conn.release();
+    }
+    // abia după COMMIT: intenția devine marcaj definitiv. Ștergerea este deja confirmată: o mutare eșuată
+    // nu schimbă răspunsul; intenția rămasă este confirmată de reconciliere (pornire, backup).
+    if (marker) {
+      try {
+        promoteAccountDeletionIntent(marker.backupDir, account.id);
+      } catch (err) {
+        // fără ID-ul contului (decizia B): numai codul erorii, nu mesajul / cauza (care conțin calea fișierului)
+        const code = (err as { cause?: { code?: string } }).cause?.code ?? 'eroare';
+        request.log.error({ code }, 'marcajul de ștergere a unui cont: rămâne intenție, se reconciliază la pornire sau la următorul backup');
+      }
     }
     clearSessionCookie(ctx, reply);
     return reply.code(204).send();

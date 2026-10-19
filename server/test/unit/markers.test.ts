@@ -43,7 +43,8 @@ describe('marcajul contorului TM', () => {
     recordReportCounter(dir, 5);
     assert.equal(readReportCounterWatermark(dir), 7);
     assert.equal(readFileSync(join(dir, 'report-counter-watermark.json'), 'utf8'), '{"lastValue":7}\n');
-    assert.deepEqual(readdirSync(dir).sort(), ['deletions', 'report-counter-watermark.json'], 'niciun fișier temporar rămas');
+    // adaptare R18 (7A, D7-3): inițializarea creează și `account-deletions/` și `account-deletions-pending/` (marcajele și intențiile de ștergere a conturilor) și martorul `account-markers-initialized.json`
+    assert.deepEqual(readdirSync(dir).sort(), ['account-deletions', 'account-deletions-pending', 'account-markers-initialized.json', 'deletions', 'report-counter-watermark.json'], 'niciun fișier temporar rămas');
   });
 
   it('valori invalide și fișier corupt → MarkerError (niciodată „0” pe tăcute)', () => {
