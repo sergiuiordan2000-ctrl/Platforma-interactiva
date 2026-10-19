@@ -231,7 +231,7 @@ N = cel mai mare număr TM comunicat vreodată (din e-mailuri sau din Admin). O 
 
 ### 6.7 Limitele rămase (cunoscute)
 
-- **Numai arhiva:** dacă `BACKUP_DIR` este înlocuit cu totul de o arhivă veche (inclusiv la o restaurare a întregului cont de către furnizor), ștergerile de după arhivă nu pot fi cunoscute, iar numerele sunt protejate numai prin N. Se evită prin procedură. Răspunsul furnizorului (13.10.2026): copiile proprii ale contului sunt incrementale, păstrate 3 luni (prima zi a fiecărei luni) și 7 zile (luna curentă); se restaurează numai pe serverele lor, fără arhive pentru client. O restaurare a contului de către furnizor este deci exact cazul „numai arhiva”: după ea, `restore:db` / `markers:rebuild-counter` cu `--at-least N`.
+- **Numai arhiva:** dacă `BACKUP_DIR` este înlocuit cu totul de o arhivă veche (inclusiv la o restaurare a întregului cont de către furnizor), ștergerile de după arhivă nu pot fi cunoscute, iar numerele sunt protejate numai prin N. Se evită prin procedură. Răspunsul furnizorului (13.10.2026): copiile proprii ale contului sunt incrementale, păstrate 3 luni (prima zi a fiecărei luni) și 7 zile (luna curentă); se restaurează numai pe serverele lor, fără arhive pentru client. O restaurare a contului de către furnizor este deci exact cazul „numai arhiva”: după ea se urmează procedura din **§8** (`host-restore:recover --at-least N`). *(Corectat în 7A, R20: textul anterior trimitea la `restore:db` / `markers:rebuild-counter`, care nu se aplică aici — `restore:db` nu intervine într-o restaurare a contului, iar `markers:rebuild-counter` refuză când marcajul există, ceea ce, după o restaurare a contului, este cazul: marcajul vechi există.)*
 - Evenimentele de după cea mai nouă copie supraviețuitoare (cel mult o zi), când marcajele curente sunt pierdute.
 - O restaurare făcută cu o versiune a aplicației dinaintea remedierii: o refuză singură pentru copiile `/2`, dar nu are niciuna dintre protecțiile de mai sus.
 
@@ -239,7 +239,7 @@ N = cel mai mare număr TM comunicat vreodată (din e-mailuri sau din Admin). O 
 
 Local (MySQL 8.0.46, Node 22) și în CI (MySQL 8.0 / 8.4, MariaDB 11.4): server 375/375 la `6da2f68`. Fișierele: `backup.test.ts`, `backupRoutes.test.ts`, `backupSafety.test.ts`, `counterWatermarkA1.test.ts`, `restoreMarkersFormat.test.ts`, `restoreArchiveG2.test.ts`, `markers.test.ts`. 65 de probe cu cod stricat intenționat, toate detectate. Refuzul copiilor `/2` de către versiunea veche este verificat pe codul real `d23ddd5` (identic, pe `server/src`, cu `08f4dc3`).
 
-Proba de restaurare pe găzduire (M4) **nu este încă făcută**; se face după instalarea remedierii pe staging, cu o copie făcută după instalare.
+Proba de restaurare pe găzduire (M4) **a fost executată la 13.10.2026**, după instalarea remedierii pe staging, cu o copie făcută după instalare; criteriile au fost îndeplinite (jurnalul staging-ului, intervențiile 41–48; abaterea: observația 9). *(Corectat în 7A, R20: textul anterior spunea că M4 nu este încă făcută.)*
 
 ## 7. Amendament (Etapa 7, 7A, 16.10.2026): conturile șterse (R18) și coada de e-mail (R19) la restaurare
 
@@ -289,3 +289,40 @@ Proba de restaurare pe găzduire (M4) **nu este încă făcută**; se face după
 ### 7.4 Teste
 
 `server/test/integration/d73RestaurareConturiEmail.test.ts`, `server/test/integration/d73IntentiiConturi.test.ts` și `server/test/integration/d73DirectoareR18.test.ts`. Rezultatele, adaptările testelor existente și probele de control: `docs/faza7/FAZA_7A_RAPORT_sectiunea_D7-3.md`.
+
+## 8. Restaurarea întregului cont de către furnizor (R20; Etapa 7, 7A, 19.10.2026)
+
+**Decizia proprietarului:** D7-4 = B (19.10.2026): procedura și o comandă minimă de recuperare. **Cod:** branch `faza-5-backend`, commitul care introduce această secțiune.
+
+### 8.1 Ce se întâmplă la o asemenea restaurare
+
+Furnizorul restaurează, pe serverele lui, **întregul cont**: baza de date, fișierele, `BACKUP_DIR` (cu toate marcajele) și sarcinile cron revin **împreună** la aceeași stare veche (copiile furnizorului: 7 zile pentru luna curentă, prima zi a lunii timp de 3 luni). `restore:db` nu intervine, deci protecțiile lui nu se aplică.
+
+| Problema | Fără recuperare | După `host-restore:recover` |
+|---|---|---|
+| Numerele TM | contorul și marcajul sunt vechi: numerele comunicate după copie s-ar emite din nou | contorul și marcajul ridicate la N; următorul număr: N+1 |
+| Coada de e-mail | mesajele `queued` / `sending` din starea veche ar pleca din nou la următoarea rulare `outbox:process` (duplicate la Primărie și la cetățeni) | regulile R19 (§7.3): codurile și anunțurile de blocare anulate; mesajele sesizărilor reținute pentru decizia unui `super_admin`; nimic nu pleacă automat |
+| Sesizările mai vechi de 45 de zile | readuse de o copie de până la 3 luni | eliminate de retenție, înaintea pornirii |
+| Intențiile de ștergere a conturilor (R18) | rămân din starea veche | reconciliate față de baza restaurată |
+| Sesizările și conturile șterse după copie | **reapar** | **reapar** — limită acceptată (8.3) |
+
+### 8.2 Procedura, pas cu pas
+
+1. **Înainte de orice cerere către furnizor, notați N** = cel mai mare număr TM comunicat vreodată: în Admin, cea mai nouă sesizare; dacă aplicația nu mai este accesibilă, din e-mailurile trimise (Primăria, cetățenii) sau din jurnalul serviciului de e-mail.
+2. **Restaurarea contului se cere furnizorului numai cu decizia proprietarului**, cu data copiei aleasă explicit.
+3. **Imediat după restaurare, înainte de orice altceva:** aplicația oprită („Setup Node.js App” → STOP APP) și **toate sarcinile cron dezactivate** (`outbox:process`, `backup:db`, `purge:retention`, `surveys:close-expired` etc.): restaurarea contului readuce și cronurile vechi. Comanda nu poate verifica singură acest pas.
+4. **Verificarea, fără nicio scriere:** `node server/dist/app.js host-restore:recover --at-least N --check` (pe găzduire, ca celelalte comenzi: sarcină cron temporară, cu rezultatul în jurnal; vezi §6.6, „Pe găzduirea cPanel”). Raportul arată contorul și marcajul actuale, valoarea nouă și mesajele care ar fi reținute sau anulate. Comanda refuză, fără nicio scriere, dacă N lipsește sau nu este valid, dacă marcajul contorului este corupt sau lipsește (atunci întâi `markers:rebuild-counter --at-least N`), dacă directoarele R18 au fost pierdute (§7.2) sau dacă există intenții R18 ilizibile.
+5. **Aplicarea:** aceeași comandă cu `--confirm`. O a doua rulare nu mai schimbă contorul, coada sau datele; adaugă numai încă o intrare de audit `host_restore.recovered`.
+6. **Mesajele reținute:** raportul le listează cu numărul TM. Un `super_admin` verifică **întâi** dacă mesajul a ajuns la destinatar, apoi decide în Admin dacă îl reîncearcă (risc de duplicat, §7.3).
+7. **Reactivarea:** sarcinile cron reactivate, aplicația pornită (START APP), `health` verificat.
+
+### 8.3 Limitele rămase (acceptate)
+
+- **Sesizările și conturile șterse după data copiei furnizorului reapar:** marcajele lor au fost readuse și ele la starea veche, deci nu există nicio urmă a ștergerii. Dacă sunt cunoscute (de exemplu, din cererile titularilor), se șterg din nou manual: sesizările de către `super_admin`, conturile de către titulari.
+- **Mesajele trimise după copie nu sunt cunoscute:** cele reținute se verifică individual (pasul 6).
+- **Pașii 3 și 7 (aplicația și cronurile) depind de operator:** comanda nu îi poate verifica.
+- **Recuperarea parțială:** contorul TM și coada de e-mail se confirmă într-o primă tranzacție; reconcilierea intențiilor R18 și retenția rulează **după** ea. Dacă una dintre acestea eșuează, comanda raportează eroarea după ce contorul și coada au fost deja modificate. O nouă rulare `--confirm` continuă recuperarea (contorul și coada nu se mai schimbă) și adaugă încă o intrare de audit.
+
+### 8.4 Teste
+
+`server/test/integration/d74RestaurareFurnizor.test.ts` (F1–F8): contorul și marcajul ridicate la N și numărul următor; R19 pe baza vie, fără trimitere automată; retenția; `--check` fără nicio scriere; a doua rulare fără schimbări; N sub contor (nimic nu coboară); refuzurile înaintea oricărei scrieri; comanda reală (proces). Probele de control: `docs/faza7/FAZA_7A_RAPORT_sectiunea_R20.md`.

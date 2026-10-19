@@ -961,6 +961,70 @@ export function recreateAccountMarkers(backupDir: string): { entries: number; co
   return { entries: writeMissingAccountDeletionEntries(backupDir, [...entries.values()]), copiesRead };
 }
 
+/** R19: condiția anulării mesajelor de cont (restaurarea `restore:db` și recuperarea după restaurarea contului, R20). */
+const R19_CANCEL_WHERE =
+  "report_id IS NULL AND kind IN ('citizen_login_code', 'citizen_account_blocked') AND status IN ('queued', 'sending')";
+
+/**
+ * R19, aplicat unei baze readuse la o stare mai veche (restaurarea dintr-o copie sau restaurarea întregului cont de
+ * către furnizor, R20): starea cozii nu arată dacă un mesaj a plecat între timp. Codurile de autentificare și
+ * anunțurile de blocare neplecate → `cancelled`; mesajele sesizărilor neplecate → `failed` (reținute), cu motivul
+ * în `last_error`, fără nicio retrimitere automată; câte o intrare de audit pe mesaj reținut. Cu `dryRun`: numai
+ * citiri (ce s-ar schimba). În tranzacția apelantului.
+ */
+export async function holdOutboxAfterRollback(
+  conn: mysql.Connection | mysql.PoolConnection,
+  now: Date,
+  opts: { dryRun?: boolean } = {},
+): Promise<{ emailsCancelled: number; emailsHeld: HeldEmail[] }> {
+  let emailsCancelled: number;
+  if (opts.dryRun) {
+    const [c] = await conn.query(`SELECT COUNT(*) AS n FROM email_outbox WHERE ${R19_CANCEL_WHERE}`);
+    emailsCancelled = Number((c as Array<{ n: number }>)[0]!.n);
+  } else {
+    const [cancelRes] = await conn.query(
+      `UPDATE email_outbox SET status = 'cancelled', locked_until = NULL, next_attempt_at = NULL, last_error = ? WHERE ${R19_CANCEL_WHERE}`,
+      [R19_CANCELLED_REASON],
+    );
+    emailsCancelled = (cancelRes as { affectedRows: number }).affectedRows;
+  }
+  const [heldRows] = await conn.query(
+    `SELECT e.id AS emailId, e.kind, e.status AS previousStatus, e.report_id AS reportId, r.reference_number AS referenceNumber,
+            e.created_at AS createdAt
+       FROM email_outbox e JOIN reports r ON r.id = e.report_id
+      WHERE e.kind IN ('registry_notification', 'citizen_status_update')
+        AND e.status IN ('queued', 'sending', 'on_hold')
+      ORDER BY e.created_at, e.id`,
+  );
+  const held = heldRows as Array<HeldEmail & { reportId: string; createdAt: unknown }>;
+  if (held.length > 0 && !opts.dryRun) {
+    await conn.query(
+      `UPDATE email_outbox SET status = 'failed', locked_until = NULL, next_attempt_at = NULL, last_error = ?
+        WHERE id IN (?) AND kind IN ('registry_notification', 'citizen_status_update')
+          AND status IN ('queued', 'sending', 'on_hold')`,
+      [R19_HELD_REASON, held.map((m) => m.emailId)],
+    );
+    // auditul: câte o intrare pe mesaj reținut (ținta: sesizarea); fără adrese
+    for (const m of held) {
+      await writeAudit(conn as unknown as mysql.PoolConnection, now, {
+        actorType: 'system',
+        action: 'email.held_on_restore',
+        targetType: 'report',
+        targetId: m.reportId,
+        details: { emailId: m.emailId, kind: m.kind, previousStatus: m.previousStatus },
+      });
+    }
+  }
+  const emailsHeld: HeldEmail[] = held.map((m) => ({
+    emailId: m.emailId,
+    kind: m.kind,
+    previousStatus: m.previousStatus,
+    referenceNumber: m.referenceNumber,
+    createdAt: dbDate(m.createdAt).toISOString(),
+  }));
+  return { emailsCancelled, emailsHeld };
+}
+
 /**
  * R18 / R19: partea raportului `restore:db` despre conturi și coada de e-mail. Numai numere, numere TM și
  * ID-uri interne ale mesajelor (pentru corelarea cu Admin): fără destinatar și fără adrese de e-mail.
@@ -1083,47 +1147,8 @@ export async function restoreBackup(opts: RestoreOptions): Promise<RestoreResult
     }
 
     // R19: starea cozii din copie nu arată dacă un mesaj a plecat după copie; nimic nu pleacă automat
-    const [cancelRes] = await conn.query(
-      `UPDATE email_outbox SET status = 'cancelled', locked_until = NULL, next_attempt_at = NULL, last_error = ?
-        WHERE report_id IS NULL AND kind IN ('citizen_login_code', 'citizen_account_blocked') AND status IN ('queued', 'sending')`,
-      [R19_CANCELLED_REASON],
-    );
-    const emailsCancelled = (cancelRes as { affectedRows: number }).affectedRows;
-    const [heldRows] = await conn.query(
-      `SELECT e.id AS emailId, e.kind, e.status AS previousStatus, e.report_id AS reportId, r.reference_number AS referenceNumber,
-              e.created_at AS createdAt
-         FROM email_outbox e JOIN reports r ON r.id = e.report_id
-        WHERE e.kind IN ('registry_notification', 'citizen_status_update')
-          AND e.status IN ('queued', 'sending', 'on_hold')
-        ORDER BY e.created_at, e.id`,
-    );
-    const held = heldRows as Array<HeldEmail & { reportId: string; createdAt: unknown }>;
-    if (held.length > 0) {
-      await conn.query(
-        `UPDATE email_outbox SET status = 'failed', locked_until = NULL, next_attempt_at = NULL, last_error = ?
-          WHERE id IN (?) AND kind IN ('registry_notification', 'citizen_status_update')
-            AND status IN ('queued', 'sending', 'on_hold')`,
-        [R19_HELD_REASON, held.map((m) => m.emailId)],
-      );
-    }
-    const emailsHeld: HeldEmail[] = held.map((m) => ({
-      emailId: m.emailId,
-      kind: m.kind,
-      previousStatus: m.previousStatus,
-      referenceNumber: m.referenceNumber,
-      createdAt: dbDate(m.createdAt).toISOString(),
-    }));
-    // auditul: câte o intrare pe mesaj reținut (ținta: sesizarea) și o sinteză a restaurării; fără adrese
+    const { emailsCancelled, emailsHeld } = await holdOutboxAfterRollback(conn, now);
     const auditConn = conn as unknown as mysql.PoolConnection;
-    for (const m of held) {
-      await writeAudit(auditConn, now, {
-        actorType: 'system',
-        action: 'email.held_on_restore',
-        targetType: 'report',
-        targetId: m.reportId,
-        details: { emailId: m.emailId, kind: m.kind, previousStatus: m.previousStatus },
-      });
-    }
 
     // 2. fotografiile sesizărilor rămase; directorul țintă este gol, deci nimic nu se suprascrie
     const [photoRows] = await conn.query('SELECT storage_key AS k FROM report_photos');

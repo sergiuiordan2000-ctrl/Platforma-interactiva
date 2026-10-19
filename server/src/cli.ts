@@ -15,7 +15,8 @@ import { encryptSecret } from './auth/crypto.ts';
 import { hashPassword } from './auth/password.ts';
 import { newId } from './ids.ts';
 import { createBackup, recreateAccountMarkers, formatRestoreAftercare, formatRestoreInspection, inspectRestore, listBackups, restoreBackup } from './db/backup.ts';
-import { REBUILD_COUNTER_COMMAND, RECREATE_ACCOUNT_MARKERS_COMMAND } from './db/markers.ts';
+import { MarkerError, REBUILD_COUNTER_COMMAND, RECREATE_ACCOUNT_MARKERS_COMMAND } from './db/markers.ts';
+import { HOST_RESTORE_COMMAND, formatHostRecovery, recoverAfterHostRestore } from './db/hostRestore.ts';
 import { initBackupMarkers, rebuildReportCounterWatermark } from './db/reportCounter.ts';
 import { createDb } from './db/client.ts';
 import { migrate, schemaStatus } from './db/migrations.ts';
@@ -53,6 +54,7 @@ export const CLI_COMMANDS = [
   'surveys:close-expired',
   REBUILD_COUNTER_COMMAND,
   RECREATE_ACCOUNT_MARKERS_COMMAND,
+  HOST_RESTORE_COMMAND,
 ] as const;
 
 export type CliCommand = (typeof CLI_COMMANDS)[number];
@@ -151,6 +153,34 @@ export async function runCli(
             `Următorul număr emis: TM-${String(res.watermark + 1).padStart(3, '0')}.`,
         );
         return 0;
+      }
+      case HOST_RESTORE_COMMAND: {
+        // R20: după restaurarea întregului cont de către furnizor; aplicația oprită, cronurile dezactivate
+        if (!config.backupDir) {
+          out.error(`${HOST_RESTORE_COMMAND}: BACKUP_DIR nu este configurat.`);
+          return 2;
+        }
+        const raw = argValue(args, '--at-least');
+        const check = args.includes('--check');
+        const confirm = args.includes('--confirm');
+        const known = new Set(['--at-least', '--check', '--confirm']);
+        const unknown = args.some((a, i) => (a.startsWith('--') ? !known.has(a) : args[i - 1] !== '--at-least'));
+        if (unknown || raw === undefined || !/^\d+$/.test(raw) || check === confirm) {
+          out.error(`Utilizare: ${HOST_RESTORE_COMMAND} --at-least <N> --check     (numai verificare: nu scrie nimic)`);
+          out.error(`           ${HOST_RESTORE_COMMAND} --at-least <N> --confirm   (aplicația oprită, cronurile dezactivate)`);
+          out.error('N = cel mai mare număr TM comunicat vreodată (din Admin sau din e-mailuri).');
+          return 2;
+        }
+        const ctx: AppContext = { config, pool: handle.pool, now: () => new Date() };
+        try {
+          const res = await recoverAfterHostRestore(ctx, { backupDir: config.backupDir, atLeast: Number(raw), check });
+          for (const line of formatHostRecovery(res)) out.log(line);
+          return 0;
+        } catch (err) {
+          // verificările (MarkerError) au loc înaintea oricărei scrieri; o eroare ulterioară se raportează ca atare
+          out.error(`${HOST_RESTORE_COMMAND}: ${err instanceof MarkerError ? 'refuzat, nimic scris' : 'eroare'}. ${err instanceof Error ? err.message : String(err)}`);
+          return 1;
+        }
       }
       case 'outbox:process': {
         const warning = emailDowngradeMessage(config);

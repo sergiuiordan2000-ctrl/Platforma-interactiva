@@ -212,3 +212,28 @@ export async function rebuildReportCounterWatermark(
     conn.release();
   }
 }
+
+/**
+ * R20 (`host-restore:recover`): ridică contorul TM din bază și marcajul la max(bază, marcaj, `atLeast`), în tranzacția
+ * apelantului, cu rândul `report_counter` blocat; marcajul se scrie înainte de COMMIT (ca la emitere). Nu coboară
+ * niciodată. Cu `dryRun`: numai citiri (valoarea care ar fi scrisă). Aici, ca singurul loc (în afara restaurării) care
+ * scrie contorul să rămână acest modul (garda statică din `backupSafety.test.ts`).
+ */
+export async function raiseReportCounterAtLeast(
+  conn: mysql.PoolConnection,
+  backupDir: string,
+  atLeast: number,
+  watermark: number,
+  opts: { dryRun?: boolean } = {},
+): Promise<{ counterBefore: number; counterAfter: number }> {
+  const [rows] = await conn.query('SELECT `last_value` AS v FROM report_counter WHERE id = 1 FOR UPDATE');
+  const row = (rows as Array<{ v: number }>)[0];
+  if (!row) throw new MarkerError('Contorul TM nu există în baza de date (rulați întâi „seed:config”).');
+  const counterBefore = Number(row.v);
+  const counterAfter = Math.max(counterBefore, watermark, atLeast);
+  if (!opts.dryRun) {
+    if (counterAfter > counterBefore) await conn.query('UPDATE report_counter SET `last_value` = ? WHERE id = 1', [counterAfter]);
+    recordReportCounter(backupDir, counterAfter);
+  }
+  return { counterBefore, counterAfter };
+}
