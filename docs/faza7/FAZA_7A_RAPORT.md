@@ -1,7 +1,7 @@
 # FAZA 7A — RAPORT
 
 **Proiect:** Urbis Activ · **Branch:** `faza-5-backend` · **Ultimul commit 7A:** `f6d3456` · **Data:** 20.10.2026
-**Stare:** proiect de raport, de aprobat de proprietar. Instalarea pe staging cu proba scurtă: făcută la 20.10.2026 (§9). D7-2 confirmată formal la 20.10.2026 (§2). **Checkpoint-ul 7A nu este cerut încă:** raportul așteaptă aprobarea proprietarului (§9).
+**Stare:** **7A închisă la `f6d3456`** (checkpoint acordat de proprietar la 20.10.2026; §9). Raportul aprobat formal la 20.10.2026; instalarea pe staging cu proba scurtă făcută la 20.10.2026; D7-2 confirmată formal (§2). Limitările, riscurile și verificările restante din §6 și §8 rămân deschise. **Lansarea nu este aprobată.**
 **Baza:** `FAZA_7_PLAN.md` §2; `FAZA_7A_INVENTAR_R.md` (ordinea din §5, aprobată la 15.10.2026).
 **Anexe (rămân documentele de detaliu):** `FAZA_7A_RAPORT_sectiunea_D7-3.md` (R18 + R19) și `FAZA_7A_RAPORT_sectiunea_R20.md` (R20).
 
@@ -166,5 +166,15 @@ Le consemnez aici fără să le transform în sarcini. Fiecare intră în lucru 
 | testele serverului și suita Python verzi, local și în CI | îndeplinită la `f6d3456` (local: 506/506 și 167/167; CI 39373053254, 6/6) |
 | probele de control ale testelor noi | făcute pentru fiecare punct (§3, anexele) |
 | instalarea pe staging, cu proba scurtă | **făcută la 20.10.2026** (jurnalul staging-ului, intervențiile 77–81): copia bazei `civic-backup-20261020T055012571Z`; pachetul `civic-f6d3456.zip` (SHA-256 `7c55368e…11231f8`, dintr-o clonă curată); `RELEASE.txt` `commit: f6d3456`; `health` `{"status":"ok","version":"0.0.0+f6d3456"}`; sesizare cu fotografie → TM-015; footerul nou (D7-1) vizibil; autentificarea Admin cu TOTP. **Proba scurtă nu acoperă** `host-restore:recover`, o restaurare `restore:db` cu codul nou și curățările noi din `purge:retention`: rămân neverificate pe staging (§6) |
-| raportul `FAZA_7A_RAPORT.md` | acest document; de aprobat |
+| raportul `FAZA_7A_RAPORT.md` | aprobat formal de proprietar la 20.10.2026 (forma de la `90690d7`) |
 | D7-2 | **confirmată formal la 20.10.2026** (§2): limitarea RA-6, cazul C, păstrată pentru MVP, ca risc deschis (§8) |
+
+**Cererea de checkpoint (20.10.2026):** cu documentația publicată la `ec69121`; toate cele patru condiții din `FAZA_7_PLAN.md` §2 îndeplinite, plus cerința ca RA-6, cazul C, să fie explicită în registrul limitărilor (D7-2).
+
+**Decizia (20.10.2026): checkpoint-ul 7A este ACORDAT de proprietar. 7A închisă la `f6d3456`** (codul, instalat pe staging), cu documentația de la `ec69121`. Checkpoint-ul nu transformă nimic în verificat; rămân explicit:
+- **neprobate pe staging:** `host-restore:recover`, o restaurare `restore:db` cu codul nou, curățările noi din `purge:retention` (§6);
+- **neverificate:** condiția din `UPDATE` de la MINOR-3 în fereastra de concurență (§3.8); `fsync` la o cădere de curent; **simulate:** I3 (oprirea după COMMIT) și restaurarea contului de către furnizor (R20) (§6);
+- **limitări acceptate:** RA-6, cazul C (D7-2: risc deschis, nerezolvat, reevaluare înaintea lansării publice / a API-ului); limitele R18 și R20 (§8);
+- **trec mai departe** (§8): R6, R14, R16 (descriere lipsă); nota R1; calculul lunilor la retenția auditului administrativ; R12 (7E); R13 (poarta „date reale”); matricea CI, D7-4 (7E).
+
+**Subetapa 7B nu începe automat:** cere aprobarea separată a proprietarului (`FAZA_7_PLAN.md` §1.2, §10). **Lansarea publică nu este aprobată.**
