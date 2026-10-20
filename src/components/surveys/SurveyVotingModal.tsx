@@ -26,6 +26,7 @@ import {
 } from '../../services/surveyService';
 import { ErrorBlock, LoadingBlock } from '../common/LoadState';
 import { formatRoDateTime } from '../../utils/roTime';
+import { userMessage } from '../../services/apiClient';
 
 interface SurveyVotingModalProps {
   survey: PublicSurveySummary;
@@ -64,7 +65,7 @@ export const SurveyVotingModal: React.FC<SurveyVotingModalProps> = ({
       formLoadedAt.current = Date.now();
       setDetail(d);
     } catch (err) {
-      setLoadError(err instanceof Error ? err.message : 'Sondajul nu a putut fi încărcat.');
+      setLoadError(userMessage(err, 'Sondajul nu a putut fi încărcat.'));
     }
   }, [survey.id]);
 

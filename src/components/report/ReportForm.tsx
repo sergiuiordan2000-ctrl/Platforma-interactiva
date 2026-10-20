@@ -40,7 +40,8 @@ import {
 import type { ReportCategory } from '@tmc/shared';
 import { ReportPhoto } from '../../types/report';
 import { reportService, type FormSession } from '../../services/reportService';
-import { imageCompressionService } from '../../services/imageCompressionService';
+import { imageCompressionService, PhotoProcessingError } from '../../services/imageCompressionService';
+import { userMessage } from '../../services/apiClient';
 import { LocationPicker, type LocationPickerHandle, type PickedPosition } from './LocationPicker';
 
 /** Ce afișează confirmarea (datele trimise + răspunsul serverului). */
@@ -134,7 +135,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({ accountEmail, onSuccess,
     reportService
       .getCategories()
       .then(setCategories)
-      .catch((err: Error) => setCategoriesError(err.message));
+      .catch((err: unknown) => setCategoriesError(userMessage(err, 'A apărut o eroare. Încercați din nou.')));
   };
 
   useEffect(() => {
@@ -188,7 +189,8 @@ export const ReportForm: React.FC<ReportFormProps> = ({ accountEmail, onSuccess,
       setPhotos((prev) => [...prev, ...newPhotos].slice(0, MAX_PHOTOS));
     } catch (err: unknown) {
       setPhotoError(
-        err instanceof Error && err.message
+        // 7B.2 (E2): numai erorile cunoscute ale procesării (format, mărime, decodare, Canvas) își afișează textul
+        err instanceof PhotoProcessingError && err.message
           ? err.message
           : 'Una dintre fotografii nu a putut fi procesată. Încercați o altă imagine (JPEG, PNG sau WebP).',
       );

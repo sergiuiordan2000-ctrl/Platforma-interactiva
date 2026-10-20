@@ -22,6 +22,17 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * 7B.2 (E1): textul afișat utilizatorului pentru o eroare. Mesajele API (`ApiError`, inclusiv „Serverul nu poate fi
+ * contactat…”) sunt texte în română, alese de server sau de client, și se afișează ca atare. Orice altă eroare
+ * (o eroare JavaScript neașteptată, cu textul tehnic al browserului) se înlocuiește cu `fallback` și se scrie în consolă.
+ */
+export function userMessage(err: unknown, fallback: string): string {
+  if (err instanceof ApiError) return err.message;
+  console.error('Eroare neașteptată:', err);
+  return fallback;
+}
+
 async function request<T>(method: string, path: string, body?: unknown, extraHeaders: Record<string, string> = {}): Promise<T> {
   const headers: Record<string, string> = { Accept: 'application/json', ...extraHeaders };
   if (method !== 'GET') headers['X-Civic-Request'] = '1';

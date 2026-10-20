@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Lock,
   ShieldCheck,
@@ -84,6 +84,18 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigate }) => {
   const [currentUser, setCurrentUser] = useState<AdminUser | null>(() => authService.getCurrentUser());
 
   const [activeMainTab, setActiveMainTab] = useState<MainAdminTab>('dashboard');
+  // 7B.2 (A21-3a): pe ecrane înguste, fâșia de tab-uri se derulează orizontal; tab-ul activ se aduce complet în vizor
+  // (numai derulare orizontală a fâșiei, fără derularea paginii)
+  const tabStripRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const strip = tabStripRef.current;
+    const tab = strip?.querySelector<HTMLElement>(`[data-admin-tab="${activeMainTab}"]`);
+    if (!strip || !tab) return;
+    const s = strip.getBoundingClientRect();
+    const t = tab.getBoundingClientRect();
+    if (t.left < s.left) strip.scrollLeft -= s.left - t.left;
+    else if (t.right > s.right) strip.scrollLeft += t.right - s.right;
+  }, [activeMainTab]);
   const [activeDirSubTab, setActiveDirSubTab] = useState<DirectorySubTab>('institution');
   const [activeQdSubTab, setActiveQdSubTab] = useState<QuickDialSubTab>('contacts');
 
@@ -213,10 +225,11 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigate }) => {
       </div>
 
       {/* 2. Comutator Principal de Modul: Dashboard, Ghid Primărie vs. Quick Dial */}
-      <div className="p-1.5 bg-slate-100 rounded-2xl flex items-center gap-1.5 border border-slate-200 shadow-inner overflow-x-auto scrollbar-none">
+      <div ref={tabStripRef} className="p-1.5 bg-slate-100 rounded-2xl flex items-center gap-1.5 border border-slate-200 shadow-inner overflow-x-auto scrollbar-none">
         {canAccessTab('dashboard') && (
           <button
             onClick={() => setActiveMainTab('dashboard')}
+            data-admin-tab="dashboard"
             className={`flex-1 py-3 px-4 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all select-none whitespace-nowrap ${
               activeMainTab === 'dashboard'
                 ? 'bg-white text-slate-900 shadow-sm'
@@ -231,6 +244,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigate }) => {
         {canAccessTab('announcements') && (
           <button
             onClick={() => setActiveMainTab('announcements')}
+            data-admin-tab="announcements"
             className={`flex-1 py-3 px-4 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all select-none whitespace-nowrap ${
               activeMainTab === 'announcements'
                 ? 'bg-white text-blue-900 shadow-sm'
@@ -245,7 +259,8 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigate }) => {
         {canAccessTab('directory') && (
           <button
             onClick={() => setActiveMainTab('directory')}
-            className={`flex-1 py-3 px-4 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all select-none ${
+            data-admin-tab="directory"
+            className={`flex-1 py-3 px-4 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all select-none whitespace-nowrap md:whitespace-normal ${
               activeMainTab === 'directory'
                 ? 'bg-white text-cyan-900 shadow-sm'
                 : 'text-slate-600 hover:text-slate-900'
@@ -259,7 +274,8 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigate }) => {
         {canAccessTab('quickdial') && (
           <button
             onClick={() => setActiveMainTab('quickdial')}
-            className={`flex-1 py-3 px-4 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all select-none ${
+            data-admin-tab="quickdial"
+            className={`flex-1 py-3 px-4 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all select-none whitespace-nowrap md:whitespace-normal ${
               activeMainTab === 'quickdial'
                 ? 'bg-white text-emerald-900 shadow-sm'
                 : 'text-slate-600 hover:text-slate-900'
@@ -273,7 +289,8 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigate }) => {
         {canAccessTab('reports') && (
           <button
             onClick={() => setActiveMainTab('reports')}
-            className={`flex-1 py-3 px-4 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all select-none ${
+            data-admin-tab="reports"
+            className={`flex-1 py-3 px-4 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all select-none whitespace-nowrap md:whitespace-normal ${
               activeMainTab === 'reports'
                 ? 'bg-white text-blue-900 shadow-sm'
                 : 'text-slate-600 hover:text-slate-900'
@@ -287,7 +304,8 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigate }) => {
         {canAccessTab('surveys') && (
           <button
             onClick={() => setActiveMainTab('surveys')}
-            className={`flex-1 py-3 px-4 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all select-none ${
+            data-admin-tab="surveys"
+            className={`flex-1 py-3 px-4 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all select-none whitespace-nowrap md:whitespace-normal ${
               activeMainTab === 'surveys'
                 ? 'bg-white text-purple-900 shadow-sm'
                 : 'text-slate-600 hover:text-slate-900'
@@ -300,6 +318,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigate }) => {
         {canAccessTab('accounts') && (
           <button
             onClick={() => setActiveMainTab('accounts')}
+            data-admin-tab="accounts"
             className={`flex-1 py-3 px-4 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all select-none whitespace-nowrap ${
               activeMainTab === 'accounts'
                 ? 'bg-white text-slate-900 shadow-sm'

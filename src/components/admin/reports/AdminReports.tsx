@@ -47,7 +47,7 @@ import {
 } from '../../../services/reportService';
 import { authService } from '../../../services/authService';
 import { permissionService } from '../../../services/permissionService';
-import { ApiError } from '../../../services/apiClient';
+import { userMessage } from '../../../services/apiClient';
 import { RegistrySettingsPanel } from './RegistrySettingsPanel';
 
 interface AdminReportsProps {
@@ -74,7 +74,7 @@ const TRANSMISSION_LABELS: Record<TransmissionState, string> = {
   failed: 'Eșuată',
   stopped: 'Oprită (fără trimitere reală)',
 };
-const errText = (err: unknown) => (err instanceof ApiError || err instanceof Error ? err.message : 'Operația nu a reușit.');
+const errText = (err: unknown) => userMessage(err, 'Operația nu a reușit.');
 
 export const AdminReports: React.FC<AdminReportsProps> = ({ onSuccess }) => {
   const user = authService.getCurrentUser();

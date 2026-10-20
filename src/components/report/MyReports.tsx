@@ -12,6 +12,7 @@ import React, { useState } from 'react';
 import { AlertTriangle, Loader2, MapPin, RefreshCw, Tag, Trash2 } from 'lucide-react';
 import { useAsync } from '../../hooks/useAsync';
 import { STATUS_LABELS, reportService, type CitizenReport, type ReportStatus } from '../../services/reportService';
+import { userMessage } from '../../services/apiClient';
 
 const STATUS_COLORS: Record<ReportStatus, string> = {
   new: 'bg-blue-100 text-blue-800 border-blue-300',
@@ -37,7 +38,7 @@ export const MyReports: React.FC<{ onChanged?: (count: number) => void }> = ({ o
       setConfirming(null);
       await reload();
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : 'Sesizarea nu a putut fi ștearsă.');
+      setActionError(userMessage(err, 'Sesizarea nu a putut fi ștearsă.'));
     } finally {
       setBusy(null);
     }

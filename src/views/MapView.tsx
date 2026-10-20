@@ -29,6 +29,7 @@ import {
   type PublicMapReport,
   type ReportCategory,
 } from '../services/reportService';
+import { userMessage } from '../services/apiClient';
 
 interface MapViewProps {
   onNavigate: (view: AppView) => void;
@@ -109,7 +110,7 @@ export const MapView: React.FC<MapViewProps> = ({ onNavigate }) => {
       setPublicReports(reports);
       setCategories(cats);
     } catch (err) {
-      setLoadError(err instanceof Error ? err.message : 'Sesizările nu au putut fi încărcate.');
+      setLoadError(userMessage(err, 'A apărut o eroare. Încercați din nou.'));
     } finally {
       setLoading(false);
     }
@@ -420,8 +421,12 @@ export const MapView: React.FC<MapViewProps> = ({ onNavigate }) => {
           style={{ minHeight: '400px' }}
         />
 
+        {/* 7B.2 (A21-1): bannerele stau într-un singur container, unul sub altul, la dreapta controlului de zoom
+            (`left-14`), ca să nu acopere butoanele „+” / „−” și să nu se suprapună între ele */}
+        {(loading || loadError || tileError) && (
+        <div className="absolute top-4 left-14 right-4 z-30 flex flex-col gap-2" data-testid="map-banners">
         {(loading || loadError) && (
-          <div className="absolute top-4 left-4 right-4 z-30 p-3 rounded-2xl bg-white/95 border border-slate-300 text-xs text-slate-800 flex items-center justify-between gap-2 shadow-md">
+          <div className="p-3 rounded-2xl bg-white/95 border border-slate-300 text-xs text-slate-800 flex items-center justify-between gap-2 shadow-md">
             <span>{loading ? 'Se încarcă sesizările...' : `Sesizările nu au putut fi încărcate: ${loadError}`}</span>
             {loadError && (
               <button type="button" onClick={() => void load()} className="font-bold text-blue-700 underline">
@@ -433,12 +438,14 @@ export const MapView: React.FC<MapViewProps> = ({ onNavigate }) => {
 
         {/* Eroare încărcare tile-uri (dacă nu e conexiune la internet) */}
         {tileError && (
-          <div className="absolute top-4 left-4 right-4 z-30 p-3 rounded-2xl bg-amber-50/95 border border-amber-300 text-xs text-amber-900 flex items-center gap-2 shadow-md">
+          <div className="p-3 rounded-2xl bg-amber-50/95 border border-amber-300 text-xs text-amber-900 flex items-center gap-2 shadow-md">
             <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
             <span>
               Tile-urile OpenStreetMap nu au putut fi încărcate în acest moment (verificați conexiunea). Harta și markerii rămân funcționali în fundal.
             </span>
           </div>
+        )}
+        </div>
         )}
 
         {/* Buton Recentează pe Turnu Măgurele */}

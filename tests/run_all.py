@@ -30,6 +30,8 @@ SUITES = [
     'e2e/test_google_autentificare.py',
     # Faza 6, Pasul 3A: fluxul critic cap-coadă, cu un server SMTP fals, local (tests/lib/fake_smtp.mjs)
     'e2e/test_faza6_flux_critic.py',
+    # Etapa 7, 7B.2: remedierile cu risc redus (bannerele hărții, tab-urile Admin, mesajele de eroare); emulare Chromium
+    'ui/test_7b2_mobil_erori.py',
 ]
 # Limitări cunoscute, documentate în PROJECT_HANDOFF_CURRENT.md (G.4 / P7). Nu sunt bug-uri de regresie.
 # P7 / R6D-SES-01 închis formal la Faza 5.2 (sesiune validată pe server); orice FAIL al lui este acum regresie.

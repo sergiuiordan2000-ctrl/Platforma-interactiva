@@ -40,26 +40,37 @@ const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'
  * 4. Păstrarea orientării corecte (createImageBitmap cu imageOrientation: 'from-image').
  * 5. Eliminarea automată a metadatelor personale EXIF (GPS, dispozitiv) prin re-randare pe Canvas.
  */
+/**
+ * 7B.2 (E2): eroare cunoscută a procesării unei fotografii (format, mărime, decodare, Canvas), cu text în română,
+ * afișat utilizatorului. Orice altă eroare (neașteptată, cu textul tehnic al browserului) primește un mesaj generic.
+ */
+export class PhotoProcessingError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'PhotoProcessingError';
+  }
+}
+
 class ImageCompressionService {
   /**
    * Validează fișierul înainte de procesare.
    */
   public validateFile(file: File, maxMB: number = DEFAULT_OPTIONS.maxOriginalSizeMB): void {
     if (!file) {
-      throw new Error('Niciun fișier selectat.');
+      throw new PhotoProcessingError('Niciun fișier selectat.');
     }
 
     // Verificare tip MIME
     const mime = file.type.toLowerCase();
     const isAllowed = ALLOWED_MIME_TYPES.some((type) => mime.includes(type.replace('image/', '')));
     if (!isAllowed && !mime.startsWith('image/')) {
-      throw new Error(`Formatul fișierului „${file.name}” nu este acceptat. Formate permise: JPEG, PNG, WebP.`);
+      throw new PhotoProcessingError(`Formatul fișierului „${file.name}” nu este acceptat. Formate permise: JPEG, PNG, WebP.`);
     }
 
     // Verificare dimensiune maximă originală
     const maxBytes = maxMB * 1024 * 1024;
     if (file.size > maxBytes) {
-      throw new Error(
+      throw new PhotoProcessingError(
         `Fișierul „${file.name}” depășește limita maximă de ${maxMB} MB (are ${(file.size / (1024 * 1024)).toFixed(1)} MB).`
       );
     }
@@ -102,7 +113,7 @@ class ImageCompressionService {
 
       img.onerror = () => {
         URL.revokeObjectURL(objectUrl);
-        reject(new Error(`Nu s-a putut decoda imaginea „${file.name}”. Fișierul poate fi corupt.`));
+        reject(new PhotoProcessingError(`Nu s-a putut decoda imaginea „${file.name}”. Fișierul poate fi corupt.`));
       };
 
       img.src = objectUrl;
@@ -158,7 +169,7 @@ class ImageCompressionService {
 
     const ctx = canvas.getContext('2d', { alpha: false });
     if (!ctx) {
-      throw new Error('Nu s-a putut inițializa contextul grafic Canvas pentru compresie.');
+      throw new PhotoProcessingError('Nu s-a putut inițializa contextul grafic Canvas pentru compresie.');
     }
 
     // Setări pentru randare calitativă superioară

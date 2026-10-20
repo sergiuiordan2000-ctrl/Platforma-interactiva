@@ -21,6 +21,7 @@ import { ErrorBlock, LoadingBlock } from '../common/LoadState';
 import { formatRoDateTime } from '../../utils/roTime';
 import { SurveyVotingModal } from './SurveyVotingModal';
 import { SurveyResultsModal } from './SurveyResultsModal';
+import { userMessage } from '../../services/apiClient';
 
 interface PublicSurveysListProps {
   onSurveyVoted?: (surveyId: string) => void;
@@ -71,7 +72,7 @@ export const PublicSurveysList: React.FC<PublicSurveysListProps> = ({ onSurveyVo
       const page = await surveyService.listArchive(archiveNextCursor);
       setArchiveMore((prev) => ({ items: [...(prev?.items ?? []), ...page.items], nextCursor: page.nextCursor }));
     } catch (err) {
-      setArchiveMoreError(err instanceof Error ? err.message : 'Arhiva nu a putut fi încărcată.');
+      setArchiveMoreError(userMessage(err, 'Arhiva nu a putut fi încărcată.'));
     } finally {
       setArchiveMoreLoading(false);
     }

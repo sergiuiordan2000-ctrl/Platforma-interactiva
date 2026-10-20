@@ -35,6 +35,7 @@ import { permissionService } from '../../../services/permissionService';
 import { useAsync } from '../../../hooks/useAsync';
 import { ErrorBlock, LoadingBlock } from '../../common/LoadState';
 import { formatRoDate, formatRoDateTime } from '../../../utils/roTime';
+import { userMessage } from '../../../services/apiClient';
 
 interface AdminSurveysManagerProps {
   onSuccess: (message: string) => void;
@@ -87,7 +88,7 @@ export const AdminSurveysManager: React.FC<AdminSurveysManagerProps> = ({ onSucc
     void list.reload();
   };
 
-  const errorMessage = (err: unknown, fallback: string) => (err instanceof Error && err.message ? err.message : fallback);
+  const errorMessage = (err: unknown, fallback: string) => userMessage(err, fallback);
 
   // Filtrare sondaje
   const filteredSurveys = surveys.filter((s) => {

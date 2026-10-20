@@ -49,10 +49,13 @@ const newQuestion = (): SurveyFormQuestion => ({
   ],
 });
 
-/** Numele câmpurilor din erorile serverului (422 / 409) → text pentru formular. */
+/**
+ * Numele câmpurilor din erorile serverului (422 / 409) → text pentru formular. 7B.2 (E3): opțiunea se păstrează
+ * („Întrebarea #2, opțiunea #3”), iar o cale necunoscută nu ajunge pe ecran („alte câmpuri”).
+ */
 function fieldLabel(path: string): string {
-  const q = /^questions\.(\d+)/.exec(path);
-  if (q) return `Întrebarea #${Number(q[1]) + 1}`;
+  const q = /^questions\.(\d+)(?:\.options\.(\d+))?/.exec(path);
+  if (q) return q[2] !== undefined ? `Întrebarea #${Number(q[1]) + 1}, opțiunea #${Number(q[2]) + 1}` : `Întrebarea #${Number(q[1]) + 1}`;
   const labels: Record<string, string> = {
     title: 'Titlul',
     description: 'Descrierea',
@@ -61,8 +64,9 @@ function fieldLabel(path: string): string {
     endAt: 'Data de sfârșit',
     resultsVisibility: 'Vizibilitatea rezultatelor',
     questions: 'Întrebările',
+    status: 'Starea',
   };
-  return labels[path] ?? path;
+  return labels[path] ?? 'alte câmpuri';
 }
 
 function serverErrors(err: unknown): string[] {

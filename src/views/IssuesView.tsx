@@ -11,6 +11,7 @@ import { ReportConfirmation } from '../components/report/ReportConfirmation';
 import { CitizenLogin } from '../components/report/CitizenLogin';
 import { MyReports } from '../components/report/MyReports';
 import { citizenService, takeGoogleReturnMessage, type CitizenMe } from '../services/citizenService';
+import { userMessage } from '../services/apiClient';
 
 interface IssuesViewProps {
   onNavigate: (view: AppView) => void;
@@ -44,7 +45,7 @@ export const IssuesView: React.FC<IssuesViewProps> = ({ onNavigate, initialTab =
     try {
       setMe(await citizenService.me());
     } catch (err) {
-      setMeError(err instanceof Error ? err.message : 'Contul nu a putut fi verificat.');
+      setMeError(userMessage(err, 'Contul nu a putut fi verificat.'));
       setMe(null);
     }
   }, []);
@@ -75,7 +76,7 @@ export const IssuesView: React.FC<IssuesViewProps> = ({ onNavigate, initialTab =
       setConfirmDeleteAccount(false);
       setNotice('Contul a fost șters. Sesizările depuse rămân până la termenul lor (45 de zile), fără legătură cu vreun cont.');
     } catch (err) {
-      setNotice(err instanceof Error ? err.message : 'Contul nu a putut fi șters.');
+      setNotice(userMessage(err, 'Contul nu a putut fi șters.'));
     } finally {
       setBusy(false);
     }

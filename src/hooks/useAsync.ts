@@ -4,6 +4,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { userMessage } from '../services/apiClient';
 
 /**
  * Faza 5.3 (B2 §7): încărcarea asincronă a datelor de la server, cu stările încărcare / eroare / gol.
@@ -26,7 +27,7 @@ export function useAsync<T>(load: () => Promise<T>, deps: unknown[]) {
       const value = await run();
       if (id === seq.current) setData(value);
     } catch (err) {
-      if (id === seq.current) setError(err instanceof Error ? err.message : 'A apărut o eroare. Încercați din nou.');
+      if (id === seq.current) setError(userMessage(err, 'A apărut o eroare. Încercați din nou.'));
     } finally {
       if (id === seq.current) setLoading(false);
     }

@@ -11,7 +11,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Building2, ChevronDown, ChevronUp, Loader2, Save } from 'lucide-react';
-import { api, ApiError } from '../../../services/apiClient';
+import { api, ApiError, userMessage } from '../../../services/apiClient';
 
 interface Registry {
   recipientEmail: string | null;
@@ -47,7 +47,7 @@ export const RegistrySettingsPanel: React.FC<{ onSuccess: (m: string) => void }>
         setData(r);
         setForm(r);
       })
-      .catch((err: Error) => setError(err.message));
+      .catch((err: unknown) => setError(userMessage(err, 'A apărut o eroare. Încercați din nou.')));
   }, [open, data]);
 
   const save = async () => {
