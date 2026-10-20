@@ -1,7 +1,7 @@
 # FAZA 7A — RAPORT
 
 **Proiect:** Urbis Activ · **Branch:** `faza-5-backend` · **Ultimul commit 7A:** `f6d3456` · **Data:** 20.10.2026
-**Stare:** proiect de raport, de aprobat de proprietar. **Checkpoint-ul 7A nu este cerut încă:** lipsește instalarea pe staging cu proba scurtă (`FAZA_7_PLAN.md` §2, „Checkpoint 7A”), care are aprobare separată.
+**Stare:** proiect de raport, de aprobat de proprietar. Instalarea pe staging cu proba scurtă: făcută la 20.10.2026 (§9). **Checkpoint-ul 7A nu este cerut încă:** D7-2 așteaptă confirmarea formală (§2, §9).
 **Baza:** `FAZA_7_PLAN.md` §2; `FAZA_7A_INVENTAR_R.md` (ordinea din §5, aprobată la 15.10.2026).
 **Anexe (rămân documentele de detaliu):** `FAZA_7A_RAPORT_sectiunea_D7-3.md` (R18 + R19) și `FAZA_7A_RAPORT_sectiunea_R20.md` (R20).
 
@@ -11,6 +11,7 @@
 - **Verificat (local):** testul a rulat pe MySQL 8.0.46, în mediul de lucru. **Verificat (CI):** rularea GitHub Actions a commitului, cu 6 joburi: backend Node 20 și Node 24 cu MySQL 8.0 și 8.4, backend Node 24 cu MariaDB 11.4, E2E (Python + Playwright).
 - **Simulat:** testul reproduce situația prin alt mijloc decât cel real (de exemplu, o oprire imitată prin omiterea unui pas).
 - **Neverificat:** nu există nicio probă, locală, în CI sau pe găzduire.
+- **Probat pe staging:** observat pe `test.urbisactiv.ro`, după instalarea din 20.10.2026 (§9), prin pașii proprietarului și capturile lui.
 - Numerele suitelor sunt cele consemnate la commitul respectiv; unde commitul nu menționează o suită, tabelul spune „neconsemnat”.
 
 ## 1. Rezumat
@@ -26,7 +27,7 @@
 | 7 | R20, restaurarea contului de către furnizor | D7-6 = B (vezi §2) | `2a79d56` | 10 | 501/501 | 167/167 | 39314502351, 6/6 |
 | 8 | MINOR-3, mesajele conturilor șterse | B (20.10.2026) | `f6d3456` | 5 | 506/506 | 167/167 | 39373053254, 6/6 |
 
-Toate rulările CI de mai sus sunt verzi pe toate cele 6 joburi, inclusiv MariaDB 11.4 (verificat în GitHub Actions la 20.10.2026). `main` = `d9bc2c9`, neatins. **Staging-ul rulează `32e082e`: niciun commit 7A nu este instalat.** Nicio migrare nouă în 7A.
+Toate rulările CI de mai sus sunt verzi pe toate cele 6 joburi, inclusiv MariaDB 11.4 (verificat în GitHub Actions la 20.10.2026). `main` = `d9bc2c9`, neatins. **Staging-ul rulează `f6d3456` din 20.10.2026** (instalarea și proba scurtă: §9; jurnalul staging-ului, intervențiile 77–81). Nicio migrare nouă în 7A.
 
 ## 2. Deciziile
 
@@ -121,10 +122,14 @@ Testele R19 existente au trecut **neschimbate** după mutarea codului R19 (`2a79
 | T14, I10 și garda „un singur loc emite numere TM” | **verificate static** | verifică textul codului, nu comportamentul |
 | `fsync` la o cădere de curent | **neverificat** | nu poate fi verificat prin teste |
 | MINOR-3: condiția din `UPDATE`, în fereastra de concurență | **neverificat** | §3.8 |
-| comanda `host-restore:recover` pe găzduire | **neverificat** | nu a rulat pe staging |
+| comanda `host-restore:recover` pe găzduire | **neverificat** | instalată pe staging (20.10.2026), dar nerulată |
+| o restaurare `restore:db` cu codul nou, pe găzduire | **neverificat** | nerulată pe staging după instalare (ultima probă pe găzduire: M4, 13.10.2026, cu codul vechi) |
 | pașii operatorului la R20 (aplicația oprită, cronurile dezactivate) | **neverificat** | comanda nu îi poate verifica |
-| pașii noi din `purge:retention` (R7, R8, R9, R15) rulați de cronul de pe staging | **neverificat** | commiturile nu sunt instalate |
-| prima pornire pe staging cu directoarele R18 (crearea martorului peste un `BACKUP_DIR` de dinaintea R18) | **verificat local (T5), neverificat pe găzduire** | commiturile nu sunt instalate |
+| pașii noi din `purge:retention` (R7, R8, R9, R15) rulați de cronul de pe staging | **neverificat** | instalați pe staging (20.10.2026); rezultatul primei rulări cron după instalare nu a fost citit |
+| prima pornire pe staging cu directoarele R18 (crearea martorului peste un `BACKUP_DIR` de dinaintea R18) | **verificat local (T5); pe staging: pornirea a reușit** | `health` `0.0.0+f6d3456`, pornirea nu a fost refuzată; directoarele noi din `BACKUP_DIR` nu au fost privite direct |
+| footerul nou (D7-1) pe pagina publică | **probat pe staging** | captura din 20.10.2026 (jurnalul, intervenția 80) |
+| sesizare nouă, numerotare și fotografie pe codul nou | **probat pe staging** | TM-015 după TM-014, cu fotografie (intervenția 80) |
+| autentificarea Admin (parolă + TOTP) pe codul nou | **probat pe staging** | panoul deschis, TM-015 în listă (intervenția 81) |
 
 ## 7. Contradicții și lacune găsite la redactare (corectate la 20.10.2026)
 
@@ -144,7 +149,7 @@ Le consemnez aici fără să le transform în sarcini. Fiecare intră în lucru 
 | Punct | Unde a fost consemnat | Momentul prevăzut |
 |---|---|---|
 | D7-2 (RA-6, cazul C), de confirmat formal | plan §9; §2 de mai sus | înaintea checkpoint-ului 7A |
-| instalarea commiturilor 7A pe staging (`32e082e` → `f6d3456`), cu proba scurtă | plan §2, checkpoint 7A | aprobare separată |
+| comportamentele 7A neprobate pe staging (`host-restore:recover`, `restore:db` cu codul nou, curățările noi din `purge:retention`) | §6 | fără probă planificată; de decis dacă și când |
 | R6, R14, R16: descriere lipsă | inventar §1 | fără acțiune până la o sursă mai bună |
 | nota R1: marcajul de sesizare scris înainte de COMMIT rămâne după o tranzacție anulată; numele fișierelor (ID-uri interne) în mesajele despre marcajele corupte | anexa D7-3, „Notă separată” | decizie proprie, separată |
 | retenția auditului administrativ: același calcul al lunilor la sfârșit de lună, neschimbat (corectura s-a făcut numai pentru sesiuni) | decizia R7, 15.10.2026 | de semnalat la momentul potrivit |
@@ -160,6 +165,6 @@ Le consemnez aici fără să le transform în sarcini. Fiecare intră în lucru 
 |---|---|
 | testele serverului și suita Python verzi, local și în CI | îndeplinită la `f6d3456` (local: 506/506 și 167/167; CI 39373053254, 6/6) |
 | probele de control ale testelor noi | făcute pentru fiecare punct (§3, anexele) |
-| instalarea pe staging, cu proba scurtă | **neîndeplinită**: urmează, cu aprobare separată |
-| raportul `FAZA_7A_RAPORT.md` | acest document; de aprobat; de completat cu rezultatul instalării pe staging |
+| instalarea pe staging, cu proba scurtă | **făcută la 20.10.2026** (jurnalul staging-ului, intervențiile 77–81): copia bazei `civic-backup-20261020T055012571Z`; pachetul `civic-f6d3456.zip` (SHA-256 `7c55368e…11231f8`, dintr-o clonă curată); `RELEASE.txt` `commit: f6d3456`; `health` `{"status":"ok","version":"0.0.0+f6d3456"}`; sesizare cu fotografie → TM-015; footerul nou (D7-1) vizibil; autentificarea Admin cu TOTP. **Proba scurtă nu acoperă** `host-restore:recover`, o restaurare `restore:db` cu codul nou și curățările noi din `purge:retention`: rămân neverificate pe staging (§6) |
+| raportul `FAZA_7A_RAPORT.md` | acest document; de aprobat |
 | D7-2 | **de confirmat formal** |
