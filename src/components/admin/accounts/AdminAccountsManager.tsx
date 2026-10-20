@@ -89,32 +89,35 @@ export const AdminAccountsManager: React.FC = () => {
             <button className="text-[11px] underline" onClick={() => setSecret(null)}>Am transmis parola, ascunde</button>
           </div>
         )}
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs">
-            <thead>
+        {/* 7B.3 (AM-11): pe ecrane înguste (sub `md`), fiecare cont apare ca un card (nume, rol, stare, butoane una sub
+            alta); de la `md` în sus, tabelul este cel de dinainte. Același DOM, numai afișarea diferă. */}
+        <div className="md:overflow-x-auto">
+          <table className="w-full text-xs block md:table">
+            <thead className="hidden md:table-header-group">
               <tr className="text-left text-slate-500">
                 <th className="py-2 pr-3">Cont</th><th className="pr-3">Rol</th><th className="pr-3">Stare</th><th className="pr-3">TOTP</th><th>Acțiuni</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="block md:table-row-group space-y-3 md:space-y-0">
               {items.map((a) => {
                 const self = a.id === me?.id;
                 return (
-                  <tr key={a.id} className="border-t border-slate-100 align-top">
-                    <td className="py-2 pr-3">
+                  <tr key={a.id} className="block md:table-row border border-slate-200 rounded-2xl p-3 md:p-0 md:border-x-0 md:border-b-0 md:rounded-none md:border-slate-100 align-top space-y-2 md:space-y-0" data-testid="admin-account">
+                    <td className="block md:table-cell md:py-2 md:pr-3">
                       <div className="font-bold text-slate-900">{a.displayName}{self && ' (dvs.)'}</div>
                       <div className="text-slate-500">{a.email}</div>
                     </td>
-                    <td className="pr-3">
+                    <td className="block md:table-cell md:pr-3">
+                      <span className="md:hidden text-slate-500 mr-2">Rol</span>
                       <select value={a.role} disabled={self} className="border rounded-lg px-1 py-1"
                         onChange={(e) => void run(() => api.patch(`/admin/accounts/${a.id}`, { role: e.target.value }))}>
                         <option value="super_admin">{ROLE_LABEL.super_admin}</option>
                         <option value="primarie_operator">{ROLE_LABEL.primarie_operator}</option>
                       </select>
                     </td>
-                    <td className="pr-3">{a.status === 'active' ? 'activ' : 'dezactivat'}{a.mustChangePassword && ' · parolă temporară'}</td>
-                    <td className="pr-3">{a.mfaEnabled ? 'configurat' : '—'}</td>
-                    <td className="space-x-1 space-y-1">
+                    <td className="block md:table-cell md:pr-3"><span className="md:hidden text-slate-500 mr-2">Stare</span>{a.status === 'active' ? 'activ' : 'dezactivat'}{a.mustChangePassword && ' · parolă temporară'}</td>
+                    <td className="block md:table-cell md:pr-3"><span className="md:hidden text-slate-500 mr-2">TOTP</span>{a.mfaEnabled ? 'configurat' : '—'}</td>
+                    <td className="flex flex-wrap gap-1.5 md:table-cell md:space-x-1 md:space-y-1">
                       <button className={`${btn} border-slate-300`} disabled={self}
                         onClick={() => void run(() => api.patch(`/admin/accounts/${a.id}`, { status: a.status === 'active' ? 'disabled' : 'active' }))}>
                         {a.status === 'active' ? 'Dezactivează' : 'Reactivează'}

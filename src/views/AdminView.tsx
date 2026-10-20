@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Lock,
   ShieldCheck,
@@ -96,6 +96,42 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigate }) => {
     if (t.left < s.left) strip.scrollLeft -= s.left - t.left;
     else if (t.right > s.right) strip.scrollLeft += t.right - s.right;
   }, [activeMainTab]);
+  // 7B.3 (A21-3b, varianta A): bara de derulare vizibilă. Barele native sunt ascunse sau apar numai în timpul
+  // derulării pe telefoane, de aceea bara este desenată de aplicație: apare numai când tab-urile nu încap,
+  // arată cât din fâșie se vede și unde (lățimea și poziția „cursorului”).
+  const [tabBar, setTabBar] = useState<{ width: number; left: number } | null>(null);
+  // funcție stabilă (citește fâșia prin ref, starea prin actualizare funcțională): ascultătorii se atașează o singură dată
+  const updateTabBar = useCallback(() => {
+    const strip = tabStripRef.current;
+    const next = !strip || strip.scrollWidth <= strip.clientWidth + 1
+      ? null
+      : { width: (strip.clientWidth / strip.scrollWidth) * 100, left: (strip.scrollLeft / strip.scrollWidth) * 100 };
+    // starea se schimbă numai la o diferență reală (fără randări în buclă)
+    setTabBar((prev) =>
+      next === null ? null : prev && Math.abs(prev.width - next.width) < 0.1 && Math.abs(prev.left - next.left) < 0.1 ? prev : next,
+    );
+  }, []);
+  // redimensionarea ferestrei: un singur ascultător, atașat la montare
+  useEffect(() => {
+    window.addEventListener('resize', updateTabBar);
+    return () => window.removeEventListener('resize', updateTabBar);
+  }, [updateTabBar]);
+  // schimbarea layoutului fâșiei (fonturi încărcate, tab-uri afișate după rol, lățimea containerului): ResizeObserver,
+  // atașat când fâșia există (după autentificare)
+  useEffect(() => {
+    const strip = tabStripRef.current;
+    updateTabBar();
+    if (!strip || typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(updateTabBar);
+    observer.observe(strip);
+    // și tab-urile: lățimea conținutului (scrollWidth) se schimbă fără ca fâșia să-și schimbe dimensiunea
+    for (const tab of Array.from(strip.children)) observer.observe(tab);
+    return () => observer.disconnect();
+  }, [updateTabBar, isAuthenticated, currentUser]);
+  // tab-ul activ s-a schimbat (fâșia poate fi derulată de efectul A21-3a): poziția cursorului se recalculează
+  useEffect(() => {
+    updateTabBar();
+  }, [updateTabBar, activeMainTab]);
   const [activeDirSubTab, setActiveDirSubTab] = useState<DirectorySubTab>('institution');
   const [activeQdSubTab, setActiveQdSubTab] = useState<QuickDialSubTab>('contacts');
 
@@ -225,7 +261,8 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigate }) => {
       </div>
 
       {/* 2. Comutator Principal de Modul: Dashboard, Ghid Primărie vs. Quick Dial */}
-      <div ref={tabStripRef} className="p-1.5 bg-slate-100 rounded-2xl flex items-center gap-1.5 border border-slate-200 shadow-inner overflow-x-auto scrollbar-none">
+      <div>
+      <div ref={tabStripRef} onScroll={updateTabBar} className="p-1.5 bg-slate-100 rounded-2xl flex items-center gap-1.5 border border-slate-200 shadow-inner overflow-x-auto scrollbar-none">
         {canAccessTab('dashboard') && (
           <button
             onClick={() => setActiveMainTab('dashboard')}
@@ -329,6 +366,12 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigate }) => {
             <span>Conturi</span>
           </button>
         )}
+      </div>
+      {tabBar && (
+        <div className="mt-1.5 mx-3 h-1.5 rounded-full bg-slate-200 relative overflow-hidden" aria-hidden="true" data-testid="admin-tabs-scrollbar">
+          <div className="absolute top-0 h-1.5 rounded-full bg-slate-500" style={{ left: `${tabBar.left}%`, width: `${tabBar.width}%` }} />
+        </div>
+      )}
       </div>
 
       {/* 3. Sub-Navigare specifică fiecărui modul */}
