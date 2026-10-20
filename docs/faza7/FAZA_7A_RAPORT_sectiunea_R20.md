@@ -1,10 +1,10 @@
 # FAZA 7A — RAPORT, secțiunea R20 (restaurarea întregului cont de către furnizor)
 
-> Secțiunea raportului 7A pentru R20. Raportul 7A complet se scrie la sfârșitul 7A.
+> Anexa raportului 7A pentru R20. Raportul 7A complet: `docs/faza7/FAZA_7A_RAPORT.md` (R20 în §3.7; numerotarea deciziei în §2 și §7).
 
 ## Decizia
 
-**D7-4 = B (proprietarul, 19.10.2026):** procedura și o comandă minimă de recuperare (`host-restore:recover`). Sesizările și conturile șterse după copia furnizorului rămân limite acceptate (o copie a marcajelor în afara contului — varianta C — nu a fost aleasă).
+**D7-6 = B (proprietarul, 19.10.2026; notată inițial „D7-4 = B”, inclusiv în mesajul commitului `2a79d56` — D7-4 rămâne rezervată matricei CI din `FAZA_7_PLAN.md`):** procedura și o comandă minimă de recuperare (`host-restore:recover`). Sesizările și conturile șterse după copia furnizorului rămân limite acceptate (o copie a marcajelor în afara contului — varianta C — nu a fost aleasă).
 
 ## Constatările care au motivat-o (din cod, 19.10.2026)
 
@@ -48,4 +48,4 @@
 
 - **Pe găzduire:** comanda nu a fost rulată pe staging; o restaurare reală a contului de către furnizor nu a fost probată.
 - **Pașii operatorului** (aplicația oprită, cronurile dezactivate) nu pot fi verificați de comandă.
-- **CI** (MySQL 8.0 / 8.4, MariaDB 11.4): după publicare.
+- **CI pentru `2a79d56` (rularea 39314502351, 19.10.2026):** verde pe toate cele 6 joburi, inclusiv MariaDB 11.4. Comportamentul pe găzduire rămâne neverificat (punctele de mai sus).

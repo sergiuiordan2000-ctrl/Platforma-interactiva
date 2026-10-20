@@ -1,6 +1,6 @@
 # FAZA 7A — RAPORT, secțiunea D7-3 (R18 + R19)
 
-> Secțiunea raportului 7A pentru D7-3. Raportul 7A complet (celelalte puncte din 7A, inclusiv R20) se scrie la sfârșitul 7A.
+> Anexa raportului 7A pentru D7-3. Raportul 7A complet: `docs/faza7/FAZA_7A_RAPORT.md` (R18 + R19 în §3.6; MINOR-3, constatarea din auditul final R18–R19, în §3.8; R20, cu CI-ul rularea 39314502351, în anexa `FAZA_7A_RAPORT_sectiunea_R20.md`).
 
 ## D7-3 — R18 (conturile șterse) și R19 (coada de e-mail) la restaurare
 

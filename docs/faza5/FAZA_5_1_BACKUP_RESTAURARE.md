@@ -200,7 +200,7 @@ Comanda nu coboară niciodată contorul, refuză dacă marcajul există deja și
    node server/dist/app.js restore:db "$BACKUP_DIR/civic-backup-<data>" --confirm
    ```
 7. **Porniți aplicația cu `STORAGE_DIR` pe directorul nou** și verificați `health`.
-8. **Mesajele reținute (R19, §7.3):** raportul comenzii de la pasul 6 listează mesajele sesizărilor neplecate în copie, trecute în starea „failed”. Pentru fiecare, un `super_admin` verifică **întâi** dacă mesajul a ajuns la destinatar și abia apoi decide, în detaliul sesizării din Admin, dacă îl reîncearcă. Nimic nu se retrimite automat.
+8. **Mesajele reținute (R19, §7.3):** raportul comenzii de la pasul 6 listează mesajele sesizărilor neplecate în copie, trecute în starea „failed”. Pentru fiecare, un `super_admin` verifică **întâi** dacă mesajul a ajuns la destinatar și abia apoi decide, în detaliul sesizării din Admin, dacă îl reîncearcă. Nimic nu se retrimite automat. Mesajele de stadiu ale sesizărilor fără autor (contul autorului a fost șters) nu sunt reținute: sunt anulate și nu pot fi reîncercate (MINOR-3, §7.3).
 
 **Refuzuri fără nicio ocolire, toate înainte de prima scriere:**
 - DB țintă cu rânduri sau cu schema nu la zi;
@@ -277,7 +277,8 @@ Proba de restaurare pe găzduire (M4) **a fost executată la 13.10.2026**, după
 | Mesaje neplecate în copie | Devin |
 |---|---|
 | codurile de autentificare și anunțurile de blocare (`queued`, `sending`) | `cancelled`, motivul „anulat la restaurare (R19)” |
-| mesajele sesizărilor de tip `registry_notification` și `citizen_status_update` (`queued`, `sending`, `on_hold`) | `failed`, motivul „reținut la restaurare (R19): verificați dacă a plecat înainte de reîncercare”; `next_attempt_at` și `locked_until` golite |
+| mesajele sesizărilor de tip `registry_notification` și `citizen_status_update` (`queued`, `sending`, `on_hold`), cu excepția rândului următor | `failed`, motivul „reținut la restaurare (R19): verificați dacă a plecat înainte de reîncercare”; `next_attempt_at` și `locked_until` golite |
+| mesajele `citizen_status_update` (`queued`, `sending`, `on_hold`) ale unei sesizări fără autor (contul autorului a fost șters; MINOR-3, 20.10.2026) | `cancelled`, motivul „anulat la restaurare (R19): contul autorului a fost șters”; nu apar în lista mesajelor reținute și nu au intrare `email.held_on_restore` |
 | orice alt mesaj (alt tip sau stare finală) | neschimbat |
 
 - **Nicio retrimitere automată**, nici la reactivarea fluxului către Primărie.
@@ -285,14 +286,15 @@ Proba de restaurare pe găzduire (M4) **a fost executată la 13.10.2026**, după
 - Auditul: câte o intrare `email.held_on_restore` pe mesaj reținut și o intrare `restore.completed` cu numerele restaurării.
 - **Starea `failed` cuprinde două situații:** o eroare de transmitere sau un mesaj reținut deliberat la restaurare; motivul din `last_error`, vizibil în Admin, le deosebește.
 - **Reîncercarea poate produce un duplicat** dacă mesajul a plecat totuși după copie. Înainte de reîncercare se verifică la destinatar, mai ales pentru `registry_notification`.
+- **Mesajele de stadiu ale sesizărilor fără autor nu se reîncearcă (MINOR-3):** ruta de reîncercare din Admin refuză un `citizen_status_update` al unei sesizări fără autor (409, „contul autorului a fost șters”), inclusiv unul `failed` dinaintea restaurării; `registry_notification` a aceleiași sesizări rămâne reîncercabilă. Aceleași reguli se aplică la recuperarea R20 (§8).
 
 ### 7.4 Teste
 
-`server/test/integration/d73RestaurareConturiEmail.test.ts`, `server/test/integration/d73IntentiiConturi.test.ts` și `server/test/integration/d73DirectoareR18.test.ts`. Rezultatele, adaptările testelor existente și probele de control: `docs/faza7/FAZA_7A_RAPORT_sectiunea_D7-3.md`.
+`server/test/integration/d73RestaurareConturiEmail.test.ts`, `server/test/integration/d73IntentiiConturi.test.ts` și `server/test/integration/d73DirectoareR18.test.ts`. Rezultatele, adaptările testelor existente și probele de control: `docs/faza7/FAZA_7A_RAPORT_sectiunea_D7-3.md`. MINOR-3: `server/test/integration/d73Minor3MesajeConturiSterse.test.ts`; rezultatele și probele: `docs/faza7/FAZA_7A_RAPORT.md` §3.8.
 
 ## 8. Restaurarea întregului cont de către furnizor (R20; Etapa 7, 7A, 19.10.2026)
 
-**Decizia proprietarului:** D7-4 = B (19.10.2026): procedura și o comandă minimă de recuperare. **Cod:** branch `faza-5-backend`, commitul care introduce această secțiune.
+**Decizia proprietarului:** D7-6 = B (19.10.2026): procedura și o comandă minimă de recuperare. (Notată inițial „D7-4 = B”, inclusiv în mesajul commitului `2a79d56`; D7-4 rămâne rezervată matricei CI din `FAZA_7_PLAN.md`. Corespondența: `docs/faza7/FAZA_7A_RAPORT.md` §2.) **Cod:** branch `faza-5-backend`, commitul care introduce această secțiune.
 
 ### 8.1 Ce se întâmplă la o asemenea restaurare
 

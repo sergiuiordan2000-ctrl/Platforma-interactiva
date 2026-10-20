@@ -8,7 +8,7 @@
 
 ---
 
-## 0B. ETAPA 7, 7A ÎN LUCRU (actualizat la 19.10.2026)
+## 0B. ETAPA 7, 7A ÎN LUCRU (actualizat la 20.10.2026)
 
 > **Are prioritate față de Secțiunile 0A și 0.** Ele rămân valabile acolo unde 0B nu spune altceva.
 
@@ -24,11 +24,13 @@
 | R8 | `f2b49bd` |
 | R15 (D7-5) | `c6ea8b7` |
 | R18 + R19 (D7-3, D7-3a, deciziile de după audit, inclusiv detectarea directoarelor R18 pierdute) | commit **`cbcd444`**, publicat la 19.10.2026; local (MySQL 8.0.46): server 489/489, Python 167/167; CI verde 6/6, inclusiv MariaDB 11.4; detaliile, probele și limitările în `docs/faza7/FAZA_7A_RAPORT_sectiunea_D7-3.md`; procedura în `docs/faza5/FAZA_5_1_BACKUP_RESTAURARE.md` §7 |
-| R20 (D7-4 = B: procedura + `host-restore:recover`; corectura M4 din §6.8) | implementare verificată local (MySQL 8.0.46): server 501/501, Python 167/167; **necommitată**; `docs/faza7/FAZA_7A_RAPORT_sectiunea_R20.md`; procedura în `FAZA_5_1_BACKUP_RESTAURARE.md` §8 |
+| R20 (D7-6 = B, notată inițial „D7-4 = B”: procedura + `host-restore:recover`; corectura M4 din §6.8) | commit **`2a79d56`**, publicat la 19.10.2026; local (MySQL 8.0.46): server 501/501, Python 167/167; CI verde 6/6 (rularea 39314502351); `docs/faza7/FAZA_7A_RAPORT_sectiunea_R20.md`; procedura în `FAZA_5_1_BACKUP_RESTAURARE.md` §8 |
+| MINOR-3 (decizia B, 20.10.2026: mesajele de stadiu ale sesizărilor fără autor anulate la restaurare și la R20, reîncercarea refuzată) | commit **`f6d3456`**, publicat la 20.10.2026; local (MySQL 8.0.46): server 506/506, Python 167/167; CI verde 6/6 (rularea 39373053254); `docs/faza7/FAZA_7A_RAPORT.md` §3.8; procedura în `FAZA_5_1_BACKUP_RESTAURARE.md` §7.3 |
+| Raportul 7A complet | `docs/faza7/FAZA_7A_RAPORT.md`, proiect de aprobat; anexele D7-3 și R20 rămân documentele de detaliu |
 
-**Git (verificat la 19.10.2026, după push):** `faza-5-backend` = `cbcd444` (R18 + R19, cu documentația), publicat pe GitHub, sincronizat cu `origin`. `main` = `d9bc2c9`, neatins. **Staging-ul nu a fost atins.**
+**Git (verificat la 20.10.2026, după push):** `faza-5-backend` = `f6d3456` (MINOR-3), publicat pe GitHub, sincronizat cu `origin`; raportul 7A și corecturile documentare de la 20.10.2026: de commitat, cu aprobare. `main` = `d9bc2c9`, neatins. **Staging-ul nu a fost atins.**
 
-**CI pentru `cbcd444` (rularea 39302591937, 19.10.2026): verde pe toate cele 6 joburi** — backend Node 20 și Node 24 cu MySQL 8.0 și 8.4, backend Node 24 cu **MariaDB 11.4**, E2E (Python + Playwright). Astfel, comportamentul blocării la reconciliere (I5, I5b) și `innodb_lock_wait_timeout` (I1, I9b) sunt confirmate și pe MariaDB 11.4, iar suita completă a rulat cu testul D6. CI pentru `c6ea8b7` (rularea 38797262092): verde.
+**CI pentru `cbcd444` (rularea 39302591937, 19.10.2026): verde pe toate cele 6 joburi** — backend Node 20 și Node 24 cu MySQL 8.0 și 8.4, backend Node 24 cu **MariaDB 11.4**, E2E (Python + Playwright). Astfel, comportamentul blocării la reconciliere (I5, I5b) și `innodb_lock_wait_timeout` (I1, I9b) sunt confirmate și pe MariaDB 11.4, iar suita completă a rulat cu testul D6. CI pentru `c6ea8b7` (rularea 38797262092): verde. **CI pentru `2a79d56` (R20, rularea 39314502351) și `f6d3456` (MINOR-3, rularea 39373053254): verde pe toate cele 6 joburi**, inclusiv MariaDB 11.4. Tabelul tuturor rulărilor 7A: `FAZA_7A_RAPORT.md` §1.
 
 **Limitările testelor R18 + R19:** I3 simulează omiterea mutării intenției, nu oprirea efectivă a procesului după COMMIT; `fsync` nu este verificat la cădere de curent; T14 și I10 sunt gărzi statice.
 
@@ -36,9 +38,9 @@
 
 **Observația din auditul static (19.10.2026): confirmată și remediată local (varianta A, aprobată).** `initBackupMarkers` sincroniza contorul TM (bază și marcaj, numai creșteri) înainte ca `initMarkerDirs` să detecteze pierderea directoarelor R18. Acum pierderea se verifică înaintea sincronizării: la refuz, contorul TM din bază și marcajul lui rămân neschimbate (operațiile dinainte de verificare sunt descrise în `FAZA_5_1_BACKUP_RESTAURARE.md` §7.2). Testul D6 (ambele sensuri ale diferenței contor / marcaj) și proba Mf. Local au rulat numai testele țintite; suita completă a rulat apoi în CI, verde (vezi mai jos).
 
-**Pașii următori (fiecare cu aprobarea separată a proprietarului; nimic nu este autorizat automat):** commitul și push-ul R20, apoi CI; MINOR-3 din auditul final (decizie de produs: un mesaj de stadiu `sending` al unui cont șters devine, la restaurare, `failed` și poate fi reîncercat către adresa titularului care și-a șters contul); raportul 7A complet; instalarea pe staging la sfârșitul 7A.
+**Pașii următori (fiecare cu aprobarea separată a proprietarului; nimic nu este autorizat automat):** commitul și push-ul raportului 7A și al corecturilor documentare; instalarea commiturilor 7A pe staging (`32e082e` → `f6d3456`), cu proba scurtă; confirmarea formală a D7-2; apoi cererea de checkpoint 7A.
 
-**Deschise în 7A:** R20 (necommitat); raportul 7A complet (la sfârșitul 7A); D7-2 (RA-6 cazul C) de confirmat formal; R6, R14, R16 fără descriere; nota R1 (marcajul de sesizare rămas după o tranzacție anulată; numele fișierelor în mesaje), de evaluat separat.
+**Deschise în 7A:** instalarea pe staging; D7-2 (RA-6 cazul C) de confirmat formal; aprobarea raportului 7A. **Trec mai departe** (lista completă: `FAZA_7A_RAPORT.md` §8): R6, R14, R16 fără descriere; nota R1 (marcajul de sesizare rămas după o tranzacție anulată; numele fișierelor în mesaje), de evaluat separat; calculul lunilor la retenția auditului administrativ, neschimbat; condiția din `UPDATE` de la MINOR-3, neverificată separat (fereastra de concurență). **Numerotarea:** D7-4 rămâne matricea CI din plan (7E); decizia R20 este D7-6.
 
 ## 0A. FAZA 6 ÎNCHISĂ LA `32e082e` (actualizat la 14.10.2026)
 
