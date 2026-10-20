@@ -429,9 +429,22 @@ export function registerAdminReportRoutes(api: FastifyInstance, ctx: AppContext)
     { preHandler: superOnly },
     async (request, reply) => {
       if (!ULID.test(request.params.id) || !ULID.test(request.params.emailId)) return reply.code(404).send(notFound);
+      // MINOR-3 (decizia B, 20.10.2026): un mesaj de stadiu către cetățean nu se retrimite dacă autorul și-a șters
+      // contul (sesizarea fără autor). Notificările către Primărie rămân reîncercabile.
+      const [kindRows] = await ctx.pool.query(
+        `SELECT e.kind, r.author_account_id AS author FROM email_outbox e JOIN reports r ON r.id = e.report_id
+          WHERE e.id = ? AND e.report_id = ?`,
+        [request.params.emailId, request.params.id],
+      );
+      const target = (kindRows as Array<{ kind: string; author: string | null }>)[0];
+      if (target && target.kind === 'citizen_status_update' && target.author === null) {
+        return reply.code(409).send(apiError('CONFLICT', 'contul autorului a fost șters'));
+      }
       const [res] = await ctx.pool.query(
         `UPDATE email_outbox SET status = 'queued', attempts = 0, next_attempt_at = NULL, last_error = NULL
-          WHERE id = ? AND report_id = ? AND status = 'failed'`,
+          WHERE id = ? AND report_id = ? AND status = 'failed'
+            AND NOT (kind = 'citizen_status_update'
+                     AND report_id IN (SELECT r.id FROM reports r WHERE r.author_account_id IS NULL))`,
         [request.params.emailId, request.params.id],
       );
       if ((res as { affectedRows: number }).affectedRows !== 1) {

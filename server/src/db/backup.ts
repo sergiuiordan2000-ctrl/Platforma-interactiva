@@ -433,6 +433,8 @@ export type HeldEmail = { emailId: string; kind: string; previousStatus: string;
 /** R19: motivul scris în `last_error` (aprobat de proprietar la 16.10.2026). */
 export const R19_HELD_REASON = 'reținut la restaurare (R19): verificați dacă a plecat înainte de reîncercare';
 export const R19_CANCELLED_REASON = 'anulat la restaurare (R19)';
+/** MINOR-3 (decizia B, 20.10.2026): mesajele de stadiu ale sesizărilor fără autor (contul autorului șters). */
+export const R19_AUTHOR_DELETED_REASON = 'anulat la restaurare (R19): contul autorului a fost șters';
 /** Avertismentul pentru intențiile nereconciliate (decizia D, 16.10.2026, text aprobat). */
 export const R18_UNRECONCILED_WARNING =
   'Starea ștergerii este necunoscută: poate fi o ștergere anulată sau o ștergere confirmată înainte de reconciliere. ' +
@@ -964,6 +966,9 @@ export function recreateAccountMarkers(backupDir: string): { entries: number; co
 /** R19: condiția anulării mesajelor de cont (restaurarea `restore:db` și recuperarea după restaurarea contului, R20). */
 const R19_CANCEL_WHERE =
   "report_id IS NULL AND kind IN ('citizen_login_code', 'citizen_account_blocked') AND status IN ('queued', 'sending')";
+/** MINOR-3: mesajele de stadiu neplecate ale sesizărilor fără autor (`e` = email_outbox, `r` = reports). */
+const R19_AUTHORLESS_WHERE =
+  "e.kind = 'citizen_status_update' AND e.status IN ('queued', 'sending', 'on_hold') AND r.author_account_id IS NULL";
 
 /**
  * R19, aplicat unei baze readuse la o stare mai veche (restaurarea dintr-o copie sau restaurarea întregului cont de
@@ -988,12 +993,28 @@ export async function holdOutboxAfterRollback(
     );
     emailsCancelled = (cancelRes as { affectedRows: number }).affectedRows;
   }
+  // MINOR-3 (decizia B, 20.10.2026): mesajele de stadiu neplecate ale sesizărilor fără autor (contul autorului a fost
+  // șters) nu se rețin pentru reîncercare, ci se anulează: destinatarul este persoana care și-a șters contul.
+  // O sesizare se depune numai dintr-un cont, deci `author_account_id IS NULL` înseamnă cont șters.
+  if (opts.dryRun) {
+    const [c] = await conn.query(`SELECT COUNT(*) AS n FROM email_outbox e JOIN reports r ON r.id = e.report_id WHERE ${R19_AUTHORLESS_WHERE}`);
+    emailsCancelled += Number((c as Array<{ n: number }>)[0]!.n);
+  } else {
+    const [authorless] = await conn.query(
+      `UPDATE email_outbox e JOIN reports r ON r.id = e.report_id
+          SET e.status = 'cancelled', e.locked_until = NULL, e.next_attempt_at = NULL, e.last_error = ?
+        WHERE ${R19_AUTHORLESS_WHERE}`,
+      [R19_AUTHOR_DELETED_REASON],
+    );
+    emailsCancelled += (authorless as { affectedRows: number }).affectedRows;
+  }
   const [heldRows] = await conn.query(
     `SELECT e.id AS emailId, e.kind, e.status AS previousStatus, e.report_id AS reportId, r.reference_number AS referenceNumber,
             e.created_at AS createdAt
        FROM email_outbox e JOIN reports r ON r.id = e.report_id
       WHERE e.kind IN ('registry_notification', 'citizen_status_update')
         AND e.status IN ('queued', 'sending', 'on_hold')
+        AND NOT (e.kind = 'citizen_status_update' AND r.author_account_id IS NULL)
       ORDER BY e.created_at, e.id`,
   );
   const held = heldRows as Array<HeldEmail & { reportId: string; createdAt: unknown }>;
