@@ -115,6 +115,9 @@ Inventarul din raportul Claude:
 
 Nu se elimină automat informațiile utile cetățenilor împreună cu titlurile tehnice. Schimbarea etichetelor tab-urilor și adaptarea selectoarelor automate se fac împreună, în același grup. Comentariile tehnice din cod sunt în afara scopului.
 
+### AM-11 — tabelul „Conturi Admin” pe ecrane înguste (aprobat la 20.10.2026)
+Constatare nouă din 7B.1 (emulare Chromium): la 390 px, tabelul „Conturi Admin” depășește lățimea ecranului; coloana „Stare” și butoanele „Dezactivează / Resetează parola / Resetează TOTP” ies din cadru. Decizia proprietarului (varianta A): pe ecrane înguste, fiecare cont se afișează ca un card (nume, rol, stare, butoane una sub alta); pe calculator tabelul rămâne neschimbat. Fișier: `src/components/admin/accounts/AdminAccountsManager.tsx`. Test: la 390 și 360 px niciun buton al contului în afara ecranului; la 1280 px tabelul neschimbat; cu probă de control (§2.6). Fără schimbări ale rutelor sau ale regulilor conturilor.
+
 ### E4 — detalii SMTP
 Variante: A) păstrare pentru `super_admin`; B) text scurt și detalii la cerere; C) reducerea informației stocate. Recomandarea raportului este A, deoarece jurnalul aplicației nu este accesibil pe hosting. Nicio variantă nu se implementează fără decizie.
 
@@ -165,6 +168,7 @@ Ideal: iPhone/Safari și Android/Chrome. Ce nu poate fi probat se marchează NEV
 | N-7B-1/E5 | 7B.3 | componente și rute afectate (în `adminReports.ts`/`adminAccounts.ts` numai șiruri de text — AM-3) | texte exacte, teste dependente adaptate |
 | E4 | 7B.3, dacă se aprobă | conform variantei | diagnostic păstrat conform deciziei |
 | Regresie | 7B.4 | diff cumulat | toate criteriile îndeplinite |
+| AM-11 | 7B.1/7B.3 | `AdminAccountsManager.tsx` | niciun buton în afara ecranului la 390/360 px; desktop neschimbat |
 | Telefon | 7B.5 | jurnal/raport | rezultat dovedit sau NEVERIFICAT |
 
 ## 9. Registrul riscurilor și opririlor
@@ -223,6 +227,8 @@ Nu se execută abateri consemnate doar informal în conversație.
 
 **Versiunea 1.2 (rectificată la §10.3) — PLAN APROBAT la 20.10.2026; execuția neautorizată.** Prima activitate recomandată, după acordul asupra planului și salvarea lui canonică (§10.2): 7B.1, măsurători locale, fără modificări în depozit și fără staging.
 
+**Actualizare 20.10.2026 (§12):** 7B.1 executată (emulare Chromium, 390×844 și 360×800, clonă de lucru separată la `4ed3100`, bază locală de test; rezultatele în afara depozitului). Deciziile proprietarului de după 7B.1 sunt consemnate în §15; amendamentul AM-11 în §5 și §14. Pasul următor: aprobarea separată pentru 7B.2 (§10.5).
+
 Confirmări în conversație:
 - Proprietar: AM-1…AM-8 acceptate la 20.10.2026; AM-9, AM-10 acceptate și planul v1.2 rectificat la §10.3 **aprobat** la 20.10.2026, 11:19.
 - Claude: poate urma planul întocmai, cu AM-1…AM-10 și rectificarea §10.3 integrate.
@@ -245,5 +251,20 @@ Confirmări în conversație:
 | AM-9 | restaurarea după probele de control: SHA-256 înainte și după, față de conținutul inițial al copiei; nepotrivire → proba se oprește | §2.6 |
 | AM-10 | salvarea planului canonic în pași distincți: aprobarea planului, commitul, verificarea și push-ul, verificarea de după push, apoi 7B.1 | §10.2, §10.3, §13 |
 | Rectificare | §10.3 formulat ca trimitere la pasul 2.5 (o singură autorizare pentru 7B.1); observație de redactare a lui Aristotel, fără schimbare de fond | §10.3 |
+| AM-11 | tabelul „Conturi Admin” pe ecrane înguste: carduri pe mobil, tabel neschimbat pe calculator (constatare nouă din 7B.1) | §5 (AM-11), §8, §15 |
 
-AM-1…AM-8: acceptate de proprietar la 20.10.2026. AM-9, AM-10 și rectificarea §10.3: recomandate de Aristotel, acceptate de proprietar la 20.10.2026, 11:19.
+AM-1…AM-8: acceptate de proprietar la 20.10.2026. AM-9, AM-10 și rectificarea §10.3: recomandate de Aristotel, acceptate de proprietar la 20.10.2026, 11:19. AM-11: propus de Claude după 7B.1, aprobat de proprietar la 20.10.2026, 11:57 (varianta A).
+
+## 15. Deciziile proprietarului după 7B.1 (20.10.2026)
+
+Pe baza raportului 7B.1 (emulare Chromium — nu telefon real):
+
+| Decizia | Alegerea | Consecința în plan |
+|---|---|---|
+| A21-2 — ținte tactile | **B** (11:56): 44 px pe paginile publice și la acțiunile Admin; minim 24 px în rest | implementare în 7B.3 (amendament de design) |
+| A21-3b — indiciu de derulare | **A** (11:56): bară subțire vizibilă pe mobil | A21-3a (un rând, tab activ în vizor) rămâne în 7B.2; bara vizibilă în 7B.3 |
+| Criteriile A21-1 | **confirmate** (11:57): la 390 și 360 px, niciun banner peste zoom, bannerele nu se suprapun, atingerea pe „+”/„−” ajunge la zoom | testul T-A21-1 |
+| Criteriile A21-3 | **confirmate** (11:57): la 390 și 360 px toate cele 7 tab-uri cu aceeași înălțime și un singur rând; tab-ul activ complet vizibil; bara de derulare vizibilă când tab-urile nu încap (7B.3); la 1280 px neschimbat | testele T-A21-3a (7B.2) și T-A21-3b (7B.3) |
+| Tabelul „Conturi Admin” | **AM-11, varianta A** (11:57) | 7B.3 |
+
+Deciziile rămase pentru 7B.3 (O3, N-7B-1, E4, E5) nu sunt luate.
