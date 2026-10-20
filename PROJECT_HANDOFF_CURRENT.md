@@ -38,9 +38,11 @@
 
 **Observația din auditul static (19.10.2026): confirmată și remediată local (varianta A, aprobată).** `initBackupMarkers` sincroniza contorul TM (bază și marcaj, numai creșteri) înainte ca `initMarkerDirs` să detecteze pierderea directoarelor R18. Acum pierderea se verifică înaintea sincronizării: la refuz, contorul TM din bază și marcajul lui rămân neschimbate (operațiile dinainte de verificare sunt descrise în `FAZA_5_1_BACKUP_RESTAURARE.md` §7.2). Testul D6 (ambele sensuri ale diferenței contor / marcaj) și proba Mf. Local au rulat numai testele țintite; suita completă a rulat apoi în CI, verde (vezi mai jos).
 
-**Pașii următori (fiecare cu aprobarea separată a proprietarului; nimic nu este autorizat automat):** commitul și push-ul documentației instalării (jurnalul staging-ului, raportul 7A §9, acest §0B); confirmarea formală a D7-2; aprobarea raportului 7A; apoi cererea de checkpoint 7A.
+**Pașii următori (fiecare cu aprobarea separată a proprietarului; nimic nu este autorizat automat):** aprobarea raportului 7A; apoi cererea de checkpoint 7A. (Documentația instalării pe staging — jurnalul staging-ului, raportul 7A §9, acest §0B — este commitată și publicată în `1e6d0e3`.)
 
-**Deschise în 7A:** D7-2 (RA-6 cazul C) de confirmat formal; aprobarea raportului 7A; comportamentele 7A neprobate pe staging (de mai sus), fără probă planificată. **Trec mai departe** (lista completă: `FAZA_7A_RAPORT.md` §8): R6, R14, R16 fără descriere; nota R1 (marcajul de sesizare rămas după o tranzacție anulată; numele fișierelor în mesaje), de evaluat separat; calculul lunilor la retenția auditului administrativ, neschimbat; condiția din `UPDATE` de la MINOR-3, neverificată separat (fereastra de concurență). **Numerotarea:** D7-4 rămâne matricea CI din plan (7E); decizia R20 este D7-6.
+**D7-2 confirmată formal (20.10.2026):** RA-6, cazul C — limitarea privind fotografiile se păstrează pentru MVP, fără re-codare acum; riscul rămâne explicit în registrul limitărilor (`FAZA_6_RAPORT.md`, Lista 4; `FAZA_7A_RAPORT.md` §2 și §8), nu este remediat; reevaluare înaintea lansării publice / a API-ului, separat; fără cod.
+
+**Deschise în 7A:** aprobarea raportului 7A; comportamentele 7A neprobate pe staging (de mai sus), fără probă planificată. **Trec mai departe** (lista completă: `FAZA_7A_RAPORT.md` §8): R6, R14, R16 fără descriere; nota R1 (marcajul de sesizare rămas după o tranzacție anulată; numele fișierelor în mesaje), de evaluat separat; calculul lunilor la retenția auditului administrativ, neschimbat; condiția din `UPDATE` de la MINOR-3, neverificată separat (fereastra de concurență). **Numerotarea:** D7-4 rămâne matricea CI din plan (7E); decizia R20 este D7-6.
 
 ## 0A. FAZA 6 ÎNCHISĂ LA `32e082e` (actualizat la 14.10.2026)
 

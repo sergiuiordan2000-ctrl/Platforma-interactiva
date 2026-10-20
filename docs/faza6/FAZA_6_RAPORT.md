@@ -81,7 +81,7 @@ Constatările informative RA-6, RA-7, RA-8 nu sunt eșecuri ale unei verificări
 | RA-5: un cont Admin poate fi blocat 15 minute de cine îi știe adresa (5 parole greșite); adresele Admin nu sunt publice | D-B4 (riscul rămas al limitei de simultaneitate) | 13.10.2026 |
 | ALTCHA pornit implicit la sesizări, oprirea numai prin comandă (`settings:report-pow off`), fără comutator în Admin | D-B3, cu erata din 14.10.2026 (AI-2, varianta A; decizia A1 din 30.09.2026) | 13.10.2026; 14.10.2026 |
 | RA-6: profilul de culoare și celelalte segmente `APPn` rămân; imaginea nu se re-codează | decizia A la RA-6 | 13.10.2026 |
-| RA-6, cazul C: datele inserate **înaintea** unui EOI valid, în fluxul JPEG, rămân; remedierea minimă (JPEG fără EOI respins) nu garantează eliminarea lor; re-codarea: decizie de produs separată | K2, decizia proprietarului | 14.10.2026 |
+| RA-6, cazul C: datele inserate **înaintea** unui EOI valid, în fluxul JPEG, rămân; remedierea minimă (JPEG fără EOI respins) nu garantează eliminarea lor; re-codarea: decizie de produs separată. **D7-2 (20.10.2026):** limitarea se păstrează pentru MVP, fără re-codare acum; reevaluare înaintea lansării publice / a API-ului (`docs/faza7/FAZA_7A_RAPORT.md` §2) | K2, decizia proprietarului; D7-2 | 14.10.2026; 20.10.2026 |
 | CL-4: limita RA-4 se numără pe ora fixă (la trecerea orei, până la 4 coduri TOTP greșite fără blocare); **nerezolvată**, transferată în 7A | K2, decizia proprietarului | 14.10.2026 |
 | RA-8: pe staging (`allowlist`), codul de cetățean rămâne în coadă, pentru `dev:show-code` | decizia A la RA-8 | 13.10.2026 |
 | sesiunea de cetățean fără expirare pe server (cookie 400 de zile) | varianta B | 30.09.2026 |

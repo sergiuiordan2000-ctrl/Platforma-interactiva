@@ -1,7 +1,7 @@
 # FAZA 7A — RAPORT
 
 **Proiect:** Urbis Activ · **Branch:** `faza-5-backend` · **Ultimul commit 7A:** `f6d3456` · **Data:** 20.10.2026
-**Stare:** proiect de raport, de aprobat de proprietar. Instalarea pe staging cu proba scurtă: făcută la 20.10.2026 (§9). **Checkpoint-ul 7A nu este cerut încă:** D7-2 așteaptă confirmarea formală (§2, §9).
+**Stare:** proiect de raport, de aprobat de proprietar. Instalarea pe staging cu proba scurtă: făcută la 20.10.2026 (§9). D7-2 confirmată formal la 20.10.2026 (§2). **Checkpoint-ul 7A nu este cerut încă:** raportul așteaptă aprobarea proprietarului (§9).
 **Baza:** `FAZA_7_PLAN.md` §2; `FAZA_7A_INVENTAR_R.md` (ordinea din §5, aprobată la 15.10.2026).
 **Anexe (rămân documentele de detaliu):** `FAZA_7A_RAPORT_sectiunea_D7-3.md` (R18 + R19) și `FAZA_7A_RAPORT_sectiunea_R20.md` (R20).
 
@@ -42,7 +42,7 @@ Toate rulările CI de mai sus sunt verzi pe toate cele 6 joburi, inclusiv MariaD
 | D7-3, D7-3a | R18 = A, fără termen de expirare (A); R19 = B, inclusiv `on_hold`; apoi deciziile de după audit (intenții, B, A, B, D; ordinea inițializării, A) | 16 și 19.10.2026 | aprobate, implementate (`cbcd444`); detaliile în anexa D7-3 |
 | **D7-6** | R20: procedura + comanda `host-restore:recover` (B) | 19.10.2026 | aprobată, implementată (`2a79d56`). **Numerotarea:** decizia a fost notată inițial „D7-4 = B” (inclusiv în mesajul commitului `2a79d56`, care nu se rescrie); D7-4 rămâne rezervată matricei CI din plan. Identificatorul D7-6 este înregistrat aici, ca D7-5 în inventar (corectura aprobată la 20.10.2026) |
 | MINOR-3 | mesajele de stadiu fără autor: anulate la restaurare, refuzate la reîncercare (B) | 20.10.2026 | aprobată, implementată (`f6d3456`) |
-| **D7-2** | RA-6, cazul C: re-codarea fotografiilor sau păstrarea limitării | — | **de confirmat formal.** Recomandarea din plan: limitarea rămâne pentru MVP, ca risc deschis, explicit în registrul limitărilor, cu reevaluare după pilot. **Nu este o decizie aprobată.** Până la confirmare, cazul C rămâne risc deschis, fără schimbare de cod |
+| **D7-2** | RA-6, cazul C: limitarea actuală privind fotografiile se păstrează pentru MVP; re-codarea lor **nu** se implementează acum | 20.10.2026 | **confirmată formal de proprietar.** Riscul rămâne documentat explicit în registrul limitărilor (`FAZA_6_RAPORT.md`, Lista 4, și §8 de mai jos) și **nu** este prezentat ca remediat. Reevaluarea: înaintea lansării publice / a API-ului, separat, pe baza nevoilor și a riscurilor constatate (planul recomanda „după pilot”; momentul ales de proprietar este acesta). Fără modificări de cod sau de teste |
 
 ## 3. Punctele 7A
 
@@ -148,7 +148,7 @@ Le consemnez aici fără să le transform în sarcini. Fiecare intră în lucru 
 
 | Punct | Unde a fost consemnat | Momentul prevăzut |
 |---|---|---|
-| D7-2 (RA-6, cazul C), de confirmat formal | plan §9; §2 de mai sus | înaintea checkpoint-ului 7A |
+| RA-6, cazul C (D7-2): datele inserate înaintea unui EOI valid, în fluxul JPEG, rămân; remedierea minimă (JPEG fără EOI respins) nu garantează eliminarea lor. **Limitare acceptată, risc deschis, nerezolvată** | `FAZA_6_RAPORT.md`, Lista 4; `FAZA_6_REAUDIT_SECURITATE.md`, RA-6; §2 de mai sus | reevaluare înaintea lansării publice / a API-ului, separat |
 | comportamentele 7A neprobate pe staging (`host-restore:recover`, `restore:db` cu codul nou, curățările noi din `purge:retention`) | §6 | fără probă planificată; de decis dacă și când |
 | R6, R14, R16: descriere lipsă | inventar §1 | fără acțiune până la o sursă mai bună |
 | nota R1: marcajul de sesizare scris înainte de COMMIT rămâne după o tranzacție anulată; numele fișierelor (ID-uri interne) în mesajele despre marcajele corupte | anexa D7-3, „Notă separată” | decizie proprie, separată |
@@ -167,4 +167,4 @@ Le consemnez aici fără să le transform în sarcini. Fiecare intră în lucru 
 | probele de control ale testelor noi | făcute pentru fiecare punct (§3, anexele) |
 | instalarea pe staging, cu proba scurtă | **făcută la 20.10.2026** (jurnalul staging-ului, intervențiile 77–81): copia bazei `civic-backup-20261020T055012571Z`; pachetul `civic-f6d3456.zip` (SHA-256 `7c55368e…11231f8`, dintr-o clonă curată); `RELEASE.txt` `commit: f6d3456`; `health` `{"status":"ok","version":"0.0.0+f6d3456"}`; sesizare cu fotografie → TM-015; footerul nou (D7-1) vizibil; autentificarea Admin cu TOTP. **Proba scurtă nu acoperă** `host-restore:recover`, o restaurare `restore:db` cu codul nou și curățările noi din `purge:retention`: rămân neverificate pe staging (§6) |
 | raportul `FAZA_7A_RAPORT.md` | acest document; de aprobat |
-| D7-2 | **de confirmat formal** |
+| D7-2 | **confirmată formal la 20.10.2026** (§2): limitarea RA-6, cazul C, păstrată pentru MVP, ca risc deschis (§8) |

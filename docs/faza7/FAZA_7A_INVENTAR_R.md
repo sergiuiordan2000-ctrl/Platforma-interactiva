@@ -69,4 +69,4 @@
 6. **R18 / R19:** după D7-3.
 7. **R20:** procedura cu furnizorul și corectura contradicției 1.
 
-**D7-2** (RA-6, cazul C) rămâne limitare acceptată, explicit în registrul limitărilor, ca risc deschis.
+**D7-2** (RA-6, cazul C) rămâne limitare acceptată, explicit în registrul limitărilor, ca risc deschis. *(Confirmată formal de proprietar la 20.10.2026: limitarea se păstrează pentru MVP, fără re-codare acum; reevaluare înaintea lansării publice / a API-ului; `FAZA_7A_RAPORT.md` §2.)*
