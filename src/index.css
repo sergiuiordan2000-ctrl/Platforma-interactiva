@@ -64,3 +64,43 @@ html {
   color: #0f172a;
   background: #ffffff;
 }
+
+/*
+ * 7B.3 (A21-2, decizia B cu clarificările din 21.10.2026; planul 7B §15): ținte de atingere pe mobil (sub `md`).
+ * - Paginile publice (`tinte-publice`): cel puțin 44 px. Excepție: legăturile din atribuirea hărții (Leaflet /
+ *   OpenStreetMap), rând de text obligatoriu.
+ * - Admin (`tinte-admin`): butoanele cu text cel puțin 44 px; butoanele-iconiță (`tinta-iconita`) și celelalte
+ *   ținte cel puțin 24 px. Pictogramele își păstrează mărimea: crește numai zona de atingere.
+ * Regulile generice sunt în `@layer base`, ca utilitarele Tailwind (de ex. `min-h-[92px]`, `min-w-[56px]`) să
+ * rămână neschimbate, și fixează numai înălțimea minimă: un `min-width` general ar strânge elementele flex sub
+ * lățimea textului. Lățimea minimă se dă țintit, cu `max-md:min-w-11`, țintelor mai înguste de 44 px.
+ * Pe calculator (de la `md` în sus) nu se schimbă nimic.
+ */
+@layer base {
+  @media (max-width: 767.98px) {
+    .tinte-publice :is(button, a[href], select, summary, [role='button']):not(.leaflet-control-attribution a),
+    .tinte-admin :is(button, a[href], select, summary, [role='button']) {
+      min-height: 44px;
+    }
+    .tinte-admin :is(button, a[href]).tinta-iconita {
+      min-height: 24px;
+    }
+  }
+}
+/* Leaflet (CSS nestratificat): zoom-ul 44 × 44 și zona de atingere a markerilor, tot numai pe mobil */
+@media (max-width: 767.98px) {
+  .leaflet-touch .leaflet-bar a {
+    width: 44px;
+    height: 44px;
+    line-height: 44px;
+  }
+  /* markerii sesizărilor: desenul rămâne de 32 px; zona de atingere crește la 44 px, centrată pe cerc */
+  .custom-civic-marker::before {
+    content: '';
+    position: absolute;
+    left: -6px;
+    top: -6px;
+    width: 44px;
+    height: 44px;
+  }
+}

@@ -34,6 +34,8 @@ SUITES = [
     'ui/test_7b2_mobil_erori.py',
     # Etapa 7, 7B.3, grupul 1: bara de derulare a tab-urilor Admin (A21-3b) și conturile ca un card pe mobil (AM-11)
     'ui/test_7b3_taburi_conturi.py',
+    # Etapa 7, 7B.3: țintele de atingere pe mobil (A21-2, decizia B cu clarificările din §15)
+    'ui/test_7b3_tinte_atingere.py',
 ]
 # Limitări cunoscute, documentate în PROJECT_HANDOFF_CURRENT.md (G.4 / P7). Nu sunt bug-uri de regresie.
 # P7 / R6D-SES-01 închis formal la Faza 5.2 (sesiune validată pe server); orice FAIL al lui este acum regresie.

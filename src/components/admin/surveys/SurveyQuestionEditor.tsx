@@ -160,7 +160,7 @@ export const SurveyQuestionEditor: React.FC<SurveyQuestionEditorProps> = ({
             type="button"
             onClick={onMoveUp}
             disabled={index === 0}
-            className={`p-1.5 rounded-lg border text-xs font-semibold flex items-center transition-colors ${
+            className={`tinta-iconita p-1.5 rounded-lg border text-xs font-semibold flex items-center transition-colors ${
               index === 0
                 ? 'border-slate-200 text-slate-300 cursor-not-allowed bg-white'
                 : 'border-slate-200 text-slate-700 bg-white hover:bg-slate-100'
@@ -174,7 +174,7 @@ export const SurveyQuestionEditor: React.FC<SurveyQuestionEditorProps> = ({
             type="button"
             onClick={onMoveDown}
             disabled={index === totalQuestions - 1}
-            className={`p-1.5 rounded-lg border text-xs font-semibold flex items-center transition-colors ${
+            className={`tinta-iconita p-1.5 rounded-lg border text-xs font-semibold flex items-center transition-colors ${
               index === totalQuestions - 1
                 ? 'border-slate-200 text-slate-300 cursor-not-allowed bg-white'
                 : 'border-slate-200 text-slate-700 bg-white hover:bg-slate-100'
@@ -187,7 +187,7 @@ export const SurveyQuestionEditor: React.FC<SurveyQuestionEditorProps> = ({
           <button
             type="button"
             onClick={onDelete}
-            className="p-1.5 rounded-lg border border-red-200 bg-white text-red-600 hover:bg-red-50 hover:border-red-300 transition-colors ml-1"
+            className="tinta-iconita p-1.5 rounded-lg border border-red-200 bg-white text-red-600 hover:bg-red-50 hover:border-red-300 transition-colors ml-1"
             title="Șterge întrebarea"
           >
             <Trash2 className="w-3.5 h-3.5" />
@@ -307,7 +307,7 @@ export const SurveyQuestionEditor: React.FC<SurveyQuestionEditorProps> = ({
                     type="button"
                     onClick={() => handleMoveOption(optIdx, 'up')}
                     disabled={optIdx === 0}
-                    className={`p-1 rounded text-slate-500 hover:text-slate-900 ${
+                    className={`tinta-iconita p-1 rounded text-slate-500 hover:text-slate-900 ${
                       optIdx === 0 ? 'opacity-30 cursor-not-allowed' : 'hover:bg-slate-100'
                     }`}
                     title="Mută varianta mai sus"
@@ -319,7 +319,7 @@ export const SurveyQuestionEditor: React.FC<SurveyQuestionEditorProps> = ({
                     type="button"
                     onClick={() => handleMoveOption(optIdx, 'down')}
                     disabled={optIdx === question.options.length - 1}
-                    className={`p-1 rounded text-slate-500 hover:text-slate-900 ${
+                    className={`tinta-iconita p-1 rounded text-slate-500 hover:text-slate-900 ${
                       optIdx === question.options.length - 1 ? 'opacity-30 cursor-not-allowed' : 'hover:bg-slate-100'
                     }`}
                     title="Mută varianta mai jos"
@@ -330,7 +330,7 @@ export const SurveyQuestionEditor: React.FC<SurveyQuestionEditorProps> = ({
                   <button
                     type="button"
                     onClick={() => handleDeleteOption(opt.key)}
-                    className="p-1 rounded text-red-500 hover:text-red-700 hover:bg-red-50 ml-1"
+                    className="tinta-iconita p-1 rounded text-red-500 hover:text-red-700 hover:bg-red-50 ml-1"
                     title="Șterge varianta"
                   >
                     <Trash2 className="w-3 h-3" />

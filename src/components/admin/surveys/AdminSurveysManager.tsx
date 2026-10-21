@@ -466,10 +466,11 @@ export const AdminSurveysManager: React.FC<AdminSurveysManagerProps> = ({ onSucc
                     <span>Rezultate</span>
                   </button>
 
-                  {/* Inspectare */}
+                  {/* Inspectare — 7B.3 (A21-2): sub `sm` doar iconiță (`tinta-iconita`, minimum 24 px); între `sm` și `md`
+                      apare textul, deci minimum 44 px (`sm:max-md:min-h-11`); pe calculator neschimbat */}
                   <button
                     onClick={() => openInspect(survey)}
-                    className="p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 text-xs font-semibold inline-flex items-center gap-1 transition-colors"
+                    className="tinta-iconita sm:max-md:min-h-11 p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 text-xs font-semibold inline-flex items-center gap-1 transition-colors"
                     title="Inspectează detaliile și întrebările"
                   >
                     <Eye className="w-4 h-4 text-slate-500" />
@@ -516,7 +517,7 @@ export const AdminSurveysManager: React.FC<AdminSurveysManagerProps> = ({ onSucc
                   {canManageData && (
                     <button
                       onClick={() => setSurveyToDelete(survey)}
-                      className="p-2 rounded-xl text-red-600 hover:bg-red-50 text-xs font-semibold inline-flex items-center gap-1 transition-colors"
+                      className="tinta-iconita p-2 rounded-xl text-red-600 hover:bg-red-50 text-xs font-semibold inline-flex items-center gap-1 transition-colors"
                       title="Șterge sondajul"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -559,7 +560,7 @@ export const AdminSurveysManager: React.FC<AdminSurveysManagerProps> = ({ onSucc
               </div>
               <button
                 onClick={closeInspect}
-                className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-200"
+                className="tinta-iconita p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-200"
               >
                 <X className="w-5 h-5" />
               </button>

@@ -155,7 +155,9 @@ export default function App() {
   // (fără Header/Footer/BottomNavigation publice) — Etapa 5A-2.
   if (currentView === 'admin') {
     return (
-      <div className="min-h-screen bg-slate-50 text-slate-800 antialiased">
+      // 7B.3 (A21-2): `tinte-admin` — pe mobil, butoanele cu text au cel puțin 44 px, iar butoanele-iconiță
+      // (`tinta-iconita`) și celelalte ținte cel puțin 24 px (regulile din index.css)
+      <div className="tinte-admin min-h-screen bg-slate-50 text-slate-800 antialiased">
         <main className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
           <ErrorBoundary key={currentView} onGoHome={() => handleNavigate('home')}>
             {renderView()}

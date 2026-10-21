@@ -173,7 +173,7 @@ const ScheduleForm: React.FC<AdminScheduleManagerProps & { currentInfo: CityHall
                   <button
                     type="button"
                     onClick={() => handleDeleteScheduleRow(idx)}
-                    className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg"
+                    className="tinta-iconita p-1.5 text-slate-400 hover:text-red-600 rounded-lg"
                     title="Șterge rândul"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -249,7 +249,7 @@ const ScheduleForm: React.FC<AdminScheduleManagerProps & { currentInfo: CityHall
                   <button
                     type="button"
                     onClick={() => handleDeleteAudienceRow(idx)}
-                    className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg"
+                    className="tinta-iconita p-1.5 text-slate-400 hover:text-red-600 rounded-lg"
                     title="Șterge rândul"
                   >
                     <Trash2 className="w-4 h-4" />

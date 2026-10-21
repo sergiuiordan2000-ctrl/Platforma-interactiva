@@ -263,7 +263,7 @@ export const AdminServicesManager: React.FC<AdminServicesManagerProps> = ({ onSu
             <button
               type="button"
               onClick={handleCancelForm}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 bg-white"
+              className="tinta-iconita p-1.5 rounded-lg text-slate-400 hover:text-slate-600 bg-white"
             >
               <X className="w-4 h-4" />
             </button>
@@ -453,7 +453,7 @@ export const AdminServicesManager: React.FC<AdminServicesManagerProps> = ({ onSu
                     onClick={() => handleMove(idx, 'up')}
                     disabled={idx === 0}
                     title="Mută mai sus"
-                    className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:pointer-events-none"
+                    className="tinta-iconita p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:pointer-events-none"
                   >
                     <ArrowUp className="w-3.5 h-3.5" />
                   </button>
@@ -461,7 +461,7 @@ export const AdminServicesManager: React.FC<AdminServicesManagerProps> = ({ onSu
                     onClick={() => handleMove(idx, 'down')}
                     disabled={idx === services.length - 1}
                     title="Mută mai jos"
-                    className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:pointer-events-none"
+                    className="tinta-iconita p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:pointer-events-none"
                   >
                     <ArrowDown className="w-3.5 h-3.5" />
                   </button>
@@ -469,7 +469,7 @@ export const AdminServicesManager: React.FC<AdminServicesManagerProps> = ({ onSu
                   <button
                     onClick={() => handleToggleStatus(srv)}
                     title={isInactive ? 'Activează în zona publică' : 'Dezactivează din zona publică'}
-                    className={`p-1.5 rounded-lg border transition-colors ${
+                    className={`tinta-iconita p-1.5 rounded-lg border transition-colors ${
                       isInactive
                         ? 'border-slate-300 text-slate-400 hover:text-emerald-700 hover:border-emerald-300'
                         : 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
@@ -481,7 +481,7 @@ export const AdminServicesManager: React.FC<AdminServicesManagerProps> = ({ onSu
                   <button
                     onClick={() => handleStartEdit(srv)}
                     title="Editează serviciul"
-                    className="p-1.5 rounded-lg border border-slate-200 text-blue-700 hover:bg-blue-50 transition-colors"
+                    className="tinta-iconita p-1.5 rounded-lg border border-slate-200 text-blue-700 hover:bg-blue-50 transition-colors"
                   >
                     <Edit3 className="w-3.5 h-3.5" />
                   </button>
@@ -489,7 +489,7 @@ export const AdminServicesManager: React.FC<AdminServicesManagerProps> = ({ onSu
                   <button
                     onClick={() => handleDelete(srv)}
                     title="Șterge definitiv serviciul"
-                    className="p-1.5 rounded-lg border border-slate-200 text-red-600 hover:bg-red-50 transition-colors"
+                    className="tinta-iconita p-1.5 rounded-lg border border-slate-200 text-red-600 hover:bg-red-50 transition-colors"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>

@@ -16,7 +16,8 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
   children 
 }) => {
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 text-slate-800 antialiased">
+    // 7B.3 (A21-2): `tinte-publice` — pe mobil, țintele de atingere au cel puțin 44 px (regulile din index.css)
+    <div className="tinte-publice min-h-screen flex flex-col bg-slate-50 text-slate-800 antialiased">
       {/* Antet fix pe desktop și mobil */}
       <Header currentView={currentView} onNavigate={onNavigate} />
 

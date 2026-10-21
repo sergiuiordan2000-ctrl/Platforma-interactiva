@@ -244,7 +244,7 @@ export const AdminAnnouncementsManager: React.FC<AdminAnnouncementsManagerProps>
             <button
               type="button"
               onClick={handleCancelForm}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 bg-white"
+              className="tinta-iconita p-1.5 rounded-lg text-slate-400 hover:text-slate-600 bg-white"
             >
               <X className="w-4 h-4" />
             </button>
@@ -556,7 +556,7 @@ export const AdminAnnouncementsManager: React.FC<AdminAnnouncementsManagerProps>
                   onClick={() => handleToggleStatus(a)}
                   disabled={isPublished ? !canDisable : !canPublish}
                   title={isPublished ? 'Dezactivează (ciornă)' : 'Publică în zona publică'}
-                  className={`p-1.5 rounded-lg border transition-colors ${
+                  className={`tinta-iconita p-1.5 rounded-lg border transition-colors ${
                     !isPublished
                       ? 'border-slate-300 text-slate-400 hover:text-emerald-700 hover:border-emerald-300'
                       : 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
@@ -569,7 +569,7 @@ export const AdminAnnouncementsManager: React.FC<AdminAnnouncementsManagerProps>
                   onClick={() => handleStartEdit(a)}
                   disabled={!canEdit}
                   title="Editează comunicatul"
-                  className="p-1.5 rounded-lg border border-slate-200 text-blue-700 hover:bg-blue-50 transition-colors"
+                  className="tinta-iconita p-1.5 rounded-lg border border-slate-200 text-blue-700 hover:bg-blue-50 transition-colors"
                 >
                   <Edit3 className="w-3.5 h-3.5" />
                 </button>

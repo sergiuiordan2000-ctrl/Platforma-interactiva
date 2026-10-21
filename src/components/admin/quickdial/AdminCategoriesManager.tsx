@@ -193,7 +193,7 @@ export const AdminCategoriesManager: React.FC<AdminCategoriesManagerProps> = ({ 
             <button
               type="button"
               onClick={handleCancelForm}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 bg-white"
+              className="tinta-iconita p-1.5 rounded-lg text-slate-400 hover:text-slate-600 bg-white"
             >
               <X className="w-4 h-4" />
             </button>
@@ -279,7 +279,7 @@ export const AdminCategoriesManager: React.FC<AdminCategoriesManagerProps> = ({ 
                     onClick={() => handleMove(idx, 'up')}
                     disabled={idx === 0}
                     title="Mută mai sus"
-                    className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:pointer-events-none"
+                    className="tinta-iconita p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:pointer-events-none"
                   >
                     <ArrowUp className="w-3.5 h-3.5" />
                   </button>
@@ -287,7 +287,7 @@ export const AdminCategoriesManager: React.FC<AdminCategoriesManagerProps> = ({ 
                     onClick={() => handleMove(idx, 'down')}
                     disabled={idx === categories.length - 1}
                     title="Mută mai jos"
-                    className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:pointer-events-none"
+                    className="tinta-iconita p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:pointer-events-none"
                   >
                     <ArrowDown className="w-3.5 h-3.5" />
                   </button>
@@ -295,7 +295,7 @@ export const AdminCategoriesManager: React.FC<AdminCategoriesManagerProps> = ({ 
                   <button
                     onClick={() => handleStartEdit(cat)}
                     title="Editează categoria"
-                    className="p-1.5 rounded-lg border border-slate-200 text-blue-700 hover:bg-blue-50 transition-colors"
+                    className="tinta-iconita p-1.5 rounded-lg border border-slate-200 text-blue-700 hover:bg-blue-50 transition-colors"
                   >
                     <Edit3 className="w-3.5 h-3.5" />
                   </button>
@@ -304,7 +304,7 @@ export const AdminCategoriesManager: React.FC<AdminCategoriesManagerProps> = ({ 
                     onClick={() => handleDelete(cat)}
                     title={count > 0 ? 'Nu se poate șterge (are contacte atribuite)' : 'Șterge categoria'}
                     disabled={count > 0}
-                    className="p-1.5 rounded-lg border border-slate-200 text-red-600 hover:bg-red-50 disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                    className="tinta-iconita p-1.5 rounded-lg border border-slate-200 text-red-600 hover:bg-red-50 disabled:opacity-30 disabled:pointer-events-none transition-colors"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>

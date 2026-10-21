@@ -209,7 +209,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigate }) => {
           </div>
           <button
             onClick={() => setToastMessage(null)}
-            className="p-1 rounded-lg text-slate-400 hover:text-white"
+            className="tinta-iconita p-1 rounded-lg text-slate-400 hover:text-white"
           >
             <X className="w-4 h-4" />
           </button>

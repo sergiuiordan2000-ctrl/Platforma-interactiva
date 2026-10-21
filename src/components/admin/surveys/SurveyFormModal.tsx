@@ -273,7 +273,7 @@ export const SurveyFormModal: React.FC<SurveyFormModalProps> = ({
 
           <button
             onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition-colors"
+            className="tinta-iconita p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition-colors"
             title="Închide fereastra"
           >
             <X className="w-5 h-5" />

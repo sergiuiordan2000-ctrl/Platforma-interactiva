@@ -422,9 +422,10 @@ export const MapView: React.FC<MapViewProps> = ({ onNavigate }) => {
         />
 
         {/* 7B.2 (A21-1): bannerele stau într-un singur container, unul sub altul, la dreapta controlului de zoom
-            (`left-14`), ca să nu acopere butoanele „+” / „−” și să nu se suprapună între ele */}
+            (`left-14`), ca să nu acopere butoanele „+” / „−” și să nu se suprapună între ele; 7B.3 (A21-2): pe mobil
+            zoom-ul are 44 px, deci bannerele pornesc de la `left-16` */}
         {(loading || loadError || tileError) && (
-        <div className="absolute top-4 left-14 right-4 z-30 flex flex-col gap-2" data-testid="map-banners">
+        <div className="absolute top-4 left-14 max-md:left-16 right-4 z-30 flex flex-col gap-2" data-testid="map-banners">
         {(loading || loadError) && (
           <div className="p-3 rounded-2xl bg-white/95 border border-slate-300 text-xs text-slate-800 flex items-center justify-between gap-2 shadow-md">
             <span>{loading ? 'Se încarcă sesizările...' : `Sesizările nu au putut fi încărcate: ${loadError}`}</span>

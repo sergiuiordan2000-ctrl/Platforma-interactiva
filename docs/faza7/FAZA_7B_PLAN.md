@@ -266,5 +266,6 @@ Pe baza raportului 7B.1 (emulare Chromium — nu telefon real):
 | Criteriile A21-1 | **confirmate** (11:57): la 390 și 360 px, niciun banner peste zoom, bannerele nu se suprapun, atingerea pe „+”/„−” ajunge la zoom | testul T-A21-1 |
 | Criteriile A21-3 | **confirmate** (11:57): la 390 și 360 px toate cele 7 tab-uri cu aceeași înălțime și un singur rând; tab-ul activ complet vizibil; bara de derulare vizibilă când tab-urile nu încap (7B.3); la 1280 px neschimbat | testele T-A21-3a (7B.2) și T-A21-3b (7B.3) |
 | Tabelul „Conturi Admin” | **AM-11, varianta A** (11:57) | 7B.3 |
+| A21-2 — clarificările de aplicare (21.10.2026, 07:54; nu schimbă decizia B) | (1) numai pe mobil, sub `md`; desktopul neschimbat; (2) Admin: minimum 44 px pentru butoanele de acțiune cu text, minimum 24 px pentru butoanele-iconiță și celelalte ținte; pictogramele își păstrează mărimea vizuală, crește zona de atingere; (3) excepție numai pentru legăturile Leaflet / OpenStreetMap din atribuirea hărții; telefoanele și adresele din Ghid se măresc | 7B.3, grupul A21-2 |
 
 Deciziile rămase pentru 7B.3 (O3, N-7B-1, E4, E5) nu sunt luate.

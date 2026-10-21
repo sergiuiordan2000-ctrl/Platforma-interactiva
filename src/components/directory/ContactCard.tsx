@@ -96,7 +96,7 @@ export const ContactCard: React.FC<ContactCardProps> = ({ info }) => {
               <button
                 onClick={() => handleCopy(info.address, 'adresa')}
                 title="Copiază adresa"
-                className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors"
+                className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors max-md:min-w-11"
               >
                 {copied === 'adresa' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
               </button>
@@ -150,7 +150,7 @@ export const ContactCard: React.FC<ContactCardProps> = ({ info }) => {
                 <div className="text-[11px] text-slate-500 font-medium">E-mail Oficial:</div>
                 <a
                   href={`mailto:${info.primaryEmail}`}
-                  className="text-xs sm:text-sm font-bold text-blue-700 hover:text-blue-900 hover:underline break-all"
+                  className="text-xs sm:text-sm font-bold text-blue-700 hover:text-blue-900 hover:underline break-all max-md:inline-flex max-md:items-center"
                 >
                   {info.primaryEmail}
                 </a>
@@ -161,7 +161,7 @@ export const ContactCard: React.FC<ContactCardProps> = ({ info }) => {
                   <div className="text-[11px] text-slate-500 font-medium">Registratură & Petiții:</div>
                   <a
                     href={`mailto:${info.registryEmail}`}
-                    className="text-xs sm:text-sm font-semibold text-slate-800 hover:text-blue-700 hover:underline break-all"
+                    className="text-xs sm:text-sm font-semibold text-slate-800 hover:text-blue-700 hover:underline break-all max-md:inline-flex max-md:items-center"
                   >
                     {info.registryEmail}
                   </a>
