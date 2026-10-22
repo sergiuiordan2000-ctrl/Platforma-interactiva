@@ -65,7 +65,7 @@ export const DirectoryView: React.FC<DirectoryViewProps> = ({
         <div>
           <div className="flex items-center gap-2 text-cyan-700 text-xs font-bold uppercase tracking-wider">
             <Building2 className="w-4 h-4" />
-            <span>Modul Funcțional • Etapa 2B</span>
+            <span>Modul Funcțional</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight mt-1">
             Ghid Primărie & Quick Dial
@@ -195,10 +195,10 @@ export const DirectoryView: React.FC<DirectoryViewProps> = ({
         <div className="space-y-1">
           <div className="font-bold text-slate-900 flex items-center gap-1.5">
             <Info className="w-4 h-4 text-cyan-600" />
-            <span>Status Modul: Etapa 2B (Ghidul Primăriei & Quick Dial sunt ACTIVE)</span>
+            <span>Status Modul: Ghidul Primăriei & Quick Dial sunt ACTIVE</span>
           </div>
           <p className="leading-relaxed">
-            Informațiile instituționale ale Primăriei (Etapa 2A) și sistemul de apelare rapidă pe categorii (Etapa 2B) sunt complet funcționale. Administrarea dinamică din zona de Admin (<strong>Etapa 2C</strong>) este de asemenea implementată și funcțională.
+            Informațiile instituționale ale Primăriei și sistemul de apelare rapidă pe categorii sunt complet funcționale. Administrarea dinamică din zona de Admin este de asemenea implementată și funcțională.
           </p>
         </div>
 

@@ -221,7 +221,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigate }) => {
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-blue-500/20 text-blue-300 border border-blue-400/30">
-              CMS Activ • Etapa 2C
+              CMS Activ
             </span>
             <span className="text-xs text-slate-400">
               {currentUser?.email}
@@ -289,7 +289,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigate }) => {
             }`}
           >
             <Megaphone className={`w-4 h-4 ${activeMainTab === 'announcements' ? 'text-blue-700' : 'text-slate-400'}`} />
-            <span>Comunicate (5B)</span>
+            <span>Comunicate</span>
           </button>
         )}
 
@@ -349,7 +349,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigate }) => {
             }`}
           >
             <Vote className={`w-4 h-4 ${activeMainTab === 'surveys' ? 'text-purple-700' : 'text-slate-400'}`} />
-            <span>D. Sondaje Civice (4B)</span>
+            <span>D. Sondaje Civice</span>
           </button>
         )}
         {canAccessTab('accounts') && (

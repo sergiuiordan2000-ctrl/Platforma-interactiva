@@ -99,7 +99,7 @@ export const AnnouncementsView: React.FC<AnnouncementsViewProps> = ({
         <div>
           <div className="flex items-center gap-2 text-blue-700 text-xs font-bold uppercase tracking-wider">
             <Megaphone className="w-4 h-4" />
-            <span>Modul Funcțional • Etapa 1C (Evenimente Integrate)</span>
+            <span>Modul Funcțional</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight mt-1">
             Comunicate & Evenimente Locale

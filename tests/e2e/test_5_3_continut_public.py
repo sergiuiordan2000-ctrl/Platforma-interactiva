@@ -95,7 +95,7 @@ with backend_server(5599) as BACKEND, sync_playwright() as pw:
 
     # 6. Admin (operator): creare comunicat -> apare public; dezactivare -> dispare
     login(page, BACKEND['op'])
-    page.get_by_text('Comunicate (5B)').first.click(); page.wait_for_timeout(500)
+    page.get_by_role('button', name='Comunicate', exact=True).click(); page.wait_for_timeout(500)
     page.get_by_role('button', name='Adaugă Comunicat Nou').click(); page.wait_for_timeout(200)
     title = 'E2E Comunicat 5.3'
     page.fill('input[placeholder="ex: Infrastructură, Cultură, Sănătate"]', 'Administrație')
@@ -109,7 +109,7 @@ with backend_server(5599) as BACKEND, sync_playwright() as pw:
     res.check('ADM-1 comunicat creat în Admin (operator) → vizibil în zona publică', in_admin and page.get_by_text(title).count() >= 1, f'admin={in_admin}')
 
     page.goto(URL + '/#admin'); page.wait_for_load_state('networkidle'); page.wait_for_timeout(300)
-    page.get_by_text('Comunicate (5B)').first.click(); page.wait_for_timeout(500)
+    page.get_by_role('button', name='Comunicate', exact=True).click(); page.wait_for_timeout(500)
     row = page.locator('div.bg-white.rounded-2xl', has_text=title).last
     row.locator('button[title="Dezactivează (ciornă)"]').click(); page.wait_for_timeout(700)
     goto(page, 'comunicate')

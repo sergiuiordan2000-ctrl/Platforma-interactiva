@@ -19,9 +19,9 @@ res = Results('7B.2 MOBIL SI ERORI (E2E, server real, emulare Chromium)')
 CITIZEN = 'b72.e2e@exemplu.test'
 GENERIC = 'A apărut o eroare. Încercați din nou.'
 PHOTO_GENERIC = 'Una dintre fotografii nu a putut fi procesată'
-TABS = ['Dashboard', 'Comunicate (5B)', 'A. Ghidul Primăriei', 'B. Numere Utile / Quick Dial', 'C. Sesizări',
-        'D. Sondaje Civice (4B)', 'Conturi']
-LONG_TABS = ['A. Ghidul Primăriei', 'B. Numere Utile / Quick Dial', 'C. Sesizări', 'D. Sondaje Civice (4B)']
+TABS = ['Dashboard', 'Comunicate', 'A. Ghidul Primăriei', 'B. Numere Utile / Quick Dial', 'C. Sesizări',
+        'D. Sondaje Civice', 'Conturi']
+LONG_TABS = ['A. Ghidul Primăriei', 'B. Numere Utile / Quick Dial', 'C. Sesizări', 'D. Sondaje Civice']
 PNG_1PX = base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==')
 
 BANNERS = r"""() => {

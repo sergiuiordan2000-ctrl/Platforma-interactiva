@@ -39,7 +39,7 @@ const MODULE_CARDS: ModuleCardConfig[] = [
   {
     tab: 'announcements',
     title: 'Comunicate & Evenimente',
-    description: 'Creare, editare, publicare, dezactivare și evenimente locale (Etapa 5B).',
+    description: 'Creare, editare, publicare, dezactivare și evenimente locale.',
     icon: <Megaphone className="w-5 h-5" />,
     accentClasses: 'bg-blue-50 text-blue-700 border-blue-200',
     viewPermission: 'announcements.view',
@@ -71,7 +71,7 @@ const MODULE_CARDS: ModuleCardConfig[] = [
   {
     tab: 'surveys',
     title: 'Sondaje Civice',
-    description: 'Administrarea sondajelor și consultărilor publice (Etapa 4B).',
+    description: 'Administrarea sondajelor și consultărilor publice.',
     icon: <Vote className="w-5 h-5" />,
     accentClasses: 'bg-purple-50 text-purple-700 border-purple-200',
     viewPermission: 'surveys.view',

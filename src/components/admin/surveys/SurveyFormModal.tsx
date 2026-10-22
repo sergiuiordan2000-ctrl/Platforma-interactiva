@@ -269,7 +269,7 @@ export const SurveyFormModal: React.FC<SurveyFormModalProps> = ({
                 {isEditing ? 'Editare Sondaj' : 'Sondaj Nou'}
               </span>
               <span className="text-xs text-slate-500 font-medium">
-                Etapa 4B • Panou Administrativ
+                Panou Administrativ
               </span>
             </div>
             <h2 className="text-lg sm:text-xl font-black text-slate-900 mt-1">

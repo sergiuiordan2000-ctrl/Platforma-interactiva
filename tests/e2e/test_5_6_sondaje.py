@@ -78,7 +78,7 @@ with backend_server(5899) as B, sync_playwright() as pw:
         actx = b.new_context(viewport={'width': 1200, 'height': 950}); ap = actx.new_page()
         ap.on('pageerror', lambda e: errs.append('admin: ' + str(e)[:200]))
         admin_login(ap, URL, B, B['admin'])
-        ap.get_by_role('button', name='D. Sondaje Civice (4B)').click(); ap.wait_for_timeout(700)
+        ap.get_by_role('button', name='D. Sondaje Civice', exact=True).click(); ap.wait_for_timeout(700)
         t = ap.inner_text('body')
         res.check('SA-1 lista Admin de la server; fără „Reset Demo”; 1 vot', 'Reset Demo' not in t and 'Administrare Sondaje Cetățenești (3)' in t and '1 vot' in t, '')
 
@@ -122,7 +122,7 @@ with backend_server(5899) as B, sync_playwright() as pw:
         res.check('S-12 rezultate live: 1 răspuns, 100%, textul liber NU apare', '1 răspuns' in t and '100%' in t and 'Text liber de probă' not in t and '1 mesaje înregistrate' in t, '')
 
         # Admin: blocarea după primul vot
-        ap.reload(); ap.wait_for_load_state('networkidle'); ap.get_by_role('button', name='D. Sondaje Civice (4B)').click(); ap.wait_for_timeout(600)
+        ap.reload(); ap.wait_for_load_state('networkidle'); ap.get_by_role('button', name='D. Sondaje Civice', exact=True).click(); ap.wait_for_timeout(600)
         rowp = ap.locator('div.space-y-3 > div').filter(has_text='E2E 5.6')
         rowp.get_by_role('button', name='Editează').click(); ap.wait_for_timeout(300)
         t = ap.inner_text('body')
@@ -246,7 +246,7 @@ with backend_server(5899) as B, sync_playwright() as pw:
         # 6. operator: numai vizualizare
         octx = b.new_context(viewport={'width': 1200, 'height': 900}); op = octx.new_page()
         admin_login(op, URL, B, B['op'])
-        op.get_by_role('button', name='D. Sondaje Civice (4B)').click(); op.wait_for_timeout(700)
+        op.get_by_role('button', name='D. Sondaje Civice', exact=True).click(); op.wait_for_timeout(700)
         t = op.inner_text('body')
         res.check('SO-1 operator: vede lista, fără Sondaj Nou / Editează / Închide / Șterge',
                   'Administrare Sondaje' in t and all(op.get_by_role('button', name=n).count() == 0 for n in ['Sondaj Nou', 'Editează', 'Activează', 'Închide'])

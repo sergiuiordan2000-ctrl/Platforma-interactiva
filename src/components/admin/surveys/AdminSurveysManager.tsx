@@ -243,7 +243,7 @@ export const AdminSurveysManager: React.FC<AdminSurveysManagerProps> = ({ onSucc
         <div>
           <div className="flex items-center gap-2 text-purple-700 text-xs font-bold uppercase tracking-wider">
             <Vote className="w-4 h-4" />
-            <span>Gestiune Sondaje & Consultări • Etapa 4B</span>
+            <span>Gestiune Sondaje & Consultări</span>
           </div>
           <h2 className="text-lg sm:text-xl font-black text-slate-900 mt-1">
             Administrare Sondaje Cetățenești ({surveys.length})

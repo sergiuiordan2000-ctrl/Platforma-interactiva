@@ -23,10 +23,6 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
             <p className="text-xs text-slate-400 leading-relaxed">
               Platformă digitală civică independentă dedicată locuitorilor municipiului Turnu Măgurele, județul Teleorman. Creată pentru informare rapidă, semnalarea problemelor urbane și consultare publică.
             </p>
-            <div className="pt-1 flex items-center gap-2 text-[11px] text-slate-400">
-              <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span>Versiune: <strong>Etapa 1A (Scheletul Aplicației)</strong></span>
-            </div>
           </div>
 
           {/* Coloana 2: Notă Legală & Delimitare Instituțională */}

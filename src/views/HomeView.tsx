@@ -210,7 +210,6 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onOpenAnnounceme
               5 Module
             </span>
           </h2>
-          <span className="text-xs text-slate-500">Etapa 1B</span>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -222,7 +221,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onOpenAnnounceme
           >
             <div className="absolute top-2 right-2">
               <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-amber-600 text-white">
-                Activ (3E)
+                Activ
               </span>
             </div>
 
@@ -252,7 +251,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onOpenAnnounceme
           >
             <div className="absolute top-2 right-2">
               <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-blue-600 text-white">
-                Activ (1B)
+                Activ
               </span>
             </div>
 
@@ -282,7 +281,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onOpenAnnounceme
           >
             <div className="absolute top-2 right-2">
               <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-emerald-600 text-white">
-                Activ (3D)
+                Activ
               </span>
             </div>
 
@@ -368,7 +367,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onOpenAnnounceme
         <Info className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
         <div className="space-y-1">
            <p className="font-semibold text-slate-900">
-            Status Dezvoltare: Faza 5 (versiune de test pe server)
+            Versiune de test
           </p>
           <p className="leading-relaxed">
             Comunicatele, Ghidul Primăriei, Apelul rapid, sesizările și sondajele funcționează pe server. Sesizările se depun dintr-un cont confirmat prin e-mail și apar imediat pe hartă, fără moderare; contul și adresa de e-mail a autorului nu sunt afișate public. Sondajele sunt consultări orientative, fără cont.
