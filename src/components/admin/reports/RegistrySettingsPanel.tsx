@@ -52,6 +52,10 @@ export const RegistrySettingsPanel: React.FC<{ onSuccess: (m: string) => void }>
 
   const save = async () => {
     if (!form) return;
+    // 7B.3 (O3, acțiunea 2, AM-2): confirmare la fiecare trecere din oprit (starea salvată) în pornit; o salvare cu
+    // fluxul deja pornit nu cere confirmare. „Anulează” nu trimite nicio cerere.
+    if (data && !data.flowEnabled && form.flowEnabled
+      && !window.confirm('Eventualele mesaje către Primărie aflate în așteptare vor fi trimise acum către destinatarul salvat. Continuați?')) return;
     setSaving(true);
     setError(null);
     try {

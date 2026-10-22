@@ -169,6 +169,8 @@ with backend_server(5899) as B, sync_playwright() as pw:
         ap.locator('[role=alert] button').first.click()
 
         # închidere → arhivă publică cu marcaj; texte libere în Admin
+        # 7B.3 (O3): închiderea cere confirmare; aici cu „OK” (confirmarea se verifică în tests/ui/test_7b3_confirmari.py)
+        ap.once('dialog', lambda d: d.accept())
         rowp.get_by_role('button', name='Închide').click(); ap.wait_for_timeout(900)
         rowp = ap.locator('div.space-y-3 > div').filter(has_text='E2E 5.6')
         t = rowp.inner_text()

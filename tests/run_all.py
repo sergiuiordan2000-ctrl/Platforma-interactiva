@@ -36,6 +36,8 @@ SUITES = [
     'ui/test_7b3_taburi_conturi.py',
     # Etapa 7, 7B.3: țintele de atingere pe mobil (A21-2, decizia B cu clarificările din §15)
     'ui/test_7b3_tinte_atingere.py',
+    # Etapa 7, 7B.3: confirmările Admin (O3, varianta A — toate cele cinci, textele din plan)
+    'ui/test_7b3_confirmari.py',
 ]
 # Limitări cunoscute, documentate în PROJECT_HANDOFF_CURRENT.md (G.4 / P7). Nu sunt bug-uri de regresie.
 # P7 / R6D-SES-01 închis formal la Faza 5.2 (sesiune validată pe server); orice FAIL al lui este acum regresie.

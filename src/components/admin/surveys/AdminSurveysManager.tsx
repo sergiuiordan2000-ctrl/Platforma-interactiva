@@ -152,6 +152,8 @@ export const AdminSurveysManager: React.FC<AdminSurveysManagerProps> = ({ onSucc
 
   const handleCloseSurvey = (survey: AdminSurvey) => {
     if (!canClose) return;
+    // 7B.3 (O3, acțiunea 4): confirmare înainte de cerere
+    if (!window.confirm(`Închideți sondajul „${survey.title}”? Închiderea este definitivă.`)) return;
     void changeStatus(survey, 'closed', `Sondajul „${survey.title}” a fost închis și arhivat.`, 'Eroare la închiderea sondajului.');
   };
 

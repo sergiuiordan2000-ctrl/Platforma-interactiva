@@ -134,6 +134,9 @@ with fake_smtp(SMTP_PORT, [CITIZEN, REGISTRY]) as SMTP, backend_server(APP_PORT,
         c = b.new_context(viewport={'width': width, 'height': 900})
         c.route('https://*.tile.openstreetmap.org/**', lambda r: r.abort())
         p = c.new_page(); p.on('pageerror', lambda e: errors.append(str(e)[:160]))
+        # 7B.3 (O3): acțiunile Admin cer confirmare (window.confirm); aici fluxul se testează cu „OK”.
+        # Confirmările („Anulează”/„OK”, textele) se verifică separat în tests/ui/test_7b3_confirmari.py.
+        p.on('dialog', lambda d: d.accept())
         return c, p
 
     try:

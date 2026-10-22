@@ -224,6 +224,12 @@ export const SurveyFormModal: React.FC<SurveyFormModalProps> = ({
       })),
     };
 
+    // 7B.3 (O3, acțiunea 4, din formular): închiderea cere aceeași confirmare ca butonul „Închide” din listă, înainte
+    // de orice cerere; „Anulează” nu trimite nimic și formularul rămâne deschis. Calea din formular nu trece prin
+    // butonul din listă, deci confirmarea apare o singură dată.
+    if (initialSurvey && finalStatus === 'closed' && initialSurvey.status !== 'closed'
+      && !window.confirm(`Închideți sondajul „${input.title}”? Închiderea este definitivă.`)) return;
+
     setIsSubmitting(true);
     let saved: AdminSurvey;
     try {

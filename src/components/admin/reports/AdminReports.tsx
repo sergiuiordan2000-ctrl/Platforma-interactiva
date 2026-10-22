@@ -379,7 +379,11 @@ export const AdminReports: React.FC<AdminReportsProps> = ({ onSuccess }) => {
                       <button
                         type="button"
                         disabled={busy === item.id}
-                        onClick={() => void act(item.id, () => reportService.markResolved(item.id), `Sesizarea ${item.referenceNumber} a fost marcată „rezolvată”.`)}
+                        onClick={() => {
+                          // 7B.3 (O3, acțiunea 3): confirmare înainte de cerere; „Anulează” nu trimite nimic
+                          if (!window.confirm(`Marcați sesizarea ${item.referenceNumber} ca rezolvată? Stadiul nu se mai poate schimba.`)) return;
+                          void act(item.id, () => reportService.markResolved(item.id), `Sesizarea ${item.referenceNumber} a fost marcată „rezolvată”.`);
+                        }}
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px]"
                       >
                         <ClipboardCheck className="w-3.5 h-3.5" /> Marchează rezolvată
@@ -512,7 +516,11 @@ export const AdminReports: React.FC<AdminReportsProps> = ({ onSuccess }) => {
                                   {e.status === 'failed' && (
                                     <button
                                       type="button"
-                                      onClick={() => void act(item.id, () => reportService.retryEmail(item.id, e.id), 'Mesajul a fost repus în coadă.')}
+                                      onClick={() => {
+                                        // 7B.3 (O3, acțiunea 1): confirmare; confirmarea nu previne tehnic duplicatele, fluxul de trimitere nu se schimbă
+                                        if (!window.confirm('Verificați întâi dacă mesajul a ajuns la destinatar. Dacă a plecat deja, reîncercarea trimite un duplicat. Continuați?')) return;
+                                        void act(item.id, () => reportService.retryEmail(item.id, e.id), 'Mesajul a fost repus în coadă.');
+                                      }}
                                       className="font-bold text-blue-700 hover:underline"
                                     >
                                       Reîncearcă

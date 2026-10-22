@@ -126,6 +126,8 @@ export const AdminCategoriesManager: React.FC<AdminCategoriesManagerProps> = ({ 
 
   const handleDelete = (cat: QuickDialCategory) => {
     if (!canManage) return;
+    // 7B.3 (O3, acțiunea 5): confirmare înainte de cerere
+    if (!window.confirm(`Sigur doriți să ștergeți categoria „${cat.name}”?`)) return;
     // 409 dacă are contacte: mesajul serverului apare în banda de eroare (fără alert)
     void run(() => quickDialService.deleteCategory(cat.id), `Categoria „${cat.name}” a fost ștearsă.`);
   };
