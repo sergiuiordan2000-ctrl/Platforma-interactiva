@@ -268,4 +268,13 @@ Pe baza raportului 7B.1 (emulare Chromium — nu telefon real):
 | Tabelul „Conturi Admin” | **AM-11, varianta A** (11:57) | 7B.3 |
 | A21-2 — clarificările de aplicare (21.10.2026, 07:54; nu schimbă decizia B) | (1) numai pe mobil, sub `md`; desktopul neschimbat; (2) Admin: minimum 44 px pentru butoanele de acțiune cu text, minimum 24 px pentru butoanele-iconiță și celelalte ținte; pictogramele își păstrează mărimea vizuală, crește zona de atingere; (3) excepție numai pentru legăturile Leaflet / OpenStreetMap din atribuirea hărții; telefoanele și adresele din Ghid se măresc | 7B.3, grupul A21-2 |
 
-Deciziile rămase pentru 7B.3 (O3, N-7B-1, E4, E5) nu sunt luate.
+### Deciziile 7B.3 (22–23.10.2026)
+
+| Decizia | Alegerea | Consecința în plan |
+|---|---|---|
+| O3 — confirmări | **varianta A** (22.10.2026, 10:04): toate cele cinci confirmări, cu textele din §5; „Anulează” nu trimite nicio cerere, „OK” una singură; confirmarea fluxului la fiecare trecere din oprit în pornit (AM-2). Completare (10:58): aceeași confirmare și la închiderea sondajului din formularul de editare (starea „Închis / Finalizat”), un singur dialog | implementat și publicat (`ee123d1`); testul `test_7b3_confirmari.py` |
+| N-7B-1 — etichete interne | (22.10.2026, 13:04): grupul A integral (punctele 2, 3, 5, 6, 8–12; la punctul 5 „Modul Funcțional”); footer **A** (rândul „Versiune: …” eliminat); Acasă **B** (titlul „Versiune de test”, paragraful păstrat); Ghid **B** (fără codurile etapelor, butonul spre Acasă păstrat) | implementat și publicat (`db15a89`); testul `test_7b3_etichete.py` |
+| E4 — detalii SMTP | **varianta A** (23.10.2026, 10:13): diagnosticul SMTP rămâne vizibil numai pentru `super_admin`; fără modificări de cod | nicio schimbare; `outbox.ts` și `smtp.ts` neatinse |
+| E5 — texte | (23.10.2026, 10:15): E5-1 (harta), E5-2 (cele două mesaje ale fluxului, fără „(A17-1)”), E5-3 (conturi) și E5-4 (jurnalul e-mail) aprobate cu textele din §5; pentru starea `sending`: „în curs de trimitere”; o valoare necunoscută se afișează brut; `last_error` rămâne brut (E4 A). Codul „(A17-9)” nu face parte din E5 (decizie separată) | 7B.3, grupul E5; în `adminReports.ts` și `adminAccounts.ts` numai șiruri de text (AM-3) |
+
+Toate deciziile incluse în inventarul aprobat pentru 7B.3 sunt luate. Subiectele rămase în afara inventarului se tratează separat.
