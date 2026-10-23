@@ -537,6 +537,24 @@ describe('fluxul către Primărie și coada (B6, 2.1, 2.13, 2.14, pct. 7)', () =
     }
   });
 
+  it('7B.3 (E5-2): în `live`, pornirea fluxului fără acordul scris → 422, cu textul aprobat (fără „(A17-1)”); câmpul neschimbat', async () => {
+    const cfg = ctx.config.email;
+    const saved = cfg.mode;
+    (cfg as { mode: string }).mode = 'live';
+    try {
+      const res = await superAdmin.send('PUT', `${V1}/admin/settings/registry`, {
+        recipientEmail: 'registratura-test@exemplu.test', flowEnabled: true, primariaMode: 'platform', agreementReference: null,
+      });
+      assert.equal(res.statusCode, 422);
+      const err = res.json().error;
+      assert.equal(err.code, 'VALIDATION');
+      assert.equal(err.message, 'În producție, fluxul pornește numai cu acordul scris al Primăriei.');
+      assert.deepEqual(err.fields, { agreementReference: 'obligatoriu' });
+    } finally {
+      (cfg as { mode: string }).mode = saved;
+    }
+  });
+
   it('sesizare netransmisă → `resolved` refuzat (409)', async () => {
     const c = await citizen('netrans@exemplu.test');
     const id = await reportId((await submit(c)).json().referenceNumber);

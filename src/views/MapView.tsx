@@ -442,7 +442,7 @@ export const MapView: React.FC<MapViewProps> = ({ onNavigate }) => {
           <div className="p-3 rounded-2xl bg-amber-50/95 border border-amber-300 text-xs text-amber-900 flex items-center gap-2 shadow-md">
             <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
             <span>
-              Tile-urile OpenStreetMap nu au putut fi încărcate în acest moment (verificați conexiunea). Harta și markerii rămân funcționali în fundal.
+              Fundalul hărții nu s-a putut încărca (verificați conexiunea). Sesizările rămân afișate.
             </span>
           </div>
         )}

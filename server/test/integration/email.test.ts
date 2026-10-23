@@ -244,6 +244,10 @@ describe('e-mail real prin SMTP (5.5a)', { skip: NO_OPENSSL }, () => {
       recipientEmail: 'primaria-reala@exemplu.test', flowEnabled: true, primariaMode: 'platform', agreementReference: 'ACORD-TEST-1',
     });
     assert.equal(put.statusCode, 422, 'protecția din setări (E-5)');
+    // 7B.3 (E5-2): textul aprobat; codul și câmpul rămân neschimbate
+    assert.equal(put.json().error.code, 'VALIDATION');
+    assert.equal(put.json().error.message, 'Pe staging, destinatarul trebuie să fie în lista de adrese permise a serverului.');
+    assert.deepEqual(put.json().error.fields, { recipientEmail: 'în afara listei' });
     // destinatar salvat anterior, scos apoi din EMAIL_ALLOWLIST (simulat direct în setări)
     await setSetting(h.pool, 'registry.recipient_email', 'primaria-reala@exemplu.test', clock.now(), null);
     const c = await citizen(ALLOWED);

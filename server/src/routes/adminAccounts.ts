@@ -82,7 +82,7 @@ export function registerAdminAccountRoutes(api: FastifyInstance, ctx: AppContext
         );
         if (Number((cnt as Array<{ n: number }>)[0]!.n) <= 1) {
           await conn.rollback();
-          return reply.code(409).send(apiError('LAST_SUPER_ADMIN', 'Trebuie să rămână cel puțin un super_admin activ.'));
+          return reply.code(409).send(apiError('LAST_SUPER_ADMIN', 'Trebuie să rămână cel puțin un administrator principal (super_admin) activ.'));
         }
       }
       const now = ctx.now();

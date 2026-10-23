@@ -74,6 +74,24 @@ const TRANSMISSION_LABELS: Record<TransmissionState, string> = {
   failed: 'Eșuată',
   stopped: 'Oprită (fără trimitere reală)',
 };
+// 7B.3 (E5-4): etichetele jurnalului e-mail (numai afișare; valorile din API și din DB nu se schimbă).
+// O valoare necunoscută se afișează brut; `last_error` rămâne brut (E4, varianta A).
+const EMAIL_TYPE_LABELS: Record<string, string> = {
+  registry_notification: 'Notificare către Primărie',
+  citizen_status_update: 'Mesaj de stadiu către cetățean',
+  citizen_login_code: 'Cod de autentificare',
+  citizen_account_blocked: 'Anunț de blocare',
+};
+const EMAIL_STATUS_LABELS: Record<string, string> = {
+  sent: 'trimis',
+  failed: 'eșuat',
+  on_hold: 'în așteptare',
+  queued: 'în coadă',
+  cancelled: 'anulat',
+  blocked: 'blocat',
+  simulated: 'simulat',
+  sending: 'în curs de trimitere',
+};
 const errText = (err: unknown) => userMessage(err, 'Operația nu a reușit.');
 
 export const AdminReports: React.FC<AdminReportsProps> = ({ onSuccess }) => {
@@ -511,7 +529,7 @@ export const AdminReports: React.FC<AdminReportsProps> = ({ onSuccess }) => {
                               {(d.emails ?? []).map((e) => (
                                 <div key={e.id} className="flex flex-wrap items-center justify-between gap-2 text-[11px] bg-white border border-slate-200 rounded-lg px-2 py-1">
                                   <span>
-                                    {e.type} · <strong>{e.status}</strong> · {e.attempts} încercări{e.lastError ? ` · ${e.lastError}` : ''}
+                                    {EMAIL_TYPE_LABELS[e.type] ?? e.type} · <strong>{EMAIL_STATUS_LABELS[e.status] ?? e.status}</strong> · {e.attempts} încercări{e.lastError ? ` · ${e.lastError}` : ''}
                                   </span>
                                   {e.status === 'failed' && (
                                     <button

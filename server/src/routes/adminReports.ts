@@ -493,10 +493,10 @@ export function registerAdminReportRoutes(api: FastifyInstance, ctx: AppContext)
         return reply.code(422).send(apiError('VALIDATION', 'Pentru pornirea fluxului este necesar destinatarul.', { fields: { recipientEmail: 'obligatoriu' } }));
       }
       if (mode === 'live' && !body.agreementReference) {
-        return reply.code(422).send(apiError('VALIDATION', 'În producție, fluxul pornește numai cu acordul scris al Primăriei (A17-1).', { fields: { agreementReference: 'obligatoriu' } }));
+        return reply.code(422).send(apiError('VALIDATION', 'În producție, fluxul pornește numai cu acordul scris al Primăriei.', { fields: { agreementReference: 'obligatoriu' } }));
       }
       if (mode === 'allowlist' && !ctx.config.email.allowlist.includes(body.recipientEmail)) {
-        return reply.code(422).send(apiError('VALIDATION', 'Pe staging, destinatarul trebuie să fie în EMAIL_ALLOWLIST.', { fields: { recipientEmail: 'în afara listei' } }));
+        return reply.code(422).send(apiError('VALIDATION', 'Pe staging, destinatarul trebuie să fie în lista de adrese permise a serverului.', { fields: { recipientEmail: 'în afara listei' } }));
       }
     }
     const before = await getRegistrySettings(ctx.pool);

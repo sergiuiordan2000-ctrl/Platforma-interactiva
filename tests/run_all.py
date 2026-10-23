@@ -40,6 +40,8 @@ SUITES = [
     'ui/test_7b3_confirmari.py',
     # Etapa 7, 7B.3: etichetele interne (N-7B-1, deciziile din 22.10.2026)
     'ui/test_7b3_etichete.py',
+    # Etapa 7, 7B.3: formulările tehnice E5 (harta, jurnalul e-mail); E5-2 în testele serverului
+    'ui/test_7b3_texte_e5.py',
 ]
 # Limitări cunoscute, documentate în PROJECT_HANDOFF_CURRENT.md (G.4 / P7). Nu sunt bug-uri de regresie.
 # P7 / R6D-SES-01 închis formal la Faza 5.2 (sesiune validată pe server); orice FAIL al lui este acum regresie.
