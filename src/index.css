@@ -103,4 +103,10 @@ html {
     width: 44px;
     height: 44px;
   }
+  /* 7B.5 (constatarea 1, varianta B): butonul „×” al ferestrei unui marker, 44 × 44 pe mobil (pe calculator rămâne
+     24 × 24); antetul ferestrei îi rezervă spațiul (MapView, `max-md:pr-10`) */
+  .leaflet-container a.leaflet-popup-close-button {
+    width: 44px;
+    height: 44px;
+  }
 }

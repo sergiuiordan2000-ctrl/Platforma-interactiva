@@ -259,7 +259,7 @@ export const MapView: React.FC<MapViewProps> = ({ onNavigate }) => {
               : ''
           }
           <div class="p-3.5 space-y-2">
-            <div class="flex items-center justify-between gap-2 border-b border-slate-100 pb-2">
+            <div class="flex items-center justify-between gap-2 border-b border-slate-100 pb-2 max-md:pr-10 md:pr-6">
               <span class="font-mono text-xs font-black text-blue-900 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
                 ${safeReferenceNumber}
               </span>

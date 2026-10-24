@@ -42,6 +42,8 @@ SUITES = [
     'ui/test_7b3_etichete.py',
     # Etapa 7, 7B.3: formulările tehnice E5 (harta, jurnalul e-mail); E5-2 în testele serverului
     'ui/test_7b3_texte_e5.py',
+    # Etapa 7, 7B.5: fereastra markerului — „×” fără suprapunere, 44 × 44 pe mobil (constatarea 1, varianta B)
+    'ui/test_7b5_popup_marker.py',
 ]
 # Limitări cunoscute, documentate în PROJECT_HANDOFF_CURRENT.md (G.4 / P7). Nu sunt bug-uri de regresie.
 # P7 / R6D-SES-01 închis formal la Faza 5.2 (sesiune validată pe server); orice FAIL al lui este acum regresie.
