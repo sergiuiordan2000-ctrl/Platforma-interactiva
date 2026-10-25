@@ -1,7 +1,7 @@
 # FAZA 7B — RAPORT
 
 **Proiect:** Urbis Activ · **Branch:** `faza-5-backend` · **Ultimul commit de cod 7B:** `711a7ae` · **Data:** 25.10.2026
-**Stare:** raport **aprobat** de proprietar la 25.10.2026, ca document. Codul 7B este publicat (`711a7ae`, CI verde) și instalat pe staging (`1ee19fe` la 24.10.2026; `711a7ae`, cu remedierea constatării 1, la 25.10.2026). **Checkpoint-ul 7B nu este acordat** (decizie separată a proprietarului, §9). **Lansarea nu este aprobată.**
+**Stare:** raport **aprobat** de proprietar la 25.10.2026, ca document. Codul 7B este publicat (`711a7ae`, CI verde) și instalat pe staging (`1ee19fe` la 24.10.2026; `711a7ae`, cu remedierea constatării 1, la 25.10.2026). **Checkpoint-ul 7B a fost acordat** de proprietar la 25.10.2026, cu rezervele din §9. **Lansarea nu este aprobată.**
 **Baza:** `FAZA_7B_PLAN.md` (v1.2 rectificată la §10.3, aprobată la 20.10.2026; amendamentele AM-1…AM-11; deciziile din §15).
 **Jurnalul staging-ului:** `docs/faza5/STAGING_URBISACTIV_JURNAL.md`, intervențiile 82–105 și observațiile 16–18.
 
@@ -18,7 +18,7 @@
 
 ## 2. Deciziile
 
-Deciziile până la 7B.4 sunt consemnate în `FAZA_7B_PLAN.md` §15. Deciziile din 7B.5 (25.10.2026, ultimele șase rânduri) sunt consemnate în acest raport și în jurnalul staging-ului, nu în plan.
+Deciziile până la 7B.4 sunt consemnate în `FAZA_7B_PLAN.md` §15. Deciziile din 7B.5 (25.10.2026, ultimele șapte rânduri) sunt consemnate în acest raport și în jurnalul staging-ului, nu în plan.
 
 | Subiect | Decizia |
 |---|---|
@@ -35,7 +35,8 @@ Deciziile până la 7B.4 sunt consemnate în `FAZA_7B_PLAN.md` §15. Deciziile d
 | Constatarea 2 (Admin pe telefon) | limitare cunoscută, investigată; cauza exactă rămâne nedeterminată; nicio remediere aprobată (§7.1.2) |
 | Constatarea 3 (camera, HEIF/HEIC) | camera directă și suportul HEIC rămân neschimbate (§7.1.3) |
 | C5 (mesajele de eroare și de refuz) | inventarul acceptat cu acoperire parțială; cele cinci lipsuri de acoperire acceptate ca riscuri documentate pentru checkpoint (§4.1) |
-| Raportul 7B | aprobat ca document; checkpoint-ul rămâne decizie separată (§9) |
+| Raportul 7B | aprobat ca document (25.10.2026) |
+| Checkpoint-ul 7B | **acordat** (25.10.2026), cu rezervele din §9; lansarea publică nu este aprobată |
 
 ## 3. Commiturile
 
@@ -182,4 +183,17 @@ Constatările 2 și 3: investigația și documentarea sunt încheiate (25.10.202
 
 ## 9. Checkpoint-ul 7B
 
-**Neacordat.** Raportul a fost aprobat de proprietar la 25.10.2026, ca document; checkpoint-ul 7B rămâne o decizie separată a proprietarului. Checkpoint-ul nu aprobă lansarea publică.
+**Acordat** de proprietar la 25.10.2026, cu rezervele și limitările de mai jos.
+
+**Baza deciziei:** evaluarea independentă a checkpoint-ului 7B (25.10.2026; consemnată în conversația de lucru, nu în repository) și acest raport, publicat la commitul `7ca59409595ed7f2709a49fd5a4fbc7269e124d2` (CI verde: rularea 40187048898, 6/6 joburi).
+
+**Rezerve păstrate explicit** (nu sunt rezultate verificate și nu sunt remediate):
+1. Raportul primar 7B.1 nu este disponibil pentru reverificare independentă (rezultatele au rămas în afara repository-ului, `FAZA_7B_PLAN.md` §13).
+2. Probele de control ale testelor noi nu pot fi reverificate independent (rezultatele sunt consemnate în §4, fără un artefact reverificabil).
+3. Starea actuală a staging-ului nu a fost reverificată; ultima dovadă directă este `health` `0.0.0+711a7ae` (jurnalul, intervenția 100).
+4. iPhone/Safari și alte dispozitive sau browsere rămân **NEVERIFICATE** (§0, §6).
+5. Numărul exact de teste executate în CI pentru `7ca5940` nu a putut fi confirmat: jurnalele detaliate ale joburilor nu au fost accesibile în mediul de verificare.
+6. Cele cinci lipsuri de acoperire C5 rămân riscuri acceptate, neremediate (§4.1).
+7. Constatările 2 și 3 rămân nerezolvate la nivel de cod, conform deciziilor documentate (§7.1.2, §7.1.3).
+
+Checkpoint-ul 7B nu aprobă lansarea publică; lansarea rămâne o decizie separată a proprietarului, neacordată.
