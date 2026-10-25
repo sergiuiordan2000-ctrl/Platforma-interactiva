@@ -116,6 +116,13 @@ Testele existente adaptate (fără slăbirea verificărilor): `test_5_3_continut
 
 1. **Constatarea inițială — fereastra markerului (Android):** butonul „×” acoperea parțial eticheta categoriei. **Remediată** în `711a7ae` și verificată pe telefon la 25.10.2026 (§6.1).
 2. **Listele Admin goale, fără mesaj de eroare, după câteva minute cu ecranul oprit:** apoi Chrome a cerut parola lacătului, iar aplicația a cerut din nou autentificarea Admin. Inactivitatea (circa 7 minute) a fost sub limita de 60 de minute a sesiunii Admin. Cauza probabilă, neconfirmată: lacătul de pe staging (LiteSpeed răspunde 401, ca în observația 2 a jurnalului). Lipsa unui mesaj de eroare rămâne de verificat.
+
+   **Analiza (25.10.2026, numai citire: jurnalul de accesări S1, tabela `sessions` S2, codul; detaliile în jurnalul staging-ului, observația 17.2 și intervențiile 103–104):**
+   - **DEMONSTRAT:** pe 24.10.2026, în două episoade (08:23–08:25 și 08:36–08:37, ora României), cererile Admin au primit răspunsuri 401 de 1623 B și răspunsuri de 73 B / 23 B. Fiecare episod a fost precedat de un interval în care jurnalul nu înregistrează cereri și s-a încheiat cu o autentificare Admin nouă. Niciuna dintre sesiunile Admin identificate în S2 nu era expirată în acele momente; singurele revocări au fost prin rotația TOTP.
+   - **PROBABIL** (pe baza dimensiunilor din jurnal și a codului, fără verificarea directă a corpurilor răspunsurilor de pe staging): răspunsurile de 1623 B provin de la lacătul staging-ului; răspunsurile de 73 B / 23 B provin de la aplicație și înseamnă „nicio sesiune Admin recunoscută în cerere”; „(0)” din tab-ul Sondaje a reprezentat starea de eroare sau de încărcare a listei, nu o listă goală (mecanism confirmat local, în testul A).
+   - **H4:** expirarea normală a sesiunilor Admin identificate în S2 este infirmată. Identitatea sesiunii folosite efectiv de telefon nu este demonstrată.
+   - **NECUNOSCUT:** motivul pentru care cererile nu purtau o sesiune Admin recunoscută; rolul lacătului în acest lucru; starea ecranului telefonului și ce s-a afișat pe el; cine a declanșat reîncărcarea de la 08:37:39.
+   - **Observații de cod, independente de cauză (nicio remediere aprobată):** contoarele arată (0) în loc de starea de încărcare sau de eroare; orice eroare la verificarea sesiunii duce la formularul de autentificare; mesajul pentru un răspuns 401 fără JSON este generic.
 3. **Camera nu este oferită direct pe Android:** câmpul de fotografii acceptă numai `image/png,image/jpeg,image/webp` și selecție multiplă (neschimbat din 09.10.2026). Probabil nici fotografiile HEIC nu pot fi selectate.
 
 Constatările 2 și 3 sunt netratate; fiecare cere o decizie separată.
