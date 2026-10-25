@@ -76,7 +76,7 @@ Testele existente adaptate (fără slăbirea verificărilor): `test_5_3_continut
 
 **Instalarea** (jurnal, intervențiile 82–87): backup `civic-backup-20261024T043033036Z` verificat; pachetul `civic-1ee19fe.zip` (SHA-256 `df9c9042f036b4f24367a59c55c333ccece90dee971d0edfb6dc5da88a3e80f8`) dintr-o clonă curată, fără `--bootstrap-email`; fără migrări, `civic.env` neschimbat; `health` `0.0.0+1ee19fe`; aplicația oprită circa 3 minute. Proba scurtă (pagina publică, Admin) a trecut. Arhiva de revenire `civic-f6d3456.zip` (SHA-256 `7c55368e…11231f8`) a fost verificată, dar nu a fost necesară.
 
-**Probele pe telefon** (jurnal, intervențiile 88–95):
+**Probele pe telefon** (jurnal, intervențiile 88–95 și 105):
 
 | Probă | Android/Chrome | iPhone/Safari |
 |---|---|---|
@@ -87,7 +87,7 @@ Testele existente adaptate (fără slăbirea verificărilor): `test_5_3_continut
 | T5 vot | trecut (sondajul demonstrativ) | NEVERIFICAT |
 | T6 Admin pe telefon (tab-uri, bara, conturi) | trecut | NEVERIFICAT |
 | T7 confirmările O3 („Anulează”) | închiderea sondajului, din listă și din formular: trecut. Pornirea fluxului, „Reîncearcă”, ștergerea categoriei, „Marchează rezolvată”: NEVERIFICAT (pe staging lipseau condițiile: fluxul era pornit, niciun e-mail eșuat, toate categoriile au contacte, niciun subcont al Primăriei); acoperite de testele din emulare | NEVERIFICAT |
-| T8 fotografii | fotografie din cameră (prin galerie): trecut. Camera direct din selector: indisponibilă (§7.3). HEIC: NEVERIFICAT (nicio fotografie HEIC) | NEVERIFICAT |
+| T8 fotografii | fotografie din cameră (prin galerie): trecut. Camera direct din selector: indisponibilă (§7.1.3). HEIF/HEIC (testul din 25.10.2026, pagină de diagnostic separată, un singur telefon, Chrome 155; §7.1.3): fotografia HEIF nu apare în selectorul actual și nu poate fi aleasă; cu `accept="image/*"` poate fi aleasă, dar Chrome nu o decodează | NEVERIFICAT |
 
 **Urmele probelor:** TM-016 șters de autor (intervenția 96); contorul: 16. Votul de la T5 rămâne în sondajul demonstrativ. Nicio setare schimbată; niciun e-mail trimis în afara codului de autentificare de la T3.
 
@@ -123,9 +123,17 @@ Testele existente adaptate (fără slăbirea verificărilor): `test_5_3_continut
    - **H4:** expirarea normală a sesiunilor Admin identificate în S2 este infirmată. Identitatea sesiunii folosite efectiv de telefon nu este demonstrată.
    - **NECUNOSCUT:** motivul pentru care cererile nu purtau o sesiune Admin recunoscută; rolul lacătului în acest lucru; starea ecranului telefonului și ce s-a afișat pe el; cine a declanșat reîncărcarea de la 08:37:39.
    - **Observații de cod, independente de cauză (nicio remediere aprobată):** contoarele arată (0) în loc de starea de încărcare sau de eroare; orice eroare la verificarea sesiunii duce la formularul de autentificare; mesajul pentru un răspuns 401 fără JSON este generic.
-3. **Camera nu este oferită direct pe Android:** câmpul de fotografii acceptă numai `image/png,image/jpeg,image/webp` și selecție multiplă (neschimbat din 09.10.2026). Probabil nici fotografiile HEIC nu pot fi selectate.
+3. **Camera nu este oferită direct pe Android; fotografiile HEIF nu pot fi alese.** Câmpul de fotografii acceptă `image/png,image/jpeg,image/webp`, cu selecție multiplă (neschimbat din 09.10.2026).
 
-Constatările 2 și 3 sunt netratate; fiecare cere o decizie separată.
+   **Testul din 25.10.2026 (un singur telefon Android, Chrome 155; pagină de diagnostic separată de aplicație; jurnalul staging-ului, intervenția 105 și observația 17.3):**
+   - **DEMONSTRAT pe acest dispozitiv:** selectorul actual deschide selectorul de fotografii al sistemului (Google Foto), fără opțiunea Camera. Camera lipsește și cu `accept="image/*"`, cu sau fără `multiple`; numai `capture="environment"` deschide direct camera, iar atunci galeria nu mai este oferită. Atribuirea inițială a cauzei (lista exactă de formate și selecția multiplă) este **infirmată** pe acest dispozitiv.
+   - **DEMONSTRAT pe acest dispozitiv:** fotografiile JPEG existente se aleg și se decodează, inclusiv mai multe deodată.
+   - **DEMONSTRAT pe acest dispozitiv:** o fotografie HEIF autentică (`image/heic`, semnătura `ftyp heic`) nu apare în selectorul actual și nu poate fi aleasă; cu `accept="image/*"` poate fi aleasă, dar Chrome nu o decodează (`createImageBitmap` și `Image()` eșuează).
+   - **Observație de cod, neatinsă în practică:** un fișier HEIC ajuns în aplicație ar trece de validare (se acceptă orice `image/*`), iar la eșecul decodării mesajul ar fi „Nu s-a putut decoda imaginea… Fișierul poate fi corupt.”.
+   - **Limite:** un singur dispozitiv; pagina a rulat într-un cadru izolat, nu în aplicație (varianta identică cu aplicația a reprodus comportamentul ei). Alte telefoane, versiuni Android sau browsere: **NEVERIFICAT**; iPhone/Safari: **NEVERIFICAT**.
+   - Camera directă și suportul HEIC rămân neschimbate (decizia proprietarului, 25.10.2026); nicio schimbare de cod.
+
+Constatările 2 și 3: investigația și documentarea sunt încheiate (25.10.2026). Nicio remediere de cod nu este aprobată. Pentru constatarea 2, eventualele remedieri ale observațiilor de cod cer o decizie separată a proprietarului. Pentru constatarea 3, camera directă și suportul HEIC rămân neschimbate (decizia proprietarului, 25.10.2026).
 
 ### 7.2 Observații cu impact redus
 
