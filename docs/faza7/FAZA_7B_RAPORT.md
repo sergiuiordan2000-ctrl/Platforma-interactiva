@@ -1,9 +1,9 @@
 # FAZA 7B — RAPORT
 
-**Proiect:** Urbis Activ · **Branch:** `faza-5-backend` · **Ultimul commit 7B:** `1ee19fe` · **Data:** 25.10.2026
-**Stare:** proiect de raport, **neaprobat**. Codul 7B este publicat (`1ee19fe`, CI verde) și instalat pe staging (24.10.2026). **Checkpoint-ul 7B nu este acordat** (decizie separată a proprietarului, §9). **Lansarea nu este aprobată.**
+**Proiect:** Urbis Activ · **Branch:** `faza-5-backend` · **Ultimul commit 7B:** `711a7ae` · **Data:** 25.10.2026
+**Stare:** proiect de raport, **neaprobat**. Codul 7B este publicat (`711a7ae`, CI verde) și instalat pe staging (`1ee19fe` la 24.10.2026; `711a7ae`, cu remedierea constatării 1, la 25.10.2026). **Checkpoint-ul 7B nu este acordat** (decizie separată a proprietarului, §9). **Lansarea nu este aprobată.**
 **Baza:** `FAZA_7B_PLAN.md` (v1.2 rectificată la §10.3, aprobată la 20.10.2026; amendamentele AM-1…AM-11; deciziile din §15).
-**Jurnalul staging-ului:** `docs/faza5/STAGING_URBISACTIV_JURNAL.md`, intervențiile 82–96 și observațiile 16–17.
+**Jurnalul staging-ului:** `docs/faza5/STAGING_URBISACTIV_JURNAL.md`, intervențiile 82–102 și observațiile 16–18.
 
 ## 0. Metoda și termenii
 
@@ -14,7 +14,7 @@
 
 ## 1. Rezumat
 
-7B a tratat utilizarea pe mobil (A21-1, A21-2, A21-3a/b, AM-11), mesajele de eroare (E1–E3), confirmările Admin (O3), etichetele interne (N-7B-1) și formulările tehnice (E4–E5). Toate deciziile din inventarul aprobat sunt implementate, testate, publicate și instalate pe staging. Regresia cumulativă (7B.4) a trecut fără nicio diferență neexplicată. Pe telefonul Android, probele T1 și T3–T6 au trecut; T2, T7 și T8 au trecut parțial, subprobele rămase fiind **NEVERIFICATE**, cu motivele enumerate în §6. Au apărut trei constatări noi, netratate (§7).
+7B a tratat utilizarea pe mobil (A21-1, A21-2, A21-3a/b, AM-11), mesajele de eroare (E1–E3), confirmările Admin (O3), etichetele interne (N-7B-1) și formulările tehnice (E4–E5). Toate deciziile din inventarul aprobat sunt implementate, testate, publicate și instalate pe staging. Regresia cumulativă (7B.4) a trecut fără nicio diferență neexplicată. Pe telefonul Android, probele T1 și T3–T6 au trecut; T2, T7 și T8 au trecut parțial, subprobele rămase fiind **NEVERIFICATE**, cu motivele enumerate în §6. Au apărut trei constatări noi (§7): prima a fost remediată și verificată pe telefon la 25.10.2026 (`711a7ae`, §6.1); celelalte două rămân netratate. Un inconvenient vizual cu impact redus (controlul de zoom peste fereastra unui marker) este consemnat separat (§7.2).
 
 ## 2. Deciziile
 
@@ -43,6 +43,8 @@ Deciziile proprietarului sunt consemnate în `FAZA_7B_PLAN.md` §15:
 | `db15a89` | 7B.3 N-7B-1: etichetele interne | 6/6 |
 | `17a1052` | §15: deciziile O3, N-7B-1, E4, E5 | — |
 | `1ee19fe` | 7B.3 E5: formulările tehnice | 6/6 |
+| `99ffa49`, `327cf71` | 7B.5: jurnalul staging-ului; acest raport | — |
+| `711a7ae` | 7B.5: fereastra markerului — „×” fără suprapunere peste categorie, 44 × 44 pe mobil (constatarea 1, varianta B) | 6/6 |
 
 `main` a rămas la `d9bc2c9` pe toată durata 7B.
 
@@ -54,6 +56,8 @@ Deciziile proprietarului sunt consemnate în `FAZA_7B_PLAN.md` §15:
 | Python (`tests/run_all.py`) | 167 | **272** | +105: `test_7b2_mobil_erori` 12, `test_7b3_taburi_conturi` 7, `test_7b3_tinte_atingere` 52, `test_7b3_confirmari` 17, `test_7b3_etichete` 11, `test_7b3_texte_e5` 6. Suitele existente au același număr de verificări (167). Corectură: raportul 7B.4 din conversație indicase greșit „186 + 86”; totalul 272 era corect |
 
 Testele existente adaptate (fără slăbirea verificărilor): `test_5_3_continut_public`, `test_5_6_sondaje`, `test_faza6_flux_critic`, `test_7b2_mobil_erori` (selectorii etichetelor și acceptarea dialogurilor O3). Fiecare test nou are probe de control; toate încălcările simulate au picat, P0 a trecut, restaurările au avut SHA-256 identic.
+
+**După `711a7ae` (25.10.2026):** testul nou `test_7b5_popup_marker` (4 verificări, înregistrat în `tests/run_all.py`) a trecut 4/4, cu probe de control (P0 trece, cele 5 încălcări pică). Au fost rulate numai testele relevante: `test_7b3_tinte_atingere` 52/52 și `test_7b2_mobil_erori` 12/12; suita completă locală **nu** a fost reluată (decizia proprietarului). CI pe `711a7ae` (rularea 40134553200), inclusiv suita E2E: verde.
 
 ## 5. Regresia cumulativă (7B.4, 23.10.2026)
 
@@ -87,11 +91,38 @@ Testele existente adaptate (fără slăbirea verificărilor): `test_5_3_continut
 
 **Urmele probelor:** TM-016 șters de autor (intervenția 96); contorul: 16. Votul de la T5 rămâne în sondajul demonstrativ. Nicio setare schimbată; niciun e-mail trimis în afara codului de autentificare de la T3.
 
-## 7. Constatări noi (netratate; fiecare cere o decizie separată)
+### 6.1 Remedierea constatării 1 (25.10.2026, jurnal: intervențiile 97–102)
 
-1. **Fereastra markerului (Android):** butonul „×” acoperă parțial eticheta categoriei.
+**Cauza (demonstrată prin cod și măsurare în emulare):** `.leaflet-popup-content { margin: 0 }` din `src/index.css` a eliminat marginea dreaptă de 24 px pe care Leaflet o rezervă butonului „×”, iar antetul ferestrei (`justify-between`) lipea eticheta categoriei de margine. Suprapunerea exista de la 09.10.2026, pe orice ecran, la sesizările fără fotografie; pe mobil, A21-2 (`min-height: 44px`, fără lățime minimă) făcea butonul o bandă de 24 × 44 px peste etichetă.
+
+**Remedierea (varianta B):** butonul „×” are 44 × 44 px numai sub `md` (pe calculator rămâne 24 × 24 px); antetul ferestrei rezervă spațiul (`max-md:pr-10 md:pr-6`, `MapView.tsx`).
+
+**Verificarea automată (emulare):** fără nicio intersecție între „×” și conținut la 390, 360 și 1280 px, inclusiv la categoriile „Spații verzi & parcuri” și „Salubritate & deșeuri”; spațiul dintre etichetă și „×”: 4 px pe mobil, 8 px pe calculator.
+
+**Staging:** backup `civic-backup-20261025T053403154Z` verificat; `civic-711a7ae.zip` (SHA-256 `64776c23be718d58d3d22211c629f3cda7d4e4c4ff225c4f9beaa29d197f9d5d`); `health` `0.0.0+711a7ae`; fără migrări, configurație sau date noi.
+
+**Telefonul real (Android/Chrome):**
+
+| Verificare | TM-003 („Spații verzi & parcuri”) | TM-002 („Drumuri / carosabil”) |
+|---|---|---|
+| eticheta categoriei vizibilă întreagă, fără „×” peste ea | trecut | trecut |
+| zona de atingere a lui „×” | trecut: cerc mare, atins ușor (confirmat de proprietar); **dimensiunea exactă de 44 × 44 px nu a fost măsurată pe telefon**, ci numai în emulare | la fel |
+| închiderea ferestrei la atingerea lui „×” | trecut | trecut |
+| iPhone/Safari | NEVERIFICAT | NEVERIFICAT |
+
+## 7. Constatări noi
+
+### 7.1 Constatările din probele pe telefon
+
+1. **Constatarea inițială — fereastra markerului (Android):** butonul „×” acoperea parțial eticheta categoriei. **Remediată** în `711a7ae` și verificată pe telefon la 25.10.2026 (§6.1).
 2. **Listele Admin goale, fără mesaj de eroare, după câteva minute cu ecranul oprit:** apoi Chrome a cerut parola lacătului, iar aplicația a cerut din nou autentificarea Admin. Inactivitatea (circa 7 minute) a fost sub limita de 60 de minute a sesiunii Admin. Cauza probabilă, neconfirmată: lacătul de pe staging (LiteSpeed răspunde 401, ca în observația 2 a jurnalului). Lipsa unui mesaj de eroare rămâne de verificat.
 3. **Camera nu este oferită direct pe Android:** câmpul de fotografii acceptă numai `image/png,image/jpeg,image/webp` și selecție multiplă (neschimbat din 09.10.2026). Probabil nici fotografiile HEIC nu pot fi selectate.
+
+Constatările 2 și 3 sunt netratate; fiecare cere o decizie separată.
+
+### 7.2 Observații cu impact redus
+
+- **Controlul de zoom peste fereastra unui marker (25.10.2026, Android/Chrome):** într-o anumită poziție inițială a hărții, când fereastra se deschide aproape de marginea stângă, controlul „+”/„−” rămâne deasupra marginii stângi a ferestrei și acoperă parțial numărul TM și stadiul (observat la TM-003). Este comportamentul obișnuit al Leaflet. Deplasarea hărții poate elimina suprapunerea, conform observației din testul practic. Inconvenient vizual, nu defect major; fără remediere de cod în această etapă (jurnal, observația 18).
 
 ## 8. Subiecte deschise și limitări
 
