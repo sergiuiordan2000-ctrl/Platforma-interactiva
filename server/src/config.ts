@@ -140,6 +140,8 @@ const EnvSchema = z
     // în dezvoltare. Pe găzduirea partajată toți vizitatorii au aceeași adresă (TRUST_PROXY nu poate fi setat sigur),
     // deci o limită pe IP ar fi o limită pentru tot orașul (RA-9). Se pornesc numai cu o adresă reală (TRUST_PROXY).
     IP_RATE_LIMITS: z.enum(['on', 'off'], { message: 'valorile acceptate sunt „on” și „off”' }).optional(),
+    // 7C (DEC-2a/2c): indexarea de către motoarele de căutare; lipsă = „off” (noindex), în orice mediu
+    SEARCH_INDEXING: z.enum(['off', 'on'], { message: 'valorile acceptate sunt exact „off” și „on”' }).optional(),
     RETENTION_DAYS: intFromEnv(APPROVED_RETENTION_DAYS, 1, APPROVED_RETENTION_DAYS),
     ADMIN_RETENTION_MONTHS: intFromEnv(
       APPROVED_ADMIN_RETENTION_MONTHS,
@@ -196,6 +198,14 @@ const EnvSchema = z
         code: 'custom',
         path: ['IP_RATE_LIMITS'],
         message: 'limitele pe IP cer adresa reală a vizitatorului (TRUST_PROXY); fără ea ar fi comune tuturor. Ștergeți setarea sau folosiți „off”',
+      });
+    }
+    // 7C (DEC-2b): indexarea se poate activa numai în producție, la lansare (E9)
+    if (env.SEARCH_INDEXING === 'on' && env.APP_ENV !== 'production') {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['SEARCH_INDEXING'],
+        message: 'valoarea „on” (indexare permisă) este acceptată numai cu APP_ENV=production',
       });
     }
     if (env.DEV_OIDC_PROVIDER_URL !== undefined) {
@@ -262,6 +272,8 @@ export type Config = {
   devOidcProviderUrl?: string;
   /** D-B2: limitele de frecvență pe IP (implicit numai în dezvoltare; RA-9). */
   ipRateLimits: boolean;
+  /** 7C (DEC-2): `true` numai cu SEARCH_INDEXING=on (permis doar în producție); altfel noindex. */
+  searchIndexing: boolean;
   retentionDays: number;
   adminRetentionMonths: number;
   logLevel: string;
@@ -360,6 +372,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
         : undefined,
     devOidcProviderUrl: e.DEV_OIDC_PROVIDER_URL?.replace(/\/+$/, ''),
     ipRateLimits: e.IP_RATE_LIMITS === undefined ? e.APP_ENV === 'development' : e.IP_RATE_LIMITS === 'on',
+    searchIndexing: e.SEARCH_INDEXING === 'on',
     retentionDays: e.RETENTION_DAYS,
     adminRetentionMonths: e.ADMIN_RETENTION_MONTHS,
     logLevel: e.LOG_LEVEL,

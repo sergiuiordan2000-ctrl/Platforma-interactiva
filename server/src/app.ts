@@ -111,16 +111,17 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
     frameguard: { action: 'deny' },
   });
 
-  // ---- staging: niciodată indexat (G3, condiția 4) ----
-  if (config.appEnv === 'staging') {
+  // ---- indexarea (7C, DEC-2): implicit niciodată indexat, în orice mediu (G3, condiția 4) ----
+  // SEARCH_INDEXING=on (permis numai în producție, la lansare) scoate antetul și deschide robots.txt.
+  if (!config.searchIndexing) {
     app.addHook('onSend', async (_request, reply) => {
       reply.header('X-Robots-Tag', 'noindex, nofollow');
     });
-    app.get('/robots.txt', async (_request, reply) => {
-      reply.type('text/plain; charset=utf-8').header('Cache-Control', 'no-cache');
-      return 'User-agent: *\nDisallow: /\n';
-    });
   }
+  app.get('/robots.txt', async (_request, reply) => {
+    reply.type('text/plain; charset=utf-8').header('Cache-Control', 'no-cache');
+    return config.searchIndexing ? 'User-agent: *\nAllow: /\n' : 'User-agent: *\nDisallow: /\n';
+  });
 
   // RA-10 (reaudit, 13.10.2026; constatarea R17): handlerul de erori se setează înaintea înregistrării rutelor.
   // În Fastify, un context copil (rutele `/api/v1`) primește handlerul existent în clipa înregistrării; setat

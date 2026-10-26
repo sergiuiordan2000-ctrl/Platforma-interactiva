@@ -136,10 +136,10 @@ describe('staging: noindex (G3, condiția 4)', () => {
     await a.close();
   });
 
-  it('dezvoltare: fără X-Robots-Tag', async () => {
+  it('dezvoltare: X-Robots-Tag implicit (7C, DEC-2a: SEARCH_INDEXING lipsă = „off” în orice mediu)', async () => {
     const a = await app();
     const res = await a.inject({ method: 'GET', url: '/api/v1/health' });
-    assert.equal(res.headers['x-robots-tag'], undefined);
+    assert.equal(res.headers['x-robots-tag'], 'noindex, nofollow');
     await a.close();
   });
 });
