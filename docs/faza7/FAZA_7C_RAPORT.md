@@ -3,6 +3,7 @@
 **Proiect:** Urbis Activ (Turnu Măgurele Civic) · **Etapa:** E1 / 7C · **Început:** 26.10.2026
 **Perimetrul aprobat:** P1–P8 (`docs/faza7/FAZA_7_E0_REGISTRU_DECIZII.md` §2.4 și Anexa A).
 **Stare:** în lucru. Checkpoint-ul 7C nu este acordat. Lansarea publică nu este aprobată.
+**Actualizare din 26.10.2026 (seara):** starea punctelor deschise din §4 și a criteriilor din §5 după deciziile proprietarului consemnate în `docs/faza7/FAZA_7_REGISTRU_DECIZII_ACTUALIZARI.md` §3–§5: vezi §6. Secțiunile §1–§5 rămân în forma inițială, ca istoric.
 
 ---
 
@@ -130,6 +131,8 @@ server: test/unit/oidcProvider.test.ts(6,41): 'safeGoogleAuthorizationUrl'
 
 ## 4. Puncte deschise semnalate în E1 (nerezolvate, fără acțiune în afara perimetrului)
 
+> Starea de la commitul `0a0f8ea`. Punctele 1, 3 și 6 au fost rezolvate ulterior; vezi §6.
+
 1. **`.env.example` (rândurile 37–39)** conține încă documentația variabilei `DIAG_CLIENT_IP`. Fișierul nu este în lista P3; criteriul E1.5 cere „nicio referință rămasă la codul de diagnostic”. Eliminarea rândurilor cere decizia proprietarului. Alte referințe în afara `docs/`: numai în `PROJECT_HANDOFF_CURRENT.md` (documentație de predare, de actualizat în 7D, C5) și în testul DG nou.
 2. **Efectul DG-2:** schema de configurare ignoră variabilele necunoscute. După eliminare, `DIAG_CLIENT_IP` rămasă în `civic.env` nu mai are niciun efect, în niciun mediu; în producție, aplicația nu mai refuză pornirea pentru această variabilă (pagina nu mai există).
 3. **Prezentarea antetului (A4):** „Urbis Activ” ca nume; „Turnu Măgurele” ca text secundar lângă nume, vizibil pe toate lățimile (în locul etichetei „CIVIC”, care era ascunsă pe mobil); subtitlul „Platformă Independentă · Teleorman” neschimbat. Forma vizuală se supune verificării proprietarului.
@@ -151,4 +154,83 @@ Mediul local de la §1. **Nu înlocuiește CI** (criteriul E1.1 cere CI verde pe
 | teste de integrare | tests 389 · pass 389 · fail 0 · cancelled 0 · skipped 0 · todo 0 (383 + 3 TO + 3 RN) |
 | E2E | 18 suite, `TOTAL: 283/283 PASS`, `REZULTAT: OK` (276 + 7 RN-1/RN-2) |
 
-**Starea criteriilor checkpoint-ului 7C (planul v2.4, E1):** 1 (CI 6/6) — neîndeplinit până la push și CI; 2 (numărul de teste al rulării 7C) — consemnat local mai sus, de confirmat din CI; 3 — îndeplinit; 4 — dovezile sunt colectate (§1.1, §3.1); 5 — de închis după decizia pentru `.env.example` (§4.1); 6, 7 — îndeplinite local; 8 — DEC-19 decisă, DEC-3b de decis; 9 — neacordat; 10 — G6 neclarificat.
+**Starea criteriilor checkpoint-ului 7C (planul v2.4, E1), la commitul `0a0f8ea` (starea actualizată: §6.5):** 1 (CI 6/6) — neîndeplinit până la push și CI; 2 (numărul de teste al rulării 7C) — consemnat local mai sus, de confirmat din CI; 3 — îndeplinit; 4 — dovezile sunt colectate (§1.1, §3.1); 5 — de închis după decizia pentru `.env.example` (§4.1); 6, 7 — îndeplinite local; 8 — DEC-19 decisă, DEC-3b de decis; 9 — neacordat; 10 — G6 neclarificat.
+
+---
+
+## 6. Actualizare datată — 26.10.2026 (după deciziile proprietarului)
+
+**Ce s-a schimbat față de §4–§5:** s-au rezolvat punctele deschise 4.1 (`.env.example`), 4.3 (antetul A4) și 4.6 (G6, DEC-3b). Rezolvarea s-a făcut printr-un commit de cod și prin decizii ale proprietarului consemnate în `docs/faza7/FAZA_7_REGISTRU_DECIZII_ACTUALIZARI.md` (denumit mai jos „registrul de actualizări”). Punctele 4.2, 4.4 și 4.5 rămân neschimbate. Dovezile și rezultatele din §1–§5 nu au fost rescrise.
+
+### 6.1 `.env.example` — documentația `DIAG_CLIENT_IP` eliminată (punctul 4.1)
+
+- Prin commitul `c3918204130541b71c6e5095ab4a2e3f9b46ab09` au fost eliminate cele trei rânduri de comentarii despre `DIAG_CLIENT_IP` (pagina temporară de diagnostic din Faza 6, `GET /api/v1/diag/client-ip`), aprobate de proprietar la 26.10.2026.
+- Căutarea a fost refăcută la 26.10.2026, cu `git grep -n "DIAG_CLIENT_IP\|diag/client-ip"` în afara `docs/`, la HEAD `f19c545`. Rezultate:
+  - `.env.example`: 0 apariții;
+  - `PROJECT_HANDOFF_CURRENT.md`, rândul 82: o mențiune istorică a paginii din Faza 6 în documentația de predare, care se actualizează în 7D (C5);
+  - `server/test/api/diagnostics.test.ts`: testele DG-1 și DG-2, care verifică tocmai absența rutei și a variabilei.
+- Codul aplicației nu mai conține nicio referință (P3, `aed3cb7`).
+- Aprecierea criteriului E1.5 cu mențiunea rămasă în documentația de predare aparține proprietarului, la checkpoint.
+
+### 6.2 DEC-3b — `source-map-js`: risc rezidual acceptat condiționat (punctul 4.6)
+
+Decizia proprietarului, varianta a (registrul de actualizări, §3; commitul `29a9960f1fe56847ffeff109c44e32431f80191d`), se bazează pe dovezile din §1.1 și §3.1:
+
+- **Pachetul nu a fost eliminat.** `source-map-js` 1.2.2 rămâne în arborele de dependențe după eliminarea `autoprefixer` (P2, `df5301e`). Este adus de `@tailwindcss/vite` → `@tailwindcss/node` și de `vite` → `postcss`.
+- Pachetul nu a fost găsit în artefactele verificate: build-ul frontend `dist/` și bundle-ul serverului `server/dist/app.js`.
+- `npm audit` din 26.10.2026 nu raportează pachetul.
+
+**Condiția:** `npm audit` se reverifică înaintea E4. Dacă `source-map-js` este raportat din nou, decizia se redeschide.
+
+**Limite:** celelalte șapte vulnerabilități `npm audit` (§1.2) rămân deschise. Ele nu sunt acceptate definitiv și cer o decizie separată (punctul 4.5, neschimbat).
+
+### 6.3 G6 și criteriul E1.10 (punctul 4.6)
+
+Proprietarul a confirmat la 26.10.2026 că G6 (găzduirea de producție) este închis și că criteriul E1.10 este îndeplinit (registrul de actualizări, §4; commitul `ac062d514145dca03268b77eddb2000053165ca5`).
+
+Decizia se bazează pe documentele-sursă, care nu au fost modificate:
+- `docs/faza5/AMENDAMENT_MARIADB_SI_GAZDUIRE.md` (07.10.2026): ClausWeb, plan „NodeJS1” cu cPanel, MariaDB 11.4.13, Node 24.21.0;
+- `docs/faza5/FAZA_5_RAPORT_FINAL.md`, rândurile 45 și 53;
+- `docs/faza5/STAGING_URBISACTIV_JURNAL.md`, antetul.
+
+**Contradicția, păstrată explicit:**
+- Planul v2.4 (`FAZA_7_PLAN_ACTIUNE_MVP_v2.4.md`) tratează G6 ca deschis: DEC-7 „DESCHISĂ” în §6 și N-10 în §8.
+- Registrul de bază îl listează ca decizie rămasă (§3.3).
+- Decizia de găzduire din 07.10.2026 îl închisese deja.
+- Planul v2.4 și registrul de bază rămân neschimbate. Starea în vigoare a G6 este cea din registrul de actualizări, §4.
+
+**Auditul amendamentului:** antetul amendamentului menționa că acesta „nu a fost încă trimis la audit”. Nu există o confirmare că amendamentul a trecut un audit.
+
+**Întrebări operaționale care rămân deschise pentru E4** (fără cod în 7C):
+- producția ca a doua aplicație pe același cont și limitele planului;
+- criptarea backup-ului și gestionarea cheii (criteriul E4.11);
+- reînnoirea găzduirii;
+- reevaluarea `TRUST_PROXY` (DEC-4).
+
+### 6.4 Antetul A4 — forma aprobată (punctul 4.3)
+
+Proprietarul a aprobat la 26.10.2026 forma antetului implementată la P7 (registrul de actualizări, §5; commitul de implementare `a76f52413f328b3d24f1ec18df1340ba4a7ae035`). Forma a fost examinată pe capturile Playwright la 1280 px și la 375 px.
+
+**Comportamentul observat:**
+- „Urbis Activ” și textul secundar „Turnu Măgurele” sunt vizibile la ambele lățimi.
+- În subtitlu, „Teleorman” este vizibil la lățimi mai mari, dar nu apare în captura mobilă de 375 px.
+- Cauza: elementul are clasa `hidden sm:inline` (vizibil de la pragul `sm`, 640 px, în sus). Clasa exista înaintea P7 (identică la `97aa3a8`); P7 nu a modificat subtitlul.
+- Nu este o modificare nouă a implementării. Antetul nu a fost modificat după aprobare.
+
+### 6.5 Starea checkpoint-ului 7C (planul v2.4, E1)
+
+**P1–P8 sunt implementate și verificate local** (§3, §5), în commituri locale. Verificările locale nu înlocuiesc CI.
+
+| Criteriul | Starea la 26.10.2026 |
+|---|---|
+| E1.1 — CI verde pe toate cele 6 joburi la commitul final 7C | **neîndeplinit**: commiturile 7C nu sunt publicate; CI nu a rulat pe ele |
+| E1.2 — numărul de teste al rulării 7C | consemnat local (§5); **de confirmat din jurnalele CI**, după rulare |
+| E1.3 — build fără `autoprefixer` | verificat local (§3, P2); confirmarea finală prin CI (E1.1) |
+| E1.4 — `npm ls`, `npm audit`, analiza artefactului | dovezile sunt consemnate (§1.1, §3.1) și prezentate proprietarului |
+| E1.5 — nicio referință rămasă la codul de diagnostic | căutarea refăcută (§6.1); aprecierea finală la checkpoint |
+| E1.6, E1.7 — testele trec | trec local (§5); confirmarea prin CI (E1.1) |
+| E1.8 — DEC-3b și DEC-19 decise | decise: DEC-19 (registrul de actualizări, §1), DEC-3b (§3) |
+| E1.9 — checkpoint-ul 7C acordat de proprietar | **neacordat**: cere decizia explicită a proprietarului |
+| E1.10 — G6 clarificat | îndeplinit prin decizia proprietarului (§6.3) |
+
+**Checkpoint-ul 7C nu este închis. Lansarea publică nu este aprobată.**
