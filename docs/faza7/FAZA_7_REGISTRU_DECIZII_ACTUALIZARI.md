@@ -130,3 +130,22 @@ Acest document consemnează, în ordine cronologică, schimbările de stare și 
 - **Lansarea publică nu este aprobată.**
 
 Această notă nu modifică înregistrările §1–§5.
+
+---
+
+## 7. Checkpoint-ul 7C — acordat la 26.10.2026
+
+**Decizia:** proprietarul acordă checkpoint-ul 7C (planul v2.4, E1, criteriul 9) și consideră îndeplinit criteriul E1.5.
+
+**Baza:**
+- commitul final 7C `aa35706d3aa0df40133971869826e483179f9964` (`faza-5-backend`); rularea CI 40379976702, 6/6 joburi `success`;
+- numerele testelor din jurnalele CI: unitare 104/104, API 25/25, integrare 389/389 pe fiecare dintre cele 5 joburi backend; E2E `TOTAL: 283/283 PASS`;
+- clasificarea criteriilor E1.1–E1.10: `docs/faza7/FAZA_7C_RAPORT.md` §7.
+
+**E1.5:** codul de diagnostic a fost eliminat (P3, `aed3cb7`; `.env.example`, `c391820`). Testele DG-1 și DG-2, care verifică absența rutei, se păstrează. Mențiunea istorică din `PROJECT_HANDOFF_CURRENT.md` rămâne pentru etapa 7D.
+
+**Limite:**
+- Cele șapte vulnerabilități `npm audit` (`FAZA_7C_RAPORT.md` §1.2) rămân deschise și cer o decizie separată. Condiția DEC-3b (reverificarea înaintea E4) rămâne în vigoare (§3).
+- Întrebările operaționale G6 pentru E4 rămân deschise (§4).
+- Închiderea 7C nu autorizează E2 sau alte etape; fiecare cere aprobare separată.
+- Lansarea publică nu este aprobată.

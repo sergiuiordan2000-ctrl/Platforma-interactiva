@@ -234,3 +234,63 @@ Proprietarul a aprobat la 26.10.2026 forma antetului implementată la P7 (regist
 | E1.10 — G6 clarificat | îndeplinit prin decizia proprietarului (§6.3) |
 
 **Checkpoint-ul 7C nu este închis. Lansarea publică nu este aprobată.**
+
+---
+
+## 7. Închiderea checkpoint-ului 7C — 26.10.2026
+
+**Decizia proprietarului (26.10.2026):** checkpoint-ul 7C este **acordat** (criteriul E1.9). Criteriul E1.5 este considerat **îndeplinit**. Decizia este consemnată în `docs/faza7/FAZA_7_REGISTRU_DECIZII_ACTUALIZARI.md` §7.
+
+Secțiunea §6, inclusiv tabelul din §6.5, rămâne neschimbată ca istoric: reflectă starea dinaintea rulării CI. Starea finală este cea de mai jos.
+
+### 7.1 Commitul final 7C și rularea CI
+
+| Câmp | Valoare |
+|---|---|
+| Commitul final 7C | `aa35706d3aa0df40133971869826e483179f9964` (`faza-5-backend`), publicat la 26.10.2026 prin push fast-forward de la `97aa3a8`; 17 commituri, `7e84e32` … `aa35706` |
+| Rularea CI | 40379976702 (workflow „CI”, declanșată de push), concluzia `success` |
+| SHA-ul în jurnale | pasul de checkout din fiecare job preia exact `aa35706d3aa0df40133971869826e483179f9964` |
+| Erori în jurnale | 0 rânduri `##[error]` în fiecare dintre cele 6 joburi |
+| Proveniența dovezilor | jurnalele brute ale joburilor, citite la 26.10.2026 prin browserul aplicației Claude, cu sesiunea GitHub a proprietarului |
+
+### 7.2 Rezultatele pe joburi
+
+| Jobul (id) | Unitare | API | Integrare | Pasul „Artefactul” | Concluzia |
+|---|---|---|---|---|---|
+| backend (Node 20, MySQL 8.0) (121773261128) | 104/104 | 25/25 | 389/389 | `health` `0.0.0+aa35706`; verificările `X-Robots-Tag` și `robots.txt` trec | `success` |
+| backend (Node 20, MySQL 8.4) (121773261561) | 104/104 | 25/25 | 389/389 | idem | `success` |
+| backend (Node 24, MySQL 8.0) (121773260949) | 104/104 | 25/25 | 389/389 | idem | `success` |
+| backend (Node 24, MySQL 8.4) (121773261202) | 104/104 | 25/25 | 389/389 | idem | `success` |
+| backend (Node 24, MariaDB 11.4) (121773261506) | 104/104 | 25/25 | 389/389 | idem | `success` |
+| E2E (Python + Playwright) (121773260734) | — | — | — | — | 18 suite, `TOTAL: 283/283 PASS`, `REZULTAT: OK` |
+
+- În toate joburile backend: `fail 0`, `cancelled 0`, `skipped 0`, `todo 0`.
+- Jurnalele confirmă mediile: Node v20.20.2 / v24.21.0 și imaginile `mysql:8.0`, `mysql:8.4`, `mariadb:11.4`.
+- Suita nouă `ui/test_7c_redenumire.py` dă 7/7.
+- Valorile coincid cu verificarea locală din §5.
+
+### 7.3 Criteriile E1.1–E1.10 (planul v2.4, E1) — starea finală
+
+| Criteriul | Starea | Dovada |
+|---|---|---|
+| E1.1 — CI verde pe toate cele 6 joburi la commitul final 7C | îndeplinit | §7.1, §7.2 |
+| E1.2 — numărul de teste al rulării 7C consemnat | îndeplinit | §7.2: 104 + 25 + 389 = 518 pe fiecare job backend; E2E 283. Acest număr nu privește rezerva 5 din 7B, închisă separat (DEC-19) |
+| E1.3 — build-ul frontend fără `autoprefixer` | îndeplinit | pasul `npm run build` trece în CI; §3 (P2) |
+| E1.4 — `npm ls`, `npm audit`, analiza artefactului | îndeplinit | §1.1, §3.1; DEC-3b (§6.2) |
+| E1.5 — nicio referință rămasă la codul de diagnostic | îndeplinit, prin decizia proprietarului | §6.1: codul a fost eliminat; testele DG-1 și DG-2 se păstrează; mențiunea istorică din `PROJECT_HANDOFF_CURRENT.md` rămâne pentru 7D |
+| E1.6 — toate testele din §3 al planului trec | îndeplinit | SI-1…SI-9, DG-1, DG-2 (API); TO-1…TO-3, RN-3…RN-5 (integrare); RN-1, RN-2 (E2E), pe toate joburile |
+| E1.7 — testele DEC-18 trec (DEC-18 = b) | îndeplinit | TO-1…TO-3, în toate cele 5 joburi backend |
+| E1.8 — DEC-3b și DEC-19 decise | îndeplinit | registrul de actualizări, §1 și §3 |
+| E1.9 — checkpoint-ul 7C acordat de proprietar | îndeplinit | decizia din 26.10.2026; registrul de actualizări, §7 |
+| E1.10 — G6 clarificat | îndeplinit | registrul de actualizări, §4; §6.3 |
+
+### 7.4 Ce rămâne deschis după închiderea 7C
+
+Punctele de mai jos **nu sunt rezolvate** prin închiderea checkpoint-ului:
+- **cele șapte vulnerabilități `npm audit`** (§1.2): deschise, neacceptate definitiv; cer o decizie separată;
+- **DEC-3b:** `npm audit` se reverifică înaintea E4;
+- **G6:** întrebările operaționale pentru E4 (§6.3) rămân deschise;
+- **neconcordanța „7 fișiere” / 8 fișiere** din registrul de bază (§4.4) rămâne consemnată, fără efect asupra codului;
+- **mențiunea istorică din `PROJECT_HANDOFF_CURRENT.md`** se tratează în 7D (C5).
+
+**Etapele următoare (E2 și celelalte) cer aprobări separate. Lansarea publică nu este aprobată.**
