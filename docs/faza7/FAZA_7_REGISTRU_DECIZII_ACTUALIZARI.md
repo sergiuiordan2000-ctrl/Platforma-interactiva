@@ -78,3 +78,28 @@ Acest document consemnează, în ordine cronologică, schimbările de stare și 
 **Condiția:** `npm audit` se reverifică înaintea E4. Dacă `source-map-js` este raportat din nou, decizia se redeschide.
 
 **Limite:** decizia nu acoperă celelalte șapte constatări `npm audit` (`FAZA_7C_RAPORT.md` §1.2: `zod`, `vite`, `body-parser`, `nodemailer`, `smtp-server`, `fast-uri`, `fastify`). Ele rămân deschise, nu sunt acceptate definitiv și cer o decizie separată.
+
+---
+
+## 4. G6 — găzduirea de producție: închis (varianta a), confirmat la 26.10.2026; corectarea stării din planul v2.4
+
+**Decizia:** proprietarul confirmă că G6 este închis, pe baza deciziei din 07.10.2026 privind găzduirea ClausWeb, și că **criteriul E1.10** (planul v2.4, E1) este îndeplinit pe baza dovezilor de mai jos.
+
+**Documentele-sursă (neschimbate):**
+- `docs/faza5/AMENDAMENT_MARIADB_SI_GAZDUIRE.md` (07.10.2026): „Închide **G6** (infrastructura de producție) și **G7** (domeniul)”; G6 = ClausWeb, plan „NodeJS1” cu cPanel, IP dedicat, „Remote SMTP”; baza de date MariaDB 11.4.13; Node 24.21.0;
+- `docs/faza5/FAZA_5_RAPORT_FINAL.md`, rândul 45 („închide G6 și G7”) și rândul 53 (staging-ul este pe găzduirea de producție, G3);
+- `docs/faza5/STAGING_URBISACTIV_JURNAL.md`, antetul (ClausWeb, „NodeJS1”, IP dedicat).
+
+**Contradicția constatată (păstrată ca istoric):** planul v2.4 tratează G6 ca deschis: DEC-7 „G6, găzduirea de producție | DESCHISĂ / [DOVEZI]” (§6) și N-10 „starea G6” (§8); registrul de bază îl listează în §3.3 ca decizie rămasă. Starea era greșită la redactare: amendamentul din 07.10.2026 nu fusese verificat. Planul v2.4 și registrul de bază rămân neschimbate; starea în vigoare a G6 este cea din această înregistrare.
+
+**Dovezile pentru criteriul E1.10** (nicio cerință a găzduirii nu impune cod nou în 7C):
+- staging-ul `test.urbisactiv.ro` rulează pe aceeași găzduire, cu Node 24.21.0 și MariaDB 11.4.13; ultima verificare directă: `health` `0.0.0+711a7ae` (jurnalul staging-ului, intervenția 106);
+- CI rulează jobul „backend (Node 24, MariaDB 11.4)”, verde la ultimele rulări (de exemplu 40284714660, la `97aa3a8`).
+
+**Rămân pentru E4** (întrebări operaționale, fără cod; DEC-7 se consideră închis numai în privința alegerii găzduirii):
+- dacă producția rulează ca a doua aplicație pe același cont și în ce limite ale planului;
+- metoda de criptare a backup-ului și gestionarea cheii (planul v2.4, criteriul E4.11);
+- reînnoirea găzduirii: plătită pe 3 luni de la 07.10.2026, conform amendamentului;
+- reevaluarea `TRUST_PROXY` (DEC-4).
+
+**Observație:** antetul amendamentului din 07.10.2026 menționa că amendamentul „nu a fost încă trimis la audit”; starea auditului nu a fost reverificată în documentele citite.
