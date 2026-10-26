@@ -63,3 +63,18 @@ Acest document consemnează, în ordine cronologică, schimbările de stare și 
 - Această consemnare nu închide anticipat niciun criteriu al checkpoint-ului 7C (planul v2.4, E1, criteriile 1–10). Rămân de îndeplinit, între altele, DEC-3b (după dovezile `source-map-js`) și clarificarea G6 (criteriul E1.10).
 - Închiderea E0 nu autorizează singură implementarea; pornirea E1 se face numai prin aprobarea explicită a proprietarului, în forma R2 (registrul de bază, §2.5).
 - Lansarea publică nu este aprobată.
+
+---
+
+## 3. DEC-3b — `source-map-js`: risc rezidual acceptat (varianta a), aprobată la 26.10.2026
+
+**Decizia:** proprietarul acceptă riscul rezidual legat de `source-map-js` (planul v2.4, §6, DEC-3b, varianta a), cu condiția de mai jos.
+
+**Dovezile** (26.10.2026; `docs/faza7/FAZA_7C_RAPORT.md` §1.1 și §3.1):
+- după eliminarea `autoprefixer` (7C, P2, commitul `df5301edf7dcd1c6c425f16cd6985cf0f99499e1`), `source-map-js` 1.2.2 **rămâne** în arborele de dependențe, adus de `@tailwindcss/vite` → `@tailwindcss/node` și de `vite` → `postcss`; pachetul **nu** a fost eliminat complet;
+- pachetul nu a fost găsit în artefactele verificate: build-ul frontend (`dist/`) și bundle-ul serverului (`server/dist/app.js`);
+- `npm audit` din 26.10.2026 nu îl raportează. Avertismentul semnalat de reauditul Faza 6 (GHSA-68fv-2mgg-jv7q) privea versiunea 1.2.1.
+
+**Condiția:** `npm audit` se reverifică înaintea E4. Dacă `source-map-js` este raportat din nou, decizia se redeschide.
+
+**Limite:** decizia nu acoperă celelalte șapte constatări `npm audit` (`FAZA_7C_RAPORT.md` §1.2: `zod`, `vite`, `body-parser`, `nodemailer`, `smtp-server`, `fast-uri`, `fastify`). Ele rămân deschise, nu sunt acceptate definitiv și cer o decizie separată.
