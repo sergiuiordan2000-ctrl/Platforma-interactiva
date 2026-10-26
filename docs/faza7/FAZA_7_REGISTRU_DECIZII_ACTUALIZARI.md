@@ -46,3 +46,20 @@ Acest document consemnează, în ordine cronologică, schimbările de stare și 
 - Se închide **exclusiv rezerva 5** din `FAZA_7B_RAPORT.md` §9. Textul ei original rămâne în raport ca formulare istorică, însoțit de o actualizare datată.
 - Celelalte rezerve 7B și celelalte decizii rămân neschimbate.
 - E1/7C rămâne neautorizată.
+
+---
+
+## 2. Închiderea E0 — confirmată de proprietar la 26.10.2026
+
+**Decizia:** proprietarul confirmă închiderea etapei E0 (planul v2.4, §2, „E0 — Aliniere”), pe baza criteriilor și a dovezilor deja acceptate.
+
+**Baza:**
+- planul v2.4 aprobat la 25.10.2026 (`docs/faza7/FAZA_7_PLAN_ACTIUNE_MVP_v2.4.md`); deciziile dinaintea 7C (DEC-2a/2b/2c, DEC-18, DEC-14, DEC-3, RN-5, R2) consemnate în registrul de bază, §2;
+- perimetrul E1/7C închis la nivel de planificare: P1–P8, cu criteriile de acceptare din Anexa A a registrului de bază;
+- documentația E0.3 publicată la commitul `e4e775811129eafe286393900593e3f064dd095e` (CI 40210977980, 6/6 joburi verzi);
+- DEC-19 închisă (varianta a) prin commitul `97aa3a8498d61a61c8033db7af9fa122783a2780` (CI 40284714660, 6/6 joburi verzi); vezi §1.
+
+**Limite:**
+- Această consemnare nu închide anticipat niciun criteriu al checkpoint-ului 7C (planul v2.4, E1, criteriile 1–10). Rămân de îndeplinit, între altele, DEC-3b (după dovezile `source-map-js`) și clarificarea G6 (criteriul E1.10).
+- Închiderea E0 nu autorizează singură implementarea; pornirea E1 se face numai prin aprobarea explicită a proprietarului, în forma R2 (registrul de bază, §2.5).
+- Lansarea publică nu este aprobată.
