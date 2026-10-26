@@ -196,4 +196,6 @@ Constatările 2 și 3: investigația și documentarea sunt încheiate (25.10.202
 6. Cele cinci lipsuri de acoperire C5 rămân riscuri acceptate, neremediate (§4.1).
 7. Constatările 2 și 3 rămân nerezolvate la nivel de cod, conform deciziilor documentate (§7.1.2, §7.1.3).
 
+**Actualizare (26.10.2026):** rezerva 5 a fost închisă de proprietar (DEC-19, varianta a), pe baza jurnalelor recuperate ale rulării CI `40187048898`: fiecare job backend 507/507 teste, E2E 276/276. Detaliile și proveniența dovezilor sunt consemnate în `docs/faza7/FAZA_7_REGISTRU_DECIZII_ACTUALIZARI.md`. Textul original al rezervei este păstrat ca formulare istorică.
+
 Checkpoint-ul 7B nu aprobă lansarea publică; lansarea rămâne o decizie separată a proprietarului, neacordată.
