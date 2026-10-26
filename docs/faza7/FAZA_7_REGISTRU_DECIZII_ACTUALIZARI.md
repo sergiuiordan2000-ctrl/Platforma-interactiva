@@ -103,3 +103,13 @@ Acest document consemnează, în ordine cronologică, schimbările de stare și 
 - reevaluarea `TRUST_PROXY` (DEC-4).
 
 **Observație:** antetul amendamentului din 07.10.2026 menționa că amendamentul „nu a fost încă trimis la audit”; starea auditului nu a fost reverificată în documentele citite.
+
+---
+
+## 5. Antetul A4 (DEC-14) — forma aprobată la 26.10.2026
+
+**Decizia:** proprietarul aprobă forma antetului implementată la 7C, P7 (commitul `a76f52413f328b3d24f1ec18df1340ba4a7ae035`, `src/components/layout/Header.tsx`): „Urbis Activ” ca nume principal; „Turnu Măgurele” ca text secundar, lângă nume, vizibil pe toate lățimile; subtitlul „Platformă Independentă · Teleorman” păstrat; navigarea neschimbată; eticheta „CIVIC” eliminată.
+
+**Dovezile examinate:** capturile antetului la 1280 px (calculator) și la 375 px (mobil), făcute cu Playwright pe serverul construit din acest commit; testul RN-2 (`tests/ui/test_7c_redenumire.py`) verifică antetul la ambele lățimi.
+
+**Efect:** forma antetului nu se mai modifică în 7C. Punctul deschis „Prezentarea antetului (A4)” din `docs/faza7/FAZA_7C_RAPORT.md` §4.3 este închis prin această înregistrare.
