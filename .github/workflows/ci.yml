@@ -133,6 +133,15 @@ jobs:
           echo
           test "$(curl -s http://127.0.0.1:3900/api/v1/health | node -pe 'JSON.parse(require("fs").readFileSync(0)).status')" = ok
           test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3900/)" = 200
+          # 7C, P5 (DEC-2): fără SEARCH_INDEXING, noindex pe HTML, pe un fișier static și pe API; robots.txt exact
+          noindex() {
+            v="$(curl -s -o /dev/null -D - "http://127.0.0.1:3900$1" | tr -d '\r' | awk -F': ' 'tolower($1) == "x-robots-tag" { print $2 }')"
+            test "$v" = "noindex, nofollow" || { echo "X-Robots-Tag greșit pe $1: '$v'"; exit 1; }
+          }
+          noindex /
+          noindex /favicon.svg
+          noindex /api/v1/health
+          curl -s http://127.0.0.1:3900/robots.txt | cmp - <(printf 'User-agent: *\nDisallow: /\n')
           kill "$SERVER_PID"
 
   e2e:
