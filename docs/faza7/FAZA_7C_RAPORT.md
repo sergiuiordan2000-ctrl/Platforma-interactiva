@@ -106,3 +106,49 @@ server: test/unit/oidcProvider.test.ts(6,41): 'safeGoogleAuthorizationUrl'
 - 40 de importuri nefolosite: iconițe `lucide-react`, importul implicit `React` (proiectul folosește `"jsx": "react-jsx"`, deci importul nu este necesar) și un import dintr-un test de server. Eliminarea lor nu schimbă comportamentul.
 - `emergencyContacts` (`QuickDialView.tsx:38`): un `useMemo` cu un filtru pur, al cărui rezultat nu este folosit. Eliminarea nu schimbă comportamentul.
 - `mapLoaded` (`MapView.tsx:102`): valoarea stării nu este citită, dar funcția `setMapLoaded` este apelată (rândul 164). Remedierea păstrează starea și apelul (`const [, setMapLoaded]`), ca să nu schimbe comportamentul de randare.
+
+## 3. Pașii E1 executați (commituri locale; niciun push)
+
+| Pas | Commit | Ce s-a schimbat | Verificarea |
+|---|---|---|---|
+| P1 | `e084413` | 23 de fișiere: eliminate cele 42 de constatări din §2 (40 de importuri, `useMemo`-ul `emergencyContacts`, valoarea `mapLoaded` — `setMapLoaded` păstrat) | `tsc --noUnusedLocals`: 0 constatări în frontend, server și shared; build-urile și testele serverului trec |
+| P3 | `aed3cb7` | șters `server/src/routes/diagnostics.ts`; eliminate `DIAG_CLIENT_IP` și `diagClientIp` din `config.ts`, înregistrarea rutei din `app.ts`; `diagnostics.test.ts` înlocuit cu DG-1, DG-2 | DG-1, DG-2 trec; căutarea codului de diagnostic în afara `docs/`: vezi §4 |
+| P4 | `91b3fd8` | `SEARCH_INDEXING` în `config.ts` (valori exacte `off`/`on`; `on` numai cu `APP_ENV=production`) și în `app.ts` (antetul `noindex, nofollow` și `robots.txt`, după control, nu după mediu); test nou `searchIndexing.test.ts` (SI-1…SI-9); testul „dezvoltare” din `app.test.ts` inversat (S5) | SI-1…SI-9 trec; 5 probe de control (cod stricat intenționat), toate detectate |
+| P5 | `f9dac71` | `.github/workflows/ci.yml`, pasul „Artefactul”: antetul pe `/`, pe `/favicon.svg` și pe `/api/v1/health`; conținutul exact al `/robots.txt` | pasul simulat local cu `bash -eo pipefail` pe artefactul construit: trece; 2 probe de control (valoare așteptată greșită, `robots.txt` greșit): pasul eșuează |
+| P6 | `5504ed7` | test nou `c7TotpImpunere.test.ts` (TO-1…TO-3), în modul `production`; codul aplicației neschimbat | TO-1…TO-3 trec; 3 probe de control (super_admin fără înrolare, fără revocare la schimbarea rolului, fără revocare la resetare): toate detectate |
+| P7 | `a76f524` | 8 fișiere, 11 texte (A1, A2, A4–A8, B1, C1–C3), conform registrului §2.3; eticheta „CIVIC” eliminată | RN-1…RN-5 trec |
+| P8 | `9a40c02` | test E2E nou `tests/ui/test_7c_redenumire.py` (RN-1, RN-2; antetul verificat pe calculator și pe mobil), înregistrat în `tests/run_all.py`; test de server nou `c7RedenumireEmail.test.ts` (RN-3…RN-5; RN-5 verifică mesajul generat, fără trimitere) | probe de control: textele vechi fac testele să pice (RN-1, RN-2: 6/7 verificări eșuează; RN-3, RN-4, RN-5: câte un eșec) |
+| P2 | `df5301e` | `autoprefixer` eliminat din `package.json`; din `package-lock.json` au dispărut numai 10 pachete (`autoprefixer` și dependențele lui exclusive), fără nicio adăugare sau actualizare | build-ul frontend trece; **build-ul este identic octet cu octet** cu cel făcut, din același cod, cu `autoprefixer` instalat |
+
+### 3.1 Dovezile `source-map-js` după eliminarea `autoprefixer` (P2, DEC-3b)
+
+- `npm ls source-map-js --all`: `source-map-js@1.2.2` rămâne, adus de `@tailwindcss/vite` → `@tailwindcss/node` și de `vite@8.3.1` → `postcss@8.5.28` (deduplicat). Afirmația reauditului (pachetul rămâne prin `@tailwindcss/vite`) este confirmată.
+- `npm ls autoprefixer --all`: gol.
+- Analiza artefactului: 0 apariții în `dist/` și în `server/dist/app.js`.
+- `npm audit`: aceleași 7 constatări ca în situația de bază (§1.2); `source-map-js` nu apare.
+- Riscul rezidual și opțiunile DEC-3b se prezintă proprietarului pe baza acestor dovezi.
+
+## 4. Puncte deschise semnalate în E1 (nerezolvate, fără acțiune în afara perimetrului)
+
+1. **`.env.example` (rândurile 37–39)** conține încă documentația variabilei `DIAG_CLIENT_IP`. Fișierul nu este în lista P3; criteriul E1.5 cere „nicio referință rămasă la codul de diagnostic”. Eliminarea rândurilor cere decizia proprietarului. Alte referințe în afara `docs/`: numai în `PROJECT_HANDOFF_CURRENT.md` (documentație de predare, de actualizat în 7D, C5) și în testul DG nou.
+2. **Efectul DG-2:** schema de configurare ignoră variabilele necunoscute. După eliminare, `DIAG_CLIENT_IP` rămasă în `civic.env` nu mai are niciun efect, în niciun mediu; în producție, aplicația nu mai refuză pornirea pentru această variabilă (pagina nu mai există).
+3. **Prezentarea antetului (A4):** „Urbis Activ” ca nume; „Turnu Măgurele” ca text secundar lângă nume, vizibil pe toate lățimile (în locul etichetei „CIVIC”, care era ascunsă pe mobil); subtitlul „Platformă Independentă · Teleorman” neschimbat. Forma vizuală se supune verificării proprietarului.
+4. **Neconcordanță în registrul E0, §2.3/§2.4:** registrul vorbește de „7 fișiere”; tabelul lui enumeră, corect, 8 fișiere (6 frontend, 2 server). Implementarea urmează tabelul.
+5. **Vulnerabilitățile `npm audit`** (§1.2) rămân deschise, conform deciziei proprietarului: nu sunt acceptate definitiv; remedierea cere o decizie separată.
+6. **G6** (criteriul E1.10) și **DEC-3b** rămân de decis înaintea checkpoint-ului 7C.
+
+## 5. Verificarea locală după P1–P8 (commitul `df5301e`, 26.10.2026)
+
+Mediul local de la §1. **Nu înlocuiește CI** (criteriul E1.1 cere CI verde pe toate cele 6 joburi la commitul final 7C).
+
+| Verificarea | Rezultatul |
+|---|---|
+| `tsc` frontend, server, shared | trec |
+| `tsc --noUnusedLocals` frontend, server, shared | 0 constatări |
+| build frontend, build server | trec |
+| teste unitare | tests 104 · pass 104 · fail 0 · cancelled 0 · skipped 0 · todo 0 |
+| teste API | tests 25 · pass 25 · fail 0 · cancelled 0 · skipped 0 · todo 0 (20 − 6 teste vechi ale paginii de diagnostic + 2 DG + 9 SI) |
+| teste de integrare | tests 389 · pass 389 · fail 0 · cancelled 0 · skipped 0 · todo 0 (383 + 3 TO + 3 RN) |
+| E2E | 18 suite, `TOTAL: 283/283 PASS`, `REZULTAT: OK` (276 + 7 RN-1/RN-2) |
+
+**Starea criteriilor checkpoint-ului 7C (planul v2.4, E1):** 1 (CI 6/6) — neîndeplinit până la push și CI; 2 (numărul de teste al rulării 7C) — consemnat local mai sus, de confirmat din CI; 3 — îndeplinit; 4 — dovezile sunt colectate (§1.1, §3.1); 5 — de închis după decizia pentru `.env.example` (§4.1); 6, 7 — îndeplinite local; 8 — DEC-19 decisă, DEC-3b de decis; 9 — neacordat; 10 — G6 neclarificat.
