@@ -12,14 +12,10 @@ import {
   Power, 
   ArrowUp, 
   ArrowDown, 
-  Check, 
   X, 
-  AlertCircle,
   Phone,
   Mail,
   MapPin,
-  Clock,
-  UserCheck
 } from 'lucide-react';
 import { CityHallDepartment } from '../../../types/directory';
 import { directoryService } from '../../../services/directoryService';

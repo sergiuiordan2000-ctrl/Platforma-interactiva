@@ -12,11 +12,9 @@ import {
   Power, 
   ArrowUp, 
   ArrowDown, 
-  Check, 
   X, 
   Clock, 
   Coins, 
-  Building2,
   ExternalLink
 } from 'lucide-react';
 import { CityHallService } from '../../../types/directory';

@@ -7,17 +7,11 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
 import L from 'leaflet';
 import { 
   Map as MapIcon, 
-  MapPin, 
   Filter, 
-  Layers, 
   Info, 
   ShieldCheck, 
-  Calendar, 
-  Sparkles, 
   PlusCircle, 
   RotateCcw,
-  Camera,
-  Tag,
   AlertTriangle
 } from 'lucide-react';
 import { AppView } from '../types/navigation';
@@ -99,7 +93,7 @@ export const MapView: React.FC<MapViewProps> = ({ onNavigate }) => {
   const [loading, setLoading] = useState<boolean>(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [mapLoaded, setMapLoaded] = useState<boolean>(false);
+  const [, setMapLoaded] = useState<boolean>(false);
   const [tileError, setTileError] = useState<boolean>(false);
 
   const load = async () => {

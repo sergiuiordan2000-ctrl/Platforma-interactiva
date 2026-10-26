@@ -5,13 +5,10 @@
 
 import React, { useState, useMemo } from 'react';
 import { 
-  PhoneCall, 
   Search, 
   ShieldAlert, 
-  Info, 
   X,
   Phone,
-  Flame,
   HeartPulse,
   Droplets,
   AlertCircle
@@ -34,8 +31,6 @@ export const QuickDialView: React.FC = () => {
     () => filterContacts(data.data?.contacts ?? [], activeCategory, searchQuery),
     [data.data, activeCategory, searchQuery],
   );
-
-  const emergencyContacts = useMemo(() => (data.data?.contacts ?? []).filter((c) => c.isEmergency), [data.data]);
 
   if (data.loading && !data.data) return <LoadingBlock label="Se încarcă numerele utile…" />;
   if (data.error && !data.data) return <ErrorBlock message={data.error} onRetry={data.reload} />;

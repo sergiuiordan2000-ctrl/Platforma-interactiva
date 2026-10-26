@@ -9,7 +9,6 @@ import {
   Trash2, 
   ArrowUp, 
   ArrowDown, 
-  HelpCircle, 
   CheckSquare, 
   CircleDot, 
   FileText, 

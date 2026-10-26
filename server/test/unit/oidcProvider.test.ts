@@ -3,7 +3,7 @@
 
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { GOOGLE_AUTHORIZATION_ENDPOINT, safeGoogleAuthorizationUrl } from '@tmc/shared';
+import { GOOGLE_AUTHORIZATION_ENDPOINT } from '@tmc/shared';
 import { devOidcProviderFor, GOOGLE_PROVIDER, googleProvider, type ExchangeParams } from '../../src/auth/googleOAuth.ts';
 
 const FAKE = 'http://localhost:6199';

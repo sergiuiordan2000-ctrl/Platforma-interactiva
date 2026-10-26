@@ -10,10 +10,8 @@ import {
   Clock, 
   MapPin, 
   UserCheck, 
-  Share2, 
   AlertTriangle, 
   Building2,
-  ShieldAlert
 } from 'lucide-react';
 import { Announcement } from '../../types/announcement';
 import { AnnouncementBadge } from './AnnouncementBadge';

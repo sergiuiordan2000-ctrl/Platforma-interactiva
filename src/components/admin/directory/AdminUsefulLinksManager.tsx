@@ -14,7 +14,6 @@ import {
   ArrowDown, 
   ExternalLink, 
   X,
-  AlertCircle
 } from 'lucide-react';
 import { UsefulLink } from '../../../types/directory';
 import { directoryService } from '../../../services/directoryService';

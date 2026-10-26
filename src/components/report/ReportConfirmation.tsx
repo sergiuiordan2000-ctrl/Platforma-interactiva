@@ -15,7 +15,6 @@ import {
   ArrowRight, 
   PlusCircle, 
   ShieldAlert, 
-  FileText,
   Building2,
   Bell,
   Eye

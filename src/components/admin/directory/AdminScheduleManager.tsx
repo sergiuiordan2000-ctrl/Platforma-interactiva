@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { Clock, CalendarCheck, Save, Plus, Trash2, Check, AlertCircle } from 'lucide-react';
+import { Clock, CalendarCheck, Save, Plus, Trash2, AlertCircle } from 'lucide-react';
 import { CityHallSchedule, CityHallAudience, CityHallInfo } from '../../../types/directory';
 import { directoryService } from '../../../services/directoryService';
 import { AdminUser } from '../../../services/authService';

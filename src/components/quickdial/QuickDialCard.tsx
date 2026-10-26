@@ -10,9 +10,7 @@ import {
   MapPin, 
   Copy, 
   Check, 
-  AlertTriangle,
   ShieldAlert,
-  Building2
 } from 'lucide-react';
 import { QuickDialContact } from '../../types/quickDial';
 

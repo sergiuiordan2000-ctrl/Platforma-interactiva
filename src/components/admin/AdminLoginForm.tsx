@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { Lock, Mail, KeyRound, AlertCircle, ShieldCheck, ArrowRight, Info } from 'lucide-react';
+import { Lock, Mail, KeyRound, AlertCircle, ShieldCheck, Info } from 'lucide-react';
 import { authService } from '../../services/authService';
 
 interface AdminLoginFormProps {

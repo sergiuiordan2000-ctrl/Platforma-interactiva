@@ -17,7 +17,6 @@ import {
   Layers,
   CheckCircle2,
   X,
-  Sparkles,
   Info,
   LayoutDashboard,
   Megaphone

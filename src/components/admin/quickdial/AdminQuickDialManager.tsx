@@ -18,7 +18,6 @@ import {
   X, 
   Search,
   ShieldAlert,
-  AlertCircle
 } from 'lucide-react';
 import { QuickDialContact } from '../../../types/quickDial';
 import { filterContacts, quickDialService } from '../../../services/quickDialService';

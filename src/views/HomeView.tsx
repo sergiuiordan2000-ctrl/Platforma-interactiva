@@ -12,7 +12,6 @@ import {
   Vote, 
   PhoneCall, 
   ArrowRight, 
-  ShieldCheck, 
   Clock, 
   Sparkles,
   Info,

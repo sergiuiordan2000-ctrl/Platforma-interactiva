@@ -7,8 +7,6 @@ import React, { useState } from 'react';
 import { 
   Building2, 
   PhoneCall, 
-  Clock, 
-  MapPin, 
   FileText, 
   Globe, 
   Info, 

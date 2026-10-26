@@ -16,7 +16,7 @@
  * Căutarea folosește textul din câmpul „Locația” al formularului; câmpul separat de căutare nu mai există.
  */
 
-import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import L from 'leaflet';
 import { Check, Loader2, MapPin, Navigation, Search, Trash2 } from 'lucide-react';
 import type { CitizenLocationSource } from '@tmc/shared';

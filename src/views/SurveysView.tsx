@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { Vote, ArrowLeft } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { AppView } from '../types/navigation';
 import { PublicSurveysList } from '../components/surveys/PublicSurveysList';
 

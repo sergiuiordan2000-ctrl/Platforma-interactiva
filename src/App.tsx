@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { AppLayout } from './components/layout/AppLayout';
 import { AppView } from './types/navigation';
 import { HomeView } from './views/HomeView';

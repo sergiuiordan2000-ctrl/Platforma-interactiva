@@ -6,11 +6,8 @@
 import React, { useState } from 'react';
 import { 
   Megaphone, 
-  RotateCcw, 
   Info, 
-  Search, 
   Layers, 
-  Calendar,
   ArrowUpDown
 } from 'lucide-react';
 import { AppView } from '../types/navigation';

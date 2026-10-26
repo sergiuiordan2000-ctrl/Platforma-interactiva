@@ -1,8 +1,6 @@
 import React from 'react';
 import { 
   Building2, 
-  ShieldCheck, 
-  MapPin, 
   Megaphone, 
   AlertCircle, 
   Map, 

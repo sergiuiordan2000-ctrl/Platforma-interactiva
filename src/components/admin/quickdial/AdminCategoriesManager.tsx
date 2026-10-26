@@ -12,7 +12,6 @@ import {
   ArrowUp, 
   ArrowDown, 
   X, 
-  AlertCircle,
   Layers
 } from 'lucide-react';
 import { QuickDialCategory } from '../../../types/quickDial';

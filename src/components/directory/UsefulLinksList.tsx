@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { ExternalLink, Globe, ShieldCheck } from 'lucide-react';
+import { ExternalLink, Globe } from 'lucide-react';
 import { UsefulLink } from '../../types/directory';
 
 interface UsefulLinksListProps {
