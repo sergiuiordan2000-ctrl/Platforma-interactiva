@@ -113,3 +113,20 @@ Acest document consemnează, în ordine cronologică, schimbările de stare și 
 **Dovezile examinate:** capturile antetului la 1280 px (calculator) și la 375 px (mobil), făcute cu Playwright pe serverul construit din acest commit; testul RN-2 (`tests/ui/test_7c_redenumire.py`) verifică antetul la ambele lățimi.
 
 **Efect:** forma antetului nu se mai modifică în 7C. Punctul deschis „Prezentarea antetului (A4)” din `docs/faza7/FAZA_7C_RAPORT.md` §4.3 este închis prin această înregistrare.
+
+---
+
+## 6. Notă de clarificare a stării — 26.10.2026
+
+**Motivul:** bannerul de la începutul acestui document („E1/7C nu este autorizată. Lansarea publică nu este aprobată.”) reflectă starea de la redactarea lui. Bannerul rămâne neschimbat, ca istoric. Starea în vigoare este cea de mai jos.
+
+**Starea la 26.10.2026:**
+- **Pornirea E1/7C a fost autorizată** de proprietar la 26.10.2026, după închiderea E0 (§2), în forma R2 (registrul de bază, §2.5): commituri locale în perimetrul P1–P8, fiecare push aprobat separat.
+- **P1–P8 sunt implementate în commituri locale și verificate local**, conform `docs/faza7/FAZA_7C_RAPORT.md` §3, §5 și §6. Verificările locale nu înlocuiesc CI (criteriul E1.1).
+
+**Ce nu este aprobat:**
+- **Checkpoint-ul 7C nu este acordat** (criteriul E1.9; `FAZA_7C_RAPORT.md` §6.5).
+- **Push-ul celor 16 commituri locale** de pe `faza-5-backend` (`7e84e32` … `153ced1`) **nu este încă autorizat**.
+- **Lansarea publică nu este aprobată.**
+
+Această notă nu modifică înregistrările §1–§5.
