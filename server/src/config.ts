@@ -136,8 +136,6 @@ const EnvSchema = z
     GOOGLE_OAUTH_CLIENT_SECRET: optionalText,
     // G-T10: furnizorul de identitate fals al testelor E2E; acceptat NUMAI cu APP_ENV=development (vezi mai jos)
     DEV_OIDC_PROVIDER_URL: optionalText,
-    // Faza 6, Pasul 2 (TRUST_PROXY): pagina temporară de diagnostic a adresei vizitatorului; numai „on”
-    DIAG_CLIENT_IP: z.enum(['on'], { message: 'singura valoare acceptată este „on” (sau ștergeți setarea)' }).optional(),
     // Faza 6, varianta B (D-B2, 13.10.2026): limitele de frecvență pe adresa IP a vizitatorului. Implicit: pornite numai
     // în dezvoltare. Pe găzduirea partajată toți vizitatorii au aceeași adresă (TRUST_PROXY nu poate fi setat sigur),
     // deci o limită pe IP ar fi o limită pentru tot orașul (RA-9). Se pornesc numai cu o adresă reală (TRUST_PROXY).
@@ -198,14 +196,6 @@ const EnvSchema = z
         code: 'custom',
         path: ['IP_RATE_LIMITS'],
         message: 'limitele pe IP cer adresa reală a vizitatorului (TRUST_PROXY); fără ea ar fi comune tuturor. Ștergeți setarea sau folosiți „off”',
-      });
-    }
-    // pagina de diagnostic arată adrese și anteturi: niciodată în producție (aplicația nu pornește)
-    if (env.DIAG_CLIENT_IP !== undefined && env.APP_ENV === 'production') {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['DIAG_CLIENT_IP'],
-        message: 'pagina de diagnostic nu este permisă în producție; ștergeți setarea',
       });
     }
     if (env.DEV_OIDC_PROVIDER_URL !== undefined) {
@@ -270,8 +260,6 @@ export type Config = {
   googleOAuth?: { clientId: string; clientSecret: string };
   /** G-T10: adresa furnizorului de identitate fals (testele E2E); există numai cu `appEnv === 'development'`. */
   devOidcProviderUrl?: string;
-  /** Faza 6, Pasul 2: pagina temporară `GET /api/v1/diag/client-ip`; niciodată în producție */
-  diagClientIp: boolean;
   /** D-B2: limitele de frecvență pe IP (implicit numai în dezvoltare; RA-9). */
   ipRateLimits: boolean;
   retentionDays: number;
@@ -371,7 +359,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
         ? { clientId: e.GOOGLE_OAUTH_CLIENT_ID, clientSecret: e.GOOGLE_OAUTH_CLIENT_SECRET }
         : undefined,
     devOidcProviderUrl: e.DEV_OIDC_PROVIDER_URL?.replace(/\/+$/, ''),
-    diagClientIp: e.DIAG_CLIENT_IP === 'on',
     ipRateLimits: e.IP_RATE_LIMITS === undefined ? e.APP_ENV === 'development' : e.IP_RATE_LIMITS === 'on',
     retentionDays: e.RETENTION_DAYS,
     adminRetentionMonths: e.ADMIN_RETENTION_MONTHS,
