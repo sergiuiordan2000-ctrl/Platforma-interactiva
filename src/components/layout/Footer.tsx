@@ -18,7 +18,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
               <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold">
                 <Building2 className="w-4 h-4" />
               </div>
-              <span className="font-bold text-lg tracking-tight">Turnu Măgurele Civic</span>
+              <span className="font-bold text-lg tracking-tight">Urbis Activ</span>
             </div>
             <p className="text-xs text-slate-400 leading-relaxed">
               Platformă digitală civică independentă dedicată locuitorilor municipiului Turnu Măgurele, județul Teleorman. Creată pentru informare rapidă, semnalarea problemelor urbane și consultare publică.
@@ -96,7 +96,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
         </div>
 
         <div className="border-t border-slate-800 pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-2">
-          <p>© {new Date().getFullYear()} Turnu Măgurele Civic. Dezvoltat pentru comunitatea locală.</p>
+          <p>© {new Date().getFullYear()} Urbis Activ. Dezvoltat pentru comunitatea locală.</p>
           <p className="flex items-center gap-1">
             <span>Construit cu grijă pentru orașul de la Dunăre</span>
           </p>

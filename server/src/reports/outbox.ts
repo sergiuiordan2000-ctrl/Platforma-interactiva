@@ -77,7 +77,7 @@ export function registryTemplate(r: RegistryReportData): { subject: string; text
     `Contact (e-mailul contului): ${r.authorEmail ?? 'indisponibil (contul a fost șters)'}`,
     '',
     '—',
-    'Mesaj transmis la cererea cetățeanului prin platforma independentă Turnu Măgurele Civic.',
+    'Mesaj transmis la cererea cetățeanului prin platforma independentă Urbis Activ.',
     `${r.referenceNumber} este numărul intern al platformei, nu un număr de înregistrare oficial.`,
   ].join('\n');
   return { subject: `Sesizare ${r.referenceNumber} — ${r.categoryName}`, text };

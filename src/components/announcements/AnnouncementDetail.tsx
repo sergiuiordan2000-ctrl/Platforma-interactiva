@@ -187,7 +187,7 @@ export const AnnouncementDetail: React.FC<AnnouncementDetailProps> = ({
           </button>
 
           <span className="text-xs text-slate-500 font-medium">
-            Turnu Măgurele Civic • Modul Comunicate
+            Urbis Activ • Modul Comunicate
           </span>
         </div>
 

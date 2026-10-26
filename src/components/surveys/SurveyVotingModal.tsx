@@ -530,7 +530,7 @@ export const SurveyVotingModal: React.FC<SurveyVotingModalProps> = ({
                 <div className="space-y-0.5">
                   <span className="font-bold text-slate-700">Participare Anonimă & Securizată</span>
                   <p className="leading-relaxed">
-                    Platforma Turnu Măgurele Civic nu solicită nume, CNP, adresă sau alte date de identificare personală pentru participarea la consultările publice locale.
+                    Platforma Urbis Activ nu solicită nume, CNP, adresă sau alte date de identificare personală pentru participarea la consultările publice locale.
                   </p>
                 </div>
               </div>

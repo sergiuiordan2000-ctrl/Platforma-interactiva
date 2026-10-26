@@ -32,10 +32,10 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onNavigate }) => {
             <div>
               <div className="flex items-center gap-2">
                 <span className="font-bold text-slate-900 text-base sm:text-lg tracking-tight leading-tight group-hover:text-blue-700 transition-colors">
-                  Turnu Măgurele
+                  Urbis Activ
                 </span>
-                <span className="hidden sm:inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-200">
-                  CIVIC
+                <span className="text-xs font-medium text-slate-500">
+                  Turnu Măgurele
                 </span>
               </div>
               <p className="text-xs text-slate-500 font-medium flex items-center gap-1">

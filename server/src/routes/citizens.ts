@@ -111,7 +111,7 @@ export function registerCitizenRoutes(api: FastifyInstance, ctx: AppContext): vo
       const block = await activeBlock(ctx, ctx.pool, null, hash);
       if (block?.kind === 'permanent') {
         if ((await hitRateLimit(ctx, `citizen:blocked-notice:${hash}`, DAY_MIN)) <= LIMITS.citizenBlockedNoticePerDay) {
-          await enqueueAccountEmail(ctx, 'citizen_account_blocked', email, 'Turnu Măgurele Civic',
+          await enqueueAccountEmail(ctx, 'citizen_account_blocked', email, 'Urbis Activ',
             'Această adresă nu mai poate fi folosită pentru un cont nou.');
         }
         return reply.code(202).send(ACCEPTED);
@@ -149,7 +149,7 @@ export function registerCitizenRoutes(api: FastifyInstance, ctx: AppContext): vo
         new Date(now.getTime() + LIMITS.citizenCodeMinutes * 60_000), now],
     );
     await hitRateLimit(ctx, `citizen:mail:addr:${hash}`, DAY_MIN);
-    await enqueueAccountEmail(ctx, 'citizen_login_code', email, 'Codul de autentificare — Turnu Măgurele Civic',
+    await enqueueAccountEmail(ctx, 'citizen_login_code', email, 'Codul de autentificare — Urbis Activ',
       `Codul dumneavoastră este: ${code}\nEste valabil ${LIMITS.citizenCodeMinutes} minute. Dacă nu ați cerut acest cod, ignorați mesajul.`);
     return reply.code(202).send(ACCEPTED);
   });

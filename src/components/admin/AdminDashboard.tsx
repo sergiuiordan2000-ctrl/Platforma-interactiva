@@ -107,7 +107,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onN
               Bine ai revenit, {displayName}!
             </h2>
             <p className="text-xs sm:text-sm text-slate-500 max-w-md">
-              Acesta este panoul central al platformei civice Turnu Măgurele. Alege mai jos modulul pe care vrei să-l gestionezi.
+              Acesta este panoul central al platformei Urbis Activ pentru Turnu Măgurele. Alege mai jos modulul pe care vrei să-l gestionezi.
             </p>
           </div>
         </div>
