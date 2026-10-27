@@ -46,8 +46,8 @@ Orice operație din tabelul de mai jos se execută numai după aprobarea explici
 | `civic-bootstrap-admin` | creează un cont `super_admin` | nu face parte din E3 (pachetul se construiește fără `--bootstrap-email`) | [V] `package-release.py` 88–90 |
 | `markers:rebuild-counter`, `restore:db … --confirm`, `host-restore:recover … --confirm` | scriu marcaje, baza sau fișierele | numai cu decizie separată, la incidente sau la proba DEC-9 | [V] `server/src/cli.ts` 136–170; jurnal, intervențiile 33, 46 |
 | modificarea `civic.env` | schimbă configurarea; are efect la repornire | aprobare separată pentru fiecare modificare | [V] jurnal, intervențiile 13, 23, 38 |
-| **suspendarea** sarcinii cron `outbox:process` (cPanel → Cron Jobs) | oprește trimiterea automată a mesajelor din coadă cât timp este suspendată | **aprobare explicită separată**; varianta recomandată pentru E3, dar nu face parte din aprobarea instalării și nu se presupune aprobată (§4.0.1) | [V] sarcina există: jurnal, intervenția 13; forma exactă a liniei: [E3] |
-| **reactivarea** sarcinii cron `outbox:process` | reia trimiterea automată; mesajele aflate atunci în coadă pleacă la prima rulare | **aprobare explicită separată**, după verificarea cozii și confirmarea destinatarilor permiși (§4.0.1) | [V] jurnal, intervenția 13; [E3] |
+| **suspendarea** sarcinii cron `outbox:process` (cPanel → Cron Jobs) | cPanel 138.0.19 oferă numai Edit și Delete; o suspendare înseamnă modificarea sau ștergerea rândului | **propunerea din §4.0.1 este ca, pentru candidatul `5d8c52a`, să nu se folosească** (propunere supusă aprobării proprietarului); orice folosire cere o decizie și o aprobare explicită separată, împreună cu metoda verificată | [V] captura „Current Cron Jobs”, 27.10.2026; documentația cPanel (Cron Jobs) |
+| **restaurarea definiției originale** a sarcinii cron `outbox:process` (reactivarea), după o eventuală suspendare | reia trimiterea automată; mesajele aflate atunci în coadă pleacă la prima rulare | numai dacă o suspendare ar fi fost aprobată și executată; metoda (editarea programării înapoi la `*/2 * * * *` sau recrearea rândului) depinde de metoda de suspendare verificată și aprobată atunci; aprobare explicită separată, după verificarea cozii și confirmarea destinatarilor permiși; rezultatul se compară cu captura din 27.10.2026 | [V] captura din 27.10.2026 |
 | salvarea în Admin → Sesizări → „Fluxul către Primărie” | schimbă destinatarul sau pornește fluxul; mesajele în așteptare pot pleca | nu se salvează nimic în E3; panoul se deschide numai pentru citire | [V] `src/components/admin/reports/RegistrySettingsPanel.tsx` 55–58 |
 | acțiuni în aplicație care pun mesaje în coadă (cererea unui cod de autentificare sau anunțul de cont blocat, o sesizare cu transmitere sau cu notificări, marcarea „rezolvată”, „Reîncearcă” la un e-mail, pornirea fluxului către Primărie) | **mesajul poate pleca pe două căi**, numai către adresele permise de `EMAIL_MODE`: (1) **direct, din aplicația pornită**, imediat după acțiune, prin `kickOutbox`: la mesajele de cont (dacă modul nu este `simulated`), la sesizarea nouă, la marcarea „rezolvată” și la „Reîncearcă”; (2) **prin sarcina cron `outbox:process`** (la 2 minute), pentru mesajele rămase în coadă cu starea `queued`: cele pe care trimiterea directă nu le-a trimis, reîncercările programate, mesajele eliberate la pornirea fluxului (fără trimitere directă) și notificarea de stare adăugată după trimiterea către Primărie | nu se fac în E3 fără aprobarea separată din §8.3 | [V] `kickOutbox`: `server/src/reports/outbox.ts` 344–356, apelat din `routes/citizens.ts` 74, `routes/reports.ts` 420, `routes/adminReports.ts` 313 și 457; pornirea fluxului: `adminReports.ts` 513 și `outbox.ts` 180–189 (numai trecere în `queued`); notificarea de stare: `outbox.ts` 308–315; selecția cron: `outbox.ts` 328–334; jurnal, intervențiile 13–16 |
 
@@ -195,19 +195,20 @@ Ordinea de mai jos este cea folosită la instalările din 13–25.10.2026. Aprob
 - pachetul `civic-<sha>.zip` a fost construit dintr-o clonă curată, nu are sufixul `-dirty`, iar amprenta SHA-256 afișată de `package-release.py` este consemnată (§3); [V]
 - CI este verde pe toate cele 6 joburi pentru același SHA; [V]
 - pachetul de revenire (versiunea instalată acum) este disponibil, cu SHA-ul și amprenta verificate (§4.9); [E3]
-- procedura de suspendare și reactivare a sarcinii cron `outbox:process` este verificată prin citire, iar suspendarea este aprobată separat (§4.0.1, varianta recomandată); [E3] [A]
+- condițiile de protecție a e-mailului din §4.0.1 (modul `allowlist`, destinatarul de test, coada 0 `queued` / 0 `sending`, interdicția acțiunilor) sunt îndeplinite la punctul de control PC1; [E3]
+- E3 este programată **în timpul zilei**, iar intervalul dintre PC1 și PC4 este **în afara ferestrei 03:00–06:30, ora României**, ca să se evite rularea obișnuită a `purge:retention` de la 03:47. Fereastra este o măsură de precauție: fusul orar al cron-ului nu este verificat, iar recomandarea nu este o garanție tehnică (§4.0.1, punctul 2; §6.2); [A]
 - aprobarea instalării. [A]
 
 | Pas | Tip | Ce face proprietarul | Ce trebuie să vadă | Criteriul de oprire | Marcaj și sursă |
 |---|---|---|---|---|---|
-| 4.0 | [CITIRE] | starea cozii de e-mail, înaintea oricărei modificări: phpMyAdmin → baza staging-ului → SQL: `SELECT kind, status, COUNT(*) FROM email_outbox GROUP BY kind, status` (fără destinatari, fără conținut) | numărul mesajelor pe tip și stare | dacă există mesaje cu starea `queued` sau `sending`: **oprire**. Ele pot pleca prin cron (§0); continuarea se decide separat. O coadă goală **nu** garantează singură lipsa trimiterilor ulterioare: §4.0.1 | forma interogărilor read-only în phpMyAdmin: [V] jurnal, intervențiile 28, 42, 104; tabela și stările: [V] `outbox.ts`; rezultatul: [E3] |
+| 4.0 | [CITIRE] | **punctul de control PC1** (§4.0.1): starea cozii de e-mail, înaintea oricărei modificări: phpMyAdmin → baza staging-ului → SQL: `SELECT kind, status, COUNT(*) FROM email_outbox GROUP BY kind, status` (fără destinatari, fără conținut) | numărul mesajelor pe tip și stare | dacă există mesaje cu starea `queued` sau `sending`: **oprire**. Ele pot pleca prin cron (§0); continuarea se decide separat. O coadă goală **nu** garantează singură lipsa trimiterilor ulterioare: §4.0.1 | forma interogărilor read-only în phpMyAdmin: [V] jurnal, intervențiile 28, 42, 104; tabela și stările: [V] `outbox.ts`; rezultatul: [E3] |
 | 4.1 | [CITIRE] | `https://test.urbisactiv.ro/api/v1/health` | `{"status":"ok","version":"0.0.0+<sha-ul instalat acum>"}` | versiunea diferă de cea așteptată (ultima consemnată: `711a7ae`) sau `status` nu este `ok`: **oprire** | [V] jurnal, intervenția 106; `app.ts` 175–184 |
 | 4.2 | [EFECT] | Setup Node.js App → „Run JS script” → `civic-backup-db` (copia de revenire) | `backup:db: civic-backup-<dată>`, cu rândurile pe tabel; `stderr` gol (un `npm notice` nu este eroare) | lipsește linia `backup:db: civic-backup-…` sau `stderr` conține o eroare: **oprire**, fără STOP APP | [V] jurnal, intervențiile 72, 77, 97 |
-| 4.3 | [EFECT] | Setup Node.js App → **STOP APP** | aplicația oprită | — | [V] jurnal, intervențiile 73, 99 |
+| 4.3 | [EFECT] | Setup Node.js App → **STOP APP**, numai după punctul de control PC2 (§4.0.1) | aplicația oprită | PC2 nu corespunde (§4.0.1, tabelul punctelor de control): **oprire**, fără STOP APP | [V] jurnal, intervențiile 73, 99 |
 | 4.4 | [EFECT] | File Manager → `civic-test-app` → Upload `civic-<sha>.zip` → Extract (suprascriere) → **ștergerea arhivei** | `RELEASE.txt`: `commit: <sha>` | `RELEASE.txt` arată alt SHA sau „modificari necomise”: **oprire**, aplicația rămâne oprită, se trece la decizia de revenire (§4.9) | [V] jurnal, intervențiile 73, 84, 99; `package-release.py` 92 |
 | 4.5 | [EFECT] | migrațiile: **numai dacă pachetul conține migrații noi**, „Run JS script” → `civic-migrate`, înainte de pornire; altfel nimic | `Schema este la versiunea N` | mesaj de eroare: **oprire** | [V] jurnal, intervenția 24; `PROJECT_HANDOFF_CURRENT.md` §0.4 |
 | 4.6 | [EFECT] | `civic.env`: modificări numai dacă versiunea nouă le cere, fiecare aprobată separat | — | — | [V] pentru `5d8c52a`: nicio variabilă obligatorie nouă și nicio migrație nouă față de `711a7ae` (`git diff 711a7ae 5d8c52a -- server/src/config.ts server/migrations`: în schemă, numai `DIAG_CLIENT_IP` eliminată și `SEARCH_INDEXING` adăugată, opțională) |
-| 4.7 | [EFECT] | Setup Node.js App → **START APP** | `health`: `{"status":"ok","version":"0.0.0+<sha>"}` | `503`, `status` diferit de `ok` sau altă versiune: **oprire**, §4.8 | [V] jurnal, intervențiile 74, 100 |
+| 4.7 | [EFECT] | Setup Node.js App → **START APP** | `health`: `{"status":"ok","version":"0.0.0+<sha>"}` | `503`, `status` diferit de `ok` sau altă versiune: **oprire**, §4.8; apoi punctul de control PC3 (§4.0.1) | [V] jurnal, intervențiile 74, 100 |
 
 **Pentru candidatul `5d8c52a`:** pasul 4.5 nu este necesar (schema rămâne la versiunea 2, migrațiile `0001`–`0002`), iar pasul 4.6 nu cere nimic obligatoriu. [V] Dacă `civic.env` conține `SEARCH_INDEXING`, valoarea trebuie să fie exact `off`. Orice altă valoare oprește pornirea pe staging. [V] §2.3; prezența variabilei: [E3]
 
@@ -225,27 +226,60 @@ Ordinea de mai jos este cea folosită la instalările din 13–25.10.2026. Aprob
 
 Pe lângă acestea, cron-ul trimite mesajele deja în coadă cu starea `queued`, la ora programată (inclusiv reîncercările), și mesajele `sending` rămase blocate (`outbox.ts` 332–333). Comenzile `purge:retention`, `surveys:close-expired` și `backup:db` nu pun mesaje în coadă. [V]
 
-**Varianta recomandată pentru E3: suspendarea temporară a sarcinii cron `outbox:process`.** Previne trimiterea automată, la ora programată, a mesajelor din coadă, inclusiv către adresa de test. Suspendarea **nu este aprobată** prin acest document și nu se execută fără aprobarea dedicată a proprietarului. [A]
+**Propunere pentru candidatul `5d8c52a`, supusă aprobării proprietarului (neaprobată la redactare, 27.10.2026): E3 se face fără suspendarea cron-ului `outbox:process`.** Până la aprobare, nu constituie o decizie. Motivele, din auditul read-only din 27.10.2026:
+- cPanel 138.0.19 oferă pentru o sarcină cron numai **Edit** și **Delete**; nu există o suspendare demonstrată pe această găzduire, iar ștergerea și recrearea au riscul restaurării inexacte a definiției;
+- codul nu are o pauză generală a cozii care să păstreze mesajele; una nouă ar cere cod și alt candidat E3.
 
-1. **Înaintea instalării:** forma exactă a liniei cron `outbox:process` și modul de suspendare din cPanel (dezactivare sau ștergere și recreare) se verifică **prin citire**, fără nicio modificare. Ele nu sunt consemnate în repository. **Instalarea nu începe** până când această procedură nu este verificată și suspendarea nu este aprobată separat. [E3] [A]
-2. **Suspendarea** se face înaintea pasului 4.0, ca operație separată, cu aprobare explicită (§0). Se verifică prin citire că sarcina nu mai rulează: lista din Cron Jobs. [A] [E3]
-3. **Suspendarea nu elimină trimiterea directă.** Aplicația pornită trimite imediat mesajul creat de o acțiune a unui utilizator (§0). De aceea, **interdicția acțiunilor din lista de mai sus rămâne obligatorie** pe toată durata E3, cu sau fără suspendare (condiția 3 de mai jos). [V] `outbox.ts` 344–356
-4. **Reactivarea** se face după verificările din §5, ca operație separată, cu **aprobarea explicită a proprietarului**, numai după:
-   - o nouă citire a cozii (interogarea de la pasul 4.0). Mesajele aflate atunci în coadă pleacă la prima rulare; dacă există astfel de mesaje, reactivarea se decide separat;
-   - confirmarea destinatarilor permiși: modul efectiv `allowlist` în panoul Admin (§8.2), iar `EMAIL_ALLOWLIST` conține numai adresa de test, confirmat de proprietar.
+**Aceasta este o protecție procedurală, nu o barieră tehnică.** Sarcina cron rămâne activă pe toată durata E3 (§0). [A]
 
-   [A] [E3]
-5. **Proba Brevo rămâne o operație separată**, cu aprobarea explicită a proprietarului (§8.3). Nici suspendarea, nici reactivarea cron-ului nu o autorizează. [A]
+**Fapte confirmate de proprietar la 27.10.2026** (observații la acea dată, nu garanții că nu se schimbă ulterior): `EMAIL_ALLOWLIST` conținea exclusiv adresa lui de test; numai el cunoștea parola lacătului staging-ului; destinatarul fluxului era adresa lui de test, cu modul afișat „staging: numai adresele din listă”. Conținutul `EMAIL_ALLOWLIST` nu se poate citi fără a expune `civic.env`, deci rămâne o confirmare a proprietarului; modul și destinatarul se reverifică prin citire la fiecare punct de control (PC1–PC4). [E3]
 
-**Condițiile obligatorii în ambele variante** (cu sau fără suspendare). Dacă una nu este îndeplinită sau nu poate fi confirmată, instalarea **se oprește**.
-1. Modul e-mail efectiv este `allowlist`, citit în panoul Admin (§8.2), iar proprietarul confirmă că `EMAIL_ALLOWLIST` conține **numai** adresa lui de test. Astfel, orice trimitere accidentală poate ajunge numai la această adresă, niciodată la Primărie sau la terți. [V] `outbox.ts` 240–243; confirmarea listei: [E3]
-2. Pasul 4.0 arată 0 mesaje `queued` și 0 `sending`. [E3]
-3. De la pasul 4.0 până la încheierea verificărilor din §5, **nimeni nu face în aplicație nicio acțiune din lista de mai sus**. Staging-ul este protejat de lacătul Directory Privacy; proprietarul confirmă cine mai are parola lacătului și că nu folosește aplicația în acest interval. [V] jurnal, intervențiile 7 și 18; confirmarea: [E3]
-4. Interogarea de la pasul 4.0 se **repetă imediat înainte de STOP APP** (pasul 4.3) și după încheierea verificărilor din §5. Fiecare repetare trebuie să dea 0 `queued` și 0 `sending`; altfel, oprire și decizie. [E3]
+**1. Verificarea destinatarilor (numai citire).** Panoul „Fluxul către Primărie” din Admin → Sesizări, deschis **fără salvare** (nu se apasă butonul de salvare și nu se modifică niciun câmp; deschiderea face numai o cerere `GET`): modul e-mail al serverului este „staging: numai adresele din listă” (`allowlist`), iar destinatarul este adresa de test a proprietarului (§8.2). Panoul arată modul efectiv și destinatarul fluxului, **nu** conținutul `EMAIL_ALLOWLIST`. [V] `adminReports.ts` 475–477; [E3]
 
-**Varianta fără suspendare** se poate folosi numai prin decizia explicită a proprietarului. Atunci condițiile 1–4 reduc riscul, dar nu îl elimină: în intervalul dintre citiri, cron-ul ar trimite automat un mesaj apărut în coadă, iar condiția 3 depinde de comportamentul persoanelor cu acces. Condiția 1 limitează efectul unei eventuale trimiteri la adresa de test a proprietarului. [A]
+**2. Verificarea cozii (numai citire).** Interogarea de la pasul 4.0, pe tip și stare: trebuie să arate **0 mesaje `queued` și 0 `sending`**. Rezultatul de la PC1 se notează (numărul pe tip și stare) și devine **referința**: la PC2–PC4 numerele trebuie să fie identice cu ele. O creștere a numărului `sent` (sau o stare nouă, de exemplu `failed`, `blocked`) arată că între timp **s-a produs** o trimitere sau o încercare de trimitere. Verificarea doar o **constată**; nu o poate anula. **Programarea:** `purge:retention` (zilnic, 03:47, ora serverului) șterge mesajele fără sesizare mai vechi de 45 de zile și ar putea modifica numerele fără nicio trimitere. De aceea E3 se programează **în timpul zilei**, iar intervalul PC1–PC4 se plasează **în afara ferestrei 03:00–06:30, ora României**, ca să se evite rularea obișnuită a acestei sarcini. Fereastra acoperă ora 03:47 atât dacă ceasul cron al serverului este ora României (deducția din §6.2), cât și dacă este UTC (05:47, ora de iarnă a României). **Fusul orar al cron-ului nu este verificat:** fereastra este o măsură de precauție, nu o confirmare a fusului orar, iar respectarea ei nu este o garanție tehnică că `purge:retention` nu rulează în intervalul E3. Nu se admit excepții decise în timpul instalării: dacă procedura ajunge în această fereastră, se oprește la ultimul punct de control trecut. [V] `server/src/maintenance.ts` 83; fusul orar: [E3]
 
-**Cât timp aplicația este oprită** (pașii 4.3–4.7), sarcinile cron continuă să ruleze (§0), cu excepția `outbox:process`, dacă a fost suspendată (§4.0.1). Dacă pornirea eșuează, aplicația nu rămâne neglijată: fie se repară cauza (§4.8), fie se decide revenirea (§4.9). [V] jurnal, observația 9; [A]
+**Ce dovedește comparația.** Identitatea numerelor cu referința este un **criteriu de oprire și un control de detectare**, nu o dovadă absolută că nu s-a trimis nimic. Interogarea compară totaluri pe tip și stare, nu fiecare mesaj; teoretic, o adăugare și o ștergere simultane în aceeași categorie ar păstra totalurile. În afara ferestrei `purge:retention`, codul mai șterge mesaje din coadă numai (a) la ștergerea unei sesizări sau a unui cont, acțiuni interzise la punctul 4, și (b) la pornirea aplicației (pasul 4.7), prin reconcilierea intențiilor de ștergere a conturilor rămase după o oprire bruscă; în mod obișnuit nu există asemenea intenții, iar când există, pornirea scrie în jurnalul aplicației linia „Marcajele de ștergere a conturilor, reconciliere”. Aceasta este o deducție din cod, nu o garanție. [V] `server/src/maintenance.ts` 83; `server/src/db/reportDeletion.ts` 48; `server/src/db/accountDeletion.ts` 69; `server/src/main.ts` 58–61
+
+**3. Punctele de control, în ordinea procedurii.** La **fiecare** punct de control se fac ambele verificări, în această ordine: întâi verificarea 1 (panoul, fără salvare), apoi verificarea 2 (coada), ca citirea cozii să fie cât mai aproape de pasul următor. Toate patru au loc cu aplicația **pornită**: PC2 înainte de STOP APP, PC3 după START APP. Între STOP APP și START APP (pașii 4.3–4.7) panoul nu este disponibil și nu există punct de control; cron-ul rulează totuși și în acest interval (§0).
+
+| Punctul | Când | Ce se verifică | Rezultatul așteptat | Dacă nu corespunde |
+|---|---|---|---|---|
+| **PC1** | pasul 4.0, cu aplicația pornită, înaintea pasului 4.1 și a oricărei modificări | verificarea 1 și verificarea 2 (se notează referința) | `allowlist`, destinatarul de test, 0 `queued`, 0 `sending` | **oprire**: instalarea nu începe |
+| **PC2** | după pasul 4.2 (backup), imediat înaintea pasului 4.3 (STOP APP), cu versiunea veche pornită | verificarea 1 și verificarea 2 | `allowlist`, destinatarul de test, 0 `queued`, 0 `sending`, numerele identice cu referința PC1 | **oprire**: fără STOP APP; aplicația rămâne cu versiunea veche, pornită |
+| **PC3** | după pasul 4.7 (START APP și `health` corect), cu versiunea nouă pornită, înaintea oricărei verificări din §5 | verificarea 1 și verificarea 2 | `allowlist`, destinatarul de test, 0 `queued`, 0 `sending`, numerele identice cu referința PC1 | **oprire**: nu se trece la §5; aplicația rămâne pornită cu versiunea nouă, fără nicio acțiune în ea; se raportează și decide proprietarul |
+| **PC4** | după verificările din §5 făcute în ziua instalării (5.1–5.6 și 5.9); 5.7 și 5.8 citesc mai târziu fișierele de jurnal, fără acțiuni în aplicație | verificarea 1 și verificarea 2 | `allowlist`, destinatarul de test, 0 `queued`, 0 `sending`, numerele identice cu referința PC1 | **oprire**: E3 nu se declară încheiat; se raportează și decide proprietarul |
+
+**Dacă oricare condiție nu este îndeplinită sau nu poate fi confirmată** la un punct de control (panoul sau interogarea nu pot fi citite, modul nu este `allowlist`, destinatarul nu este adresa de test, apare un mesaj `queued` sau `sending`, numerele diferă de referință), procedura **se oprește** la acel punct. Dacă numerele diferă de referință, se citește în plus (numai citire) ce s-a schimbat, pe tip și stare, fără destinatari și fără conținut. Verificările ulterioare **doar constată** o eventuală trimitere; o trimitere constatată **nu poate fi anulată**. Se consemnează ca incident, iar proprietarul decide continuarea. [A]
+
+**4. Interdicția acțiunilor.** De la PC1 până la aprobarea separată a testului de e-mail (punctul 8) sau până la o decizie explicită contrară a proprietarului **nu se face**:
+- nicio acțiune în aplicație dintre cele care pun mesaje în coadă (lista „Cum ajunge un mesaj în coadă”, de mai sus): cererea unui cod de autentificare, sesizarea cu transmitere sau cu notificări, marcarea „rezolvată”, „Reîncearcă”, pornirea sau salvarea fluxului;
+- nicio comandă administrativă care procesează coada: „Run JS script” → `civic-outbox-process`.
+
+Autentificarea în Admin pentru citirea panoului (verificarea 1) este permisă: nu pune mesaje în coadă. [V] numai `routes/citizens.ts`, `routes/reports.ts` și `routes/adminReports.ts` pun mesaje în coadă sau declanșează trimiterea; `routes/auth.ts` nu atinge coada, iar `routes/adminSurveys.ts` doar numără mesajele eșuate (rândul 284); jurnal, intervențiile 54, 76, 81
+
+**5. Avertismentul.** O acțiune făcută din greșeală poate duce la **trimiterea imediată** a mesajului, din aplicația pornită (`kickOutbox`), sau la **următoarea rulare a cron-ului** (cel mult 2 minute). Mesajul nu poate fi oprit după acțiune. Limitarea destinatarului la adresa de test **nu este o garanție absolută**: ea depinde de trei condiții, (a) modul efectiv rămâne `allowlist`, (b) `EMAIL_ALLOWLIST` conține numai adresa de test (confirmat de proprietar la 27.10.2026) și (c) codul aplică restricția corect (`outbox.ts` 239–243, acoperit de testele automate). [V] `outbox.ts` 239–243, 328–356
+
+**6. Substitute interzise pentru o pauză.** Nu se folosesc în locul unei pauze generale:
+- `EMAIL_MODE=simulated`: mesajele procesate devin definitiv `simulated` (`outbox.ts` 234–238);
+- modificarea `EMAIL_ALLOWLIST` sau a destinatarului: mesajele devin definitiv `blocked` (`outbox.ts` 239–242);
+- oprirea fluxului către Primărie: afectează numai notificările către Primărie, iar repornirea lui eliberează mesajele reținute (`outbox.ts` 112–116, 180–189; `adminReports.ts` 513).
+
+[V]
+
+**7. Condițiile de oprire.** E3 **nu continuă** până la clarificare dacă, la oricare punct de control:
+- apare cel puțin un mesaj `queued` sau `sending`, ori numerele pe tip și stare diferă de referința PC1;
+- modul afișat nu este `allowlist` sau destinatarul nu este adresa de test;
+- starea așteptată nu poate fi confirmată (interogarea sau panoul nu pot fi citite).
+
+[A]
+
+**8. Separarea de testul de e-mail.** Pregătirea și instalarea E3 nu includ nicio trimitere. Proba Brevo (§8.3) este o operație separată, cu aprobarea explicită a proprietarului. Nicio aprobare a instalării nu o autorizează. [A]
+
+**Riscul rezidual, declarat.** Protecția depinde de respectarea interdicției de la punctul 4. Între două puncte de control, o acțiune accidentală ar putea trimite un mesaj către adresa de test, fără posibilitatea de a-l opri. Riscul nu este eliminat. Efectul este limitat la adresa de test **numai cât timp** sunt îndeplinite condițiile (a)–(c) de la punctul 5. Probabilitatea este redusă de lacăt, a cărui parolă era cunoscută, la 27.10.2026, numai de proprietar. Între două puncte de control o trimitere poate trece neobservată până la punctul următor, care doar o constată. [A]
+
+**Intervalul STOP APP – START APP (pașii 4.3–4.7).** Cron-ul `outbox:process` rămâne activ și în acest interval, iar panoul nu poate fi citit. Dacă există un mesaj trimisibil, el poate pleca fără să fie observat până la PC3, care doar îl constată. Riscul este redus numai de condițiile verificate la PC2 (coada fără `queued` și `sending`) și de faptul că, cu aplicația oprită, nu se pot crea mesaje noi. Nu este eliminat. [A]
+
+**Cât timp aplicația este oprită** (pașii 4.3–4.7), sarcinile cron continuă să ruleze (§0), inclusiv `outbox:process` (§4.0.1). Dacă pornirea eșuează, aplicația nu rămâne neglijată: fie se repară cauza (§4.8), fie se decide revenirea (§4.9). [V] jurnal, observația 9; [A]
 
 ### 4.8 Dacă aplicația nu pornește
 
@@ -274,7 +308,7 @@ Precedent: la instalarea `711a7ae`, pachetul de revenire `civic-1ee19fe.zip` era
 
 ## 5. Verificările după instalare (criteriile E3)
 
-Toate verificările din acest tabel sunt [CITIRE]: cererile `curl -sI` (antete) și `curl -s` (GET) nu modifică nimic. Excepția este 5.10, marcată separat.
+Verificările din §5 încep numai după PC3 și se încheie cu PC4 (§4.0.1). Toate verificările din acest tabel sunt [CITIRE]: cererile `curl -sI` (antete) și `curl -s` (GET) nu modifică nimic. Excepția este 5.10, marcată separat.
 
 | # | Verificarea | Cum | Rezultatul așteptat | Marcaj și sursă |
 |---|---|---|---|---|
@@ -388,7 +422,7 @@ Criptarea copiilor și copia în afara contului de găzduire privesc producția 
 6. Dacă mesajul de trecere în `simulated` ajunge în `stderr.log` (§8.2). [E3]
 7. Dacă antetul `X-Robots-Tag` ajunge și pe fișierele statice servite pe domeniul real (§5.4). [E3]
 8. Comportamentul `nodemailer` 10.1.4 cu Brevo real (§8.3). [E3] [A]
-9. Cine are parola lacătului Directory Privacy și confirmarea conținutului `EMAIL_ALLOWLIST` (§4.0.1, condițiile 1 și 3); forma liniei cron `outbox:process` și modul ei de suspendare și reactivare, condiție de intrare a instalării (§4.0.1). [E3] [A]
+9. Parola lacătului și conținutul `EMAIL_ALLOWLIST`: confirmate de proprietar la 27.10.2026 (§4.0.1), ca observații la acea dată. Liniile cron: citite din captura cPanel din 27.10.2026. Folosirea sau nu a suspendării pentru `5d8c52a`: propunerea din §4.0.1, în așteptarea aprobării. [A]
 10. Procedura de recuperare a ultimului `super_admin` (T-N5), operatorul și frecvența monitorizării (DEC-16): livrabile E2 separate. [A]
 11. Toate valorile de producție (§10.2 din planul v2.4): se completează după E4. [A]
 
