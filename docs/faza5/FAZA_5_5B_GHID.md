@@ -1,5 +1,7 @@
 # FAZA 5.5b — GHID: E-MAIL REAL PE STAGING (`allowlist`)
 
+> **Antet istoric (DEC-6):** executat la 08.10.2026 **pe staging-ul nou `test.urbisactiv.ro`**; pașii ghidului corespund intervențiilor 11–16 și 19 din jurnalul acestuia (`docs/faza5/STAGING_URBISACTIV_JURNAL.md`). Intervențiile 17–18, din același interval, nu sunt pași ai ghidului: privesc fereastra de parolă repetată a lacătului de acces (17: o încercare de reparare prin `.htaccess`; 18: schimbarea parolei lacătului și instalarea reparației `b0e1842`). Ghidul **descrie contextul staging-ului vechi** (`civic-test.electrovolt.ro`, retras la 09.10.2026), pentru care a fost redactat. În vigoare: manualul 7D (`docs/faza7/FAZA_7D_MANUAL_INSTALARE_OPERARE_CIORNA.md`). Starea „pregătit, neexecutat” de mai jos este cea de la redactare (01.10.2026) și rămâne ca istoric.
+
 **Proiect:** Turnu Măgurele Civic · **Data:** 01.10.2026 · **Stare:** pregătit, **neexecutat**
 **Condiții prealabile (decizii ale proprietarului):** domeniul Civic (G7), **încă nedecis**, și furnizorul SMTP (N3-2): **Brevo, ales de proprietar la 01.10.2026**. Codul este gata din 5.5a (`1f64082`).
 
