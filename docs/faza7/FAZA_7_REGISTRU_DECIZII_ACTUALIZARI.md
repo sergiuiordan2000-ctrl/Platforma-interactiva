@@ -149,3 +149,150 @@ Această notă nu modifică înregistrările §1–§5.
 - Întrebările operaționale G6 pentru E4 rămân deschise (§4).
 - Închiderea 7C nu autorizează E2 sau alte etape; fiecare cere aprobare separată.
 - Lansarea publică nu este aprobată.
+
+---
+
+## 8. R-NPM — remedierea dependențelor livrate, închisă la 27.10.2026
+
+**Perimetrul:** aprobat separat de proprietar la 26.10.2026, după analiza read-only a celor șapte constatări `npm audit` (`FAZA_7C_RAPORT.md` §1.2). Numai actualizări patch sau minor, în aceeași versiune majoră; codul aplicației neschimbat.
+
+**Commitul:** `5d8c52a5710acde2deda674c64136fcf0d25730c` (`faza-5-backend`), cu trei fișiere: `server/package.json`, `shared/package.json`, `package-lock.json`.
+
+| Pachetul | Înainte | După |
+|---|---|---|
+| `zod` (server, shared) | 4.6.5 | 4.6.6 |
+| `fastify` | 5.12.5 | 5.12.6 |
+| `nodemailer` | 10.0.13 | 10.1.4 |
+| `smtp-server` (numai pentru teste) | 3.19.16 | 3.19.24 |
+| `fast-uri` (indirect) | 3.1.8 / 4.2.1 | 3.1.9 / 4.2.3 |
+| `vite` (build) | 8.3.1 | 8.3.3 |
+| `body-parser` (indirect, nelivrat) | 1.20.8 | 1.20.9 |
+
+**Dovezile:**
+- `npm audit` (verificare locală, nu în CI: workflow-ul CI nu rulează `npm audit`): rulat în mediul de lucru al lui Claude (containerul sesiunii), pe arborele de lucru curat, după modificare (26.10.2026) și din nou la 27.10.2026, cu rezultatul `found 0 vulnerabilities`; ieșirea acestor rulări nu este păstrată ca fișier. Reverificat la 27.10.2026, ~18:10 (ora României), la `f8271a6` (`package-lock.json` identic cu cel din `5d8c52a`), cu Node 22.23.4 și npm 10.9.9: `found 0 vulnerabilities` (info 0, low 0, moderate 0, high 0, critical 0; 334 de dependențe). Rezultatul reflectă baza de avertismente npm de la data rulării;
+- verificarea locală completă după modificare (26.10.2026, înaintea commitului): typecheck, build-uri, unitare 104/104, API 25/25, integrare 389/389, E2E 283/283 (jurnalul verificării, în afara repository-ului);
+- CI 40460197905, la `5d8c52a`: 6/6 joburi `success`; din jurnalele brute: unitare 104/104, API 25/25, integrare 389/389 pe fiecare job backend, E2E `TOTAL: 283/283 PASS`;
+- `source-map-js` 1.2.2 rămâne în arborele de dependențe și nu apare în artefacte (condiția DEC-3b, §3, rămâne în vigoare: reverificare înaintea E4).
+
+**Corectarea neconcordanței documentare:** afirmațiile despre cele șapte vulnerabilități `npm audit` din §3 (Limite), §7 (Limite) și din `FAZA_7C_RAPORT.md` (§1.2: „`npm audit` (26.10.2026) raportează 7 vulnerabilități: 3 mari, 3 moderate, 1 scăzută”; §6.2; §7.4) consemnează starea de la 26.10.2026, înaintea R-NPM. Ele rămân neschimbate, ca stări datate. Starea ulterioară, de la `5d8c52a`: `npm audit`, rulat local, nu raportează nicio vulnerabilitate (dovezile de mai sus).
+
+**Limite:** remedierea nu este verificată cu serverul SMTP real (Brevo) pentru `nodemailer` 10.1.4; această probă cere aprobarea separată a proprietarului (manualul E2, §8.3). Checkpoint-ul 7C nu se redeschide.
+
+---
+
+## 9. Candidatul pentru E3: `5d8c52a` — consemnat la 27.10.2026
+
+**Faptul:** codul candidat pentru E3 este cel de la `5d8c52a5710acde2deda674c64136fcf0d25730c` (CI 40460197905, 6/6 joburi `success`), indicat ca atare în ciorna manualului 7D. Commiturile ulterioare `e55c28e` (CI 40466609384), `cb0f569` (CI 40520875495) și `f8271a6` (CI 40534727547) conțin numai documentație: `git diff 5d8c52a f8271a6` atinge numai trei fișiere `.md`.
+
+**Limita:** SHA-ul înscris în pachet (`RELEASE.txt`, numele arhivei) și în `health` este HEAD-ul clonei din care se construiește pachetul (`server/scripts/package-release.py`; `server/build.mjs`). Un pachet construit dintr-un commit de documentație ulterior are același cod, dar alt SHA, și cere CI verde pentru acel SHA (planul v2.4, E3, criteriul 1). SHA-ul exact care se instalează se stabilește la autorizarea E3.
+
+**Ce NU înseamnă această consemnare:**
+- nu autorizează pornirea E3 sau vreo operație pe staging;
+- nu dovedește că instalarea a avut loc; ultima versiune consemnată ca instalată pe staging este `711a7ae` (`docs/faza5/STAGING_URBISACTIV_JURNAL.md`, intervențiile 99–100 și 106).
+
+---
+
+## 10. Pachetul de revenire pentru E3 — consemnat la 27.10.2026
+
+| Câmp | Valoare |
+|---|---|
+| Fișierul | `civic-711a7ae.zip` |
+| SHA-256 raportat | `64776c23be718d58d3d22211c629f3cda7d4e4c4ff225c4f9beaa29d197f9d5d` |
+| `RELEASE.txt` | declară `711a7ae` |
+| Concordanța | compatibil cu forma prescurtată consemnată la instalare (`64776c23…7f9d5d`, jurnalul staging-ului, intervenția 99); jurnalul nu conține forma completă |
+
+**Proveniența:** amprenta completă și conținutul `RELEASE.txt` au fost **raportate de proprietar** la 27.10.2026 ca verificate anterior, în afara sesiunii de lucru cu Claude. Claude nu a verificat arhiva, iar în această consemnare ele nu au fost reverificate independent.
+
+**Ce NU înseamnă:** consemnarea nu autorizează revenirea; condițiile din manualul E2, §4.9, rămân obligatorii.
+
+---
+
+## 11. E-mailul pe staging și în etapele următoare — regulile proprietarului; DEC-25 rămâne deschisă
+
+**Regulile stabilite de proprietar (26.10.2026 și 27.10.2026):**
+- dezvoltarea locală folosește `EMAIL_MODE=simulated`;
+- staging-ul folosește `EMAIL_MODE=allowlist`, numai cu adresa de test a proprietarului;
+- în etapa actuală nu se trimite niciun e-mail către primării;
+- adresele oficiale ale primăriilor le introduce proprietarul când aplicația este gata;
+- transmiterea reală se activează numai după o autorizare separată;
+- subcontul administrativ al Primăriei este opțional și nu se confundă cu adresa destinatarului.
+
+**Faptele confirmate de proprietar la 27.10.2026** (observații la acea dată): `EMAIL_ALLOWLIST` de pe staging conținea exclusiv adresa lui de test; panoul Admin afișa modul „staging: numai adresele din listă”, destinatarul fluxului era adresa de test, iar fluxul era pornit.
+
+**DEC-25** (planul v2.4, §6: „gardul de e-mail până la E6”; (a) fluxul către Primărie oprit; (b) destinatar de test controlat și adresa reală absentă din `EMAIL_ALLOWLIST`, cu lista verificată la fiecare operație) **rămâne deschisă**. Regulile de mai sus sunt compatibile cu varianta (b), dar proprietarul nu a ales formal o variantă pentru E4–E6, iar planul cere ca gardul să nu rămână „o presupunere bazată doar pe `allowlist`” (§12). Alegerea formală este necesară înaintea E4/E7.
+
+**Ce NU înseamnă această consemnare:** nu autorizează nicio probă de e-mail, nicio trimitere și nici pornirea E3.
+
+---
+
+## 12. DEC-5 și DEC-6 — corecturile documentare publicate la 27.10.2026; DEC-5 rămâne deschisă
+
+**Commitul:** `f8271a66d1829cd0a62900293e4975f9900bfc5f` (`faza-5-backend`, 27.10.2026), publicat; CI 40534727547, 6/6 joburi `success`. Fișierele modificate: `PROJECT_RULES_AND_DECISIONS.md` (§13.2, rândurile 364 și 365) și `docs/faza5/FAZA_5_5B_GHID.md` (antetul). Textele au fost aprobate de proprietar înaintea aplicării, după amprentele propunerilor; commitul și push-ul au fost aprobate separat. Commitul conține numai documentație.
+
+### DEC-5 (planul v2.4, §6) — DESCHISĂ
+
+Planul v2.4 definește DEC-5 ca „C2 (restaurarea marcată «neexersată» vs. M4), C4 (moderarea din fluxul critic), C5 (handoff) și corectura observației 4 din jurnal privind `TRUST_PROXY`”, cu criteriul „confirmarea tuturor punctelor”.
+
+| Punctul | Starea la `f8271a6` | Ce s-a consemnat / ce lipsește |
+|---|---|---|
+| C2 | **aplicat și publicat** | `PROJECT_RULES_AND_DECISIONS.md` §13.2, rândul 365: formularea „neexersată” păstrată ca istoric, cu o actualizare datată: restaurarea cu `restore:db` a fost exersată pe staging la 13.10.2026 (M4; jurnalul staging-ului, intervențiile 41–48), cu versiunea `27b1b5f`; `restore:db` cu codul 7A nu a fost probat pe staging (`FAZA_7A_RAPORT.md` §9); restaurarea de probă în producție rămâne cerință E4 |
+| `TRUST_PROXY` (rândul 364) | **actualizarea documentară aplicată și publicată** | formularea „de rezolvat înainte de lansare” păstrată ca istoric, cu o actualizare datată: lipsa adresei reale a vizitatorului este o **limitare acceptată, nu o problemă rezolvată** (AI-1, varianta A; varianta B, D-B1…D-B5; DEC-4). **Limitarea tehnică nu a fost remediată**; `TRUST_PROXY` rămâne nesetat, iar reevaluarea la G6 rămâne pentru E4 (§4). Rândul 364 nu este numit explicit în textul DEC-5; corectura privește aceeași formulare ca observația 4 |
+| C4 | **neaprobată, neaplicată** | propunerea privește `README.md` (rândul 4: „moderate și afișate pe hartă”) |
+| observația 4 din jurnal | **neaprobată, neaplicată** | `docs/faza5/STAGING_URBISACTIV_JURNAL.md`, observația 4 („Trebuie rezolvat înainte de lansare”) |
+| C5 | **propunere în curs de actualizare, neaprobată** | `PROJECT_HANDOFF_CURRENT.md`; propunerea anterioară descria `cb0f569` ca stare curentă și trebuie refăcută față de `f8271a6` |
+
+**Starea:** criteriul „confirmarea tuturor punctelor” nu este îndeplinit (C4, C5 și observația 4 sunt deschise). **DEC-5 rămâne DESCHISĂ.** Statutul din planul v2.4 rămâne neschimbat.
+
+### DEC-6 — antetul istoric al ghidului 5.5B, aplicat și publicat
+
+**Ce s-a aplicat:** antetul de la începutul `docs/faza5/FAZA_5_5B_GHID.md`: ghidul a fost executat la 08.10.2026 pe staging-ul nou `test.urbisactiv.ro`; pașii lui corespund intervențiilor 11–16 și 19 din jurnalul staging-ului; intervențiile 17–18, din același interval, privesc fereastra de parolă a lacătului și nu sunt pași ai ghidului; ghidul descrie contextul staging-ului vechi (`civic-test.electrovolt.ro`, retras la 09.10.2026); în vigoare este manualul 7D; starea „pregătit, neexecutat” rămâne ca istoric.
+
+**Diferența față de textul din plan:** criteriul DEC-6 din planul v2.4 (§6) indică „intervențiile 11–19”. Antetul aplicat precizează 11–16 și 19 și explică separat 17–18, conform jurnalului. Formularea a fost aprobată de proprietar înaintea aplicării.
+
+**Ce rămâne:** rândul „domeniul Civic (G7), **încă nedecis**” din ghid nu este marcat individual ca istoric; antetul declară istorică numai starea „pregătit, neexecutat”. Ghidul marcat istoric este și livrabil E5 (planul v2.4, E5). Această consemnare nu declară DEC-6 închisă; dacă antetul aplicat satisface integral criteriul DEC-6 este decizia proprietarului.
+
+**Ce NU înseamnă această consemnare:** nu închide DEC-5, nu închide E2 și nu autorizează E3.
+
+---
+
+## 13. E2 / 7D-ciornă — autorizarea începerii și publicarea manualului (evenimente din 27.10.2026; consemnare ulterioară)
+
+**Natura acestei secțiuni:** evenimentele de mai jos s-au petrecut la 27.10.2026. Secțiunea este o **consemnare adăugată ulterior** acelor evenimente. Nu este o dovadă creată la momentul lor. Ea reunește:
+- fapte verificabile în Git și în CI (punctul 2);
+- aprobări date în conversația de lucru, a căror sursă este indicată pentru fiecare (punctele 1 și 3).
+
+Registrul §7 consemnează că închiderea 7C „nu autorizează E2 sau alte etape; fiecare cere aprobare separată”. Secțiunile §1–§12 rămân neschimbate.
+
+**1. Autorizarea începerii E2 (27.10.2026, dimineața) — întinderea exactă neconfirmată.**
+- Proprietarul a autorizat începerea E2 în conversația de lucru, după închiderea R-NPM.
+- Mesajul original al autorizării **nu este disponibil**: nu este în repository și nici în înregistrările de lucru accesibile la redactarea acestei consemnări.
+- Singura sursă pentru întinderea autorizării este un **rezumat** al conversației. Potrivit lui, autorizarea era limitată la ciorna manualului de instalare și operare (planul v2.4, §10.1), cu marcajele de lucru și fără modificări în alte fișiere.
+- Întinderea exactă și formularea autorizării sunt, de aceea, **neconfirmate**.
+- Starea „E2/7D-ciornă în curs, nefinalizată” este confirmată în scris în instrucțiunea transmisă de proprietar la 27.10.2026, după-amiaza.
+
+**2. Publicarea documentelor și rezultatele CI (fapte verificabile, distincte de aprobări):**
+
+| Commitul | Data commitului | Conținutul | CI |
+|---|---|---|---|
+| `e55c28ed8786d8bac605f2add12585a82263f7ce` | 27.10.2026, 09:19 | prima ciornă a `docs/faza7/FAZA_7D_MANUAL_INSTALARE_OPERARE_CIORNA.md` (401 rânduri), marcată „CIORNĂ — de finalizat după 7E” | 40466609384, 6/6 `success` |
+| `cb0f569408b57f3ae1d098d0466bddfc1a86d245` | 27.10.2026, 16:08 | revizia manualului: §4.0.1 (E3 fără suspendarea cron-ului `outbox:process`, ca propunere), punctele de control PC1–PC4 | 40520875495, 6/6 `success` |
+| `f8271a66d1829cd0a62900293e4975f9900bfc5f` | 27.10.2026, 17:45 | corecturile DEC-5 (C2, `TRUST_PROXY`) și antetul DEC-6 (§12) | 40534727547, 6/6 `success` |
+
+Prezența acestor commituri pe `origin/faza-5-backend` și rulările CI dovedesc publicarea și rezultatul testelor. Ele **nu** dovedesc, singure, aprobările.
+
+**3. Aprobările individuale (sursa: conversația de lucru; limitarea sursei indicată).**
+- **Pentru `e55c28e` și `cb0f569`:** aprobarea textului, a commitului și a push-ului, date separat, sunt cunoscute numai din **rezumatul** conversației. Mesajele originale nu sunt disponibile, iar orele aprobărilor nu sunt consemnate în repository.
+- **Pentru `f8271a6`:** aprobarea textelor după amprentele propunerilor și aprobările separate de commit și push au fost date în conversația din 27.10.2026, după-amiaza. Nici ele nu sunt consemnate în repository.
+- Aprobarea publicării unui text **nu** aprobă propunerile pe care textul le descrie ca neaprobate.
+
+**4. Propunerea „E3 fără suspendarea cron-ului `outbox:process`”: neaprobată.** Starea rezultă din textul manualului, verificabil în Git:
+- În `e55c28e`, manualul recomanda suspendarea temporară a sarcinii cron și preciza că aceasta „nu este aprobată”.
+- În `cb0f569`, varianta s-a schimbat într-o propunere de E3 **fără** suspendare, cu verificările PC1–PC4. Manualul o declară „supusă aprobării proprietarului (neaprobată la redactare, 27.10.2026)” și „Până la aprobare, nu constituie o decizie” (§4.0.1; §0; §10, punctul 9).
+- Nu este consemnată nicio decizie ulterioară. Propunerea rămâne **neaprobată**, iar orice operație pe cron rămâne interzisă fără aprobare explicită.
+
+**5. Închiderea E2: neconfirmată.** E2 nu este închisă. Planul v2.4 (E2) cere ciornele din §10.1, fiecare marcată „CIORNĂ — de finalizat după 7E”, cu fiecare comandă și variabilă verificată față de cod. La data consemnării rămân deschise, între altele:
+- C4, C5 și observația 4 (DEC-5, §12);
+- acoperirea comenzilor CLI și a R20 în manual;
+- ciorna procedurii pentru ultimul `super_admin` (T-N5), care depinde de DEC-22.
+
+**Ce NU înseamnă această consemnare:** nu închide E2, nu schimbă statutul DEC-5, DEC-6 sau DEC-25, nu aprobă propunerile din manual și nu autorizează E3. Lansarea publică nu este aprobată.
