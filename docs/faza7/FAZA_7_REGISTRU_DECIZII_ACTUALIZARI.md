@@ -423,3 +423,37 @@ Starea din §8 („found 0 vulnerabilities”, 27.10.2026, ~18:10) **rămâne va
 - Nu autorizează vreo trimitere de e-mail, în afara celei din D3, după autorizarea E3.
 - Nu modifică DEC-5, DEC-25 sau A17-1.
 - Lansarea publică nu este aprobată.
+
+---
+
+## 16. Deciziile proprietarului care deblochează E4: DEC-16, DEC-21–DEC-25 și metoda T-N5 (28.10.2026)
+
+Proprietarul a ales opțiunile de mai jos la 28.10.2026, ~09:51–09:55, în conversația de lucru. Opțiunile sunt cele din planul v2.4, §6 (rândurile 558 și 563–567). Planul v2.4 rămâne neschimbat; starea în vigoare a acestor decizii este cea de aici.
+
+### 16.1 Deciziile
+
+| Decizia | Opțiunea aleasă | Ce rămâne de făcut |
+|---|---|---|
+| **DEC-21** — restricția de acces în producție până la E9 | **(a)** lacăt cu parolă la nivelul găzduirii (cPanel → Directory Privacy), ca pe staging | se activează înaintea pornirii aplicației pe `urbisactiv.ro`; testul fără credențiale trebuie refuzat; se menține până la aprobarea E9. Fereastra de parolă repetată (401) este rezolvată pe staging prin `AMENDAMENT_ME_OPTIONAL.md` (jurnalul staging-ului, observația 2) |
+| **DEC-22** — minimum două conturi `super_admin` active, pe dispozitive separate | **(a)** obligatoriu. Ambele conturi aparțin proprietarului, pe dispozitive fizice diferite; codurile de recuperare ale fiecărui cont se păstrează pe hârtie, separat de dispozitive | al doilea cont se creează și se verifică în producție, în E4 |
+| **T-N5** — recuperarea ultimului `super_admin` (planul v2.4, rândul 463) | metoda de ultimă instanță **O2**: intervenție directă în baza de date (phpMyAdmin), care reproduce efectul resetării TOTP pe contul blocat, urmată de înrolarea impusă la autentificare | procedura scrisă pas cu pas (ciornă E2, în manualul 7D) și aprobată înaintea E4. Operația nu lasă audit în aplicație și se consemnează manual |
+| **DEC-23** — copie de backup în afara contului de găzduire | **(a)** copie externă criptată, cu acces restrâns și retenție documentată | metoda (de exemplu descărcarea periodică a celei mai recente copii pe calculatorul proprietarului, într-o arhivă criptată), cheia, frecvența și retenția se stabilesc și se verifică înaintea E4, împreună cu cerințele GDPR (planul v2.4, E4.11) |
+| **DEC-24** — branch-ul-sursă pentru instalarea de producție | **(a)** `faza-5-backend`, la SHA-ul aprobat | `main` nu se actualizează; SHA-ul exact se aprobă separat, la autorizarea E4 |
+| **DEC-25** — gardul de e-mail până la E6 | **(a)** fluxul către Primărie **oprit** în producție | fluxul se pornește numai după poarta E6, prin decizie separată. Pe staging rămâne starea actuală (fluxul pornit, destinatarul = adresa de test, `allowlist`) până la o decizie contrară. Proba R19 cu mesaj `on_hold`, dacă procedura E4 o permite (planul v2.4, rândul 567) |
+| **DEC-16** — monitorizarea `backup.log`, a cozii de e-mail și a `health` | operatorul: **proprietarul**; frecvența inițială: **zilnic**; trecerea la verificarea săptămânală: **numai prin decizia explicită a proprietarului**; dovezile: o evidență datată a proprietarului, în afara repository-ului, fără secrete și adrese; escaladarea: consemnare și investigare prin citire, în aceeași zi; orice acțiune cu efect, numai cu aprobarea proprietarului | se consemnează în manualul 7D (§6.3); criteriul E4.14 cere și consemnarea limitărilor jurnalelor suprascrise |
+
+### 16.2 Efectul asupra E4
+
+Deciziile care blocau E4 prin lipsa unei alegeri (DEC-21–DEC-25) au acum o opțiune aleasă. **E4 nu este autorizată** prin această consemnare. Înaintea E4 rămân, între altele:
+- procedura T-N5 scrisă și aprobată;
+- detaliile DEC-23;
+- remedierea `qs` și reverificarea `npm audit` (§15.4; DEC-3b);
+- eventuala remediere O-E3-1 (jurnalul staging-ului, observația 20), care ar cere un candidat nou și o reinstalare pe staging;
+- întrebările operaționale G6 (§4);
+- închiderea E3.
+
+### 16.3 Ce NU înseamnă această consemnare
+
+- Nu autorizează E4 și nici vreo operație pe staging, cPanel, cron sau `civic.env`.
+- Nu modifică DEC-5 (rămâne deschisă) sau A17-1 (rămâne în vigoare).
+- Lansarea publică nu este aprobată.
