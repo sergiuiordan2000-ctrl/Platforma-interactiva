@@ -167,7 +167,7 @@ export const LocationPicker = forwardRef<LocationPickerHandle, LocationPickerPro
           text:
             err.code === err.PERMISSION_DENIED
               ? 'Accesul la locație a fost refuzat. Atingeți harta sau apăsați „Caută pe hartă”.'
-              : 'Poziția nu a putut fi determinată. Atingeți harta sau apăsați „Caută pe hartă”.',
+              : 'Poziția nu a putut fi determinată. Verificați dacă locația telefonului este pornită (din setările telefonului), apoi apăsați din nou „Poziția mea”. Puteți și atinge harta sau apăsa „Caută pe hartă”.',
         });
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 },
