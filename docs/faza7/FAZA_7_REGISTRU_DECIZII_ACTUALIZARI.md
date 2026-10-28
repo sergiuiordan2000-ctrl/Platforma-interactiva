@@ -355,3 +355,71 @@ Formularea din README despre moderare aparține constatării **N2** (`docs/faza6
 **DEC-5 rămâne DESCHISĂ.** Această consemnare **nu** închide DEC-5. Statutul din planul v2.4 rămâne neschimbat.
 
 **Ce NU înseamnă această consemnare:** nu modifică observația 4, C5, E2, DEC-6 sau DEC-25 și nu autorizează E3. Lansarea publică nu este aprobată.
+
+---
+
+## 15. E3 — deciziile proprietarului pentru pregătire și pachetul candidat (28.10.2026); E3 rămâne neautorizată
+
+Această secțiune consemnează deciziile de pregătire a E3, luate de proprietar la 28.10.2026, după auditul pachetului de pregătire. **Ea nu autorizează E3.** Autorizarea E3 este o aprobare separată a proprietarului.
+
+### 15.1 Deciziile
+
+| # | Decizia | Precizări |
+|---|---|---|
+| D1 | **versiunea instalată: `5d8c52a5710acde2deda674c64136fcf0d25730c`** (CI 40460197905, 6/6 `success`) | pachetul descris la §15.2; după instalare, `health` trebuie să arate `0.0.0+5d8c52a` |
+| D2 | **E3 se face fără suspendarea cron-ului `outbox:process`**: proprietarul aprobă propunerea din manual, §4.0.1, și **acceptă explicit riscul rezidual** | Verificările PC1–PC4 sunt un control de detectare, nu o barieră împotriva trimiterilor (manualul, §4.0.1, „Ce dovedește comparația”). În modul `allowlist`, codul blochează destinatarii din afara listei (`server/src/reports/outbox.ts` 239–242). Cât timp lista conține numai adresa de test, efectul maxim este un e-mail neașteptat către adresa de test. Dacă PC1 nu poate fi verificat sau condițiile din §4.0.1 nu sunt îndeplinite, instalarea **se oprește** |
+| D3 | **singurul e-mail permis în testele E3 este codul de autentificare (A2), către adresa de test a proprietarului** | Proba Brevo completă (manualul, §8.3: notificarea sesizării, actualizarea de stare, proba negativă) se face separat, mai târziu, cu aprobare separată. Transmiterea către Primărie și notificările rămân oprite în toate testele |
+| D4 | **matricea de testare pe telefon A0–A7 este aprobată** (Android/Chrome; iPhone/Safari numai dacă există un dispozitiv) | detaliată la §15.3 |
+| D5 | fereastra de timp: **nedecisă** | se stabilește după ce pachetul, backup-ul și pachetul de revenire sunt pregătite și verificate; ziua, în afara intervalului 03:00–06:30 (manualul, §4) |
+
+### 15.2 Pachetul candidat (construit local, 28.10.2026)
+
+| Câmp | Valoare |
+|---|---|
+| Fișierul | `civic-5d8c52a.zip` (22 de fișiere, 1.394.962 B) |
+| SHA-256 | `4ffcaec4678ca5bb7bedc7cfc98dec2d125096f65cf12ebc49a211c069f0f231` |
+| Construit din | o clonă curată a `5d8c52a`, cu `npm ci`, `npm run build`, `npm run build -w server`, `python3 server/scripts/package-release.py` (fără `--bootstrap-email`); arborele de lucru a rămas curat, deci fără sufixul `-dirty` |
+| Mediul de construire | containerul de lucru al lui Claude; Node 22.23.4, npm 10.9.9 |
+| `RELEASE.txt` | `commit: 5d8c52a` |
+| Versiunea compilată | `0.0.0+5d8c52a` (`server/dist/app.js`) |
+| Conținutul | `dist/`, `server/dist/`, migrațiile `0001`–`0002`, `server/seeds/`, `server/data/`, `package.json` cu scripturile „Run JS script” (fără `civic-bootstrap-admin`); fără fișiere `.env*` și `.map` |
+
+Amprenta identifică **acest fișier**. O reconstruire din același commit produce o arhivă cu alte date ale fișierelor, deci altă amprentă. Fișierul instalat trebuie să fie exact acesta.
+
+Pachetul de revenire `civic-711a7ae.zip` rămâne cel din §10 (raportat de proprietar, neverificat independent). Disponibilitatea lui se verifică înaintea instalării (manualul, §4.9).
+
+### 15.3 Matricea de testare pe telefon (A0–A7)
+
+Toate probele sunt **NEVERIFICATE** până la execuție. Fiecare rezultat se consemnează în jurnalul staging-ului, cu dovada indicată.
+
+| # | Proba | Rezultatul așteptat | Dovada |
+|---|---|---|---|
+| A0 | `GET /api/v1/health` | `{"status":"ok","version":"0.0.0+5d8c52a"}` | captură |
+| A1 | harta: mutare, zoom, atingerea unui marker, închiderea cu „×” | fără suprapuneri; fereastra se închide | confirmarea proprietarului |
+| A2 | autentificarea cetățeanului cu cod pe e-mail | codul sosește la adresa de test; sesiunea rămâne după reîncărcare | captură, fără codul vizibil |
+| A3 | sesizare cu „Poziția mea” (GPS) și fotografie din galerie, **fără** transmitere către Primărie și fără notificări | pinul apare la poziția reală; se primește `TM-XXX`; sesizarea apare imediat pe hartă | captură |
+| A4 | aceeași sesizare în Admin, pe telefon | apare în listă, cu stadiul „nouă” | captură |
+| A5 | autorul șterge sesizarea de probă | dispare de pe hartă și din Admin; numărul TM nu se refolosește | confirmarea proprietarului |
+| A6 | Admin, după circa 7 minute cu ecranul oprit | se consemnează ce se întâmplă (raportul 7B, §7.1.2); **probă de observație, nu criteriu de trecere** | captură |
+| A7 | antetul pe mobil | „Urbis Activ” și „Turnu Măgurele”, fără „CIVIC” | captură |
+
+Limitările acceptate (camera directă, HEIC; raportul 7B, §7.1.3) nu sunt criterii de trecere.
+
+### 15.4 Avertismentul `npm audit` din 28.10.2026 (`qs`)
+
+**Constatarea:** la construirea pachetului (28.10.2026, ~07:09, ora României; containerul de lucru; `npm audit` la `5d8c52a`) s-a raportat o vulnerabilitate moderată:
+- pachetul: `qs` 6.16.0 (GHSA-6pq8-jhm2-2vcw);
+- calea: `altcha-lib` 2.5.0 → `express` 4.22.3 → `qs` și `body-parser` → `qs`.
+
+Starea din §8 („found 0 vulnerabilities”, 27.10.2026, ~18:10) **rămâne valabilă ca stare datată**. După acea dată a apărut acest avertisment nou.
+
+**Verificarea:** codul specific `qs` nu a fost găsit în artefactul livrat (`server/dist/app.js` și `dist/assets/`). Pachetul nu este, deci, inclus în ce se instalează.
+
+**Decizia proprietarului (28.10.2026):** E3 se face cu `5d8c52a` (D1). Remedierea `qs` se tratează separat, **înaintea E4**, odată cu reverificarea `npm audit` cerută de DEC-3b (§3).
+
+### 15.5 Ce NU înseamnă această consemnare
+
+- Nu autorizează E3 și nici vreo operație pe staging, cPanel, cron sau `civic.env`.
+- Nu autorizează vreo trimitere de e-mail, în afara celei din D3, după autorizarea E3.
+- Nu modifică DEC-5, DEC-25 sau A17-1.
+- Lansarea publică nu este aprobată.
