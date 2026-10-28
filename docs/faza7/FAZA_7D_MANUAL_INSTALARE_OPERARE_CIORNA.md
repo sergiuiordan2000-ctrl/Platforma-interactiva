@@ -340,7 +340,20 @@ Sarcinile `outbox:process` (trimite mesajele din coadă), `purge:retention` (șt
 
 `purge:pow` nu are sarcină separată: este inclus în `purge:retention` din `d53b28a`. [V] planul v2.4, E3.3; commitul `d53b28a`
 
-**Forma liniilor:** programul Node din `nodevenv/civic-test-app/24`, artefactul `server/dist/app.js` și comanda, cu setările prin `CIVIC_ENV_FILE`. [V] jurnal, intervenția 9; `PROJECT_HANDOFF_CURRENT.md` §0.4. **Textul exact al liniilor nu este consemnat în repository.** Se citește din cPanel în E3 și se consemnează fără numele contului. [E3]
+**Forma liniilor — observație istorică din 27.10.2026, nu o verificare actuală.** Proprietarul a citit liniile în cPanel → Cron Jobs → „Current Cron Jobs” (cPanel 138.0.19) și a transmis o captură. Numele contului este înlocuit aici cu `<cont>`. Toate cele patru linii au aceeași formă:
+
+```
+cd /home2/<cont>/civic-test-app && CIVIC_ENV_FILE=/home2/<cont>/civic-test-data/civic.env /home2/<cont>/nodevenv/civic-test-app/24/bin/node server/dist/app.js <comanda> <redirecționarea>
+```
+
+| Minute | Hour | Day / Month / Weekday | `<comanda>` | `<redirecționarea>` |
+|---|---|---|---|---|
+| `17` | `3` | `*` `*` `*` | `backup:db` | `>> /home2/<cont>/civic-test-data/backup.log 2>&1` (se adaugă la fișier) |
+| `*/5` | `*` | `*` `*` `*` | `surveys:close-expired` | `> /home2/<cont>/civic-test-data/surveys-cron.log 2>&1` (se suprascrie) |
+| `47` | `3` | `*` `*` `*` | `purge:retention` | `>> /home2/<cont>/civic-test-data/purge.log 2>&1` (se adaugă) |
+| `*/2` | `*` | `*` `*` `*` | `outbox:process` | `> /home2/<cont>/civic-test-data/outbox-cron.log 2>&1` (se suprascrie) |
+
+[V] captura din 27.10.2026; concordă cu jurnalul (intervențiile 9 și 13) și cu `PROJECT_HANDOFF_CURRENT.md` §0.4. Liniile pot fi modificate ulterior din cPanel, deci în E3 se **recitesc** prin citire (§5.6) înainte de a fi considerate actuale. Pagina nu afișează fusul orar al serverului; fusul orar efectiv al cron-ului rămâne **neverificat** (§6.2). Pentru sarcinile existente, interfața oferă numai **Edit** și **Delete**. [E3]
 
 **Limitarea constatată (observația 9):** sub `nodevenv`, `CIVIC_ENV_FILE` al aplicației are prioritate față de valoarea din linia cron. Orice sarcină citește deci `civic.env`. O comandă pe altă bază sau pe alt director primește variabilele direct în linie (`DATABASE_URL='…' STORAGE_DIR=…`), nu printr-un al doilea fișier de setări. [V] jurnal, intervențiile 44–45 și observația 9; `docs/faza5/FAZA_5_1_BACKUP_RESTAURARE.md` (rândul 230)
 
@@ -414,7 +427,7 @@ Criptarea copiilor și copia în afara contului de găzduire privesc producția 
 
 ## 10. Informații lipsă sau neconfirmate
 
-1. Textul exact al liniilor cron de pe staging (§6.1). [E3]
+1. Textul actual al liniilor cron de pe staging: §6.1 consemnează observația istorică din 27.10.2026; în E3 liniile se recitesc prin citire (§5.6), iar fusul orar efectiv rămâne neverificat (§6.2). [E3]
 2. Fusul orar efectiv al cron-ului după 25.10.2026 (§6.2). [E3]
 3. Dacă `civic.env` mai conține `DIAG_CLIENT_IP` sau conține `SEARCH_INDEXING` (§2.4, §4). [E3]
 4. Disponibilitatea, SHA-ul și amprenta completă a pachetului de revenire `civic-711a7ae.zip` (§4.9); fără ele, revenirea nu se face. [E3]
