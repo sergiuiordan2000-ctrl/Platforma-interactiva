@@ -296,3 +296,62 @@ Prezența acestor commituri pe `origin/faza-5-backend` și rulările CI dovedesc
 - ciorna procedurii pentru ultimul `super_admin` (T-N5), care depinde de DEC-22.
 
 **Ce NU înseamnă această consemnare:** nu închide E2, nu schimbă statutul DEC-5, DEC-6 sau DEC-25, nu aprobă propunerile din manual și nu autorizează E3. Lansarea publică nu este aprobată.
+
+---
+
+## 14. DEC-5, punctul C4 — interpretarea fluxului critic; corectarea asocierii C4 ↔ `README.md:4` (28.10.2026)
+
+Această secțiune este o notă ulterioară. Ea nu modifică §12 și §13, care rămân ca istoric.
+
+### 14.1 Interpretarea C4, consemnată la cererea proprietarului la 28.10.2026
+
+**Fluxul critic aplicabil** este cel din `docs/AMENDAMENTE_PLAN_V1_1_SI_MASTER_PLAN.md` §1 (28.09.2026, aprobat de proprietar, P-13, varianta A):
+
+> Cetățean (cont) → DB → Hartă (imediat) → E-mail către Primărie (numai la cerere) → `în analiză` → `rezolvată` (subcontul Primăriei)
+
+Pe scurt:
+- cetățeanul depune sesizarea din contul lui;
+- sesizarea se salvează și apare imediat pe hartă, **fără moderare**;
+- transmiterea către Primărie are loc **numai la cererea cetățeanului**;
+- urmează stadiile „în analiză” și „rezolvată”.
+
+**Planul v2.4, E7** (rândul 309: „Cetățean → DB → E-mail → Admin → Hartă. Moderarea a fost eliminată prin amendament (C4) …”) **se interpretează în acest sens**:
+- moderarea nu este un pas al fluxului și nu se testează;
+- e-mailul către Primărie nu este un pas obligatoriu înaintea afișării pe hartă.
+
+Planul v2.4 rămâne neschimbat.
+
+**Sursele faptelor:**
+- planul v1.1 (în afara repository-ului), rândul 98, conținea pasul „Moderare”; amendamentul îl înlocuiește;
+- `docs/faza4/FAZA_4_REGISTRU_DECIZII.md`, rândurile 49–50 (D9, A-2; 2.3: „Nu există moderare”);
+- `PROJECT_RULES_AND_DECISIONS.md`, rândurile 70 și 296;
+- `docs/faza5/FAZA_5_RAPORT_FINAL.md`, rândul 188.
+
+**Limitele interpretării:**
+- Nu modifică regulile transmiterii către Primărie:
+  - transmiterea este opțională, la cererea cetățeanului (`docs/faza4/FAZA_4_REGISTRU_DECIZII.md`, pct. 7, „C-4”: un cod al Fazei 4, distinct de C4 din planul v2.4);
+  - A17-3 rămâne înlocuit, conform `PROJECT_RULES_AND_DECISIONS.md`, rândul 283.
+- Nu modifică A17-1 (confirmarea scrisă a Primăriei; `agreementReference`) și nu modifică DEC-25 (gardul de e-mail până la E6), care rămâne **deschisă**.
+- Pentru C4 nu se modifică alte documente prin această consemnare.
+
+### 14.2 Corectarea asocierii C4 ↔ `README.md:4`
+
+În §12 (tabelul DEC-5, rândul C4), C4 este asociat cu propunerea privind `README.md` (rândul 4: „moderate și afișate pe hartă”). Asocierea era greșită și rămâne în §12 ca istoric.
+
+Formularea din README despre moderare aparține constatării **N2** (`docs/faza6/FAZA_6_REAUDIT_SECURITATE.md`, rândul 344; `docs/faza7/FAZA_7_PLAN.md`, rândul 43), nu lui C4. Registrul de bază (`docs/faza7/FAZA_7_E0_REGISTRU_DECIZII.md`, rândul 69) programează corectura N2 de la `README.md:4` în **7D-final** (S4, adică E5). README nu se modifică prin această consemnare.
+
+**Propunerea anterioară `2_C4.diff`** (corectura `README.md:4`, pregătită în afara repository-ului, neaprobată și neaplicată) **este retrasă ca propunere C4**, pentru că asocia greșit N2 cu C4. O eventuală corectură N2 se tratează separat, în E5 sau printr-o decizie distinctă de devansare.
+
+### 14.3 Starea DEC-5 după această consemnare
+
+| Punctul | Starea |
+|---|---|
+| C2 | aplicat și publicat (§12) |
+| `TRUST_PROXY`, rândul 364 | actualizarea documentară aplicată și publicată (§12); limitarea tehnică nu este remediată |
+| C4 | interpretarea fluxului critic consemnată (§14.1) |
+| observația 4 din jurnal | neaprobată, neaplicată (§12) |
+| C5 | propunere neaprobată (§12) |
+
+**DEC-5 rămâne DESCHISĂ.** Această consemnare **nu** închide DEC-5. Statutul din planul v2.4 rămâne neschimbat.
+
+**Ce NU înseamnă această consemnare:** nu modifică observația 4, C5, E2, DEC-6 sau DEC-25 și nu autorizează E3. Lansarea publică nu este aprobată.
