@@ -362,6 +362,36 @@ cd /home2/<cont>/civic-test-app && CIVIC_ENV_FILE=/home2/<cont>/civic-test-data/
 - Programul cron este 03:17, dar numele copiilor șterse prin rotație arată ora `00:17` UTC (de exemplu `civic-backup-20261013T001702632Z`, jurnal, intervenția 77). Asta sugerează că, la acea dată, ceasul cron al serverului era ora României de vară (UTC+3). **Este o deducție, nu o verificare.** [E3]
 - După trecerea la ora de iarnă (25.10.2026), diferența față de UTC ar deveni 2 ore. Ora efectivă a copiei de noapte se verifică după numele primei copii din `backup.log` de după instalare. [E3]
 
+### 6.3 Monitorizarea periodică (DEC-16) — decisă de proprietar la 28.10.2026
+
+> DEC-16 (planul v2.4, §6: „un operator numit și o frecvență în manualul 7D, înainte de E4”) este decisă de proprietar la 28.10.2026 (`FAZA_7_REGISTRU_DECIZII_ACTUALIZARI.md` §16). Criteriul E4.14 cere „verificarea periodică a `backup.log`, a cozii de e-mail și a `health`, cu operator numit, frecvență, dovadă și escaladare la eșec”, iar „limitările jurnalelor suprascrise sunt consemnate”. [A]
+
+**Operatorul responsabil:** proprietarul, până la desemnarea explicită, în scris, a altei persoane. [A]
+
+**Frecvența inițială:** **zilnic**, în perioada inițială de operare. [A]
+
+**Trecerea la verificarea săptămânală:** **numai prin decizia explicită a proprietarului**, nu automat. Nu s-a stabilit un prag automat (propunerea „14 zile consecutive fără anomalii” nu a fost adoptată ca regulă). [A]
+
+**Controalele** (toate numai prin citire, fără nicio operație cu efect, §0):
+
+| Controlul | Cum (numai citire) | Rezultatul așteptat | Sursă |
+|---|---|---|---|
+| backup-ul de noapte | File Manager → `civic-test-data/backup.log` (fișierul se citește, nu se editează) | ultima linie din ziua curentă: `backup:db: civic-backup-<data>`, cu rândurile pe tabel, fără eroare | [V] §6.1; jurnal, intervențiile 9, 72, 77 |
+| coada de e-mail | phpMyAdmin: `SELECT kind, status, COUNT(*) FROM email_outbox GROUP BY kind, status` (fără destinatari, fără conținut) | numărul `failed` nu a crescut față de verificarea anterioară; niciun mesaj `sending` rămas de la o verificare la alta; mesajele `queued` sunt explicabile (după o încercare eșuată, următoarea este programată la 1, 5, 30, apoi 120 de minute; după a cincea încercare eșuată, mesajul devine `failed`) | [V] `server/src/reports/outbox.ts` 273–292, 328–340; `server/src/context.ts` 81 |
+| `health` | `https://<domeniu>/api/v1/health` | `{"status":"ok","version":"0.0.0+<sha-ul instalat>"}`, cu SHA-ul consemnat la instalare | [V] `app.ts` 175–184 |
+
+**Limitările consemnate** (cerute de E4.14):
+- `outbox-cron.log` și `surveys-cron.log` se **suprascriu** la fiecare rulare (`>`): arată numai ultima rulare, nu istoricul. Un eșec intermediar poate să nu mai fie vizibil la verificare. [V] §6.1
+- `backup.log` și `purge.log` se **adaugă** (`>>`) și cresc în timp. [V] §6.1
+- Jurnalul aplicației nu se poate citi din cPanel, cu excepția mesajelor de refuz la pornire din `stderr.log`. [V] jurnal, observațiile 4 și 7
+- O coadă cu numere normale nu dovedește că toate mesajele au fost livrate; dovedește doar că nu au eșuat în aplicație. [V] `outbox.ts`
+
+**Dovezile:** o evidență datată, ținută de operator în afara repository-ului (fără secrete, fără adrese de e-mail, fără numele contului), cu: data și ora, operatorul, rezultatul fiecărui control (conform / neconform / imposibil de verificat) și observațiile. Locul concret îl stabilește proprietarul. [A]
+
+**Escaladarea:** orice rezultat neconform sau orice control care nu poate fi făcut se **consemnează** în aceeași zi și se **investighează**, prin citire, înaintea oricărei acțiuni. Orice operație cu efect necesară pentru remediere (de exemplu o copie de backup la cerere, o repornire, „Reîncearcă” la un e-mail) se face numai cu aprobarea explicită a proprietarului (§0). [A]
+
+**Aplicabilitatea:** pe staging, cât timp este folosit; în producție, de la instalare (E4), cu valorile de producție completate în E5. [A]
+
 ---
 
 ## 7. Backup și restaurare (partea necesară instalării)
@@ -421,7 +451,52 @@ Criptarea copiilor și copia în afara contului de găzduire privesc producția 
 | aplicația nu pornește după instalare | §4.8; revenirea numai în condițiile din §4.9 | [V]; [A] |
 | configurație e-mail greșită | aplicația continuă în `simulated`; se observă în panoul Admin (§8.2); corectarea `civic.env` și repornirea sunt [EFECT], cu aprobare separată | [V]; [A] |
 | fereastra de parolă repetată (401 + `WWW-Authenticate` adăugat de LiteSpeed) | cauza și reparația: `AMENDAMENT_ME_OPTIONAL.md`; jurnal, observația 2 | [V] |
-| pierderea accesului la ultimul `super_admin` (T-N5) | **nu este acoperită de această ciornă**; este un livrabil E2 separat, condiție de intrare în E4 | [A] |
+| pierderea accesului la ultimul `super_admin` (T-N5) | §9.1 (ciornă, neprobată; aprobarea procedurii este condiție de intrare în E4) | [A] |
+
+
+### 9.1 Recuperarea ultimului `super_admin` (T-N5) — ciornă, neprobată
+
+> **CIORNĂ, neprobată.** Metoda O2 a fost aleasă de proprietar la 28.10.2026, iar DEC-22 = (a): două conturi `super_admin`, ale proprietarului, pe dispozitive diferite (`FAZA_7_REGISTRU_DECIZII_ACTUALIZARI.md` §16). Procedura de mai jos trebuie **aprobată** înaintea E4 (planul v2.4, T-N5, rândul 463). Executarea ei este o operație [EFECT], cu decizia separată a proprietarului în momentul incidentului. O probă pe staging este, de asemenea, o decizie separată. [A]
+
+**Când se folosește:** numai dacă **ambele** conturi `super_admin` și-au pierdut dispozitivul TOTP **și** codurile de recuperare. Dacă funcționează cel puțin un cont, celălalt se recuperează **din aplicație** (Admin → Conturi → resetarea TOTP a celuilalt cont), cu audit complet. [V] `server/src/routes/adminAccounts.ts` 140–157 [A]
+
+**De ce nu ajută alte căi:**
+- `bootstrap-admin` refuză cât timp există un `super_admin` activ (`server/src/accounts.ts` 28–60);
+- un cont nu își poate reseta singur TOTP-ul (`SELF_CHANGE`, `adminAccounts.ts` 144);
+- restaurarea dintr-o copie aduce aceeași stare TOTP.
+
+[V]
+
+**Ce face procedura:** reproduce, prin SQL, exact efectul resetării TOTP din aplicație, pe **un singur** cont (`adminAccounts.ts` 145–150):
+- golește cele trei câmpuri TOTP;
+- șterge codurile de recuperare ale contului;
+- revocă sesiunile lui.
+
+La următoarea autentificare cu parola, aplicația impune înrolarea unui TOTP nou (`server/src/routes/auth.ts` 90–92). [V]
+
+**Limitele:**
+- operația **nu lasă audit în aplicație**; se consemnează manual;
+- o greșeală în `WHERE` poate atinge alt cont;
+- accesul la phpMyAdmin înseamnă acces la tot contul de găzduire;
+- datele din baza de date sunt în UTC, de aceea interogările folosesc `UTC_TIMESTAMP(3)`.
+
+[A]
+
+**Condițiile de intrare:** proprietarul are acces la cPanel și cunoaște parola contului `super_admin` vizat; aplicația rulează; decizia de execuție este luată și notată. [A]
+
+| Pas | Tip | Ce face proprietarul | Ce trebuie să vadă | Criteriul de oprire |
+|---|---|---|---|---|
+| R.1 | [EFECT] | „Run JS script” → `civic-backup-db` (copia dinaintea intervenției) | `backup:db: civic-backup-…`, fără eroare | eroare: **oprire** |
+| R.2 | [CITIRE] | phpMyAdmin → baza aplicației → SQL: `SELECT u.id, u.display_name, u.status, u.totp_enabled_at IS NOT NULL AS totp_activ, (SELECT COUNT(*) FROM admin_recovery_codes c WHERE c.user_id = u.id AND c.used_at IS NULL) AS coduri_nefolosite FROM admin_users u WHERE u.role = 'super_admin'` | conturile `super_admin`; se notează `id`-ul exact al contului care se recuperează | contul vizat nu apare, nu este `active` sau `id`-ul nu este sigur: **oprire** |
+| R.3 | [EFECT] | SQL, cu `<ID>` înlocuit exact: `UPDATE admin_users SET totp_secret_enc = NULL, totp_enabled_at = NULL, totp_last_step = NULL, updated_at = UTC_TIMESTAMP(3) WHERE id = '<ID>' AND role = 'super_admin'` | `1 row affected` | alt număr de rânduri: **oprire**; nu se continuă |
+| R.4 | [EFECT] | SQL: `DELETE FROM admin_recovery_codes WHERE user_id = '<ID>'` | numărul codurilor șterse (poate fi 0) | eroare: **oprire** |
+| R.5 | [EFECT] | SQL: `UPDATE sessions SET revoked_at = UTC_TIMESTAMP(3), revoke_reason = 'mfa_reset' WHERE user_id = '<ID>' AND revoked_at IS NULL` | numărul sesiunilor revocate (poate fi 0) | eroare: **oprire** |
+| R.6 | [CITIRE] | interogarea de la R.2, repetată | pentru `<ID>`: `totp_activ` = 0, `coduri_nefolosite` = 0; celelalte conturi neschimbate | altă stare: **oprire** și decizie |
+| R.7 | [EFECT] | autentificarea în Admin cu parola contului; înrolarea impusă: codul QR scanat pe un dispozitiv nou; cele 10 coduri de recuperare noi, scrise pe hârtie și păstrate separat de dispozitive | autentificarea reușește după înrolare | înrolarea eșuează: **oprire**; contul rămâne fără TOTP până la decizie |
+| R.8 | [EFECT] | din contul recuperat, Admin → Conturi: resetarea TOTP a **celuilalt** `super_admin` (cu audit), urmată de înrolarea lui pe al doilea dispozitiv | ambele conturi au din nou TOTP | — |
+| R.9 | — | consemnarea manuală, în jurnalul de operare din afara repository-ului și în jurnalul mediului: data, ora, motivul, pașii, rezultatele (fără `id`-uri complete, adrese, coduri sau secrete) | — | — |
+
+**Interogările** se rulează **una câte una**. Rezultatul fiecăreia se citește înaintea următoarei. Nu se lipesc toate deodată. [A]
 
 ---
 
@@ -436,7 +511,7 @@ Criptarea copiilor și copia în afara contului de găzduire privesc producția 
 7. Dacă antetul `X-Robots-Tag` ajunge și pe fișierele statice servite pe domeniul real (§5.4). [E3]
 8. Comportamentul `nodemailer` 10.1.4 cu Brevo real (§8.3). [E3] [A]
 9. Parola lacătului și conținutul `EMAIL_ALLOWLIST`: confirmate de proprietar la 27.10.2026 (§4.0.1), ca observații la acea dată. Liniile cron: citite din captura cPanel din 27.10.2026. Folosirea sau nu a suspendării pentru `5d8c52a`: propunerea din §4.0.1, în așteptarea aprobării. [A]
-10. Procedura de recuperare a ultimului `super_admin` (T-N5), operatorul și frecvența monitorizării (DEC-16): livrabile E2 separate. [A]
+10. Procedura de recuperare a ultimului `super_admin` (T-N5): ciornă în §9.1, neprobată, de aprobat înaintea E4. Monitorizarea (DEC-16): decisă, §6.3. [A]
 11. Toate valorile de producție (§10.2 din planul v2.4): se completează după E4. [A]
 
 ---
