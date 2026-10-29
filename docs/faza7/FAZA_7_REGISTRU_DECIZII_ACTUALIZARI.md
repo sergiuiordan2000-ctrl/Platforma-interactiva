@@ -457,3 +457,71 @@ Deciziile care blocau E4 prin lipsa unei alegeri (DEC-21–DEC-25) au acum o op�
 - Nu autorizează E4 și nici vreo operație pe staging, cPanel, cron sau `civic.env`.
 - Nu modifică DEC-5 (rămâne deschisă) sau A17-1 (rămâne în vigoare).
 - Lansarea publică nu este aprobată.
+
+---
+
+## 17. Candidatul `85d3c45` și E3-bis (28–29.10.2026): remedierea `qs` și O-E3-1; E3 rămâne neînchisă
+
+### 17.1 Deciziile proprietarului
+
+| Data | Decizia |
+|---|---|
+| 28.10.2026 | E3 a fost autorizată și executată cu `5d8c52a` (jurnalul staging-ului, intervențiile 107–132). Secțiunea 15 („E3 rămâne neautorizată”) consemnează starea de dinaintea autorizării și rămâne neschimbată, ca stare datată |
+| 28.10.2026 | perimetrul de cod aprobat: (1) `qs` 6.16.0 → 6.16.2 (§15.4); (2) textul nou pentru O-E3-1, când locația telefonului este oprită. Mesajul pentru refuzul permisiunii rămâne neschimbat. O-E3-2 nu intră în perimetru |
+| 29.10.2026 | E3-bis (instalarea `85d3c45` pe staging) se face în aceeași zi; consemnările, la final |
+| 29.10.2026, ~08:25 | **E3-bis autorizată**, cu regulile: cron-ul activ (ca la D2, §15.1); **niciun e-mail** în teste; punctele de control PC1–PC4 (plus PC5 după probele pe telefon); revenirea, la nevoie, cu `civic-5d8c52a.zip` (§15.2) |
+
+### 17.2 Candidatul
+
+**Commitul:** `85d3c45ba4065dafff830d6893f45e901a0de40b` (`faza-5-backend`), `fix: qs 6.16.2 (GHSA-6pq8-jhm2-2vcw) and clearer message when phone location is off (O-E3-1)`.
+
+| Dovada | Rezultatul |
+|---|---|
+| diferența față de `5d8c52a`, în afara documentației | numai `package-lock.json` (`qs` 6.16.0 → 6.16.2) și un rând în `src/components/report/LocationPicker.tsx` |
+| verificarea locală (containerul de lucru, Node 22.23.4, npm 10.9.9; 28.10.2026) | typecheck, build-uri, unitare 104/104, API 25/25, integrare 389/389, E2E 283/283; `npm audit`: `found 0 vulnerabilities` |
+| CI 40660830188, la `85d3c45` | 6/6 joburi `success` |
+
+### 17.3 Pachetul instalat
+
+| Câmp | Valoare |
+|---|---|
+| Fișierul | `civic-85d3c45.zip` (22 de fișiere, 1.395.003 B) |
+| SHA-256 | `7b61820cfa59dfc0f67144e5b06cd373eb82ebf924c4aec5ab34987bec4d3890`; verificat de proprietar pe calculatorul lui, înaintea instalării |
+| Construit din | o clonă curată a `85d3c45`, la 29.10.2026, ~08:19, cu aceiași pași ca la §15.2 (fără `--bootstrap-email`; fără sufixul `-dirty`) |
+| `RELEASE.txt` | `commit: 85d3c45` |
+| Comparația cu `civic-5d8c52a.zip` (Claude, după instalare) | `server/dist/app.js` identic, cu excepția SHA-ului înscris; `dist/index.html` identic, cu excepția numelui fișierului JavaScript; `package.json` diferă numai prin versiune; diferă fișierul JavaScript al frontendului (textul O-E3-1). Restul fișierelor sunt identice |
+
+### 17.4 Starea punctelor deschise
+
+| Punctul | Starea |
+|---|---|
+| avertismentul `qs` (§15.4) | **rezolvat** în `85d3c45`; `npm audit` local: 0 vulnerabilități (28.10.2026). Reverificarea `npm audit` cerută de DEC-3b (§3) înaintea E4 **rămâne** |
+| O-E3-1 (jurnalul staging-ului, observația 20.1) | **rezolvat** și verificat pe telefon la 29.10.2026 (intervenția 146) |
+| O-E3-2 (observația 20.2) | **deschis**: decizie de produs separată |
+| O-E3-3 (observația 22): Admin și contul de cetățean împart același cookie | **nou, deschis**: decizie de produs separată; nicio schimbare de cod |
+| probele pe iPhone/Safari | **NEVERIFICATE** (niciun dispozitiv) |
+
+### 17.5 Criteriile de închidere E3 pentru `85d3c45` (planul v2.4, E3, marcate [PROPUNERE] în plan)
+
+| # | Criteriul | Starea | Dovada |
+|---|---|---|---|
+| 1 | SHA identificat; `health` și CI pe exact acel SHA | **îndeplinit** | `0.0.0+85d3c45` pe calculator și pe telefon; CI 40660830188 (intervențiile 139, 143) |
+| 2 | noindex pe rădăcină, pe un fișier static, pe API și în `robots.txt` | **îndeplinit** | intervenția 141 |
+| 3 | cele 4 sarcini cron, cu dovadă | **îndeplinit** | captura din 28.10.2026 (intervenția 117); cron-ul nu a fost atins de atunci |
+| 4 | ieșirea primei rulări `purge:retention` după instalare | **îndeplinit pentru `5d8c52a`** (intervenția 130). Pentru `85d3c45`: codul serverului este identic (§17.3); prima rulare pe `85d3c45` este în noaptea de 29/30.10.2026 | intervenția 130; §17.3 |
+| 5 | `backup.log` arată o copie reușită după instalare | **îndeplinit pentru `5d8c52a`** (intervenția 129). Pentru `85d3c45`: aceeași situație ca la criteriul 4 | intervenția 129; §17.3 |
+| 6 | noindex activ (`SEARCH_INDEXING` absent sau `off`) | **îndeplinit** | antetele (intervenția 141); `civic.env` modificat ultima dată la 13.10.2026, înaintea introducerii variabilei (intervenția 132) |
+| 7 | ruta de diagnostic nu mai răspunde | **îndeplinit** | intervenția 141 |
+| 8 | fusul orar al orelor cron consemnat | **îndeplinit** | intervenția 131 |
+| 9 | opțional: `host-restore:recover --check` | **neefectuat** | nu a fost cerut |
+
+**Închiderea E3** rămâne o decizie a proprietarului. Pentru criteriile 4 și 5, proprietarul poate alege între:
+- a accepta dovada de pe `5d8c52a`, cu codul serverului identic;
+- a aștepta citirea `purge.log` și `backup.log` după noaptea de 29/30.10.2026.
+
+### 17.6 Ce NU înseamnă această consemnare
+
+- Nu închide E3 și nu autorizează E4 sau vreo operație pe staging, cPanel, cron sau `civic.env`.
+- Nu autorizează vreo trimitere de e-mail.
+- Nu modifică DEC-5 (rămâne deschisă), DEC-25 sau A17-1.
+- Lansarea publică nu este aprobată.
