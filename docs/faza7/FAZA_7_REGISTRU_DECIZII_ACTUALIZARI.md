@@ -525,3 +525,27 @@ Deciziile care blocau E4 prin lipsa unei alegeri (DEC-21–DEC-25) au acum o op�
 - Nu autorizează vreo trimitere de e-mail.
 - Nu modifică DEC-5 (rămâne deschisă), DEC-25 sau A17-1.
 - Lansarea publică nu este aprobată.
+
+---
+
+## 18. Închiderea E3 — decisă de proprietar la 29.10.2026, ~10:11
+
+**Decizia:** E3 este **închisă**, cu versiunea **`85d3c45ba4065dafff830d6893f45e901a0de40b`** instalată pe staging (CI 40660830188; `health` `0.0.0+85d3c45`). Proprietarul a ales varianta A dintre cele două prezentate:
+- **A (aleasă):** închiderea acum;
+- **B:** închiderea după citirea jurnalelor din noaptea de 29/30.10.2026.
+
+**Temeiul:** criteriile 1–3 și 6–8 sunt îndeplinite pe `85d3c45` (§17.5). Pentru criteriile 4 și 5 (prima rulare `purge:retention` și o copie de noapte reușită după instalare), proprietarul **acceptă dovada din noaptea de 28/29.10.2026**, obținută pe `5d8c52a` (jurnalul staging-ului, intervențiile 129–130). Motivul: `server/dist/app.js` din `civic-85d3c45.zip` este identic cu cel din `civic-5d8c52a.zip`, cu excepția SHA-ului înscris (§17.3). Criteriul 9 (opțional) nu a fost efectuat.
+
+**Limita acceptată:** pe `85d3c45` nu există încă o rulare de noapte. Jurnalele din noaptea de 29/30.10.2026 se citesc în monitorizarea zilnică (DEC-16, §16.1), ca verificare obișnuită, **nu ca o condiție a închiderii**. Un rezultat neconform se consemnează și se tratează conform DEC-16.
+
+**Rămân deschise, fără să blocheze închiderea E3:**
+- O-E3-2 și O-E3-3: decizii de produs (§17.4);
+- probele pe iPhone/Safari: NEVERIFICATE;
+- proba Brevo completă (manualul 7D, §8.3): aprobare separată;
+- condițiile de intrare în E4 din §16.2, mai puțin cele rezolvate prin §17 (`qs`, O-E3-1) și prin această închidere.
+
+**Ce NU înseamnă această consemnare:**
+- Nu autorizează E4 și nici vreo operație pe staging, cPanel, cron sau `civic.env`.
+- Nu autorizează vreo trimitere de e-mail.
+- Nu modifică DEC-5 (rămâne deschisă), DEC-25 sau A17-1.
+- Lansarea publică nu este aprobată.
