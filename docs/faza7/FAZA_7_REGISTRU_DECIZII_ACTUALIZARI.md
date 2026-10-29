@@ -549,3 +549,18 @@ Deciziile care blocau E4 prin lipsa unei alegeri (DEC-21–DEC-25) au acum o op�
 - Nu autorizează vreo trimitere de e-mail.
 - Nu modifică DEC-5 (rămâne deschisă), DEC-25 sau A17-1.
 - Lansarea publică nu este aprobată.
+
+---
+
+## 19. Precizări după auditul independent al închiderii E3 (29.10.2026)
+
+Auditul independent al pachetului de închidere E3 (Aristotel, 29.10.2026) a acceptat închiderea ca decizie a proprietarului, cu dovadă echivalentă pentru criteriile 4–5 (§18), și nu a cerut o rundă nouă de documentare. Auditorul nu a putut accesa GitHub din sesiunea lui, deci auditul privește logica și documentarea, nu o certificare a stării publicate. Precizările de mai jos completează §17 fără să o rescrie (regula din §3.1 a registrului de bază).
+
+| Punctul | Precizarea |
+|---|---|
+| §17.5, criteriile 4–5 | Formularea corectă: E3 a fost **închisă prin decizia proprietarului, cu dovadă echivalentă acceptată** pentru criteriile 4–5, nu cu verificări făcute după instalarea exactă a `85d3c45` |
+| §17.5, criteriul 6 | **Limita:** `civic.env` nu a fost citit. Dovada este indirectă: antetele noindex, data modificării fișierului (13.10.2026, anterioară variabilei `SEARCH_INDEXING`) și faptul că aplicația a pornit (valoarea `on` ar opri pornirea pe staging, `server/src/config.ts` 204–207) |
+| §17.3 și CI | CI-ul verde la `85d3c45` dovedește verificările automate pe acel commit, nu proveniența artefactului instalat. Proveniența se sprijină pe probele luate împreună: amprenta arhivei verificată de proprietar, `RELEASE.txt` și `health` |
+| §17.4, O-E3-3 | **Izolarea rolurilor este verificată în cod și în teste** (jurnalul staging-ului, observația 22, corectura din 29.10.2026). Rolul se stabilește din sesiunea din baza de date, nu din numele cookie-ului. Testul de integrare din CI verifică izolarea în ambele direcții. Constatarea este **de utilizare**, nu de securitate. Testul comportamental pe telefon (trecerea Admin ↔ cetățean, reîncărcarea, închiderea browserului) se propune pentru probele pe telefon din E4; decizia asupra unei eventuale schimbări rămâne a proprietarului |
+
+**Ce NU înseamnă această consemnare:** nu redeschide E3 și nu modifică §18; nu autorizează E4, vreo operație pe staging sau vreo schimbare de cod; DEC-5 rămâne deschisă, iar DEC-25 și A17-1 rămân neschimbate.

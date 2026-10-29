@@ -236,6 +236,13 @@ Verificat din exterior de Claude (DNS public): `urbisactiv.ro` folosește server
     - **DEDUS** din cod și din baza de date, neconfirmat de proprietar: a doua sesiune din 28.10.2026 (07:02:21 UTC) a fost creată prin **autentificarea Google** (singura cale fără cod; coada a rămas la 7). Dovada directă (`citizen_oauth_attempts`) a fost ștearsă de curățarea de noapte, cum este proiectat. Afirmația lui Claude din 29.10.2026, că Google ar fi o cale netestată pe staging, a fost greșită și a fost corectată în aceeași zi.
     - Pentru cetățeni obișnuiți efectul este nul (nu folosesc Admin); pentru proprietar, care testează ambele roluri în același browser, este neintuitiv. **Decizie de produs separată; nicio schimbare de cod.**
 
+    **Corectat la 29.10.2026, după auditul independent al închiderii E3:** formularea „DEMONSTRAT: persistența sesiunii de cetățean funcționează” de mai sus este **prea largă**. Nivelurile de dovadă sunt:
+    - **verificat în cod:** numele comun al cookie-ului; cookie-ul de cetățean persistent și cel Admin de sesiune (`sessions.ts` 27–28, 66–74);
+    - **observat în baza de date:** cele două sesiuni de cetățean din 28.10.2026 există și sunt nerevocate. Asta nu arată că browserul mai deținea cookie-ul lor;
+    - **dedus, nedemonstrat:** înlocuirea cookie-ului în browser prin autentificările Admin și crearea celei de-a doua sesiuni prin Google.
+
+    **Izolarea rolurilor** (verificată în cod la 29.10.2026, numai prin citire): rolul se stabilește din rândul sesiunii din baza de date (`principal_type`), nu din numele cookie-ului. `loadAdmin` acceptă numai sesiuni `admin`, iar `loadCitizen` numai sesiuni `citizen` (`server/src/auth/guards.ts` 58–65, 92–102). Testul de integrare `server/test/integration/accounts.test.ts` 230–235 și 258–260, rulat în CI, verifică izolarea în ambele direcții. Constatarea rămâne una de utilizare, nu de securitate. Comportamentul pe telefon la trecerea Admin ↔ cetățean (cu reîncărcare și închiderea browserului) **nu a fost testat**; propunerea este să intre în probele pe telefon din E4.
+
 ## 5. Nefăcut încă
 
 - Sesizarea de test rămâne pe staging (se șterge automat după 45 de zile sau o poate șterge autorul).
