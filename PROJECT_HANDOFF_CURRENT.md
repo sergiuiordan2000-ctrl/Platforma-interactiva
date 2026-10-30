@@ -1,10 +1,115 @@
 # PROJECT_HANDOFF_CURRENT.md — Turnu Măgurele Civic
 
 **Stare documentată:** finalul Etapei 6.5 (26 septembrie 2026), actualizată după **Etapa 6.6** (comisă și publicată: `83b77ad`), după **auditul general** și pentru **remedierea P0 post-audit** (vezi B, G.5 și I), după checkpoint-ul Fazei 0 (`f6809f3`), după Fazele 1–2, după deciziile Fazei 3 (`PROJECT_RULES_AND_DECISIONS.md` §11) și după **Faza 4** (designul backend-ului, checkpoint aprobat de proprietar la 28.09.2026; `PROJECT_RULES_AND_DECISIONS.md` §12, `docs/faza4/`)
-**Actualizare 19.10.2026:** starea Etapei 7 (7A) este în **Secțiunea 0B**, care are prioritate față de 0A și 0. **Actualizare 12.10.2026:** starea Fazei 6 este în **Secțiunea 0A**, care are prioritate față de Secțiunea 0. **Actualizare 10.10.2026:** starea curentă (Faza 5 închisă la 10.10.2026; aplicația cu server) este în **Secțiunea 0**; ea are prioritate față de secțiunile de stare mai vechi.
+**Actualizare 30.10.2026:** starea curentă este în **Secțiunea 0C**, care este punctul de pornire și prevalează, în caz de contradicție, față de 0B, 0A și 0, păstrate ca istoric. **Actualizare 19.10.2026:** starea Etapei 7 (7A) este în **Secțiunea 0B**, care are prioritate față de 0A și 0. **Actualizare 12.10.2026:** starea Fazei 6 este în **Secțiunea 0A**, care are prioritate față de Secțiunea 0. **Actualizare 10.10.2026:** starea curentă (Faza 5 închisă la 10.10.2026; aplicația cu server) este în **Secțiunea 0**; ea are prioritate față de secțiunile de stare mai vechi.
 **Scop:** documentul principal de preluare pentru un chat nou. Înlocuiește, pentru starea curentă, secțiunile de stare din `PROJECT_HANDOFF.md`. Acela a fost scris la finalul Etapei 5 și este acum depășit la Git, securitate și pasul următor.
 
-> **Regula de pornire pentru noul chat:** citește acest document (întâi **Secțiunea 0**), apoi `PROJECT_RULES_AND_DECISIONS.md`, `docs/faza4/FAZA_4_REGISTRU_DECIZII.md`, `ETAPA_6_STATUS_FINAL.md` și documentele din `docs/faza5/` indicate în 0.3. Apoi **verifică starea Git real** (Secțiunea 0.1; B.4 este istorică și indică un branch vechi). Nu presupune nimic din memorie. **Codul și istoricul Git sunt sursa de adevăr.** Dacă documentul și codul se contrazic, codul are dreptate, iar contradicția se raportează.
+> **Regula de pornire pentru noul chat (actualizată la 30.10.2026):** citește întâi **Secțiunea 0C** (starea curentă). Apoi citește:
+> - `PROJECT_RULES_AND_DECISIONS.md`;
+> - planul `docs/faza7/FAZA_7_PLAN_ACTIUNE_MVP_v2.4.md`;
+> - registrele deciziilor: `docs/faza7/FAZA_7_E0_REGISTRU_DECIZII.md` și `docs/faza7/FAZA_7_REGISTRU_DECIZII_ACTUALIZARI.md` (în al doilea, secțiunile cele mai recente);
+> - jurnalul staging-ului: `docs/faza5/STAGING_URBISACTIV_JURNAL.md`.
+>
+> Secțiunile 0B, 0A și 0 sunt istorice; în caz de contradicție, **0C prevalează**. Apoi **verifică starea Git reală** (`git fetch origin`; `git rev-parse HEAD origin/faza-5-backend`); secțiunile 0.1 și B.4 sunt istorice. Nu presupune nimic din memorie. **Codul și istoricul Git sunt sursa de adevăr.** Dacă documentul și codul se contrazic, codul are dreptate, iar contradicția se raportează.
+>
+> *Regula anterioară, păstrată ca istoric:* „citește acest document (întâi **Secțiunea 0**), apoi `PROJECT_RULES_AND_DECISIONS.md`, `docs/faza4/FAZA_4_REGISTRU_DECIZII.md`, `ETAPA_6_STATUS_FINAL.md` și documentele din `docs/faza5/` indicate în 0.3. Apoi **verifică starea Git real** (Secțiunea 0.1; B.4 este istorică și indică un branch vechi). Nu presupune nimic din memorie. **Codul și istoricul Git sunt sursa de adevăr.** Dacă documentul și codul se contrazic, codul are dreptate, iar contradicția se raportează.”
+
+---
+
+## 0C. ETAPA 7: E3 ÎNCHISĂ, PREGĂTIREA E4 (actualizat la 30.10.2026)
+
+> **Este punctul de pornire curent și prevalează față de Secțiunile 0B, 0A și 0**, care rămân ca istoric.
+> **Starea descrisă este cea de la commitul `1e46be2`** (30.10.2026). Commiturile ulterioare (inclusiv cel care conține această secțiune și consemnarea din registrul §21) se identifică prin Git, de exemplu `git log --oneline 1e46be2..origin/faza-5-backend`.
+> Marcaje: **[CONFIRMAT]** = verificabil în Git sau în CI; **[CONSEMNAT]** = consemnat în jurnal sau în registru pe baza capturilor sau a confirmărilor proprietarului; **[DESCHIS]** = decizie sau verificare neluată.
+
+### 0C.1 Documentele de referință
+
+- **Planul** pentru etapele rămase: `docs/faza7/FAZA_7_PLAN_ACTIUNE_MVP_v2.4.md`, aprobat la 25.10.2026 (E0–E9); imuabil. Stările în vigoare ale deciziilor lui sunt cele din registre.
+- **Deciziile:** registrul de bază `docs/faza7/FAZA_7_E0_REGISTRU_DECIZII.md` și registrul de actualizări `docs/faza7/FAZA_7_REGISTRU_DECIZII_ACTUALIZARI.md` (§1–§21).
+- **Instalarea și operarea:** `docs/faza7/FAZA_7D_MANUAL_INSTALARE_OPERARE_CIORNA.md` (CIORNĂ). Ghidul 5.5B este istoric (DEC-6).
+- **Staging-ul:** `docs/faza5/STAGING_URBISACTIV_JURNAL.md` (intervențiile 1–148, observațiile 1–22).
+
+### 0C.2 Git și CI [CONFIRMAT]
+
+- `faza-5-backend` = `1e46be2` (starea descrisă), publicată; `main` = `d9bc2c9`, neatins.
+- **Ultimul commit de cod:** `85d3c45` (`qs` 6.16.2 și mesajul O-E3-1), instalat pe staging. Commiturile de după el modifică numai documentație.
+
+| Commitul | Conținutul | CI (6/6 `success`, pentru SHA-ul exact) |
+|---|---|---|
+| `711a7ae` | ultimul commit de cod 7B | vezi `docs/faza7/FAZA_7B_RAPORT.md` |
+| `aa35706` | commitul final 7C | 40379976702 |
+| `5d8c52a` | R-NPM (dependențe) | 40460197905 |
+| `e55c28e`, `cb0f569` | manualul de instalare și operare (ciornă) | 40466609384, 40520875495 |
+| `f8271a6` | DEC-5: C2 și `TRUST_PROXY`; antetul DEC-6 | 40534727547 |
+| `241eb50`, `0b41f9c`, `c2641d3` | registrul §8–§14; manualul §6.1 (cron) | 40550078097, 40626992566, 40629978690 |
+| `a10e8e1` | jurnalul: observația 4 (DEC-5) | 40633232172 |
+| `b0fa796`, `b5fa653` | registrul §15 (pregătirea E3); jurnalul: instalarea E3 și probele pe telefon | 40636810193, 40649831104 |
+| `35b77c9`, `d960173` | registrul §16 (DEC-16, DEC-21–25, T-N5 O2); manualul §6.3 și §9.1 | `35b77c9` fără CI propriu (publicat împreună cu `d960173`); 40654788540 |
+| **`85d3c45`** | **cod:** `qs` 6.16.2; mesajul O-E3-1 | 40660830188 |
+| `3657708`, `82c6281`, `ceb3711` | jurnalul E3-bis; registrul §17 și §18 (închiderea E3) | 40834744071, 40838141370, 40840941163 |
+| `f750da8`, `1e46be2` | registrul §19 și §20 (după auditul E3); jurnalul, intervenția 148 | 40847552552, 41014110975 |
+
+Pentru grupurile de commituri, ID-urile CI sunt prezentate în aceeași ordine ca SHA-urile, cu excepția cazurilor explicate explicit. `35b77c9` nu are o rulare CI proprie; a fost publicat împreună cu `d960173`.
+
+### 0C.3 Etapele
+
+| Etapa | Starea | Sursa |
+|---|---|---|
+| 7B | [CONFIRMAT] checkpoint acordat la 25.10.2026, cu rezerve; rezerva 5 închisă (DEC-19) | `docs/faza7/FAZA_7B_RAPORT.md` §9; registrul §1 |
+| E0 | [CONFIRMAT] închisă la 26.10.2026 | registrul §2 |
+| E1 / 7C | [CONFIRMAT] checkpoint acordat la 26.10.2026 | `docs/faza7/FAZA_7C_RAPORT.md` §7; registrul §7 |
+| R-NPM | [CONFIRMAT] `5d8c52a`; avertismentul `qs` ulterior, rezolvat în `85d3c45` | registrul §8, §15.4, §17.4 |
+| E2 / 7D-ciornă | **în curs, neînchisă**. Rămân, între altele: C5 (DEC-5), acoperirea comenzilor CLI și a R20 în manual, aprobarea procedurii T-N5 | registrul §13, §16 |
+| E3 | [CONFIRMAT] **închisă la 29.10.2026**, cu `85d3c45` instalat pe staging; criteriile 4–5 cu dovadă echivalentă acceptată, apoi și cu dovadă directă (30.10.2026) | registrul §17–§20 |
+| E4–E9 | neîncepute; **E4 nu este autorizată; lansarea publică nu este aprobată** | planul v2.4 |
+
+### 0C.4 DEC-5 (planul v2.4, rândul 547) — DESCHISĂ
+
+| Punctul | Starea |
+|---|---|
+| C2 | aplicat și publicat (`f8271a6`) |
+| `TRUST_PROXY`, rândul 364 | aplicat și publicat; limitarea tehnică rămâne, acceptată (DEC-4) |
+| observația 4 | aplicată și publicată (`a10e8e1`; registrul §21.1) |
+| C4 | confirmat de proprietar la 30.10.2026 (registrul §21.2) |
+| C5 | această secțiune; aprobarea și publicarea ei se consemnează separat în registru |
+
+DEC-5 se închide numai printr-o consemnare separată în registru, după confirmarea proprietarului.
+
+### 0C.5 Staging (`test.urbisactiv.ro`) [CONSEMNAT]
+
+- Versiunea instalată: **`85d3c45`** (29.10.2026; jurnalul, intervențiile 138–139); pachetul `civic-85d3c45.zip` (registrul §17.3). Pachetul de revenire: `civic-5d8c52a.zip` (registrul §15.2).
+- E-mailul: fluxul de notificare destinat Primăriei este activ în staging, cu `EMAIL_MODE=allowlist`; livrarea este permisă numai către adresa de test a proprietarului. DEC-25 privind fluxul de producție rămâne neschimbată.
+- Cron: cele 4 sarcini din manual, §6.1, în ora României (jurnalul, intervenția 131).
+- Monitorizarea zilnică (DEC-16): operator proprietarul; ultima verificare consemnată: 30.10.2026 (intervenția 148).
+- Ruta temporară de diagnostic nu mai există în versiunea instalată (`NOT_FOUND`, intervenția 141).
+- Probele pe iPhone/Safari: **neverificate** (niciun dispozitiv).
+
+### 0C.6 Decizii
+
+**Decise** (registrul §4, §16, §18):
+- G6: găzduirea ClausWeb (alegerea; întrebările operaționale rămân deschise);
+- DEC-16 (monitorizarea), DEC-21 (a), DEC-22 (a), DEC-23 (a), DEC-24 (a), DEC-25 (a); T-N5: metoda O2;
+- închiderea E3 (§18).
+
+**Deschise [DESCHIS]:**
+- DEC-5 (0C.4) și, la aprecierea proprietarului, DEC-6 (registrul §12);
+- DEC-8 (matricea CI), DEC-9 (restaurarea de probă), DEC-20 (numerotarea TM, datele E7);
+- detaliile DEC-23 (metoda, cheia, frecvența, retenția);
+- aprobarea procedurii T-N5 (ciorna din manual, §9.1; neprobată);
+- întrebările operaționale G6 (registrul §4), inclusiv reevaluarea `TRUST_PROXY`;
+- reverificarea `npm audit` înaintea E4 (DEC-3b);
+- O-E3-2 și O-E3-3: decizii de produs (jurnalul, observațiile 20.2 și 22).
+
+**A17-1** (trimiterea reală către Primărie condiționată de confirmarea ei scrisă; `PROJECT_RULES_AND_DECISIONS.md`, rândul 273) **rămâne în vigoare**. Această secțiune nu modifică A17-1 sau DEC-25.
+
+### 0C.7 Reguli de lucru (în vigoare)
+
+- Orice modificare, inclusiv în documentație, se pregătește întâi ca diff pe o copie separată și se aplică numai după aprobarea proprietarului.
+- Aplicarea, fiecare commit și fiecare push cer aprobări separate; mesajele automate nu sunt aprobări. Commiturile se publică pe rând, ca fiecare SHA să aibă CI propriu. Fără `--force`; `main` nu se modifică.
+- Commiturile nu conțin rânduri de atribuire.
+- În repository nu intră secrete, numele contului cPanel (se scrie `<cont>`), adrese de e-mail sau utilizatorul lacătului.
+- Nicio operație pe staging, cPanel, cron sau `civic.env` și niciun e-mail fără aprobarea explicită a proprietarului; pașii în cPanel se fac de proprietar, câte unul, cu confirmare.
+- Auditul independent (Aristotel) se cere la etapele importante, cu un pachet de dovezi.
 
 ---
 
