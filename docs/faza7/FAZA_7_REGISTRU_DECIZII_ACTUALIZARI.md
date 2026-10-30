@@ -776,3 +776,54 @@ Planul este păstrat **în afara repository-ului** (302 rânduri; SHA-256 `5f82b
 Acceptarea planului r3.2 și deciziile P1–P10 **nu autorizează** scrierea codului, adăugarea dependenței, commiturile, push-ul sau vreo operație pe staging, producție, cPanel, cron sau `civic.env`. Implementarea are **checkpoint propriu**, cu codul, testele și CI prezentate înaintea oricărui commit, cu aprobări separate.
 
 **Ce NU înseamnă această consemnare:** nu bifează criteriul E4.11 (lipsesc implementarea și dovada); nu închide E4 și nu o autorizează; nu modifică DEC-23 (modificările ei se consemnează după implementare), DEC-25 sau A17-1. Lansarea publică nu este aprobată.
+
+---
+
+## 25. Răspunsul ClausWeb din 30.10.2026; corectarea limitei de procese; propunerea de monitorizare a spațiului (DEC-16) — consemnări documentare
+
+Această secțiune este **strict documentară**. Nu deschide și nu decide G6-1 (producția ca a doua aplicație pe același cont) și nu modifică deciziile publicate: §4 (G6), §16 (DEC-16), §23 (DEC-23), §24 (E4.11). Documentele anterioare rămân neschimbate.
+
+### 25.1 Răspunsul ClausWeb din 30.10.2026
+
+**Sursa:** răspunsul echipei de suport ClausWeb la tichetul proprietarului, transmis de proprietar în conversația de lucru la 30.10.2026, ~11:27. Textul integral nu este păstrat în repository. Valorile sunt **raportate de furnizor**, neverificate independent.
+
+| Subiectul | Ce a comunicat furnizorul |
+|---|---|
+| aplicațiile Node.js | serviciul „NodeJS1” permite mai multe aplicații Node.js în același cont cPanel, în limita resurselor; sunt posibile două aplicații distincte, una pentru `urbisactiv.ro` și una pentru `test.urbisactiv.ro`, fiecare cu directorul și configurația ei. În prezent este configurată aplicația `civic-test-app`, pentru `test.urbisactiv.ro`, cu Node.js 24, activă |
+| resursele | alocate la nivelul **întregului cont**, nu per aplicație: CPU până la 8 core; RAM 4096 MB; **NPROC 100** (numărul maxim de procese); **EP 35** (Entry Processes, procese de intrare simultane). Toate aplicațiile contului folosesc în comun aceste limite |
+| bazele de date | maximum 99 de baze MySQL/MariaDB; fără limită de dimensiune per bază; spațiul lor intră în cota totală de **15 GB** a serviciului; 100 de conexiuni simultane per utilizator MySQL |
+| izolarea contului | CloudLinux OS cu CageFS: mediul de execuție al contului este separat de celelalte conturi de pe server; CPU, RAM și procesele sunt limitate prin CloudLinux LVE |
+
+**Întrebări fără răspuns în acest mesaj:** datele exacte de expirare (găzduirea, IP-ul dedicat, domeniul); tichetul despre `X-Forwarded-For` (`TRUST_PROXY`, jurnalul staging-ului, observația 11).
+
+**Observație de analiză, nu decizie:** CageFS separă **conturile**, nu aplicațiile din același cont; două aplicații din același cont rulează sub același utilizator de sistem. Observația este relevantă pentru G6-1, care rămâne **deschisă**.
+
+### 25.2 Corectarea limitei de procese (NPROC)
+
+`docs/faza5/AMENDAMENT_MARIADB_SI_GAZDUIRE.md`, rândul 26, consemnează, din răspunsurile furnizorului din 07.10.2026 („neverificate încă în practică”), „limita de **50 de procese** și 4 GB RAM”.
+
+Furnizorul comunică la 30.10.2026 (§25.1): **NPROC = 100** și, distinct, **EP = 35**.
+
+| Limita | Ce înseamnă | Valoarea comunicată de furnizor la 30.10.2026 |
+|---|---|---|
+| NPROC | numărul maxim de procese ale contului | **100** (nu 50) |
+| EP | numărul maxim de procese de intrare simultane (cereri care intră în același timp în aplicațiile contului) | **35** |
+
+Cele două valori nu se confundă: EP 35 nu este o corectură a valorii 50, ci o limită diferită. Amendamentul rămâne neschimbat, ca istoric. În evidența documentară, valorile comunicate de furnizor la 30.10.2026 **înlocuiesc** informația anterioară, **fără a pretinde o verificare tehnică independentă** a lor.
+
+### 25.3 DEC-16 — monitorizarea spațiului ocupat: propunere, neaprobată
+
+**Starea:** **propunere, neaprobată.** DEC-16, așa cum a fost decisă (§16) și consemnată în manualul 7D (§6.3), rămâne neschimbată: controalele în vigoare sunt `backup.log`, coada de e-mail și `health`, zilnic.
+
+**Originea:** analiza din 30.10.2026 a răspunsului ClausWeb (cota de 15 GB comună pentru tot serviciul) și evaluarea DEC-23 a auditorului independent, care a recomandat-o ca propunere suplimentară pentru DEC-16, nu ca parte a DEC-23.
+
+**Motivul:** cota de 15 GB este comună pentru tot serviciul de găzduire. **Staging-ul existent consumă deja** din ea: baza de date, fotografiile active și cele 7 copii zilnice de pe găzduire. **Producția ar consuma din aceeași cotă numai dacă se aprobă găzduirea ei în acest cont** (G6-1, încă deschisă); impactul bazei, al fotografiilor și al copiilor de backup ale producției este, deocamdată, un **scenariu condiționat de decizia G6-1**. Epuizarea cotei ar afecta aplicațiile contului și ar opri backup-urile.
+
+**Conținutul propus (de decis de proprietar):**
+- un control **lunar**, numai prin citire, al spațiului ocupat față de cota de 15 GB (cPanel, informația despre spațiul folosit);
+- consemnarea valorii în evidența DEC-16;
+- un prag de atenționare (de exemplu 75 % din cotă) și escaladarea după regula DEC-16: consemnare și investigare prin citire; orice acțiune cu efect numai cu aprobarea proprietarului.
+
+Frecvența, pragul și locul exact al citirii se stabilesc la decizie. Până atunci, propunerea nu face parte din controalele DEC-16.
+
+**Ce NU înseamnă această consemnare:** nu decide G6-1, G6-4 sau `TRUST_PROXY`; nu modifică DEC-16, DEC-23, E4.11, DEC-25 sau A17-1; nu autorizează E4 sau vreo operație pe staging, producție ori cPanel. Lansarea publică nu este aprobată.
