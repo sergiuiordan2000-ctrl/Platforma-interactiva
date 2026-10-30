@@ -637,3 +637,77 @@ CI-ul a trecut pentru commiturile de consemnare `bd04c4b` (41017364561) și `930
 **DEC-5: ÎNCHISĂ la 30.10.2026, prin decizia explicită a proprietarului.**
 
 **Ce NU înseamnă această consemnare:** închiderea DEC-5 nu închide E2, nu autorizează E4 sau operațiuni pe staging și nu modifică DEC-25, A17-1 ori statutul lansării publice.
+
+---
+
+## 23. DEC-23 — detaliile copiei externe criptate, decise la 30.10.2026
+
+Proprietarul a aprobat deciziile D23-1–D23-7 la 30.10.2026, ~11:50–11:53, în conversația de lucru, după evaluarea propunerii DEC-23-P1 și auditul ei independent (Aristotel). **Implementarea este amânată până la apropierea fazei de testare.** §16 rămâne neschimbat: acolo DEC-23 = (a) este consemnată ca principiu („copie externă criptată, cu acces restrâns și retenție documentată”); această secțiune stabilește detaliile cerute acolo.
+
+### 23.1 Obiectivul
+
+O procedură pentru realizarea, protejarea, verificarea și păstrarea unei copii externe a datelor Urbis Activ, pentru recuperare în cazul pierderii totale a serviciului de găzduire.
+
+### 23.2 Temeiul tehnic (verificat în cod la 30.10.2026, numai prin citire)
+
+- O copie `backup:db` este un director `civic-backup-<UTC>/` cu `db.jsonl.gz`, `manifest.json`, `photos/` și instantaneul marcajelor; datele sunt comprimate, **necriptate**, și conțin date personale (`server/src/db/backup.ts` 36–38, 328).
+- Marcajele operaționale vii stau în `BACKUP_DIR`, lângă copii (`server/src/db/markers.ts` 68–73, 154). Fără ele, restaurarea într-un `BACKUP_DIR` gol este refuzată sau poate readuce date șterse (`markers.ts` 182–200).
+- Fiecare copie exclude sesizările mai vechi de 45 − 7 = 38 de zile față de momentul backup-ului, iar copiile de pe găzduire se păstrează 7 zile; astfel, nicio copie nu conține date de sesizare mai vechi de 45 de zile (`backup.ts` 1–6, 98, 124, 369–381). O copie externă păstrată mai mult de 7 zile de la backup-ul din care provine ar depăși această limită.
+
+### 23.3 Deciziile
+
+**D23-1 — Conținutul și formatul.** Pachetul extern conține ultimul backup complet `civic-backup-<UTC>/` și cei cinci markeri operaționali: `deletions/`, `account-deletions/`, `account-deletions-pending/`, `report-counter-watermark.json`, `account-markers-initialized.json`. Nu se includ `civic.env` și nici copii de backup mai vechi. Pachetul se arhivează în format 7z, cu AES-256 și criptarea numelor fișierelor activată.
+
+Arhiva temporară necriptată creată pe găzduire se creează **în afara docroot-ului** și se șterge **imediat după descărcare**. Arhiva necriptată descărcată pe calculator se șterge **definitiv** (fără Coșul de reciclare) **imediat după criptare**.
+
+**D23-2 — Frecvența.** O copie externă pe săptămână, lunea, din **backup-ul automat din acea noapte** (cel mai recent).
+
+**D23-3 — Retenția.** O singură copie externă, păstrată cel mult **șapte zile de la data backup-ului din care provine** (data din numele `civic-backup-<UTC>`). Nu se păstrează simultan mai multe copii externe.
+
+**D23-4 — Înlocuirea și eșecul unei copii noi.** În ziua copiei săptămânale:
+1. se realizează noul pachet;
+2. se verifică integritatea și amprentele criptografice (D23-6);
+3. se consemnează rezultatul;
+4. în aceeași zi se șterge copia externă precedentă.
+
+Dacă realizarea sau verificarea noii copii eșuează, copia precedentă se șterge tot în aceeași zi, pentru respectarea D23-3. Intervalul fără o copie externă validă se consemnează până la prima copie nouă realizată și verificată cu succes.
+
+**D23-5 — Stocarea și protecția.** Copia externă se păstrează local, pe calculatorul proprietarului, cu posibilitatea unui dispozitiv USB suplimentar. Nu se folosesc servicii cloud pentru această procedură în MVP. Înainte de prima copie reală:
+- se activează BitLocker pe unitatea folosită pentru stocare;
+- parola arhivei este aleatorie, de cel puțin 20 de caractere (sau 6 cuvinte aleatorii), și se păstrează într-un manager de parole și pe hârtie, în locuri separate;
+- cheia de recuperare BitLocker se păstrează separat de parola arhivei.
+
+Activarea BitLocker nu face parte din operațiile imediate; se face înainte ca prima copie reală să ajungă pe calculator.
+
+**D23-6 — Verificarea și restaurarea.** La fiecare copie externă:
+1. deschiderea și decriptarea arhivei cu parola;
+2. testarea integrității arhivei cu 7-Zip;
+3. compararea SHA-256 al `db.jsonl.gz` cu valoarea din `manifest.json`;
+4. calcularea SHA-256 al arhivei `.7z`;
+5. înregistrarea rezultatului și a amprentei în evidența DEC-16.
+
+Prima restaurare dintr-o copie externă se face în cadrul probei de restaurare din E4. Trimestrial se verifică separat parola păstrată pe hârtie, deschizând copia curentă cu ea, nu cu parola din managerul de parole.
+
+**D23-7 — Exersarea pe staging.** Înaintea primei copii externe reale din producție, procedura se exersează pe staging, numai cu date de test: selectarea backup-ului și a markerilor, comprimarea, descărcarea, criptarea, verificarea integrității și ștergerea arhivei temporare necriptate de pe găzduire. Exercițiul cere aprobare separată înaintea executării.
+
+### 23.4 Riscurile reziduale acceptate
+
+| Riscul | Tratamentul |
+|---|---|
+| pierderea totală a găzduirii între două copii externe | risc acceptat; pierderea potențială de date este limitată la cel mult șapte zile prin frecvența săptămânală |
+| reapariția unor sesizări sau conturi șterse după copia externă | risc acceptat; markerii externi reflectă numai starea de la momentul copiei; datele șterse ulterior pot reapărea la o restaurare făcută după pierderea găzduirii |
+| pierderea sau compromiterea calculatorului care păstrează arhiva | redus prin BitLocker și prin criptarea AES-256 a arhivei |
+| pierderea parolei arhivei | redus prin păstrarea ei în managerul de parole și pe hârtie, în locuri separate, și prin testul trimestrial |
+| eșecul restaurării pe altă infrastructură | verificat prin proba de restaurare din E4 |
+
+### 23.5 Evidența
+
+Pentru fiecare copie externă se consemnează în evidența DEC-16, cel puțin: data și ora backup-ului-sursă, data realizării copiei externe, numele backup-ului, amprenta SHA-256 a arhivei, rezultatul verificării și ștergerea copiei precedente.
+
+### 23.6 Condițiile de implementare
+
+- Exercițiul pe staging și prima implementare pe producție sunt operații distincte, fiecare cu aprobare explicită.
+- DEC-23 privește copia din afara găzduirii. **Criptarea copiilor de pe găzduire (planul v2.4, E4.11) rămâne de decis separat.**
+- Calculatorul care păstrează copia devine un loc de stocare a datelor personale; aspectul se tratează în politica de confidențialitate.
+
+**Ce NU înseamnă această consemnare:** nu autorizează operații pe găzduire, pe staging sau pe producție și nu modifică configurația aplicației; nu închide E4 și nu decide E4.11; nu modifică DEC-25 sau A17-1. Lansarea publică nu este aprobată.
