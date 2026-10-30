@@ -711,3 +711,68 @@ Pentru fiecare copie externă se consemnează în evidența DEC-16, cel puțin: 
 - Calculatorul care păstrează copia devine un loc de stocare a datelor personale; aspectul se tratează în politica de confidențialitate.
 
 **Ce NU înseamnă această consemnare:** nu autorizează operații pe găzduire, pe staging sau pe producție și nu modifică configurația aplicației; nu închide E4 și nu decide E4.11; nu modifică DEC-25 sau A17-1. Lansarea publică nu este aprobată.
+
+---
+
+## 24. E4.11 — criptarea copiilor de pe găzduire: varianta V1, planul r3.2 și deciziile P1–P10 (30.10.2026); implementarea nu este autorizată
+
+Această secțiune consemnează deciziile proprietarului privind criteriul E4.11 din planul v2.4 („metoda de criptare, gestionarea cheii și dovada verificării sunt de definit la G6”). Criteriul și planul v2.4 rămân neschimbate. DEC-23 (§23) privește copia din afara găzduirii; această secțiune privește copiile din `BACKUP_DIR`.
+
+### 24.1 Deciziile E411-1 și E411-2 (30.10.2026, ~12:33)
+
+| Decizia | Conținutul |
+|---|---|
+| **E411-1** | varianta **V1**: criptare asimetrică integrată în `backup:db`. Varianta cu criptare ulterioară printr-o sarcină cron (V2) este **respinsă**: ar fi scos copiile din mecanismele care reunesc marcajele de ștergere din toate copiile și din protecțiile R18 (`server/src/db/backup.ts` 712–740, 946–955; `server/src/db/markers.ts` 164–180). Varianta cu cheie simetrică păstrată pe găzduire nu oferă protecție față de un atacator din cont |
+| **E411-2** | pregătirea unui plan de implementare, cu observațiile auditului independent incluse |
+
+### 24.2 Acceptarea planului r3.2 (30.10.2026, ~15:18–15:20)
+
+Planul `PLAN_E411_criptare_backup.md`, versiunea **r3.2**, este acceptat de proprietar ca **bază documentară** pentru E4.11, după patru runde de audit independent (Aristotel, 30.10.2026):
+
+| Versiunea | Verdictul auditului |
+|---|---|
+| r1 | necesită revizie |
+| r2 | aproape aprobabilă; cinci sarcini |
+| r3 | necesită o ultimă revizie documentară; șase corecturi |
+| r3.1 | aproape aprobabilă; trei clarificări |
+| r3.2 | acceptată ca bază pentru deciziile P1–P9; două observații păstrate ca cerințe de implementare |
+
+Planul este păstrat **în afara repository-ului** (302 rânduri; SHA-256 `5f82b0a77088e60890952940459c5ea2e5b0c17b4a926bfcb4f305218a2f3476`). Acceptarea lui nu aprobă codul, testele sau vreo operație.
+
+### 24.3 Deciziile P1–P10 (30.10.2026, ~15:20)
+
+| # | Decizia |
+|---|---|
+| **P1** | implementarea criptografică: **A2, formatul standard age** (`age-encryption.org/v1`: X25519, HKDF-SHA256, ChaCha20-Poly1305 în segmente de 64 KiB, antet autentificat), prin pachetul `age-encryption`, **fixat la o versiune exactă**. Varianta A1 (implementare proprie) rămâne numai ca alternativă documentată |
+| **P2** | `manifest.json` și `markers.json` rămân **în clar** (ID-uri interne, datele ștergerilor, volumul datelor; fără nume, adrese, texte sau fotografii); consecvența lor cu fișierele criptate se verifică prin `binding.json.age` |
+| **P3** | cheia publică este **obligatorie în producție** (lipsa ei oprește pornirea); opțională pe staging |
+| **P4** | decriptarea se face **numai pe calculatorul proprietarului**; identitatea (cheia privată) nu ajunge niciodată pe găzduire |
+| **P5** | Node 24 portabil pe calculator, pentru `backup:decrypt` și `backup:verify`; `age.exe` opțional, pentru verificarea independentă a fiecărui fișier |
+| **P6** | fraza-parolă a identității este **distinctă** de parola arhivelor 7z (DEC-23) |
+| **P7** | **retrasă**; D23-6 (§23) rămâne **neschimbat**: verificarea completă la fiecare copie externă |
+| **P8** | fereastra de **60 de minute** pentru copia decriptată pe găzduire, la o restaurare: **țintă operațională, nu garanție de securitate**; staging-ul se oprește pe durata restaurării; la depășire, prioritatea este finalizarea sigură și ștergerea controlată |
+| **P9** | limita acceptată: criptarea cu cheie publică **nu dovedește autorul copiei** față de un atacator din cont. După o compromitere se restaurează numai o **copie de încredere**, creată înaintea începutului estimat al compromiterii și dovedită independent de găzduire (P10). **Fără copie de încredere, recuperarea unor date autentice nu este garantată.** Cu retenția de 7 zile (D23-3), o compromitere nedetectată mai mult de circa 7 zile nu lasă nicio copie de încredere |
+| **P10** | evidența DEC-16 a copiilor externe are o **dată verificabilă, care nu poate fi modificată din găzduire** (condițiile la §24.4) |
+
+### 24.4 Condițiile de implementare
+
+**Evidența independentă a copiilor externe (P10), precizată de proprietar:**
+- amprenta SHA-256 a arhivei `.7z` se calculează **pe calculatorul personal**, după obținerea copiei externe, **nu** de aplicația de pe găzduire;
+- după fiecare copie, proprietarul își trimite un e-mail **din căsuța personală, din afara cPanel**, cu: data și ora UTC (pentru identificare), **numele copiei** și **amprenta SHA-256 a arhivei**;
+- **dovada momentului** este **marcajul de timp de primire generat de furnizorul de e-mail**, nu data și ora scrise în corpul mesajului, care pot fi modificate înainte de trimitere;
+- astfel, o găzduire compromisă nu poate fabrica retroactiv o evidență pentru o copie falsă și nu poate modifica mesajul deja primit în căsuța externă;
+- **protecția presupune că și calculatorul, și căsuța personală sunt de încredere.**
+
+**Testele (din auditul planului r3.2):**
+- testul la nivelul sistemului de fișiere (`strace`) folosește o listă **exactă** a căilor permise pentru fișierele de marcaje, nu o acceptare generică;
+- ieșirile standard ale comenzilor conțin **numai mesaje de diagnostic**, niciodată conținutul bazei de date, fotografii sau alte date în clar; testul verifică acest lucru;
+- testul de memorie este un **test de regresie** pentru comportamentul în flux, **nu** o garanție absolută a limitei de memorie: eșantionarea la 10 ms poate rata un vârf foarte scurt;
+- confirmările marcate [I] în plan (semnătura interfeței de flux a bibliotecii, comportamentul la o dimensiune declarată greșit, vectorii publici age) se fac **înaintea** scrierii codului.
+
+**Ordinea:** cod și teste → audit independent al modulului de criptare și al `backup:verify` → candidat nou, CI pe SHA-ul exact și `npm audit` → reinstalare pe staging (ca la E3-bis) → probă pe staging (operație separată, combinabilă cu D23-7) → consemnarea în DEC-23 a modificărilor D23-1, D23-5 și D23-6 descrise în plan (§8).
+
+### 24.5 Implementarea nu este autorizată
+
+Acceptarea planului r3.2 și deciziile P1–P10 **nu autorizează** scrierea codului, adăugarea dependenței, commiturile, push-ul sau vreo operație pe staging, producție, cPanel, cron sau `civic.env`. Implementarea are **checkpoint propriu**, cu codul, testele și CI prezentate înaintea oricărui commit, cu aprobări separate.
+
+**Ce NU înseamnă această consemnare:** nu bifează criteriul E4.11 (lipsesc implementarea și dovada); nu închide E4 și nu o autorizează; nu modifică DEC-23 (modificările ei se consemnează după implementare), DEC-25 sau A17-1. Lansarea publică nu este aprobată.
