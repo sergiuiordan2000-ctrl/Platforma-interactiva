@@ -564,3 +564,19 @@ Auditul independent al pachetului de închidere E3 (Aristotel, 29.10.2026) a acc
 | §17.4, O-E3-3 | **Izolarea rolurilor este verificată în cod și în teste** (jurnalul staging-ului, observația 22, corectura din 29.10.2026). Rolul se stabilește din sesiunea din baza de date, nu din numele cookie-ului. Testul de integrare din CI verifică izolarea în ambele direcții. Constatarea este **de utilizare**, nu de securitate. Testul comportamental pe telefon (trecerea Admin ↔ cetățean, reîncărcarea, închiderea browserului) se propune pentru probele pe telefon din E4; decizia asupra unei eventuale schimbări rămâne a proprietarului |
 
 **Ce NU înseamnă această consemnare:** nu redeschide E3 și nu modifică §18; nu autorizează E4, vreo operație pe staging sau vreo schimbare de cod; DEC-5 rămâne deschisă, iar DEC-25 și A17-1 rămân neschimbate.
+
+---
+
+## 20. Prima noapte pe `85d3c45` — completare la §18 (30.10.2026)
+
+Monitorizarea zilnică din 30.10.2026 (DEC-16; jurnalul staging-ului, intervenția 148) arată, pentru noaptea de 29/30.10.2026, prima pe `85d3c45`:
+- copia `civic-backup-20261030T011702447Z`, reușită;
+- rularea `purge:retention`, fără erori.
+
+**Efectul:** criteriile 4 și 5 ale E3, închise la §18 cu dovadă echivalentă de pe `5d8c52a`, au acum și **dovadă directă pe `85d3c45`**. Limita acceptată la §18 este astfel acoperită. Închiderea E3 rămâne cea din §18; această completare nu o modifică.
+
+**O-E3-3, ipoteza privind crearea celei de-a doua sesiuni de cetățean din 28.10.2026:** `oauthAttempts` din `purge.log` numără înregistrările de pornire a fluxului Google șterse după expirare, nu autentificări (verificat în cod; jurnalul staging-ului, observația 22, completarea din 30.10.2026). Valoarea 1 din noaptea de 28/29.10.2026 este compatibilă cu ipoteza că a doua sesiune din 28.10.2026 a fost creată prin Google, dar nu o dovedește. Ipoteza rămâne **dedusă**.
+
+**O-E3-3, nuanțarea concluziei din §19:** formularea din §19, „constatarea este de utilizare, nu de securitate”, este prea categorică și este nuanțată prin prezenta completare, după cum urmează: analiza codului și testele de integrare susțin izolarea rolurilor la nivelul verificat; prin aceste verificări nu a fost identificată o problemă de autorizare. Comportamentul pe telefon la trecerea Admin ↔ cetățean nu a fost încă testat. Până la efectuarea testului, observația este tratată ca problemă de utilizare, **fără a exclude definitiv orice risc de securitate**. §19 rămâne neschimbată, ca stare datată (regula din §3.1 a registrului de bază).
+
+**Ce NU înseamnă această consemnare:** nu autorizează E4 sau vreo operație pe staging; DEC-5 rămâne deschisă, iar DEC-25 și A17-1 rămân neschimbate.
