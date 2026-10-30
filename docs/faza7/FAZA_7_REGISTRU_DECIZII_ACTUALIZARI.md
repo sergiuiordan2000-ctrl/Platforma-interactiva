@@ -617,3 +617,23 @@ Proprietarul confirmă că interpretarea fluxului critic din §14.1 este suficie
 **DEC-5 rămâne DESCHISĂ.** După publicarea C5, proprietarul va decide separat dacă sunt îndeplinite condițiile pentru închiderea DEC-5.
 
 **Ce NU înseamnă această consemnare:** nu închide DEC-5 sau E2; nu autorizează E4 sau vreo operație pe staging; DEC-25 și A17-1 rămân neschimbate. Lansarea publică nu este aprobată.
+
+---
+
+## 22. Închiderea DEC-5 — decizia proprietarului (30.10.2026)
+
+Această secțiune completează §21, care rămâne neschimbată, ca stare datată (regula din §3.1 a registrului de bază).
+
+Proprietarul decide închiderea DEC-5, după finalizarea și publicarea tuturor punctelor prevăzute:
+
+- C2 — aplicat și publicat (`f8271a6`);
+- `TRUST_PROXY` — clarificarea documentară aplicată și publicată (`f8271a6`); limitarea tehnică rămâne acceptată conform DEC-4 și va fi reevaluată la G6/E4;
+- observația 4 — aplicată și publicată (`a10e8e1`), consemnată în §21.1;
+- C4 — confirmat de proprietar, consemnat în §21.2;
+- C5 — handoff actualizat și publicat (`930749c`).
+
+CI-ul a trecut pentru commiturile de consemnare `bd04c4b` (41017364561) și `930749c` (41019091378).
+
+**DEC-5: ÎNCHISĂ la 30.10.2026, prin decizia explicită a proprietarului.**
+
+**Ce NU înseamnă această consemnare:** închiderea DEC-5 nu închide E2, nu autorizează E4 sau operațiuni pe staging și nu modifică DEC-25, A17-1 ori statutul lansării publice.
