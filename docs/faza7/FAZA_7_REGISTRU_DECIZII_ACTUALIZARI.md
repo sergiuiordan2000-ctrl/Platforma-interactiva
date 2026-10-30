@@ -580,3 +580,40 @@ Monitorizarea zilnică din 30.10.2026 (DEC-16; jurnalul staging-ului, intervenț
 **O-E3-3, nuanțarea concluziei din §19:** formularea din §19, „constatarea este de utilizare, nu de securitate”, este prea categorică și este nuanțată prin prezenta completare, după cum urmează: analiza codului și testele de integrare susțin izolarea rolurilor la nivelul verificat; prin aceste verificări nu a fost identificată o problemă de autorizare. Comportamentul pe telefon la trecerea Admin ↔ cetățean nu a fost încă testat. Până la efectuarea testului, observația este tratată ca problemă de utilizare, **fără a exclude definitiv orice risc de securitate**. §19 rămâne neschimbată, ca stare datată (regula din §3.1 a registrului de bază).
 
 **Ce NU înseamnă această consemnare:** nu autorizează E4 sau vreo operație pe staging; DEC-5 rămâne deschisă, iar DEC-25 și A17-1 rămân neschimbate.
+
+---
+
+## 21. DEC-5: observația 4 publicată; C4 confirmat de proprietar (30.10.2026); DEC-5 rămâne deschisă
+
+Această secțiune completează §12 și §14.3, care rămân neschimbate, ca stări datate (regula din §3.1 a registrului de bază).
+
+### 21.1 Observația 4 din jurnalul staging-ului — aplicată și publicată la 28.10.2026
+
+§12 și §14.3 descriu observația 4 ca „neaprobată, neaplicată”. Starea s-a schimbat după redactarea lor, iar schimbarea nu a fost consemnată în registru până acum.
+
+| Câmp | Valoare |
+|---|---|
+| Commitul | `a10e8e122d297583be8b576a0e2952403bf667e5` (`docs: clarify accepted TRUST_PROXY limitation in staging journal`), 28.10.2026 |
+| CI | 40633232172, `success` |
+| Conținutul | `docs/faza5/STAGING_URBISACTIV_JURNAL.md`, observația 4: actualizarea „Actualizare din 28.10.2026 (DEC-5, observația 4)”. Formularea „Trebuie rezolvat înainte de lansare” este declarată depășită și păstrată ca istoric; lipsa adresei reale a vizitatorului este o limitare acceptată (DEC-4, AI-1), nu o problemă rezolvată |
+| Aprobările | textul, commitul și push-ul au fost aprobate separat de proprietar în conversația de lucru din 28.10.2026; nu sunt consemnate în repository |
+
+Limitarea tehnică rămâne: `TRUST_PROXY` nu este setat. Reevaluarea ei rămâne între întrebările operaționale ale E4 (§4).
+
+### 21.2 C4 — confirmat de proprietar la 30.10.2026
+
+Proprietarul confirmă că interpretarea fluxului critic din §14.1 este suficientă pentru C4 (varianta a). Nu se cer alte modificări. Corectura formulării despre moderare din `README.md`, rândul 4, aparține constatării N2 și rămâne pentru E5 (§14.2).
+
+### 21.3 Starea DEC-5
+
+| Punctul | Starea |
+|---|---|
+| C2 | aplicat și publicat (`f8271a6`, §12) |
+| `TRUST_PROXY`, rândul 364 din `PROJECT_RULES_AND_DECISIONS.md` | aplicat și publicat (`f8271a6`, §12); limitarea tehnică nu este remediată |
+| observația 4 | aplicată și publicată (`a10e8e1`, §21.1) |
+| C4 | confirmat de proprietar (§21.2) |
+| C5 | **deschis**: actualizarea `PROJECT_HANDOFF_CURRENT.md` |
+
+**DEC-5 rămâne DESCHISĂ.** După publicarea C5, proprietarul va decide separat dacă sunt îndeplinite condițiile pentru închiderea DEC-5.
+
+**Ce NU înseamnă această consemnare:** nu închide DEC-5 sau E2; nu autorizează E4 sau vreo operație pe staging; DEC-25 și A17-1 rămân neschimbate. Lansarea publică nu este aprobată.
