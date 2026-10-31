@@ -854,3 +854,65 @@ Rămân pentru **E5**, conform planului v2.4 și manualului 7D, §6.3 („Aplica
 Propunerea din §25.3 se **amână până la clarificarea G6-1**. Ea **nu** se introduce în DEC-16 și **nu** este o condiție suplimentară a criteriului E4.14, care enumeră exact trei controale: `backup.log`, coada de e-mail și `health`.
 
 **Ce NU înseamnă această consemnare:** nu modifică decizia DEC-16 din 28.10.2026 (§16) sau cerințele planului v2.4; nu decide G6-1; nu modifică DEC-23, E4.11, DEC-25 sau A17-1; nu autorizează E4 sau vreo operație pe staging, producție ori cPanel. Lansarea publică nu este aprobată.
+
+---
+
+## 27. DEC-8 (D7-4, matricea CI) — varianta (c1), implementată și validată prin CI; propunere de închidere (31.10.2026)
+
+### 27.1 Decizia
+
+| Element | Conținutul |
+|---|---|
+| definiția din plan | planul v2.4, §6, rândul 550: DEC-8 = „D7-4, matricea CI”; variantele (a) matricea actuală, (b) redusă, (c) actuală + versiunea de producție; recomandarea „(a) până la G6, apoi (c)”. G6 este închis din 26.10.2026 **numai în privința alegerii găzduirii** (ClausWeb; §4); decizia **G6-1**, privind arhitectura producție/staging (aceeași găzduire sau nu, §25), **rămâne deschisă** |
+| varianta aleasă | **(c1)**: matricea actuală, cu cele șase joburi **păstrate integral**, plus **un job backend fixat pe versiunile exacte de producție**: Node.js **24.21.0** și MariaDB **11.4.13** (valorile consemnate din cPanel la 07.10.2026, `docs/faza5/AMENDAMENT_MARIADB_SI_GAZDUIRE.md` §2) |
+| aprobările | analiza (31.10.2026, ~08:55–09:06); propunerea și cele două verificări suplimentare (expansiunea matricei, amprenta imaginii); aplicarea diff-ului `ci_c1.r2.diff` (~09:22); commitul și push-ul, aprobate separat |
+| starea | **propunere de închidere a DEC-8 pentru varianta (c1)**, în urma implementării și validării prin CI (§27.3). **Închiderea formală se consemnează prin aprobarea proprietarului.** Aprobările de aplicare, commit și push nu reprezintă, prin ele însele, decizia de închidere |
+
+Recomandarea din planul inițial al Etapei 7 (`docs/faza7/FAZA_7_PLAN.md`, rândul 142: alinierea la producție cu un singur job MySQL) nu a fost adoptată; planul v2.4 este cel în vigoare.
+
+### 27.2 Implementarea
+
+**Commitul:** `10e4a00c13ab8fd0a82758c83f59dc4630328db1` (`ci: DEC-8 (c1) — add production-exact backend job (Node 24.21.0, MariaDB 11.4.13) with explicit version checks`); modifică numai `.github/workflows/ci.yml` (+34 de rânduri, 0 șterse; SHA-256 al fișierului `ff5ce48b28f4a7c76d130d4e67af6b532def33b5890a8e8d0077e643eea357a4`).
+
+| Element | Conținutul |
+|---|---|
+| jobul nou | `backend (Node 24.21.0, MariaDB 11.4.13, producție)`: un element nou în `include`-ul matricei existente, cu aceiași pași și același serviciu de bază de date ca celelalte joburi backend |
+| fixarea versiunilor | Node prin `actions/setup-node` cu versiunea exactă (prezentă în manifestul oficial `actions/node-versions`); MariaDB prin imaginea oficială `mariadb:11.4.13` |
+| pasul nou „Versiunile exacte de producție” | rulează numai în jobul nou; oprește jobul dacă `node --version` nu este exact `v24.21.0` sau dacă `SELECT VERSION()` nu începe cu `11.4.13-MariaDB`; tipărește amprenta imaginii, iar o amprentă absentă sau cu format invalid produce un avertisment explicit, fără să fie prezentată drept validă |
+| verificările dinaintea aplicării | `actionlint` 1.7.12: 0 erori; simularea expansiunii matricei după regulile documentate GitHub (validată pe exemplul oficial): 7 joburi; logica pasului nou testată local sub `set -eo pipefail` |
+
+### 27.3 Dovada: prima rulare reală
+
+**Rularea CI 41180615246**, la `10e4a00` (push, 31.10.2026, 07:26–07:40 UTC): **`success`**.
+
+| Criteriul de acceptare | Rezultatul |
+|---|---|
+| numărul de joburi | **7** (6 backend + E2E), cum a prevăzut simularea |
+| cele șase joburi existente | aceleași nume, toate `success` |
+| jobul nou | `success` la toți pașii, inclusiv testele unitare, API, de integrare și pornirea artefactului |
+| pasul „Versiunile exacte de producție” | `success` în jobul nou; `skipped` în celelalte cinci joburi backend |
+| avertismentul „Amprenta imaginii indisponibilă” | absent (0 adnotări în jobul nou) |
+
+**Ce dovedește și ce nu:**
+- **versiunile exacte** (Node 24.21.0, MariaDB 11.4.13) sunt confirmate **prin trecerea verificărilor automate** ale pasului nou, care ar fi oprit jobul la orice altă versiune;
+- **amprenta imaginii** a fost identificată într-un **format valid** (lipsa avertismentului), dar **valoarea ei nu a fost încă extrasă și arhivată**: jurnalele CI nu au putut fi descărcate din mediul de lucru al lui Claude (acces refuzat de proxy). Valoarea se poate citi din pagina rulării; extragerea ei rămâne un pas separat.
+
+### 27.4 Efectul asupra E4
+
+Criteriul E4.2 (planul v2.4: „CI verde la acel commit, cu matricea decisă în D7-4”) are acum matricea decisă: cele **7 joburi** de mai sus. Criteriul se verifică la SHA-ul candidat al E4.
+
+### 27.5 Regula de întreținere
+
+La orice schimbare a versiunii Node sau MariaDB pe server, cele **patru valori** ale jobului de producție (`node`, `image`, `expect_node`, `expect_db`, documentate în antetul `ci.yml`) se actualizează **împreună**, printr-o modificare aprobată. Altfel jobul continuă să treacă pe versiunea veche: verificarea compară CI-ul cu valorile din fișier, nu cu serverul.
+
+### 27.6 Ce rămâne deschis (propus ca necondiționând închiderea DEC-8)
+
+| Subiectul | Starea |
+|---|---|
+| **(c2)** E2E pe MariaDB | opțiune separată, nedecisă; E2E rulează în continuare numai pe MySQL 8.4 |
+| eliminarea joburilor Node 20 și MySQL 8.0 | **neevaluată**; joburile rămân |
+| compararea configurației serverului (`sql_mode`, setul de caractere, colația; serverul raportează varianta `11.4.13-MariaDB-cll-lve`) cu cea din CI | verificare suplimentară, nedecisă; nu invalidează rezultatele CI |
+| extragerea și arhivarea amprentei imaginii; eventual fixarea pe amprentă (`mariadb:11.4.13@sha256:…`) | pas separat, nedecis |
+| reconfirmarea versiunilor de pe server înaintea E4 | depinde de G6-1 (deschisă) |
+
+**Ce NU înseamnă această consemnare:** nu închide formal DEC-8; nu modifică codul aplicației sau artefactul instalat (`85d3c45` pe staging); nu decide G6-1, DEC-9 sau DEC-20; nu autorizează E4 sau vreo operație pe staging, producție ori cPanel; nu modifică DEC-25 sau A17-1. Lansarea publică nu este aprobată.
