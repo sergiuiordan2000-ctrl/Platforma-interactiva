@@ -916,3 +916,58 @@ La orice schimbare a versiunii Node sau MariaDB pe server, cele **patru valori**
 | reconfirmarea versiunilor de pe server înaintea E4 | depinde de G6-1 (deschisă) |
 
 **Ce NU înseamnă această consemnare:** nu închide formal DEC-8; nu modifică codul aplicației sau artefactul instalat (`85d3c45` pe staging); nu decide G6-1, DEC-9 sau DEC-20; nu autorizează E4 sau vreo operație pe staging, producție ori cPanel; nu modifică DEC-25 sau A17-1. Lansarea publică nu este aprobată.
+
+---
+
+## 28. DEC-9 — perimetrul restaurării de probă: deciziile DEC9-1–DEC9-4 (31.10.2026)
+
+Proprietarul a aprobat la 31.10.2026, ~11:42, în conversația de lucru, deciziile de mai jos, după analiza numai prin citire a DEC-9 (planul v2.4, codul, registrul, jurnalul) și evaluarea auditorului independent (Aristotel). Planul v2.4 rămâne neschimbat; codul nu se modifică. **Nicio probă pe staging sau pe producție nu este autorizată prin această consemnare.**
+
+### 28.1 Definiția și starea de pornire
+
+| Element | Conținutul |
+|---|---|
+| definiția din plan | planul v2.4, §6, rândul 551: DEC-9 = „perimetrul restaurării de probă”; „PRINCIPIU: M4 + R19; `host-restore --check` condiționat”; criteriul: „proba de siguranță pe staging în E3, aprobată separat”. Proba propriu-zisă: E4, criteriile 15–22 |
+| ce era decis | principiul M4 + R19; criteriile E4 15–22; `host-restore:recover --check` numai dacă siguranța lui se confirmă, altfel exclus din proba 7E (planul v2.4, §7.3, rândul 595) |
+| **criteriul pentru E3: neîndeplinit** | proba de siguranță pe staging **nu a fost efectuată în E3**; E3 s-a închis fără ea (§17.5, criteriul 9: „neefectuat”). Criteriul **nu este declarat îndeplinit**; îndeplinirea lui este **amânată** și mutată în etapa stabilită la DEC9-2, **înaintea E4** |
+| ce s-a dovedit pe găzduire | M4 a fost executat pe staging la 13.10.2026 (jurnalul staging-ului, intervențiile 41–48), cu versiunea `27b1b5f`. Restaurarea cu codul actual (după 7A: R18, R19, MINOR-3) **nu a fost probată pe găzduire** (§12); R19 și R20 sunt exersate numai în CI |
+
+### 28.2 Constatările analizei despre `host-restore:recover --check` (verificate în cod la `d59d576`)
+
+- **N-23 nu se aplică acestei comenzi:** drumul `--check` (`server/src/main.ts` 115–134; `server/src/cli.ts` 157–176; `server/src/db/hostRestore.ts` 51–93) nu apelează `prepareBackupDir`, singura funcție care scrie și șterge un fișier de probă în `BACKUP_DIR` (`server/src/db/markers.ts` 137–150; apelată numai din `server/src/db/reportCounter.ts` 143 și 182).
+- **Fără scrieri:** verificările preliminare numai citesc; contorul (`reportCounter.ts` 229–237) și coada (`server/src/db/backup.ts` 983–1021) rulează în `dryRun`; tranzacția se încheie cu `rollback`; auditul, reconcilierea R18 și retenția rulează numai fără `--check`.
+- **Teste în CI:** `server/test/integration/d74RestaurareFurnizor.test.ts`, F4 (rândurile 112–122) și F8, comanda reală într-un proces separat (rândurile 220–232): `--check` nu schimbă contorul, coada, numărul intrărilor de audit și de sesizări sau `BACKUP_DIR`.
+- **Riscul rămas:** blocarea `SELECT … FOR UPDATE` a rândului contorului TM pe durata tranzacției de verificare; pe o bază activă, o emitere concurentă de număr TM așteaptă eliberarea blocării. Comportamentul **nu este demonstrat** (N-18).
+- **Practic:** comanda nu figurează între scripturile „Run JS script” ale pachetului (`server/scripts/package-release.py`); o probă pe găzduire ar cere o sarcină cron temporară, cu riscul de țintă din observația 9 a jurnalului staging-ului.
+
+### 28.3 Deciziile
+
+| Decizia | Conținutul |
+|---|---|
+| **DEC9-1** | varianta **V3**: o **repetiție M4 + R19 pe staging, cu versiunea candidatului care include implementarea E4.11**, înaintea probei E4; prima restaurare cu codul actual **nu** se face direct pe producție. Restaurarea (M4 + R19) și verificarea `host-restore --check` sunt **două probe distincte**, nu o singură demonstrație de siguranță |
+| **DEC9-2** | momentul: **după instalarea pe staging a candidatului cu implementarea E4.11** (§24), pentru că E4.11 schimbă formatul copiilor și procedura de restaurare. **Condiție prealabilă:** înaintea repetiției se verifică faptul că o copie criptată poate fi identificată, decriptată și verificată conform procedurii E4.11; instalarea candidatului nu este considerată, singură, o garanție |
+| **DEC9-3** | `host-restore:recover --check` la proba E4: **inclus numai condiționat**, după validarea comportamentului concurent (blocare scurtă, emiteri concurente finalizate normal, fără efecte secundare). **Dacă acest lucru nu poate fi demonstrat, comanda este exclusă din proba E4** |
+| **DEC9-4** | **locul probei E4 rămâne deschis**, dependent de DEC-20 (variantele A / B / C, planul v2.4, §5.4) și de G6-1 (§25) |
+
+### 28.4 Condițiile repetiției pe staging (DEC9-1, DEC9-2)
+
+- se folosesc o **bază de date** și un **director de stocare de test, distincte** de cele active ale staging-ului;
+- **identitatea țintelor se verifică înaintea execuției** (de exemplu numele bazei și calea directorului, confirmate prin citire), nu se presupune din parametrii comenzii;
+- operația are **aprobare separată**, cu procedura scrisă și pașii proprietarului câte unul, ca la M4; se poate combina cu proba E4.11 pe staging și cu exercițiul D23-7, fiecare cu criteriile lui.
+
+### 28.5 Propunere separată: test automat de concurență în CI (DEC9-3)
+
+Proba pe staging poate verifica **efectele operaționale** ale comenzii:
+- durata comenzii și `health` după rulare;
+- **nicio schimbare**, prin compararea stării **înainte și după** comandă pentru: contorul TM; coada de mesaje; intrările de audit; sesizările existente; conținutul `BACKUP_DIR`;
+- **separat**, o sesizare trimisă **intenționat** imediat după comandă: înregistrarea ei normală și incrementarea corectă a contorului TM (operație voită, nu un efect al comenzii).
+
+Proba pe staging **nu poate demonstra convingător comportamentul concurent**. Se **propune** un test automat în CI, cu scenariul:
+1. conexiunea 1 blochează rândul contorului TM (ca `host-restore --check`);
+2. conexiunea 2 încearcă să emită un număr TM;
+3. se verifică faptul că emiterea **așteaptă** eliberarea blocării;
+4. după eliberare, emiterea se finalizează corect, **fără pierdere sau duplicare** de număr.
+
+**Starea: propunere, nu decizie de implementare.** Necesită analiză și aprobare separată înaintea oricărei modificări a codului de test. **Dacă testul nu este implementat sau nu demonstrează comportamentul așteptat, `host-restore --check` rămâne exclus din proba E4** (DEC9-3).
+
+**Ce NU înseamnă această consemnare:** nu autorizează nicio probă pe staging sau pe producție și nicio modificare de cod sau de test; nu decide DEC-20, G6-1 sau locul probei E4; nu modifică planul v2.4, DEC-23, E4.11, DEC-25 sau A17-1; nu închide formal DEC-8 (§27). Lansarea publică nu este aprobată.
