@@ -971,3 +971,93 @@ Proba pe staging **nu poate demonstra convingător comportamentul concurent**. S
 **Starea: propunere, nu decizie de implementare.** Necesită analiză și aprobare separată înaintea oricărei modificări a codului de test. **Dacă testul nu este implementat sau nu demonstrează comportamentul așteptat, `host-restore --check` rămâne exclus din proba E4** (DEC9-3).
 
 **Ce NU înseamnă această consemnare:** nu autorizează nicio probă pe staging sau pe producție și nicio modificare de cod sau de test; nu decide DEC-20, G6-1 sau locul probei E4; nu modifică planul v2.4, DEC-23, E4.11, DEC-25 sau A17-1; nu închide formal DEC-8 (§27). Lansarea publică nu este aprobată.
+
+---
+
+## 29. G6-1 și DEC-20 (partea restaurării de probă) — deciziile proprietarului (31.10.2026); condițiile de activare
+
+Proprietarul a aprobat la 31.10.2026, ~12:16, în conversația de lucru, deciziile de mai jos, după analiza comparativă G6-1 + DEC-20, făcută numai prin citire (planul v2.4, §5 și E4; registrul, §4, §16, §25, §26, §28), și după evaluarea auditorului independent (Aristotel). Planul v2.4 rămâne neschimbat; codul nu se modifică. **Nicio operație pe staging, pe producție sau în cPanel nu este autorizată prin această consemnare.**
+
+### 29.1 G6-1 — arhitectura producție/staging: varianta (c)
+
+| Element | Conținutul |
+|---|---|
+| decizia | **(c)**: producția și staging-ul în **același cont** de găzduire (ClausWeb, §25.1); **aplicația de staging este oprită în afara perioadelor de testare** |
+| variantele respinse acum | (a) ambele aplicații pornite permanent; (b) cont separat pentru producție (reevaluată, vezi mai jos); (d) retragerea staging-ului la E4 |
+| ce obține | oprirea aplicației de staging elimină procesul web de staging care ar putea fi atacat în afara testelor; resursele contului (§25.1) rămân, în afara testelor, aproape în întregime pentru producție; fără cost nou; mediul de staging rămâne disponibil pentru E4–E7 (G3) |
+| **ce NU obține** | **nu** elimină accesul comun la fișierele, bazele de date și resursele contului; **nu** oferă izolare între utilizatori de sistem: ambele aplicații aparțin aceluiași utilizator (CageFS separă conturile, nu aplicațiile, §25.1). Varianta (c) este o **măsură de reducere a riscului, nu un substitut** pentru izolarea prin conturi separate |
+| reevaluarea | varianta **(b)** se reevaluează **la reînnoirea găzduirii** și **înainte de E9**; costul unui al doilea cont și al unui al doilea IP dedicat (necesar pentru Remote SMTP) nu este cunoscut și se cere furnizorului |
+| starea | **decisă, neactivată.** Staging-ul rulează în continuare (`85d3c45`). Oprirea lui este o operație separată, cu aprobare distinctă, care se face **numai după** îndeplinirea condițiilor din §29.2 și §29.3 |
+
+### 29.2 Cron-urile staging-ului
+
+- Sarcinile cron ale staging-ului se **opresc în afara testelor**. Varianta „lăsate să ruleze, cu riscul acceptat” este respinsă.
+- **Înaintea opririi**, **textul exact** al fiecărei linii cron (ora și comanda, inclusiv ținta) se păstrează în jurnalul staging-ului, fără secrete și fără numele contului (`<cont>`). Păstrarea este **obligatorie**.
+- **Înaintea fiecărei reporniri**, ținta **bazei de date** și a **directoarelor** (`STORAGE_DIR`, `BACKUP_DIR`) se **verifică explicit, prin citire**, pentru fiecare linie și pentru aplicație; liniile se compară cu textul păstrat în jurnal. **Nu se acceptă presupuneri bazate pe numele aplicației, al directorului sau al fișierului de setări** (jurnalul staging-ului, observația 9: `CIVIC_ENV_FILE` ignorat de sarcinile cron, ținta se dă direct în linie).
+- **După oprirea aplicației** se verifică faptul că aplicația a rămas oprită, **printr-o metodă care nu poate porni aplicația**. Comportamentul platformei **nu este cunoscut** și nu se presupune: nu se știe dacă o aplicație oprită din „Setup Node.js App” poate fi pornită de o cerere HTTP (de exemplu de Passenger, la prima cerere), caz în care chiar o verificare prin cerere HTTP către `test.urbisactiv.ro` ar putea reporni aplicația.
+- **Confirmarea furnizorului (ClausWeb)** este necesară și trebuie să răspundă **explicit** la întrebarea: **poate o cerere HTTP să pornească sau să repornească o aplicație Node.js oprită din „Setup Node.js App”?** Răspunsul stabilește dacă verificarea prin cerere HTTP este admisibilă și dacă oprirea are efectul urmărit în §29.1.
+- **Activarea G6-1 (c)** (§29.1) este condiționată, **în plus** față de §29.3, de **conținutul** acestei confirmări, nu de simpla ei primire: dacă aplicația poate fi repornită de o cerere, oprirea aplicației din cPanel **nu garantează menținerea stării de oprire și reducerea riscului urmărită**. **Până la confirmare, G6-1 (c) rămâne decisă, dar neactivată**; staging-ul nu se oprește, iar sarcinile cron nu se modifică.
+- **Efectul răspunsului furnizorului:**
+
+| Răspunsul | Efectul |
+|---|---|
+| o cerere HTTP **nu poate** porni sau reporni aplicația oprită | **condiția tehnică din §29.2 este îndeplinită**; activarea rămâne condiționată și de §29.3 și se face cu aprobare distinctă |
+| o cerere HTTP **poate** porni sau reporni aplicația oprită | **G6-1 (c) nu se activează în forma actuală**; măsurile tehnice sau arhitectura (§29.1) se **reevaluează**, prin decizia separată a proprietarului; **staging-ul rămâne pornit, iar sarcinile cron nu se modifică până la o decizie separată** |
+| răspuns **neconcludent** sau lipsă | condiția **nu este îndeplinită**; **staging-ul rămâne pornit**, iar sarcinile cron nu se modifică |
+
+### 29.3 DEC-16 în perioada de oprire a staging-ului — condiție înaintea opririi
+
+- DEC-16 (§16; §26; manualul 7D, §6.3) **nu se modifică implicit** prin G6-1 (c).
+- **Înaintea opririi staging-ului** trebuie decis și consemnat regimul evidenței zilnice pentru perioada de oprire. Regimul trebuie să respecte două reguli: **verificările imposibile nu se raportează ca neconformități**, iar **verificările neefectuate nu se prezintă drept efectuate** (§26.2).
+- **Starea: propunere, nedecisă.** Până la decizie, staging-ul nu se oprește, sarcinile cron nu se modifică, iar verificarea zilnică DEC-16 continuă neschimbată.
+- **Adoptarea propunerii R2 este condiționată** de confirmarea furnizorului din §29.2 (comportamentul unei aplicații oprite la o cerere HTTP), deoarece de ea depinde metoda verificării (1) de mai jos.
+
+**Propunerea de evaluat (R2, recomandată în analiza din 31.10.2026):** o stare distinctă în evidența Excel (D16-a), **„suspendată: staging oprit (G6-1 c)”**, diferită de „conform”, „neconform”, „imposibil de verificat” și „neefectuată” (D16-b).
+
+| Momentul | Ce se consemnează |
+|---|---|
+| **la oprire** | un rând: data și ora; numărul intervenției din jurnalul staging-ului; confirmarea că textul exact al liniilor cron a fost păstrat (§29.2); data ultimei verificări DEC-16 complete dinaintea opririi |
+| **în perioada de oprire** | **un singur rând** pentru toată perioada, cu starea „suspendată”; **fără înregistrări zilnice artificiale** |
+| **săptămânal, în perioada de oprire** | o verificare **numai prin citire** a **stării de oprire**: (1) aplicația de staging este oprită, verificat **printr-o metodă care nu o poate porni**, stabilită după confirmarea furnizorului (§29.2); o cerere HTTP către `test.urbisactiv.ro` se folosește **numai dacă** furnizorul confirmă că nu poate porni aplicația; (2) lista sarcinilor cron din cPanel **nu conține linii de staging**; (3) `backup.log` nu are intrări noi. Punctele (2) și (3) nu trimit cereri către aplicație. Rezultatul se consemnează ca „oprire confirmată” sau ca neconformitate a opririi |
+| **la repornire** | un rând cu o **verificare DEC-16 completă** (cele trei controale din manualul 7D, §6.3), în aceeași zi, după verificarea țintelor (§29.2); în plus, controlul că `backup.log` nu are intrări din perioada de oprire. O intrare din acea perioadă este **neconformitate**: o sarcină cron a rămas activă |
+
+Precizări:
+- verificarea săptămânală este un **control al stării de oprire, nu o verificare DEC-16**; nu înlocuiește și nu completează controalele DEC-16;
+- absența intrărilor noi în `backup.log` **nu dovedește singură** că toate sarcinile cron sunt oprite: jurnalul primește numai rulările `backup:db`, iar celelalte sarcini scriu în alte jurnale, dintre care `outbox-cron.log` și `surveys-cron.log` se suprascriu (manualul 7D, §6.3). De aceea **verificarea listei din cPanel este obligatorie**;
+- alternativa evaluată, **R1**, cuprinde numai rândurile de la oprire, din perioada de oprire și de la repornire, fără verificarea săptămânală;
+- adoptarea propunerii ar fi o **completare** a DEC-16, de felul celor din §26, cu aprobarea separată a proprietarului; operatorul, frecvența și controalele DEC-16 nu se schimbă.
+
+### 29.4 DEC-20 — partea restaurării de probă: varianta B
+
+| Element | Conținutul |
+|---|---|
+| decizia | **B** (planul v2.4, §5.4): instanță de probă cu **bază de date, `STORAGE_DIR` și `BACKUP_DIR` distincte**, pe găzduirea de producție; baza, fișierele și contorul TM de producție nu sunt atinse |
+| variantele respinse | **A** (goluri acceptate: consecințele din §5.2 și §5.3 ale planului); **C** (reinițializarea producției: operație riscantă, fără procedură) |
+| **natura izolării** | izolarea variantei B este **operațională, nu de securitate**: protejează numerotarea TM și datele de producție față de probă, **nu** față de o compromitere; în același cont (§29.1), instanța de probă și producția aparțin aceluiași utilizator de sistem. Varianta B **nu** se prezintă ca având protecția unui cont separat |
+| fezabilitatea | a doua bază și a doua aplicație Node în același cont: comunicate de furnizor (§25.1) |
+| **criteriul 7E** | **nu este declarat îndeplinit prin această alegere.** Rămâne **deschis** și se decide **la E4, după probă**, conform planului v2.4 (§5.5, ultima frază; E4, criteriul 22) |
+
+**Ce va trebui consemnat la E4 (criteriul 22): limitele din §5.5 și acoperirea lor posibilă prin citire** (evaluare din 31.10.2026, nu decizie):
+
+| Limita (planul v2.4, §5.5) | Ce poate arăta o verificare prin citire | Ce rămâne nedemonstrat |
+|---|---|---|
+| `civic.env` real și impunerea lui asupra sarcinilor cron | existența fișierului, drepturile, cheile prezente (fără valori), ținta din fiecare linie cron | comportamentul restaurării cu configurația reală; copiile reușite ale cron-ului real arată numai partea de backup |
+| `BACKUP_DIR` real, cu marcajele reale | calea, drepturile, structura, prezența marcajelor | citirea marcajelor reale de către `restore:db` (`server/src/db/backup.ts` 712–740) |
+| `STORAGE_DIR` real și fotografiile | calea, drepturile, poziția în afara docroot-ului | restaurarea fotografiilor reale |
+| sarcinile cron reale | liniile, orele, rulările din `backup.log`: acoperire aproape completă | — |
+| drepturile utilizatorului bazei de producție | drepturile declarate | suficiența lor pentru operațiile de după o restaurare reală |
+
+Golul rămas este **comportamental**: verificările prin citire îl reduc, dar nu îl închid. Dacă la E4 proprietarul consideră criteriul 7E îndeplinit cu acest gol, golul se **acceptă explicit** și nu se declară acoperit.
+
+### 29.5 DEC-20 — partea datelor create în E7
+
+Variantele **D, E, F** (planul v2.4, §5.6) **nu se decid acum**; se decid **înainte de E7**. DEC-20 rămâne, în această parte, **deschisă**.
+
+### 29.6 Efectele asupra altor decizii
+
+| Decizia | Efectul |
+|---|---|
+| **DEC9-4** (§28.3) | rămâne **deschisă**; dependențele ei (G6-1, DEC-20 pentru restaurare) sunt acum decise. Direcția rezultată: proba E4 într-o instanță de tip B, după repetiția V3 de pe staging (DEC9-1). Observație de analiză: în varianta (c), staging-ul este el însuși o instanță separată pe aceeași găzduire; la DEC9-4 trebuie stabilit **ce adaugă proba E4 față de repetiția V3** |
+| **§25.3 / §26.4** (monitorizarea spațiului) | condiția de amânare („până la clarificarea G6-1”) este îndeplinită: producția va consuma din aceeași cotă de 15 GB. Propunerea rămâne **nedecisă** și **nu** face parte din DEC-16 până la o decizie separată |
+
+**Ce NU înseamnă această consemnare:** nu autorizează oprirea staging-ului, ștergerea sau adăugarea de sarcini cron, instalarea producției ori vreo operație pe staging, producție sau în cPanel; nu modifică DEC-16 (§16, §26), DEC-9 (§28), DEC-23, E4.11, DEC-25 sau A17-1; nu declară îndeplinit criteriul 7E; nu decide DEC9-4 sau DEC-20 pentru datele E7; nu închide formal DEC-8 (§27). Planul v2.4 rămâne neschimbat. Lansarea publică nu este aprobată.
