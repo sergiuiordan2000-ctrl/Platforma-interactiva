@@ -392,6 +392,11 @@ cd /home2/<cont>/civic-test-app && CIVIC_ENV_FILE=/home2/<cont>/civic-test-data/
 
 **Aplicabilitatea:** pe staging, cât timp este folosit; în producție, de la instalare (E4), cu valorile de producție completate în E5. [A]
 
+**Completări decise de proprietar la 31.10.2026** (`FAZA_7_REGISTRU_DECIZII_ACTUALIZARI.md` §26). Textul de mai sus, din 28.10.2026, rămâne neschimbat; DEC-16 (operatorul, frecvența) nu se modifică. [A]
+- **Locul evidenței (D16-a):** un fișier Excel pe calculatorul proprietarului, în afara repository-ului, cu conținutul de la „Dovezile”. Neconformitățile se consemnează, în plus, printr-un e-mail al proprietarului către el însuși, din căsuța personală; e-mailul nu se folosește pentru confirmările zilnice fără incidente.
+- **Zilele fără verificare (D16-b, varianta 1):** se consemnează ca „neefectuată”. La revenirea operatorului se verifică jurnalele disponibile pentru perioada respectivă, cu limitările de mai sus menționate explicit (jurnalele cron suprascrise). Nu se reconstruiesc și nu se declară verificări care nu au avut loc.
+- **Monitorizarea spațiului ocupat** (registrul, §25.3) **nu face parte** din DEC-16; este amânată până la clarificarea G6-1.
+
 ---
 
 ## 7. Backup și restaurare (partea necesară instalării)

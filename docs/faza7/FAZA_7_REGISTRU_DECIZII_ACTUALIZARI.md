@@ -827,3 +827,30 @@ Cele două valori nu se confundă: EP 35 nu este o corectură a valorii 50, ci o
 Frecvența, pragul și locul exact al citirii se stabilesc la decizie. Până atunci, propunerea nu face parte din controalele DEC-16.
 
 **Ce NU înseamnă această consemnare:** nu decide G6-1, G6-4 sau `TRUST_PROXY`; nu modifică DEC-16, DEC-23, E4.11, DEC-25 sau A17-1; nu autorizează E4 sau vreo operație pe staging, producție ori cPanel. Lansarea publică nu este aprobată.
+
+---
+
+## 26. DEC-16 — completările D16-a și D16-b; amânarea propunerii §25.3 (31.10.2026)
+
+Proprietarul a confirmat la 31.10.2026, ~08:31, în conversația de lucru, că **DEC-16 rămâne neschimbată**, așa cum a fost decisă la 28.10.2026 (§16; manualul 7D, §6.3): operatorul este **proprietarul**, frecvența este **zilnică**, iar trecerea la verificarea săptămânală se face numai prin decizia lui explicită. Această secțiune **completează** două puncte rămase deschise, fără să modifice §16 sau cerințele planului v2.4 (§6, rândul 558; E4, criteriul 14).
+
+### 26.1 D16-a — locul evidenței (dovada cerută de E4.14)
+
+- Evidența verificărilor se păstrează într-un **fișier Excel pe calculatorul proprietarului**, **în afara repository-ului**, cu conținutul definit în manualul 7D, §6.3 („Dovezile”): data și ora, operatorul, rezultatul fiecărui control (conform / neconform / imposibil de verificat) și observațiile; fără secrete, adrese de e-mail sau numele contului.
+- **Neconformitățile** se consemnează, în plus, printr-un **e-mail al proprietarului către el însuși**, din căsuța personală. E-mailul **nu** se folosește pentru confirmările zilnice fără incidente.
+
+### 26.2 D16-b — zilele fără verificare (varianta 1)
+
+- O zi în care verificarea nu poate fi efectuată se consemnează în evidență ca **„neefectuată”**.
+- La revenirea operatorului se verifică **jurnalele disponibile** pentru perioada respectivă, cu menționarea explicită a limitărilor: `outbox-cron.log` și `surveys-cron.log` se suprascriu și arată numai ultima rulare; `backup.log` și `purge.log` păstrează istoricul (manualul 7D, §6.3, „Limitările consemnate”).
+- **Nu se reconstruiesc și nu se declară verificări care nu au avut loc.**
+
+### 26.3 D16-c — valorile de producție
+
+Rămân pentru **E5**, conform planului v2.4 și manualului 7D, §6.3 („Aplicabilitatea”). Nicio decizie acum.
+
+### 26.4 Propunerea §25.3 (monitorizarea spațiului) — amânată
+
+Propunerea din §25.3 se **amână până la clarificarea G6-1**. Ea **nu** se introduce în DEC-16 și **nu** este o condiție suplimentară a criteriului E4.14, care enumeră exact trei controale: `backup.log`, coada de e-mail și `health`.
+
+**Ce NU înseamnă această consemnare:** nu modifică decizia DEC-16 din 28.10.2026 (§16) sau cerințele planului v2.4; nu decide G6-1; nu modifică DEC-23, E4.11, DEC-25 sau A17-1; nu autorizează E4 sau vreo operație pe staging, producție ori cPanel. Lansarea publică nu este aprobată.
