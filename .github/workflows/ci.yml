@@ -1,6 +1,8 @@
 # CI — Turnu Măgurele Civic (Faza 5.1, pasul 5.1.7)
 # Matricea G5 / B10 §2: Node 20 + 24 × MySQL 8.0 + 8.4.
 # În plus, din 07.10.2026 (amendamentul la G2): Node 24 × MariaDB 11.4, baza de date a găzduirii de producție.
+# DEC-8 (c1): un job fixat pe versiunile exacte de producție (Node 24.21.0, MariaDB 11.4.13; cPanel, 07.10.2026).
+# La o schimbare de versiune pe server, valorile node / image / expect_* de mai jos se actualizează împreună.
 # Etape: lint (tsc) → build (frontend + artefactul backend) → unitare → API → integrare DB → artefact → E2E.
 # Orice eșec blochează integrarea (B-2).
 #
@@ -44,6 +46,13 @@ jobs:
             db: 'MariaDB 11.4'
             image: 'mariadb:11.4'
             health: 'mariadb-admin ping -h 127.0.0.1 -uroot -pci_root_only'
+          # DEC-8 (c1): versiunile exacte de producție; jobul verifică explicit că rulează pe ele
+          - node: '24.21.0'
+            db: 'MariaDB 11.4.13, producție'
+            image: 'mariadb:11.4.13'
+            health: 'mariadb-admin ping -h 127.0.0.1 -uroot -pci_root_only'
+            expect_node: '24.21.0'
+            expect_db: '11.4.13'
     services:
       mysql:
         image: ${{ matrix.image }}
@@ -74,6 +83,31 @@ jobs:
           node --version
           npm --version
           mysql -h 127.0.0.1 -uroot -pci_root_only -N -e "SELECT VERSION()"
+
+      # DEC-8 (c1): numai în jobul de producție; oprește jobul dacă versiunile nu sunt exact cele cerute
+      - name: Versiunile exacte de producție
+        if: ${{ matrix.expect_node }}
+        run: |
+          n="$(node --version)"
+          test "$n" = "v${{ matrix.expect_node }}" || { echo "Node: $n; așteptat: v${{ matrix.expect_node }}"; exit 1; }
+          v="$(mysql -h 127.0.0.1 -uroot -pci_root_only -N -e 'SELECT VERSION()')"
+          case "$v" in
+            "${{ matrix.expect_db }}-MariaDB"*) ;;
+            *) echo "Baza de date: $v; așteptat: ${{ matrix.expect_db }}-MariaDB…"; exit 1 ;;
+          esac
+          echo "Node $n; baza de date $v"
+          # amprenta imaginii folosite, numai pentru trasabilitate (eticheta poate fi reconstruită de mainteneri);
+          # o amprentă absentă sau cu alt format se raportează explicit și nu se prezintă drept amprentă validă
+          d="$(docker image inspect --format '{{join .RepoDigests " "}}' "${{ matrix.image }}" 2>/dev/null || true)"
+          digest=""
+          for x in $d; do
+            if [[ "$x" =~ ^[^@[:space:]]+@sha256:[0-9a-f]{64}$ ]]; then digest="$x"; break; fi
+          done
+          if [ -n "$digest" ]; then
+            echo "Amprenta imaginii: $digest"
+          else
+            echo "::warning title=Amprenta imaginii indisponibilă::RepoDigests pentru ${{ matrix.image }} este gol sau fără o amprentă sha256 validă ('${d}'). Versiunile au fost totuși verificate mai sus."
+          fi
 
       - name: npm ci
         run: npm ci
