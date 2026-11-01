@@ -3,7 +3,7 @@
 // eșantionarea la 10 ms poate rata un vârf foarte scurt (§24.4).
 //
 // Metodologia (planul §7.2): proces Node separat, cu --expose-gc; fișier de 512 MiB generat înaintea
-// pornirii procesului de măsurare; încălzire pe 1 MiB; referința după două colectări forțate; RSS
+// pornirii procesului de măsurare; încălzire pe 64 MiB (planul: 1 MiB; abaterea A11, vezi mai jos); referința după două colectări forțate; RSS
 // eșantionat la 10 ms, reținut maximul; criteriul: maxim − referință < 64 MiB; control negativ: citirea
 // întregului fișier în memorie trebuie să depășească 480 MiB peste referință (altfel testul este nesensibil);
 // trei repetări, toate trebuie să treacă; valorile se scriu în jurnal.
@@ -27,6 +27,11 @@ import { after, before, describe, it } from 'node:test';
 import { APP_ROOT } from '../../src/paths.ts';
 
 const MIB = 1024 * 1024;
+// A11 (CI 41289728463, 01.11.2026): pe Node 24, primul flux mare dintr-un proces face o alocare UNICĂ de circa
+// 35 MiB (constantă: aceeași pentru fișiere de 64 MiB … 1 GiB), care nu apare pe Node 20 / 22. Cu încălzirea de
+// 1 MiB din plan, această alocare cădea în măsurătoare (64–68 MiB). Încălzirea pe 64 MiB o mută înaintea referinței;
+// pragul (< 64 MiB) și controlul negativ (> 480 MiB) rămân neschimbate.
+const WARMUP_MIB = 64;
 const LIMIT_MIB = 64;
 const NEGATIVE_MIN_MIB = 480;
 let dir: string;
@@ -124,7 +129,7 @@ before(() => {
   big = join(dir, 'big.bin');
   warm = join(dir, 'warm.bin');
   writeRandom(big, 512 * MIB);
-  writeRandom(warm, MIB);
+  writeRandom(warm, WARMUP_MIB * MIB);
 });
 
 after(() => rmSync(dir, { recursive: true, force: true }));
