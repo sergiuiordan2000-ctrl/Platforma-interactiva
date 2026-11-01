@@ -10,7 +10,8 @@
 //      din bază și marcajul lui sunt aduse la maximul dintre ele (un număr rezervat nu se mai emite).
 
 import { buildApp, type HealthState } from './app.ts';
-import { CLI_COMMANDS, isCliCommand, runCli } from './cli.ts';
+import { CLI_COMMANDS, OFFLINE_COMMANDS, isCliCommand, isOfflineCommand, runCli, runOfflineCli } from './cli.ts';
+import { purgeStaleRestoreCopies } from './db/backupCrypto.ts';
 import { ConfigError, loadConfig, type Config } from './config.ts';
 import { EnvFileError, loadEnvFileFromVar } from './envFile.ts';
 import { createDb, pingDb } from './db/client.ts';
@@ -62,6 +63,24 @@ async function startServer(config: Config): Promise<void> {
     } catch (err) {
       await handle.close();
       fail(`Aplicația nu pornește: marcajele din BACKUP_DIR nu pot fi folosite. ${err instanceof Error ? err.message : String(err)}`);
+    }
+    // E4.11 (planul §5.2): plasa de siguranță și la pornire, pentru copiile decriptate rămase (date în clar).
+    // Raportul merge pe stderr: este singurul jurnal al aplicației vizibil din cPanel (`stderr.log`). Un eșec al
+    // ștergerii nu oprește pornirea, dar se raportează explicit (copia trebuie ștearsă manual).
+    try {
+      const { removed, failed } = purgeStaleRestoreCopies(config.backupDir, new Date());
+      if (removed.length > 0) console.error(`AVERTISMENT (E4.11): copii decriptate mai vechi de 24 de ore, șterse (plasa de siguranță): ${removed.join(', ')}`);
+      if (failed.length > 0) {
+        console.error(
+          `NECONFORMITATE (E4.11): copii decriptate expirate rămase în BACKUP_DIR, cu date în clar, care NU au putut fi șterse: ${failed.join(', ')}. ` +
+            'Ștergeți-le manual și consemnați în evidența DEC-16.',
+        );
+      }
+    } catch (err) {
+      console.error(
+        `NECONFORMITATE (E4.11): BACKUP_DIR nu a putut fi verificat pentru copii decriptate expirate (${(err as { code?: string }).code ?? 'eroare'}). ` +
+          'Verificați manual și consemnați în evidența DEC-16.',
+      );
     }
   }
 
@@ -115,6 +134,9 @@ async function startServer(config: Config): Promise<void> {
 async function main(): Promise<void> {
   const [command, ...args] = process.argv.slice(2);
 
+  // E4.11: pe calculatorul proprietarului, fără civic.env și fără bază de date
+  if (isOfflineCommand(command)) process.exit(await runOfflineCli(command, args));
+
   let config: Config;
   try {
     loadEnvFileFromVar();
@@ -129,7 +151,7 @@ async function main(): Promise<void> {
     return;
   }
   if (!isCliCommand(command)) {
-    fail(`Comandă necunoscută: ${command}. Comenzi: ${CLI_COMMANDS.join(', ')}`);
+    fail(`Comandă necunoscută: ${command}. Comenzi: ${[...CLI_COMMANDS, ...OFFLINE_COMMANDS].join(', ')}`);
   }
   process.exit(await runCli(command, config, console, args));
 }

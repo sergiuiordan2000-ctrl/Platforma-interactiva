@@ -109,6 +109,41 @@ jobs:
             echo "::warning title=Amprenta imaginii indisponibilă::RepoDigests pentru ${{ matrix.image }} este gol sau fără o amprentă sha256 validă ('${d}'). Versiunile au fost totuși verificate mai sus."
           fi
 
+      # E4.11 (planul r3.2 §7.1–§7.2): instrumentele testelor de interoperabilitate și ale testului strace.
+      # Orice eșec (descărcare, amprentă, versiune) oprește jobul: testele nu se omit niciodată.
+      # rage: implementarea independentă (Rust) a formatului age, din versiunea oficială publicată de autor pe GitHub
+      # (str4d/rage, v0.12.1, 14.07.2026). Amprenta SHA-256 de mai jos este a arhivei oficiale; la o schimbare de
+      # versiune, RAGE_VERSION și RAGE_SHA256 se actualizează împreună, printr-o modificare aprobată.
+      # age: implementarea oficială (Go), din pachetul Ubuntu 24.04; versiunea se verifică exact (AGE_VERSION), ca
+      # rezultatele să fie reproductibile; o altă versiune oprește jobul până la o actualizare aprobată.
+      - name: E4.11 — age, strace (apt), rage (versiune fixată, amprentă verificată), vectorii CCTV (commit fixat)
+        env:
+          AGE_VERSION: '1.1.1'
+          RAGE_VERSION: '0.12.1'
+          RAGE_SHA256: 'c5d7ab41fbf1213590e89721fd2b8eb122e84518c155ce35866f1c5759a3a29f'
+        run: |
+          set -euo pipefail
+          sudo apt-get update -q
+          sudo apt-get install -y -q age strace
+          test "$(age --version)" = "${AGE_VERSION}" || { echo "age: $(age --version); așteptat: ${AGE_VERSION}"; exit 1; }
+          echo "age $(age --version)"
+          strace -V | head -1
+          f="$RUNNER_TEMP/rage.tar.gz"
+          curl -fsSL --retry 3 -o "$f" "https://github.com/str4d/rage/releases/download/v${RAGE_VERSION}/rage-v${RAGE_VERSION}-x86_64-linux.tar.gz"
+          echo "${RAGE_SHA256}  $f" | sha256sum -c -
+          mkdir -p "$RUNNER_TEMP/rage"
+          tar -xzf "$f" -C "$RUNNER_TEMP/rage"
+          test "$("$RUNNER_TEMP/rage/rage/rage" --version)" = "rage ${RAGE_VERSION}"
+          echo "CIVIC_RAGE_BIN=$RUNNER_TEMP/rage/rage/rage" >> "$GITHUB_ENV"
+          # vectorii publici C2SP CCTV/age (147), la commitul fixat; git verifică singur conținutul prin commit
+          CCTV_COMMIT='50a8ecf2a220f4c8bdc4f085789b8e85c26829e7'
+          git init -q "$RUNNER_TEMP/cctv"
+          git -C "$RUNNER_TEMP/cctv" fetch -q --depth 1 https://github.com/C2SP/CCTV.git "$CCTV_COMMIT"
+          git -C "$RUNNER_TEMP/cctv" checkout -q FETCH_HEAD
+          test "$(git -C "$RUNNER_TEMP/cctv" rev-parse HEAD)" = "$CCTV_COMMIT"
+          test "$(find "$RUNNER_TEMP/cctv/age/testdata" -maxdepth 1 -type f | wc -l)" -eq 147
+          echo "CIVIC_CCTV_DIR=$RUNNER_TEMP/cctv/age/testdata" >> "$GITHUB_ENV"
+
       - name: npm ci
         run: npm ci
 

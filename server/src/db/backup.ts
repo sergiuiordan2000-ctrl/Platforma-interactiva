@@ -38,6 +38,12 @@
 // Lângă backup-uri, în același director: `report-counter-watermark.json` și `deletions/<ID>.json`.
 // Directorul de backup trebuie să fie în afara oricărui docroot (G3, condiția 6).
 // Restaurarea NU scrie nimic în directorul de backup și nici în copia sursă: sunt date de intrare.
+// Excepția (E4.11, planul r3.2 §5.2): o copie decriptată `civic-restore-<UTC>` se șterge după o restaurare
+// efectiv executată (tranzacția a început), indiferent de rezultat.
+//
+// E4.11 (registrul §24): cu BACKUP_AGE_RECIPIENT, copia se criptează în formatul age (`backupCrypto.ts`):
+// `db.jsonl.gz.age`, `photos/<cheie>.age`, `binding.json.age`; `manifest.json` și `markers.json` rămân în clar.
+// Pe găzduire nu există niciun fișier în clar al copiei; decriptarea se face numai pe calculatorul proprietarului.
 
 import { createHash } from 'node:crypto';
 import { constants as fsConstants, createReadStream, createWriteStream, existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, renameSync, rmSync, statSync, writeFileSync, copyFileSync } from 'node:fs';
@@ -77,6 +83,24 @@ import {
   recordReportCounter,
 } from './markers.ts';
 import { initBackupMarkers, type CounterSync } from './reportCounter.ts';
+import {
+  AGE_SCHEME,
+  AGE_SUFFIX,
+  BINDING_FORMAT,
+  ENCRYPTED_DB_FILE,
+  encryptDbLines,
+  encryptStreamToFile,
+  encryptedStructureProblems,
+  claimsDecryptedCopy,
+  decryptedCopyProblems,
+  encryptedCopyReason,
+  isDecryptedCopy,
+  parseStamp,
+  purgeStaleRestoreCopies,
+  stamp,
+  writeBinding,
+  type BindingFile,
+} from './backupCrypto.ts';
 
 // Marcajele au modulul lor; se reexportă aici pentru codul și testele care le importau din backup.ts.
 export {
@@ -126,15 +150,6 @@ export function backupWindows(now: Date, retentionDays: number, adminRetentionMo
   months.setUTCMonth(months.getUTCMonth() - adminRetentionMonths);
   const adminFrom = new Date(months.getTime() + BACKUP_ROTATION_DAYS * DAY);
   return { reportsFrom, adminFrom };
-}
-
-function stamp(d: Date): string {
-  return d.toISOString().replace(/[-:.]/g, '').replace(/(\d{8}T\d{6})(\d{3})Z/, '$1$2Z');
-}
-
-function parseStamp(s: string): Date {
-  const m = /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})(\d{3})Z$/.exec(s)!;
-  return new Date(Date.UTC(+m[1]!, +m[2]! - 1, +m[3]!, +m[4]!, +m[5]!, +m[6]!, +m[7]!));
 }
 
 const sqlDate = (d: Date) => d.toISOString().replace('T', ' ').replace('Z', '');
@@ -241,6 +256,8 @@ export type BackupManifest = {
   dbSha256: string;
   /** G2 (formatul 2): suma SHA-256 a fotografiei marcajelor (`markers.json`) din copie */
   markersSha256?: string;
+  /** E4.11: prezent numai la copiile criptate (age); cheia publică nu este secretă */
+  encryption?: { scheme: typeof AGE_SCHEME; recipient: string };
 };
 
 export type BackupOptions = {
@@ -251,6 +268,8 @@ export type BackupOptions = {
   retentionDays: number;
   adminRetentionMonths: number;
   now?: Date;
+  /** E4.11: cheia publică age; lipsă = copie în clar (permis numai în afara producției, P3) */
+  recipient?: string;
 };
 
 /** Conexiune dedicată: datele calendaristice ca text (UTC exact), fără conversii. */
@@ -262,7 +281,17 @@ async function rawConnection(databaseUrl: string): Promise<mysql.Connection> {
 
 export async function createBackup(
   opts: BackupOptions,
-): Promise<{ dir: string; manifest: BackupManifest; removed: string[]; markers: CounterSync; accountIntents: IntentReconciliation }> {
+): Promise<{
+  dir: string;
+  manifest: BackupManifest;
+  removed: string[];
+  markers: CounterSync;
+  accountIntents: IntentReconciliation;
+  /** E4.11: copiile decriptate `civic-restore-*` mai vechi de 24 de ore, șterse (plasa de siguranță) */
+  restoreCopiesRemoved: string[];
+  /** E4.11: copiile decriptate expirate care NU au putut fi șterse: neconformitate */
+  restoreCopiesFailed: string[];
+}> {
   const now = opts.now ?? new Date();
   const w = backupWindows(now, opts.retentionDays, opts.adminRetentionMonths);
   mkdirSync(opts.backupDir, { recursive: true });
@@ -299,7 +328,35 @@ export async function createBackup(
   // directorul temporar abia după verificarea marcajelor: un refuz nu lasă nimic în BACKUP_DIR (auditul D7-3)
   rmSync(tmpDir, { recursive: true, force: true });
   mkdirSync(join(tmpDir, 'photos'), { recursive: true });
+  let manifest: BackupManifest;
+  try {
+    manifest = await writeCopy(opts, tmpDir, name, now, w, status.currentVersion);
+    renameSync(tmpDir, finalDir);
+  } catch (err) {
+    // E4.11 (planul §3.2): directorul temporar se șterge imediat la eroare, nu abia la rularea următoare
+    rmSync(tmpDir, { recursive: true, force: true });
+    throw err;
+  }
 
+  const removed = rotateBackups(opts.backupDir, now);
+  pruneDeletionList(opts.backupDir, now);
+  const purged = purgeStaleRestoreCopies(opts.backupDir, now);
+  return { dir: finalDir, manifest, removed, markers, accountIntents, restoreCopiesRemoved: purged.removed, restoreCopiesFailed: purged.failed };
+}
+
+/**
+ * Conținutul copiei, în directorul temporar: instantaneul bazei (o tranzacție de citire), apoi baza,
+ * fotografia marcajelor, fotografiile și manifestul. Cu `recipient` (E4.11), totul în formatul age, fără niciun
+ * fișier în clar al bazei sau al fotografiilor (planul §3.2); fără el, copia în clar, ca până acum.
+ */
+async function writeCopy(
+  opts: BackupOptions,
+  tmpDir: string,
+  name: string,
+  now: Date,
+  w: BackupWindows,
+  schemaVersion: number,
+): Promise<BackupManifest> {
   const conn = await rawConnection(opts.databaseUrl);
   const counts: Record<string, number> = {};
   const photoKeys: string[] = [];
@@ -324,9 +381,19 @@ export async function createBackup(
     await conn.end();
   }
 
-  const dbFile = join(tmpDir, 'db.jsonl.gz');
-  await pipeline(Readable.from(lines.map((l) => l + '\n')), createGzip(), createWriteStream(dbFile));
-  const dbSha256 = createHash('sha256').update(readFileSync(dbFile)).digest('hex');
+  const recipient = opts.recipient;
+  const encryptedFiles: BindingFile[] = [];
+  let dbSha256: string;
+  if (recipient) {
+    // E4.11: rândurile → gzip → age, în flux; amprenta bazei comprimate în clar se calculează pe drum
+    const r = await encryptDbLines(lines, join(tmpDir, ENCRYPTED_DB_FILE), recipient);
+    dbSha256 = r.plainSha256;
+    encryptedFiles.push({ path: ENCRYPTED_DB_FILE, sha256: r.cipherSha256 });
+  } else {
+    const dbFile = join(tmpDir, 'db.jsonl.gz');
+    await pipeline(Readable.from(lines.map((l) => l + '\n')), createGzip(), createWriteStream(dbFile));
+    dbSha256 = createHash('sha256').update(readFileSync(dbFile)).digest('hex');
+  }
 
   // G2: fotografia marcajelor, luată DUPĂ instantaneul bazei: o ștergere confirmată între cele două
   // momente are deja intrarea aici, iar sesizarea, încă în copie, este eliminată la restaurare
@@ -340,7 +407,13 @@ export async function createBackup(
     if (!existsSync(src)) continue; // fișier lipsă: se raportează la restaurare
     const dst = storagePath(join(tmpDir, 'photos'), key);
     mkdirSync(dirname(dst), { recursive: true });
-    copyFileSync(src, dst);
+    if (recipient) {
+      // E4.11: originalul din STORAGE_DIR → age, în flux (fără copie în clar)
+      const sha256 = await encryptStreamToFile(createReadStream(src), dst + AGE_SUFFIX, recipient);
+      encryptedFiles.push({ path: `photos/${key}${AGE_SUFFIX}`, sha256 });
+    } else {
+      copyFileSync(src, dst);
+    }
     photos++;
   }
 
@@ -348,7 +421,7 @@ export async function createBackup(
     format: BACKUP_FORMAT,
     name,
     createdAt: now.toISOString(),
-    schemaVersion: status.currentVersion,
+    schemaVersion,
     retentionDays: opts.retentionDays,
     rotationDays: BACKUP_ROTATION_DAYS,
     reportsFrom: w.reportsFrom.toISOString(),
@@ -357,13 +430,30 @@ export async function createBackup(
     photos,
     dbSha256,
     markersSha256,
+    ...(recipient ? { encryption: { scheme: AGE_SCHEME, recipient } } : {}),
   };
-  writeFileSync(join(tmpDir, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n');
-  renameSync(tmpDir, finalDir);
+  const manifestText = JSON.stringify(manifest, null, 2) + '\n';
+  writeFileSync(join(tmpDir, 'manifest.json'), manifestText);
 
-  const removed = rotateBackups(opts.backupDir, now);
-  pruneDeletionList(opts.backupDir, now);
-  return { dir: finalDir, manifest, removed, markers, accountIntents };
+  if (recipient) {
+    // planul §2.3: asocierea fișierelor criptate cu manifestul și cu marcajele, criptată pentru același destinatar
+    await writeBinding(
+      tmpDir,
+      {
+        format: BINDING_FORMAT,
+        name,
+        createdAt: manifest.createdAt,
+        manifestSha256: createHash('sha256').update(manifestText).digest('hex'),
+        markersSha256,
+        files: encryptedFiles,
+      },
+      recipient,
+    );
+    // planul §3.2, pasul 7: pe disc sunt exact fișierele așteptate, numai cu extensiile permise
+    const problems = encryptedStructureProblems(tmpDir, encryptedFiles.map((f) => f.path));
+    if (problems.length > 0) throw new Error(`Backup refuzat: structura copiei criptate nu este cea așteptată (${problems.join('; ')}).`);
+  }
+  return manifest;
 }
 
 /** Șterge backup-urile mai vechi de R = 7 zile. */
@@ -425,6 +515,10 @@ export type RestoreResult = {
   emailsCancelled: number;
   /** R19: mesajele sesizărilor neplecate, reținute (`failed`) pentru decizia unui super_admin */
   emailsHeld: HeldEmail[];
+  /** E4.11: calea copiei decriptate șterse după restaurare; `null` dacă sursa nu a fost o copie decriptată */
+  decryptedCopyRemoved: string | null;
+  /** E4.11: copia decriptată care nu a putut fi ștearsă (calea și codul erorii); se șterge manual */
+  decryptedCopyRemoveFailed: string | null;
 };
 
 /** R19: un mesaj reținut la restaurare, cu datele necesare găsirii lui în Admin (fără destinatar). */
@@ -452,7 +546,13 @@ export class RestoreRefusedError extends Error {
 
 /** Tot ce ar folosi o restaurare, citit fără nicio scriere (`restore:db --check` și pasul 0 al restaurării). */
 export type RestoreInspection = {
-  source: { path: string; manifest: BackupManifest | null; reportCounter: number | null };
+  source: {
+    path: string;
+    manifest: BackupManifest | null;
+    reportCounter: number | null;
+    /** E4.11: sursa este o copie decriptată `civic-restore-<UTC>` (se șterge după o restaurare executată) */
+    decryptedCopy: boolean;
+  };
   /** ținta: fără utilizator și fără parolă */
   database: { host: string; port: string; name: string; reachable: boolean; schemaOk: boolean; nonEmptyTables: string[] };
   storage: { path: string; exists: boolean; files: number };
@@ -576,7 +676,22 @@ export async function inspectRestore(opts: RestoreOptions): Promise<RestoreInspe
   let backupAccounts: Map<string, Date> | null = null;
   const manifestFile = join(opts.source, 'manifest.json');
   const dbFile = join(opts.source, 'db.jsonl.gz');
-  if (!existsSync(manifestFile) || !existsSync(dbFile)) {
+  const decryptedCopy = isDecryptedCopy(opts.source);
+  const encryptedReason = encryptedCopyReason(opts.source);
+  if (encryptedReason) {
+    // E4.11 (P4): identitatea nu ajunge pe găzduire; o copie criptată nu se restaurează direct, fără excepție
+    // (nici dacă lângă fișierele criptate se află și fișiere în clar)
+    problems.push(
+      `Sursa este o copie criptată (age; ${encryptedReason}): nu se restaurează direct. Decriptați-o pe calculator cu „backup:decrypt” ` +
+        '(identitatea nu ajunge niciodată pe găzduire), urcați copia decriptată „civic-restore-<UTC>” în BACKUP_DIR și restaurați din ea.',
+    );
+  } else if (claimsDecryptedCopy(opts.source) && !decryptedCopy) {
+    // C1.b: un director care se prezintă drept copie decriptată (nume sau marcaj) trebuie să fie și valid
+    problems.push(
+      `Sursa se prezintă drept copie decriptată, dar nu este validă (${decryptedCopyProblems(opts.source).join('; ')}). ` +
+        'Refaceți-o pe calculator cu „backup:decrypt”, din copia criptată.',
+    );
+  } else if (!existsSync(manifestFile) || !existsSync(dbFile)) {
     problems.push('Copia sursă nu conține „manifest.json” și „db.jsonl.gz”.');
   } else {
     try {
@@ -864,7 +979,7 @@ export async function inspectRestore(opts: RestoreOptions): Promise<RestoreInspe
   }
 
   return {
-    source: { path: sourcePath, manifest, reportCounter: backupCounter },
+    source: { path: sourcePath, manifest, reportCounter: backupCounter, decryptedCopy },
     database,
     storage: { path: storagePathReal, exists: storageExists, files: storageFiles },
     backupDir: { path: backupPath, exists: backupDirExists },
@@ -895,7 +1010,7 @@ export async function inspectRestore(opts: RestoreOptions): Promise<RestoreInspe
 export function formatRestoreInspection(i: RestoreInspection): string[] {
   const m = i.source.manifest;
   const lines = [
-    `copia sursă: ${i.source.path}`,
+    `copia sursă: ${i.source.path}${i.source.decryptedCopy ? ' (copie decriptată „civic-restore”, nu o copie obișnuită: se șterge după o restaurare executată)' : ''}`,
     m
       ? `  creată la ${m.createdAt}; schema ${m.schemaVersion}; sesizări ${m.counts.reports ?? 0}; fotografii ${m.photos}; contorul TM din copie: ${i.source.reportCounter ?? 'necunoscut'}`
       : '  manifestul nu a putut fi citit',
@@ -1098,10 +1213,18 @@ export async function restoreBackup(opts: RestoreOptions): Promise<RestoreResult
   const rows: Record<string, number> = {};
   let photosRestored = 0;
   let photosMissing = 0;
+  // E4.11 (planul §5.2): o copie decriptată se șterge după o restaurare efectiv executată, indiferent de rezultat
+  let executed = false;
+  const removeDecryptedCopy = (): string | null => {
+    if (!executed || !inspection.source.decryptedCopy) return null;
+    rmSync(opts.source, { recursive: true, force: true });
+    return opts.source;
+  };
   try {
     // 1. încărcarea rândurilor
     await conn.query('SET FOREIGN_KEY_CHECKS = 0');
     await conn.beginTransaction();
+    executed = true;
     let current: { name: string; columns: string[] } | null = null;
     let batch: unknown[][] = [];
     const flush = async () => {
@@ -1228,6 +1351,13 @@ export async function restoreBackup(opts: RestoreOptions): Promise<RestoreResult
 
     // 3. totul sau nimic
     await conn.commit();
+    let decryptedCopyRemoved: string | null = null;
+    let decryptedCopyRemoveFailed: string | null = null;
+    try {
+      decryptedCopyRemoved = removeDecryptedCopy();
+    } catch (rmErr) {
+      decryptedCopyRemoveFailed = `${opts.source} (${(rmErr as { code?: string }).code ?? 'eroare'})`;
+    }
     return {
       rows,
       photosRestored,
@@ -1242,13 +1372,23 @@ export async function restoreBackup(opts: RestoreOptions): Promise<RestoreResult
       accountsKeptUnreconciled,
       emailsCancelled,
       emailsHeld,
+      decryptedCopyRemoved,
+      decryptedCopyRemoveFailed,
     };
   } catch (err) {
     await conn.rollback().catch(() => {});
     const reason = err instanceof Error ? err.message : String(err);
+    let removedNote = '';
+    try {
+      const removed = removeDecryptedCopy();
+      if (removed) removedNote = `\nCopia decriptată „${removed}” a fost ștearsă (restaurarea a fost executată).`;
+    } catch (rmErr) {
+      removedNote = `\nATENȚIE: copia decriptată „${opts.source}” nu a putut fi ștearsă (${(rmErr as { code?: string }).code ?? 'eroare'}): ștergeți-o manual.`;
+    }
     throw new Error(
       `Restaurare eșuată: ${reason}\nTranzacția a fost anulată: baza de date țintă a rămas goală. ` +
-        'Directorul de fișiere țintă poate conține fotografii copiate parțial și trebuie golit înaintea unei noi încercări.',
+        'Directorul de fișiere țintă poate conține fotografii copiate parțial și trebuie golit înaintea unei noi încercări.' +
+        removedNote,
       { cause: err },
     );
   } finally {

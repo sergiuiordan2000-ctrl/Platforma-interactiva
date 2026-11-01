@@ -4,6 +4,11 @@ import { randomBytes } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+/** Cheia publică a identității NUMAI DE TEST din `test/fixtures/age-martori/identitate-test.age`. */
+export const TEST_AGE_RECIPIENT = 'age13gejglzw0d9wdjedc8r4z26dx377kngsn9jn2ct69a27zzea3c9szyltrs';
+/** Fraza-parolă (NUMAI DE TEST) cu care este criptată identitatea de test, ca identitatea reală (planul E4.11 §4.2). */
+export const TEST_IDENTITY_PASSPHRASE = 'numai-pentru-teste-e411';
+
 export function testEnv(overrides: Record<string, string | undefined> = {}): NodeJS.ProcessEnv {
   const env: Record<string, string | undefined> = {
     APP_ENV: 'development',
@@ -22,6 +27,11 @@ export function testEnv(overrides: Record<string, string | undefined> = {}): Nod
   // îl primește implicit; un test care verifică refuzul îl scoate explicit (`BACKUP_DIR: undefined`).
   if (env.APP_ENV !== 'development' && !('BACKUP_DIR' in overrides)) {
     env.BACKUP_DIR = join(tmpdir(), 'civic-test-backups');
+  }
+  // E4.11 (P3): în producție, cheia publică age este obligatorie. Un mediu de test „complet și valid” o primește
+  // implicit (cheia publică a identității de test din fixtures/age-martori); un test care verifică refuzul o scoate.
+  if (env.APP_ENV === 'production' && !('BACKUP_AGE_RECIPIENT' in overrides)) {
+    env.BACKUP_AGE_RECIPIENT = TEST_AGE_RECIPIENT;
   }
   for (const k of Object.keys(env)) if (env[k] === undefined) delete env[k];
   return env as NodeJS.ProcessEnv;

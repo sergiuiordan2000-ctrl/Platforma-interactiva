@@ -1,0 +1,27 @@
+{
+  "descriere": "Fișiere-martor E4.11 (planul r3.2 §7.1): criptate o singură dată cu binarul oficial age, pentru identitatea NUMAI DE TEST din identitate-test.age. Identitatea este păstrată criptată cu fraza-parolă de test (TEST_IDENTITY_PASSPHRASE din test/helpers/env.ts), ca identitatea reală (planul §4.2); nu se folosește niciodată în afara testelor.",
+  "creatCu": "age 1.1.1 (Ubuntu 24.04)",
+  "creatLa": "2026-11-01",
+  "destinatar": "age13gejglzw0d9wdjedc8r4z26dx377kngsn9jn2ct69a27zzea3c9szyltrs",
+  "fisiere": [
+    {
+      "plain": "martor-text.txt",
+      "encrypted": "martor-text.txt.age",
+      "plainSha256": "928c5825d1fa98121ad5f179d4a0de1ba6edca77a912224b13e2067b7bca22fd",
+      "encryptedSha256": "94e846120b3c600339d265dc1fcd9cd19fe904f6259a2a220dc95f74fb5c13ae"
+    },
+    {
+      "plain": "martor-70k.bin",
+      "encrypted": "martor-70k.bin.age",
+      "plainSha256": "340b6b91d5ac89fbaef1c5fda3199838624f48b5667168e2ba82b4685599d0bb",
+      "encryptedSha256": "f3694a1226719f64d9d7248045f8552c10ee64664161b75758c2931eab16e8fc"
+    },
+    {
+      "plain": "martor-gol.bin",
+      "encrypted": "martor-gol.bin.age",
+      "plainSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "encryptedSha256": "6b192caf34250373f06b95acaee232f2ea86052416164bd33d07f94bb3921c43"
+    }
+  ],
+  "identitate": "identitate-test.age"
+}

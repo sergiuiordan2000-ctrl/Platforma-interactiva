@@ -7,15 +7,18 @@
 // 5.6: surveys:close-expired (E-3, cron la 5 min); rotate:keys păstrează PARTICIPATION_HMAC_SECRET cât timp există sondaje deschise (T-6).
 // rotate:totp-key [--check]: schimbarea cheii TOTP_ENC_KEY, cu mod de probă (plan: FAZA_5_4_ROTIRE_TOTP_PLAN.md).
 // Faza 6, A1: markers:rebuild-counter [--at-least N]: refacerea EXPLICITĂ a marcajului contorului TM pierdut.
+// E4.11 (registrul §24): backup:verify și backup:decrypt rulează pe calculatorul proprietarului, fără civic.env și
+// fără bază de date (`runOfflineCli`); identitatea age, criptată cu fraza-parolă, nu ajunge niciodată pe găzduire.
 
-import { basename } from 'node:path';
+import { basename, dirname, resolve } from 'node:path';
 import type { Config } from './config.ts';
 import { BootstrapRefusedError, bootstrapAdmin } from './accounts.ts';
 import { encryptSecret } from './auth/crypto.ts';
 import { hashPassword } from './auth/password.ts';
 import { newId } from './ids.ts';
-import { createBackup, recreateAccountMarkers, formatRestoreAftercare, formatRestoreInspection, inspectRestore, listBackups, restoreBackup } from './db/backup.ts';
+import { RestoreRefusedError, createBackup, recreateAccountMarkers, formatRestoreAftercare, formatRestoreInspection, inspectRestore, listBackups, restoreBackup } from './db/backup.ts';
 import { MarkerError, REBUILD_COUNTER_COMMAND, RECREATE_ACCOUNT_MARKERS_COMMAND } from './db/markers.ts';
+import { decryptCopy, readIdentityFile, verifyEncryptedCopy, type CopyVerification } from './db/backupCrypto.ts';
 import { HOST_RESTORE_COMMAND, formatHostRecovery, recoverAfterHostRestore } from './db/hostRestore.ts';
 import { initBackupMarkers, rebuildReportCounterWatermark } from './db/reportCounter.ts';
 import { createDb } from './db/client.ts';
@@ -267,11 +270,24 @@ async function runBackupCommand(
     retentionDays: config.retentionDays,
     adminRetentionMonths: config.adminRetentionMonths,
   };
+  const encrypted = Boolean(config.backupRecipient);
   try {
     if (command === 'backup:db') {
-      const res = await createBackup(base);
-      out.log(`backup:db: ${res.manifest.name} (${JSON.stringify(res.manifest.counts)}; fotografii: ${res.manifest.photos})`);
+      const res = await createBackup({ ...base, recipient: config.backupRecipient });
+      out.log(
+        `backup:db: ${res.manifest.name} (${JSON.stringify(res.manifest.counts)}; fotografii: ${res.manifest.photos}; ` +
+          `${encrypted ? 'criptată (age)' : 'NECRIPTATĂ: BACKUP_AGE_RECIPIENT lipsește (permis numai în afara producției)'})`,
+      );
       if (res.removed.length > 0) out.log(`backup:db: șterse (mai vechi de 7 zile): ${res.removed.join(', ')}`);
+      if (res.restoreCopiesRemoved.length > 0) {
+        out.log(`backup:db: copii decriptate mai vechi de 24 de ore, șterse (plasa de siguranță): ${res.restoreCopiesRemoved.join(', ')}`);
+      }
+      if (res.restoreCopiesFailed.length > 0) {
+        out.error(
+          `backup:db: NECONFORMITATE (E4.11) — copii decriptate expirate rămase în BACKUP_DIR, cu date în clar, care NU au putut fi șterse: ` +
+            `${res.restoreCopiesFailed.join(', ')}. Ștergeți-le manual și consemnați în evidența DEC-16.`,
+        );
+      }
       const ai = res.accountIntents;
       if (ai.confirmed + ai.discarded + ai.keptCreatedAfter + ai.errors + ai.invalid > 0) {
         // R18: numai numere (fără ID-uri și adrese)
@@ -312,7 +328,16 @@ async function runBackupCommand(
       for (const line of formatRestoreInspection(inspection)) out.log(line);
       return inspection.problems.length === 0 ? 0 : 1;
     }
-    const res = await restoreBackup(restoreOpts);
+    let res;
+    try {
+      res = await restoreBackup(restoreOpts);
+    } catch (err) {
+      // E4.11 (planul §5.2): la un refuz înaintea execuției, copia decriptată se păstrează pentru investigare
+      if (err instanceof RestoreRefusedError && basename(source).startsWith('civic-restore-')) {
+        out.error(`restore:db: copia decriptată se păstrează pentru investigare: ${resolve(source)}`);
+      }
+      throw err;
+    }
     out.log(`restore:db: rânduri ${JSON.stringify(res.rows)}`);
     out.log(
       `restore:db: fotografii restaurate ${res.photosRestored}, lipsă ${res.photosMissing}; ` +
@@ -322,6 +347,8 @@ async function runBackupCommand(
     if (res.markersWritten.length > 0) out.log(`restore:db: marcaje refăcute în BACKUP_DIR: ${res.markersWritten.join('; ')}`);
     // R18 / R19: conturile șterse din nou și mesajele reținute (fără destinatar, fără adrese)
     for (const line of formatRestoreAftercare(res)) out.log(line);
+    if (res.decryptedCopyRemoved) out.log(`restore:db: copia decriptată „${res.decryptedCopyRemoved}” a fost ștearsă (planul E4.11, §5.2).`);
+    if (res.decryptedCopyRemoveFailed) out.error(`restore:db: ATENȚIE — copia decriptată nu a putut fi ștearsă: ${res.decryptedCopyRemoveFailed}. Ștergeți-o manual.`);
     return 0;
   } catch (err) {
     out.error(err instanceof Error ? err.message : String(err));
@@ -540,5 +567,119 @@ async function runRotateTotpKey(config: Config, out: Out, args: string[], env: N
     throw e;
   } finally {
     await handle.close();
+  }
+}
+
+// ---- E4.11: comenzile de pe calculatorul proprietarului (fără civic.env, fără bază de date) ----
+
+export const OFFLINE_COMMANDS = ['backup:verify', 'backup:decrypt'] as const;
+export type OfflineCommand = (typeof OFFLINE_COMMANDS)[number];
+
+export function isOfflineCommand(value: string | undefined): value is OfflineCommand {
+  return value !== undefined && (OFFLINE_COMMANDS as readonly string[]).includes(value);
+}
+
+/**
+ * Fraza-parolă a identității: de la terminal, fără afișare; dacă intrarea standard nu este un terminal, prima
+ * linie a ei. Nu se scrie și nu se afișează niciodată.
+ */
+async function readPassphrase(prompt: string): Promise<string> {
+  const stdin = process.stdin;
+  if (!stdin.isTTY) {
+    const chunks: Buffer[] = [];
+    for await (const c of stdin) chunks.push(Buffer.from(c));
+    return Buffer.concat(chunks).toString('utf8').split(/\r?\n/)[0] ?? '';
+  }
+  process.stderr.write(prompt);
+  stdin.setRawMode(true);
+  stdin.resume();
+  return new Promise((resolvePass, reject) => {
+    let value = '';
+    const onData = (buf: Buffer) => {
+      for (const ch of buf.toString('utf8')) {
+        if (ch === '\r' || ch === '\n') {
+          stdin.setRawMode(false);
+          stdin.pause();
+          stdin.off('data', onData);
+          process.stderr.write('\n');
+          resolvePass(value);
+          return;
+        }
+        if (ch === '\u0003') {
+          stdin.setRawMode(false);
+          stdin.off('data', onData);
+          reject(new Error('Întrerupt.'));
+          return;
+        }
+        if (ch === '\u007f' || ch === '\b') value = value.slice(0, -1);
+        else value += ch;
+      }
+    };
+    stdin.on('data', onData);
+  });
+}
+
+function formatVerification(v: CopyVerification, command: string): string[] {
+  const lines = [`${command}: copia ${v.name}`];
+  if (v.manifest) {
+    lines.push(`  creată la ${v.manifest.createdAt ?? 'necunoscut'}; sesizări ${v.manifest.counts?.reports ?? 0}; fotografii în manifest: ${v.manifest.photos ?? 'necunoscut'}`);
+  }
+  lines.push(`  fișiere criptate decriptate integral: ${v.filesChecked} (din care fotografii: ${v.photos})`);
+  return lines;
+}
+
+/**
+ * `backup:verify <copie> --identity <fișier>`: verificarea completă (nivelul 2, planul §6), fără scriere.
+ * `backup:decrypt <copie> --identity <fișier> [--out <director>]`: verificarea completă și copia decriptată
+ * `civic-restore-<UTC>/` (implicit lângă copia criptată). Ieșirea conține numai diagnostice: niciun conținut în
+ * clar, nicio identitate, nicio frază-parolă.
+ */
+export async function runOfflineCli(
+  command: OfflineCommand,
+  args: string[],
+  out: Out = console,
+  passphrase: (prompt: string) => Promise<string> = readPassphrase,
+): Promise<number> {
+  const valueFlags = new Set(['--identity', '--out']);
+  const positional = args.filter((a, i) => !a.startsWith('--') && !valueFlags.has(args[i - 1] ?? ''));
+  const unknown = args.filter((a) => a.startsWith('--') && !valueFlags.has(a));
+  const identityPath = argValue(args, '--identity');
+  const outRoot = argValue(args, '--out');
+  if (positional.length !== 1 || !identityPath || unknown.length > 0 || (command === 'backup:verify' && outRoot !== undefined)) {
+    out.error(`Utilizare: backup:verify <copie-criptată> --identity <fișierul identității, criptat cu fraza-parolă>`);
+    out.error(`           backup:decrypt <copie-criptată> --identity <fișier> [--out <director>]   (implicit: lângă copie)`);
+    out.error('Fraza-parolă se cere la terminal (fără afișare) sau se citește din prima linie a intrării standard.');
+    return 2;
+  }
+  const source = resolve(positional[0]!);
+  try {
+    const identity = await readIdentityFile(identityPath, await passphrase('Fraza-parolă a identității: '));
+    if (command === 'backup:verify') {
+      const v = await verifyEncryptedCopy(source, identity);
+      for (const line of formatVerification(v, command)) out.log(line);
+      if (v.problems.length > 0) {
+        for (const p of v.problems) out.error(`PROBLEMĂ: ${p}`);
+        out.error(`${command}: copia NU este validă.`);
+        return 1;
+      }
+      out.log(`${command}: copia este întreagă și consecventă (binding, amprente, baza decriptată = manifestul, numărul fotografiilor).`);
+      return 0;
+    }
+    const r = await decryptCopy(source, identity, outRoot ? resolve(outRoot) : dirname(source));
+    for (const line of formatVerification(r, command)) out.log(line);
+    if (r.problems.length > 0 || !r.out) {
+      for (const p of r.problems) out.error(`PROBLEMĂ: ${p}`);
+      out.error(`${command}: nimic scris (fără fișiere parțiale).`);
+      return 1;
+    }
+    out.log(`${command}: copia decriptată: ${r.out}`);
+    out.log(
+      `${command}: conține date în clar. Se urcă direct în BACKUP_DIR numai pentru restaurare, iar pe găzduire se șterge după restaurarea executată ` +
+        '(automat) sau după cel mult 24 de ore (plasa de siguranță). Pe calculator, ștergeți-o după folosire.',
+    );
+    return 0;
+  } catch (err) {
+    out.error(err instanceof Error ? err.message : String(err));
+    return 1;
   }
 }

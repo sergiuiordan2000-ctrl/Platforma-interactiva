@@ -1,0 +1,1 @@
+Fișier-martor E4.11: text în clar, cu diacritice (ă î â ș ț), pentru verificarea decriptării.

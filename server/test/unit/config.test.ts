@@ -251,3 +251,35 @@ describe('IP_RATE_LIMITS (D-B2): limitele pe IP numai cu adresa reală a vizitat
     assert.match(problems(testEnv({ IP_RATE_LIMITS: 'true' }))[0]!, /^IP_RATE_LIMITS/);
   });
 });
+
+// E4.11 (registrul §24, P3): cheia publică age a copiilor de pe găzduire
+describe('BACKUP_AGE_RECIPIENT: obligatorie în producție; opțională în rest; numai o cheie X25519 validă', () => {
+  const https = { PUBLIC_BASE_URL: 'https://exemplu.test' };
+  const VALID = 'age13gejglzw0d9wdjedc8r4z26dx377kngsn9jn2ct69a27zzea3c9szyltrs';
+
+  it('producție fără cheie (lipsă sau goală) → aplicația nu pornește, cu numele variabilei și fără valori', () => {
+    for (const value of [undefined, '', '   ']) {
+      const p = problems(testEnv({ APP_ENV: 'production', ...https, BACKUP_AGE_RECIPIENT: value }));
+      assert.equal(p.length, 1);
+      assert.match(p[0]!, /^BACKUP_AGE_RECIPIENT: este obligatorie în producție/);
+    }
+  });
+
+  it('producție cu cheie validă → acceptat; staging și dezvoltare fără cheie → acceptat (copii în clar)', () => {
+    assert.equal(loadConfig(testEnv({ APP_ENV: 'production', ...https, BACKUP_AGE_RECIPIENT: VALID })).backupRecipient, VALID);
+    assert.equal(loadConfig(testEnv({ APP_ENV: 'staging', ...https })).backupRecipient, undefined);
+    assert.equal(loadConfig(testEnv()).backupRecipient, undefined);
+  });
+
+  it('cheie invalidă (alt tip, sumă de control greșită, identitate privată) → refuz în orice mediu, fără valoarea în mesaj', () => {
+    const bad = [VALID.slice(0, -1) + 'q', 'age1pq1' + 'q'.repeat(80), 'AGE-SECRET-KEY-1' + 'Q'.repeat(58), 'nu-este-o-cheie'];
+    for (const value of bad) {
+      for (const appEnv of ['development', 'staging', 'production']) {
+        const p = problems(testEnv({ APP_ENV: appEnv, ...(appEnv === 'development' ? {} : https), BACKUP_AGE_RECIPIENT: value }));
+        assert.equal(p.length, 1, `${appEnv}: ${value}`);
+        assert.match(p[0]!, /^BACKUP_AGE_RECIPIENT: /);
+        assert.ok(!p[0]!.includes(value), 'valoarea nu apare în mesaj');
+      }
+    }
+  });
+});

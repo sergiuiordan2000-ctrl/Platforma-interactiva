@@ -11,6 +11,7 @@
 
 import { resolve, sep } from 'node:path';
 import { z } from 'zod';
+import { recipientProblem } from './db/backupCrypto.ts';
 
 export const APP_ENVS = ['development', 'staging', 'production'] as const;
 export type AppEnv = (typeof APP_ENVS)[number];
@@ -128,6 +129,8 @@ const EnvSchema = z
     SMTP_USER: optionalText,
     SMTP_PASS: optionalText,
     BACKUP_DIR: optionalText,
+    // E4.11 (registrul §24, P3): cheia publică age (X25519) a copiilor de pe găzduire; obligatorie în producție
+    BACKUP_AGE_RECIPIENT: optionalText,
     UAT_BOUNDARY_FILE: optionalText,
     GEOCODER_URL: optionalText,
     GEOCODER_USER_AGENT: optionalText,
@@ -181,6 +184,18 @@ const EnvSchema = z
           message: 'nu poate fi același director cu STORAGE_DIR și niciunul nu poate fi în interiorul celuilalt',
         });
       }
+    }
+    // E4.11 (P3): în producție, copiile de pe găzduire se criptează obligatoriu; pe staging și în dezvoltare cheia
+    // este opțională (fără ea, copiile rămân în clar). Oriunde este setată, trebuie să fie o cheie X25519 validă.
+    if (env.BACKUP_AGE_RECIPIENT !== undefined) {
+      const problem = recipientProblem(env.BACKUP_AGE_RECIPIENT);
+      if (problem) ctx.addIssue({ code: 'custom', path: ['BACKUP_AGE_RECIPIENT'], message: problem });
+    } else if (env.APP_ENV === 'production') {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['BACKUP_AGE_RECIPIENT'],
+        message: 'este obligatorie în producție (E4.11, P3): cheia publică age („age1…”) cu care se criptează copiile de pe găzduire',
+      });
     }
     // E-mailul (B6 §2): o configurație incompletă / invalidă NU oprește aplicația → `simulated` (emailProblems)
     if (Boolean(env.GOOGLE_OAUTH_CLIENT_ID) !== Boolean(env.GOOGLE_OAUTH_CLIENT_SECRET)) {
@@ -264,6 +279,8 @@ export type Config = {
    * în dezvoltare poate lipsi (atunci marcajele nu se scriu, iar backup:db / restore:db sunt refuzate).
    */
   backupDir?: string;
+  /** E4.11: cheia publică age a copiilor; lipsă = copii în clar (permis numai în afara producției, P3). */
+  backupRecipient?: string;
   uatBoundaryFile?: string;
   geocoder: { url?: string; userAgent?: string };
   /** Amendamentul Google (G-T7): lipsă = autentificarea cu Google este oprită. Secretul nu se scrie niciodată în jurnale. */
@@ -364,6 +381,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
       },
     },
     backupDir: e.BACKUP_DIR,
+    backupRecipient: e.BACKUP_AGE_RECIPIENT,
     uatBoundaryFile: e.UAT_BOUNDARY_FILE,
     geocoder: { url: e.GEOCODER_URL, userAgent: e.GEOCODER_USER_AGENT },
     googleOAuth:
