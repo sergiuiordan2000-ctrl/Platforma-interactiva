@@ -1061,3 +1061,34 @@ Variantele **D, E, F** (planul v2.4, §5.6) **nu se decid acum**; se decid **în
 | **§25.3 / §26.4** (monitorizarea spațiului) | condiția de amânare („până la clarificarea G6-1”) este îndeplinită: producția va consuma din aceeași cotă de 15 GB. Propunerea rămâne **nedecisă** și **nu** face parte din DEC-16 până la o decizie separată |
 
 **Ce NU înseamnă această consemnare:** nu autorizează oprirea staging-ului, ștergerea sau adăugarea de sarcini cron, instalarea producției ori vreo operație pe staging, producție sau în cPanel; nu modifică DEC-16 (§16, §26), DEC-9 (§28), DEC-23, E4.11, DEC-25 sau A17-1; nu declară îndeplinit criteriul 7E; nu decide DEC9-4 sau DEC-20 pentru datele E7; nu închide formal DEC-8 (§27). Planul v2.4 rămâne neschimbat. Lansarea publică nu este aprobată.
+
+---
+
+## 30. E4.11 — momentul îndeplinirii cerinței din planul r3.2, §5.2 (ora copiilor zilnice ClausWeb): decizie documentată (01.11.2026)
+
+Prezenta secțiune consemnează decizia proprietarului privind momentul îndeplinirii cerinței din planul r3.2, §5.2, după analiza propunerii lui Claude și a implicațiilor tehnice și după evaluarea auditorului independent (Aristotel). Proprietarul a confirmat explicit decizia la 01.11.2026, ~08:22, în conversația de lucru; recomandarea auditorului nu a fost tratată ca aprobare. **Planul r3.2 rămâne neschimbat** (SHA-256 `5f82b0a77088e60890952940459c5ea2e5b0c17b4a926bfcb4f305218a2f3476`, §24.2); cerințele lui nu se reinterpretează tacit.
+
+### 30.1 Cerința
+
+Planul r3.2, §5.2 („Copia decriptată pe găzduire”), rândul „copiile furnizorului”: ora copiilor zilnice ClausWeb este necunoscută și **„se cere înaintea implementării, ca restaurarea să nu o traverseze”**.
+
+### 30.2 Decizia
+
+| Element | Conținutul |
+|---|---|
+| **cerința** | **rămâne obligatorie**: ora copiilor zilnice ale contului, făcute de ClausWeb, trebuie cunoscută și consemnată |
+| **momentul îndeplinirii** | **înaintea primei restaurări pe găzduire**, inclusiv **repetiția V3** de pe staging (§28, DEC9-1, DEC9-2), și înaintea oricărei restaurări ulterioare făcute după procedura din planul r3.2, §5.2 |
+| **natura deciziei** | decizie documentată privind **momentul** în care se îndeplinește cerința din §5.2; **nu** este o eliminare a cerinței și nici o modificare a planului r3.2 |
+| **ce devine posibil** | implementarea E4.11 (codul, testele locale, CI) **poate** începe înainte de răspunsul furnizorului, **numai** după autorizarea ei separată (§24.5). Această posibilitate privește **exclusiv** implementarea și validarea locală și în CI; **nu** autorizează instalarea candidatului pe staging și nici executarea repetiției V3 |
+
+### 30.3 Motivarea
+
+- ora copiilor furnizorului intervine **numai** în procedura de restaurare pe găzduire (planul r3.2, §5.2: fereastra în care copia decriptată se află pe găzduire); fluxul de scriere (§3), cheile (§4) și testele (§7) din plan nu o folosesc;
+- scopul cerinței (o restaurare pe găzduire nu traversează copia zilnică a furnizorului) se păstrează integral, pentru că nicio restaurare pe găzduire nu are loc înainte ca ora să fie cunoscută;
+- răspunsurile furnizorului pot întârzia: tichetul din 13.10.2026 privind `TRUST_PROXY` nu are răspuns consemnat (§25.1). Legarea codului de răspuns ar fi blocat o activitate tehnică independentă de el.
+
+### 30.4 Starea
+
+Întrebarea privind ora copiilor zilnice se transmite furnizorului de proprietar, împreună cu întrebările privind comportamentul unei aplicații oprite (§29.2). Până la răspuns, cerința din §5.2 este **neîndeplinită**.
+
+**Ce NU înseamnă această consemnare:** nu autorizează implementarea E4.11 (§24.5 rămâne în vigoare; autorizarea se dă separat); nu autorizează nicio restaurare, nicio operație pe staging, producție, cPanel, cron sau `civic.env`; nu modifică planul r3.2, deciziile P1–P10 (§24.3), DEC-9 (§28) sau §29; nu activează G6-1 (c). Lansarea publică nu este aprobată.
