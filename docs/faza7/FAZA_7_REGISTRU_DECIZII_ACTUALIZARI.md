@@ -1216,3 +1216,37 @@ Justificarea:
 - nicio configurație cPanel, aplicație sau server nu este modificată;
 - nicio restaurare (inclusiv repetiția V3) și nicio instalare pe staging nu sunt autorizate prin această consemnare;
 - planul v2.4, planul r3.2 și concluziile §31 rămân neschimbate.
+
+---
+
+## 33. DEC-16 în perioada de oprire a staging-ului: regimul R2 (02.11.2026)
+
+**Decizia:** proprietarul a ales la 02.11.2026, în conversația de lucru, **regimul R2** din §29.3 pentru evidența DEC-16 în perioada de oprire a staging-ului (G6-1 c) și, pentru verificarea (1), **citirea stării în cPanel**. Varianta R2 a fost recomandată de auditor și de analiza din conversația de lucru; alegerea aparține proprietarului.
+
+**Condiția prealabilă din §29.3** (confirmarea furnizorului din §29.2) este îndeplinită: §32.1 și §32.2.
+
+### 33.1 Regimul adoptat
+
+Se aplică tabelul R2 din §29.3 (la oprire, în perioada de oprire, săptămânal, la repornire) și precizările de acolo, fără modificări, cu o singură completare: metoda verificării (1).
+
+| Verificarea săptămânală | Metoda |
+|---|---|
+| (1) aplicația de staging este oprită | **citirea stării aplicației în cPanel, ecranul „Setup Node.js App”**: starea afișată trebuie să fie cea de oprire (`stopped`). **Numai citire: fără niciun click pe „Start App” sau pe alte comenzi ale aplicației** |
+| (2) lista sarcinilor cron | lista din cPanel **nu conține linii de staging** (§29.3, neschimbat) |
+| (3) `backup.log` | fără intrări noi (§29.3, neschimbat) |
+
+- Cererea HTTP către subdomeniul de staging, admisibilă după §32.2, **nu face parte** din verificarea săptămânală.
+- Rezultatul se consemnează ca „oprire confirmată” sau ca neconformitate a opririi (§29.3).
+- Verificarea săptămânală **nu este o verificare DEC-16** și nu înlocuiește verificarea DEC-16 completă de la repornire (§29.3).
+
+### 33.2 Natura și intrarea în vigoare
+
+- Este o **completare** a DEC-16, de felul celor din §26. Operatorul (proprietarul), frecvența zilnică și cele trei controale DEC-16 (`backup.log`, coada de e-mail, `health`; manualul 7D, §6.3) **nu se schimbă**.
+- Regimul R2 se aplică **numai din momentul opririi staging-ului** în cadrul G6-1 (c). Până atunci, verificarea zilnică DEC-16 continuă neschimbată.
+- Manualul 7D (§6.3) se actualizează separat, cu aprobare distinctă.
+
+### 33.3 Risc semnalat pentru activarea G6-1 (c)
+
+La pasul opririi trebuie stabilit, o singură dată, ce servește subdomeniul de staging după dezactivarea configurației Passenger (de exemplu, dacă rămân fișiere accesibile public în directorul site-ului). Este o chestiune a pasului de oprire, nu a DEC-16, și nu este evaluată prin această consemnare.
+
+**Ce NU înseamnă această consemnare:** nu activează G6-1 (c); nu autorizează oprirea staging-ului, salvarea sau eliminarea liniilor cron ori vreo operație pe staging, producție sau în cPanel (verificările din §33.1 se fac numai după oprire); nu modifică §16, §26 sau §29, planul v2.4 ori manualul 7D; nu decide propunerea din §25.3 (monitorizarea spațiului), DEC9-4 sau DEC-3b. Lansarea publică nu este aprobată.
