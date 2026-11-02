@@ -1250,3 +1250,126 @@ Se aplică tabelul R2 din §29.3 (la oprire, în perioada de oprire, săptămân
 La pasul opririi trebuie stabilit, o singură dată, ce servește subdomeniul de staging după dezactivarea configurației Passenger (de exemplu, dacă rămân fișiere accesibile public în directorul site-ului). Este o chestiune a pasului de oprire, nu a DEC-16, și nu este evaluată prin această consemnare.
 
 **Ce NU înseamnă această consemnare:** nu activează G6-1 (c); nu autorizează oprirea staging-ului, salvarea sau eliminarea liniilor cron ori vreo operație pe staging, producție sau în cPanel (verificările din §33.1 se fac numai după oprire); nu modifică §16, §26 sau §29, planul v2.4 ori manualul 7D; nu decide propunerea din §25.3 (monitorizarea spațiului), DEC9-4 sau DEC-3b. Lansarea publică nu este aprobată.
+
+---
+
+## 34. Pasul 1 al instalării `2fc8403` pe staging: rezultatele pregătirii; decizia de licență pentru staging și blocajul pentru producție (02.11.2026)
+
+**Sursa:** deciziile proprietarului din 02.11.2026, luate în conversațiile de lucru, și verificările enumerate mai jos, fiecare cu natura dovezii ei. Recomandările lui Claude sunt marcate ca atare și nu sunt aprobări. Propunerea de instalare (`PROPUNERE_INSTALARE_2fc8403_STAGING.md`) și pachetul de transfer dintre conversații **nu sunt păstrate în repository**; trimiterile „§5.1.1” și „§5.1.2” de mai jos se referă la acea propunere.
+
+**Natura dovezilor**, folosită în tabelele de mai jos:
+- **executat anterior**: executat de Claude într-o conversație de lucru anterioară din 02.11.2026 și raportat proprietarului; în conversația curentă nu a fost reexecutat;
+- **verificat de Claude**: verificat în conversația curentă, numai prin citire (amprente, clonă temporară a depozitului, citirea codului);
+- **verificat de proprietar**: verificat de proprietar și transmis prin capturi, citite de Claude.
+
+### 34.1 Ordinea pașilor
+
+**Succesiunea propusă a etapelor** (**neadoptată**; se consemnează ca propunere, până la confirmarea ei separată de către proprietar, decizia din 02.11.2026): 1) pregătirea instalării `2fc8403`; 2) instalarea pe staging; 3) proba E4.11 pe staging; 4) repetiția V3 (DEC9-1); 5) proba E4 în instanța B; 6) oprirea staging-ului și intrarea în regimul G6-1 (c). Fiecare etapă cere oricum aprobarea ei distinctă. Staging-ul rămâne pornit, pe `85d3c45`, cu copii necriptate.
+
+**Ordinea consemnării** (decisă de proprietar la 02.11.2026, varianta A, recomandată de Claude): decizia de licență și rezultatele pasului 1 se consemnează în registru (această secțiune) **înaintea** discutării instalării pe staging.
+
+### 34.2 Deciziile proprietarului asupra propunerii de instalare (02.11.2026)
+
+**Originea:** variantele A la D-1 și D-2 au fost recomandate de Claude în propunere; proprietarul le-a **confirmat explicit ca decizii ale sale** la 02.11.2026.
+
+| Decizia | Varianta |
+|---|---|
+| D-1 (probele pe telefon) | **A**: numai `health` și panoul Admin (PC1–PC4); matricea A0–A7 nu se repetă |
+| D-2 (dovada backup-ului cu codul nou) | **A**: copia de noapte (P7); fără backup manual suplimentar |
+| D-3 (ziua instalării) | **nedecisă**; PC1–PC4 în afara intervalului 03:00–06:30, ora României |
+
+### 34.3 Pachetul construit
+
+Construirea locală a fost aprobată de proprietar la 02.11.2026.
+
+| Elementul | Rezultatul | Natura dovezii |
+|---|---|---|
+| fișierul | `civic-2fc8403.zip`, 1.479.760 B, 22 de fișiere, fără `-dirty` | executat anterior; dimensiunea și numărul fișierelor verificate de Claude |
+| SHA-256 | `2445980914a93a2feae6a9093ef4115558ddb988da9be9e0e4517c79ca7a6738` | executat anterior; amprenta fișierului transmis de proprietar verificată de Claude: identică |
+| construit din | clonă curată `2fc8403`; Node 22.23.4, npm 10.9.9; `npm ci`, `npm run build`, `npm run build -w server`, `package-release.py` fără `--bootstrap-email` | executat anterior |
+| comparația cu `85d3c45` (reconstruit numai pentru comparație, §5.1.1) | aceeași listă (22/22); identice: `dist/`, migrațiile, seeds, `server/data/`, `server/dist/package.json`; diferă numai: `package.json` (câmpul `version`; fără `dependencies` în ambele), `RELEASE.txt` (rândul `commit:`), `server/dist/app.js`, `server/dist/app.js.LEGAL.txt` (numai adăugări) | executat anterior |
+| notele de licență adăugate în `app.js.LEGAL.txt` (toate MIT) | `@scure/base` 2.4.0; `@noble/ciphers` 2.4.0; `@noble/hashes` 2.4.0 și 2.0.1; `@noble/curves` 2.4.0 și 2.0.1; `@noble/post-quantum` 0.5.4. **Lipsește nota `age-encryption` 0.3.1 (BSD-3-Clause)**: §34.7 | executat anterior |
+| fișiere interzise | fără `node_modules`, `.env*`, `.map` | executat anterior |
+
+**Amprenta identifică exact acest fișier.** O reconstruire produce altă amprentă; dacă fișierul se pierde, reconstruirea cere aprobare, iar noua amprentă se consemnează.
+
+### 34.4 Probele artefactului fără `node_modules` (§5.1.2)
+
+Pe conținutul extras din `civic-2fc8403.zip`, într-un director gol, fără `node_modules`, cu Node 24.21.0, o bază de test locală și chei de test generate pentru probă și șterse după ea.
+
+| Proba | Rezultatul | Natura dovezii |
+|---|---|---|
+| 1. analiza statică | raportat: 0 `require` / `import` către `age-encryption`, `@noble/…`, `@scure/…`; aceeași listă de 8 module externe ca la `85d3c45` | executat anterior; vezi precizarea 3.3 (§34.5) |
+| 2. pornirea și `health` | raportat: `0.0.0+2fc8403`; 0 mesaje E4.11 la pornire | executat anterior |
+| 3. `backup:db` fără cheie | raportat: copie în clar; 0 fișiere `.age`; manifest fără câmpul `encryption` | executat anterior |
+| 4. `backup:db` cu cheie de test (proba refăcută) | 4a `backup:db`: cod 0, copie criptată (`binding.json.age`, `db.jsonl.gz.age`, `manifest.json`, `markers.json`; 0 fișiere de date în clar; `scheme: age-x25519`); 4b `restore:db --check`: cod 1, refuz cu mesajul „copie criptată”; 4c `backup:verify`: cod 0; 4d `backup:decrypt`: cod 0, copia `civic-restore-…` cu `DECRYPTED-COPY.json`; 4e control negativ (fraza greșită): cod 1 | executat anterior, pe arhiva cu amprenta de mai sus (verificată în script), cu codurile de ieșire ale aplicației capturate prin `PIPESTATUS`; jurnalul și scriptul verificate de Claude (amprentele de mai jos) |
+| 5. `APP_ENV=production` fără cheie | raportat: pornire refuzată, cod 1 | executat anterior |
+
+Fișierele probei 4 refăcute, păstrate de proprietar (nu în repository):
+- jurnalul `proba4_refacuta.log`: SHA-256 `efdb4233e2ae93c6a14b9ad94a186035bb4e270b35bf2ab45a0059b124fc6e7f`;
+- scriptul `probe4_refacuta.sh`: SHA-256 `8781a99bff085abdeac2db5ad4401a4d5dec860e2ba4e758bf603d0e1cd9a044`.
+
+**Precizări la jurnalul probelor inițiale:**
+- În scriptul inițial, codul raportat pentru `backup:verify` era al comenzii `tail`, nu al aplicației; de aceea proba 4 a fost refăcută. Observația 3.2 este **închisă** prin proba refăcută (decizia proprietarului, 02.11.2026).
+- Două verificări `restore:db --check` suplimentare din probele 3–4 inițiale au fost pregătite greșit (baza nu era goală; copia nu era în `BACKUP_DIR`) și **nu sunt rezultate ale artefactului**.
+- Probele 1, 2, 3 și 5 nu au fost refăcute; jurnalul lor nu a fost transmis în conversația curentă.
+
+**Formularea admisă:** probele de mai sus **nu se consemnează ca „toate PASS” fără precizările din §34.4 și §34.5** (decizia proprietarului, 02.11.2026).
+
+### 34.5 Precizările la probe
+
+| # | Subiectul | Starea |
+|---|---|---|
+| 3a | criptarea fotografiilor | datele demo nu conțin fotografii (jurnalul probei 4: „fotografii în manifest: 0”). Există în CI un test cu titlul indicat (`server/test/integration/e411CriptareBackup.test.ts`, „structura exactă: manifest și marcaje în clar, binding, baza și fotografiile criptate; nimic altceva”). Conținutul și acoperirea efectivă a criptării fotografiilor nu au fost verificate în această revizie. Potrivit informației proprietarului, testul urmărește acest scenariu. **Criptarea fotografiilor rămâne neprobată pe artefact**; se probează la pasul 3 (proba E4.11 pe staging) sau printr-o probă locală separată, cu aprobare distinctă |
+| 3b | controlul negativ (4e) | jurnalul arată codul 1, dar **nu și motivul eșecului**. Limită acceptată de proprietar; proba nu se reface pentru aceasta |
+| 3c | „fișiere criptate decriptate integral: 1” la o copie cu două fișiere `.age` | **închisă**, verificat de Claude prin citirea codului (`server/src/db/backupCrypto.ts`, identic la `2fc8403` și `2b677fc`): `binding.json.age` este decriptat separat, înaintea buclei, fără să modifice contorul (r. 268–278); contorul `filesChecked` numără numai fișierele din lista `binding.files` (baza și fotografiile), după decriptarea integrală și verificarea amprentei (r. 283–306); mesajul este scris în `server/src/cli.ts`, r. 627. Valoarea 1 înseamnă baza |
+| 3.3 | analiza statică (proba 1) | jurnalul inițial conține rândul „GĂSIT require interzis”, un **fals pozitiv al scriptului** (construcția `grep … \| head -3 && echo …` afișează mesajul indiferent dacă `grep` găsește ceva). Verificarea refăcută, cu rezultatul raportat 0, **nu este păstrată în fișiere**. **Deschisă**; dacă se cere dovada, se propune o probă separată, numai locală, cu aprobarea proprietarului |
+
+### 34.6 Starea depozitului și CI-ul (V0 din propunere)
+
+**Depozitul**, verificat de Claude prin citire (clonă temporară, fără nicio modificare):
+
+| Elementul | Rezultatul |
+|---|---|
+| `faza-5-backend`: HEAD = `origin` | `2b677fcb2ffe7fc9f9aaa9677cf3e97330bce967`; arbore curat; 0 commituri nepublicate |
+| istoricul | `2b677fc` → `74083fe` → `2fc8403` → `ec962b4` → `7eabb8a` |
+| `2fc8403` | `2fc8403943c9ae5fa05a01822369e90e69c29127`, în istoricul ramurii |
+| SHA-256 al acestui registru la `2b677fc` (înaintea §34) | `27c2c54a7a2eece00479a49207bd9b6a7c39d6451c001e76f52484601cecffd2`; ultima secțiune: §33 |
+| `main` | `d9bc2c9f53cec27dafc846889b0457eea8495d20`; confirmată de proprietar ca neschimbată; **referința pentru verificările ulterioare** |
+
+**CI-ul.** Citirea prin API-ul GitHub și prin WebFetch a fost refuzată în sesiunea de lucru; depozitul nu a fost atașat cu drept de scriere (decizia proprietarului). Verificat de proprietar, prin capturile paginilor rulărilor:
+
+| Rularea (după linkul deschis) | Numărul afișat | Commitul | Starea | Joburile |
+|---|---|---|---|---|
+| 41299023089 | #173 | `2fc8403` | Success | 7/7 verzi (6 backend, inclusiv Node 24.21.0 + MariaDB 11.4.13, producție; E2E) |
+| 41412131145 | #174 | `74083fe` | Success | 7/7 verzi |
+| 41415345573 | #175 | `2b677fc` | Success | 7/7 verzi |
+
+**Limita dovezii:** ID-urile rulărilor nu sunt vizibile în capturi; asocierea cu ele se sprijină pe linkurile deschise de proprietar. Commitul, ramura și titlul din fiecare captură corespund istoricului din clonă.
+
+**V0 este îndeplinit.** `npm audit` nu a fost reexecutat în această verificare; rămâne valabilă constatarea din §31.5.
+
+### 34.7 Decizia de licență pentru staging: varianta A
+
+**Problema** (§31.6): codul `age-encryption` 0.3.1 (BSD-3-Clause, care cere păstrarea notei de copyright la redistribuire) este inclus în `server/dist/app.js`, dar nota lui **nu apare** în `server/dist/app.js.LEGAL.txt`.
+
+**Decizia proprietarului** (02.11.2026): **varianta A** (recomandată de Claude). Nota lipsă pentru `age-encryption` 0.3.1 este acceptată **temporar**, **numai pentru utilizarea internă pe staging**. Artefactul `civic-2fc8403.zip` (SHA-256 de mai sus) **nu se corectează**.
+
+**Limitarea:** acceptarea este o **decizie operațională, limitată la staging**. Ea **nu afirmă** că utilizarea internă elimină obligațiile licenței BSD-3-Clause și nu este o evaluare juridică.
+
+### 34.8 Blocajul pentru producție
+
+> **Utilizarea în producție este interzisă până la corectarea problemei de licență.** Niciun artefact în care problema nu este corectată, inclusiv `civic-2fc8403.zip`, nu se instalează și nu se utilizează în producție.
+
+### 34.9 Corectura ulterioară și consecințele ei
+
+- Corectura va fi o **modificare separată**: commit, CI, artefact nou și repetarea probelor, fiecare cu aprobarea ei.
+- Se reface **inventarul complet al notelor de licență** din bundle, pentru tot codul inclus (inclusiv cele două versiuni de `@noble/curves` și de `@noble/hashes`, precum și `@noble/post-quantum`), nu doar adăugarea notei pentru `age-encryption` (observația 3.5).
+- Artefactul corectat va avea **alt SHA** și **nu va fi considerat automat echivalent** cu `2fc8403`. Rezultatele probelor E4.11 efectuate pe `2fc8403` (probele artefactului din §34.4 și, ulterior, proba de pe staging) **nu se transferă automat** asupra noului artefact.
+- **Înaintea producției se decide separat** dacă artefactul corectat necesită: comparația fișier cu fișier față de `2fc8403`; probele fără `node_modules`; o nouă instalare pe staging sau o justificare documentată pentru lipsa ei. **Aceste decizii nu sunt luate prin această consemnare.**
+
+### 34.10 Starea pasului 1
+
+Pasul 1 (pregătirea instalării `2fc8403`) este **încheiat la nivelul pachetului și al probelor locale**, cu precizările din §34.4–§34.5. Rămân: decizia instalării pe staging și ziua ei (D-3), fiecare cu aprobare separată.
+
+**Ce NU înseamnă această consemnare:** nu autorizează instalarea pe staging, alegerea zilei (D-3), proba E4.11 pe staging, adăugarea `BACKUP_AGE_RECIPIENT`, repetiția V3, vreo restaurare sau vreo operație pe staging, producție, cPanel, cron ori `civic.env`; nu autorizează corectura de licență și nu decide verificările din §34.9; nu închide punctul „verificarea notelor de licență”, care rămâne deschis, cu blocajul din §34.8; nu bifează criteriul E4.11 din planul v2.4; nu activează G6-1 (c); nu decide DEC-3b, DEC9-4 sau propunerea din §25.3; nu modifică planul v2.4, planul r3.2 sau §31. Riscul de memorie al `backup:db` (§31.6) rămâne deschis. Lansarea publică nu este aprobată.
