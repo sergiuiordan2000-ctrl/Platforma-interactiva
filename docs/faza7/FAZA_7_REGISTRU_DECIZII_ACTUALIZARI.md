@@ -1092,3 +1092,127 @@ Planul r3.2, §5.2 („Copia decriptată pe găzduire”), rândul „copiile fu
 Întrebarea privind ora copiilor zilnice se transmite furnizorului de proprietar, împreună cu întrebările privind comportamentul unei aplicații oprite (§29.2). Până la răspuns, cerința din §5.2 este **neîndeplinită**.
 
 **Ce NU înseamnă această consemnare:** nu autorizează implementarea E4.11 (§24.5 rămâne în vigoare; autorizarea se dă separat); nu autorizează nicio restaurare, nicio operație pe staging, producție, cPanel, cron sau `civic.env`; nu modifică planul r3.2, deciziile P1–P10 (§24.3), DEC-9 (§28) sau §29; nu activează G6-1 (c). Lansarea publică nu este aprobată.
+
+---
+
+## 31. E4.11 — implementarea: checkpointul, auditul independent, publicarea și CI (01–02.11.2026)
+
+Această secțiune consemnează implementarea E4.11 autorizată la §24.5 / §30 și starea ei la 02.11.2026. Planul r3.2 (§24.2) și deciziile P1–P10 (§24.3) rămân neschimbate; abaterile sunt enumerate în §31.3.
+
+### 31.1 Cronologia și aprobările
+
+| Momentul | Ce s-a întâmplat |
+|---|---|
+| 01.11.2026, ~08:42 | proprietarul autorizează implementarea până la checkpoint (fluxul fără buffer de 256 MiB; `rage` în CI alături de `age`); fără commit, push sau operații pe găzduire |
+| ~09:27, ~10:00, ~10:34 | trei runde de audit independent (Aristotel) al checkpointului, cu corecțiile r2 și r3 făcute pe o copie separată (§31.2) |
+| ~10:37 | proprietarul aprobă commitul r3 → **`ec962b4`** (23 de fișiere, +2548 / −33; arborele commitului identic cu cel testat) |
+| ~10:38 | push aprobat → CI **41289728463**: **eșuat** — 4 joburi Node 24 opriți la testele unitare (testul de memorie al unui fișier: 66–68 MiB față de pragul de 64); joburile Node 20 și E2E trecute |
+| ~12:07 | proprietarul aprobă abaterea **A11** (varianta A, §31.3); suita completă rulată local și pe Node 24.21.0: unitare 141/141, API 25/25, integrare 429/429, artefactul fără `node_modules` trecut |
+| ~12:46 / ~12:47 | commitul A11 → **`2fc8403`** (părinte `ec962b4`; un singur fișier de test, +7 / −2); push aprobat |
+| 01.11.2026 | CI **41299023089** pe `2fc8403`: **`success`, 7/7 joburi** (§31.4); rularea eșuată anterioară este depășită |
+| ~13:03 | proprietarul consideră E4.11 validată la nivel de implementare și CI; aprobă `npm audit` pe `2fc8403` (§31.5) |
+| 02.11.2026, ~09:03 | proprietarul trimite furnizorului întrebările din §29.2 și §30 (§31.7) |
+
+### 31.2 Ce s-a implementat și corecțiile din audit
+
+| Zona | Conținutul |
+|---|---|
+| criptarea (`server/src/db/backupCrypto.ts`, nou) | formatul age, prin `age-encryption` **0.3.1** fixat exact; `binding.json.age`; verificarea structurii la backup; `backup:verify` (nivelul 2, planul §6) și `backup:decrypt` (`civic-restore-<UTC>` + `DECRYPTED-COPY.json`, prin director temporar, fără fișiere parțiale); identitatea se citește numai criptată cu fraza-parolă (una în clar este refuzată) |
+| backup (`backup.ts`) | cu `BACKUP_AGE_RECIPIENT`: rânduri → gzip → age în flux, SHA-256 al bazei comprimate calculat pe drum; fotografiile → age în flux; `manifest.json` și `markers.json` în clar; directorul temporar se șterge imediat la eroare; fără cheie (staging): copii în clar, ca înainte |
+| restaurarea | o copie criptată nu se restaurează direct, **fără excepție** (orice `.age`, indicatorul din manifest, o enumerare incompletă → refuz); o copie decriptată este acceptată numai dacă este **validă** (nume, marcaj, dată UTC, sursa din manifest, niciun `.age`); se șterge după o restaurare executată (reușită sau eșuată în tranzacție) și se păstrează la un refuz dinaintea execuției |
+| plasa de 24 h | la fiecare `backup:db` și la pornire; o copie decriptată expirată care nu poate fi ștearsă este raportată ca **„NECONFORMITATE (E4.11)”**, de consemnat în evidența DEC-16 |
+| configurația | `BACKUP_AGE_RECIPIENT` obligatorie în producție (pornirea refuzată fără ea), opțională în rest; numai X25519, cu suma de control verificată |
+| comenzile de pe calculator | `backup:verify` și `backup:decrypt` rulează fără `civic.env` și fără bază de date |
+| CI | `age` 1.1.1 (versiune verificată exact) și `strace` din apt; `rage` 0.12.1 din versiunea oficială, cu SHA-256 verificat; vectorii C2SP CCTV/age (147) la commitul fixat `50a8ecf2…`; orice eșec oprește jobul |
+| teste | interoperabilitate în ambele sensuri cu `age` și `rage`; cei 147 de vectori; fișiere-martor (identitatea de test păstrată criptată); `strace` cu lista exactă a căilor permise și control negativ; memoria (§31.6); `civic-restore` (8 cazuri); `binding`; refuzurile fără excepție; ieșirile comenzilor fără date în clar |
+
+**Corecțiile din audit:** r2 — refuzul copiilor mixte (C1), proba de memorie a fluxului bazei (C2), versiunea `age` verificată în CI (C3), identitatea de test criptată (C4); r3 — refuz la o enumerare incompletă (C1.a, defect *fail-open* închis), validarea efectivă a copiei decriptate (C1.b), cei 147 de vectori (A3), probă de compatibilitate (A5), validarea strictă a datei UTC (A6), neconformitatea la o ștergere eșuată (A10).
+
+**Starea auditului:** închis la nivelul implementării, prin aprobarea proprietarului pentru commitul r3 (01.11.2026, ~10:37). C1.a, C1.b, A2–A4 și A6–A10 au fost acceptate explicit de auditor (01.11.2026, ~10:34). Pentru A5, proba izolată cu `85d3c45` a fost efectuată ulterior observației auditorului, iar rezultatul este consemnat în prezentul registru. Nu există însă o confirmare scrisă separată a auditorului privind acceptarea formală a acestei probe. Aprobarea commitului de către proprietar nu trebuie interpretată ca o asemenea confirmare.
+
+### 31.3 Abaterile față de planul r3.2
+
+| # | Abaterea | Starea |
+|---|---|---|
+| A1 | §3.3: bufferul bazei comprimate (256 MiB) înlocuit cu fluxul gzip → age | aprobată (~08:42) |
+| A2 | §7.2: testul „dimensiune declarată greșit” nu se aplică (biblioteca nu cere dimensiunea); înlocuit cu teste de eroare ale fluxului | acceptată |
+| A3 | §7.1: vectorii din depozitul oficial la commit fixat (147), nu din pachetul npm (143) | acceptată |
+| A4 | §7.2: lista `strace` include promovarea unei intenții R18 și urmărește și `mkdir` | acceptată |
+| A5 | formatul copiei rămâne `civic-backup/2`, cu câmpul `encryption` | probă locală cu `85d3c45`: copia criptată nu poate fi restaurată de codul vechi (refuz cu un singur motiv, bază țintă goală, nimic scris); marcajele ei rămân citite; restaurarea din copii în clar funcționează. Probă tehnică efectuată și rezultat consemnat; acceptarea formală de către auditor nu este documentată separat |
+| A6 | vechimea copiei decriptate se măsoară după data UTC din nume, validată strict | acceptată |
+| A7 | fraza-parolă se poate da și pe intrarea standard | acceptată |
+| A8 | o identitate necriptată este refuzată | acceptată |
+| A9 | ștergerea imediată a directorului temporar se aplică și copiilor în clar | acceptată |
+| A10 | raportarea pe stderr la pornire; neconformitatea la o ștergere eșuată | acceptată |
+| A11 | §7.2: încălzirea testului de memorie crescută de la 1 MiB la 64 MiB (pe Node 24, primul flux mare face o alocare unică, constantă, de circa 35 MiB); pragul (< 64 MiB) și controlul negativ (> 480 MiB) neschimbate | aprobată (~12:07); precizarea proprietarului: încălzirea mută alocarea inițială, dar nu dovedește singură independența alocărilor ulterioare de dimensiune; controlul negativ rămâne esențial |
+
+### 31.4 Dovada CI pe `2fc8403`
+
+**Rularea 41299023089: `success`, 7/7 joburi.** Pe fiecare dintre cele 6 joburi backend (Node 20 × MySQL 8.0 / 8.4; Node 24 × MySQL 8.0 / 8.4 / MariaDB 11.4; **Node 24.21.0 + MariaDB 11.4.13, producție**): instrumentele E4.11, `npm ci`, testele unitare 141/141, API 25/25, integrare 429/429 și artefactul — trecute; E2E — trecut. Pe joburile Node 24, `npm ci` și execuția completă sunt confirmate în CI.
+
+**Observație:** pe runner-ele GitHub, testul de memorie al unui fișier a variat între 0,1 și 45,8 MiB (prag 64). Nu se propune nimic acum; dacă testul devine instabil, varianta mai robustă (o probă cu două dimensiuni de fișier) cere o decizie separată.
+
+### 31.5 `npm audit` pe `2fc8403`
+
+Clonă curată, fără `npm audit fix` și fără modificări (amprentele `package.json`, `server/package.json`, `package-lock.json` neschimbate): **3 vulnerabilități moderate**, aceleași ca înainte de E4.11 — `@fastify/static` 10.1.5 (direct; marcat numai prin dependență), `glob` 13.0.6 (tranzitiv, GHSA-3g3m-2fjr-6pw4), `minimatch` 10.2.6 (tranzitiv, GHSA-g3hv-75wg-m249). Versiunile lor sunt identice cu cele de la `7eabb8a`. **E4.11 nu adaugă nicio vulnerabilitate.** Remedierea propusă de npm (retrogradarea `@fastify/static` la 6.12.0) nu este acceptabilă; analiza aplicabilității rămâne la DEC-3b, deschisă.
+
+### 31.6 Riscuri și limite consemnate
+
+| Subiectul | Starea |
+|---|---|
+| **memoria întregului `backup:db`** | **risc deschis.** Compresia și criptarea sunt în flux (~30 MiB constant), dar `backup:db` adună toate rândurile într-un tablou înaintea compresiei (planul §3.2, pasul 1, neschimbat): consumul crește cu dimensiunea bazei (măsurat: ~300 MiB de text → 435–620 MiB). Fără importanță la dimensiunea staging-ului; relevant față de limita de 4 GB RAM a contului (§25.1) pentru o bază de sute de MB. Citirea cu cursor ar fi o schimbare de arhitectură, **neintrodusă acum** |
+| **revenirea la `85d3c45`** | sigură pentru date (copia criptată nu poate fi restaurată de codul vechi; marcajele ei rămân folosite). **Limită:** codul vechi nu are plasa de 24 h; o copie decriptată urcată în timpul unei reveniri rămâne până la ștergerea manuală. Se consemnează în procedura de revenire |
+| identitatea de test din repository | păstrată criptată cu o frază-parolă de test publică: protejează numai împotriva confundării cu o identitate reală și a scanerelor de secrete; nu se refolosește în niciun mediu real |
+| amprenta `rage` | autorul nu publică sume de control; amprenta fixată este a arhivei descărcate de pe pagina oficială la 01.11.2026 |
+| notele de licență din artefact | nota `age-encryption` (BSD-3-Clause) nu apare în `app.js.LEGAL.txt`; verificare separată, nedecisă |
+
+### 31.7 Ce NU s-a făcut încă
+
+- **Staging-ul nu a fost actualizat:** rulează în continuare `85d3c45`, **fără cheie publică**; copiile lui rămân necriptate. Instalarea candidatului `2fc8403` și validarea criptării pe staging sunt pași separați, cu condiții de testare de stabilit explicit (proprietarul, 01.11.2026, ~13:03).
+- **Întrebările către ClausWeb**, trimise la 02.11.2026, ~09:03: comportamentul unei aplicații oprite la o cerere HTTP și la o repornire a serverului (§29.2) și ora copiilor zilnice ale contului (§30). **Fără răspuns la momentul redactării inițiale a acestei secțiuni (02.11.2026, ~09:04)**; la acel moment, condițiile din §29.2 și §30 erau neîndeplinite. Răspunsul furnizorului și consecințele lui sunt consemnate în §32.
+- Criteriul E4.11 din planul v2.4 **nu este bifat**: lipsesc dovezile din producție (planul r3.2, §9).
+- Manualul 7D, DEC-23 (modificările D23-1, D23-5, D23-6, planul r3.2 §8) și lista variabilelor din documentul de arhitectură: **neactualizate**; se fac după proba pe staging, conform §24.4.
+
+**Ce NU înseamnă această consemnare:** nu autorizează instalarea pe staging, proba E4.11 pe staging, repetiția V3, vreo restaurare sau vreo operație pe staging, producție, cPanel, cron ori `civic.env`; nu activează G6-1 (c); nu decide DEC-3b, DEC-16 (R1 / R2) sau DEC9-4; nu modifică planul v2.4, planul r3.2 sau deciziile P1–P10. Lansarea publică nu este aprobată.
+
+## 32. Răspunsul ClausWeb din 02.11.2026 și consecințele lui (§29.2, §30)
+
+**Sursa:** răspunsul echipei de suport ClausWeb la întrebările trimise la 02.11.2026, ~09:03 (§31.7), transmis de proprietar în conversația de lucru în aceeași zi. Textul integral nu este păstrat în repository; mai jos sunt consemnate numai informațiile comunicate de furnizor.
+
+**Originea deciziilor:** concluzia tehnică din §32.2 se sprijină pe răspunsul furnizorului (§32.1, rândurile 1 și 2). Regula din §32.3 a fost propusă de auditor ca măsură preventivă. Adoptarea de către proprietar a concluziei tehnice din §32.2 și a regulii preventive din §32.3: confirmată la 02.11.2026.
+
+### 32.1 Confirmările furnizorului
+
+| # | Întrebarea (§29.2, §30) | Ce a comunicat furnizorul |
+|---|---|---|
+| 1 | după „Stop App”, o cerere HTTP către subdomeniul de staging repornește aplicația? | **nu.** Oprirea prin „Stop App” dezactivează configurația Passenger și salvează starea `stopped`; repornirea necesită acțiunea explicită „Start App” |
+| 2 | starea de oprire se păstrează după o repornire a serverului? | **da.** Starea `stopped` este persistentă și se păstrează inclusiv după repornirea serverului |
+| 3 | ora copiilor zilnice ale furnizorului | **în jurul orei 04:16, ora României**, ca oră a punctului de restaurare; furnizorul **nu a comunicat** ora începerii și durata operației |
+
+### 32.2 Decizia privind §29.2
+
+Pe baza răspunsului explicit al furnizorului (rândurile 1 și 2 din §32.1), **condiția tehnică din §29.2 este considerată îndeplinită** (adoptarea: vezi „Originea deciziilor”).
+
+Această concluzie **nu înseamnă** activarea G6-1 (c), oprirea staging-ului sau modificarea sarcinilor cron. Acestea rămân condiționate de deciziile și aprobările separate prevăzute în §29.3 și DEC-16 (alegerea între R1 și R2 rămâne deschisă).
+
+### 32.3 Decizia privind §30: intervalul restaurărilor
+
+Regula operațională preventivă, propusă de auditor (adoptarea: vezi „Originea deciziilor”):
+
+> **Nu se execută restaurări pe găzduire în intervalul 03:00–06:00, ora României.**
+
+Justificarea:
+- furnizorul a comunicat ora aproximativă 04:16 pentru punctul de restaurare (§32.1, rândul 3);
+- furnizorul nu a comunicat ora începerii și durata operației;
+- intervalul 03:00–06:00 acoperă preventiv și sarcinile cron proprii de noapte (`backup:db` la 03:17 și `purge:retention` la 03:47).
+
+**Fereastra este o măsură de precauție care reduce riscul suprapunerii, nu o garanție tehnică privind intervalul complet de execuție al copiilor furnizorului.**
+
+### 32.4 Ce NU se schimbă prin această secțiune
+
+- DEC-16: alegerea între R1 și R2 rămâne deschisă;
+- G6-1 (c): decisă (§29.1), **neactivată**;
+- staging-ul rămâne în funcțiune; sarcinile cron nu se opresc, nu se modifică și nu se repornesc;
+- nicio configurație cPanel, aplicație sau server nu este modificată;
+- nicio restaurare (inclusiv repetiția V3) și nicio instalare pe staging nu sunt autorizate prin această consemnare;
+- planul v2.4, planul r3.2 și concluziile §31 rămân neschimbate.
