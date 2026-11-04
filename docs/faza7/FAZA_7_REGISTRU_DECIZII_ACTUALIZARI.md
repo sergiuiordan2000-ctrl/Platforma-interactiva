@@ -1373,3 +1373,112 @@ Fișierele probei 4 refăcute, păstrate de proprietar (nu în repository):
 Pasul 1 (pregătirea instalării `2fc8403`) este **încheiat la nivelul pachetului și al probelor locale**, cu precizările din §34.4–§34.5. Rămân: decizia instalării pe staging și ziua ei (D-3), fiecare cu aprobare separată.
 
 **Ce NU înseamnă această consemnare:** nu autorizează instalarea pe staging, alegerea zilei (D-3), proba E4.11 pe staging, adăugarea `BACKUP_AGE_RECIPIENT`, repetiția V3, vreo restaurare sau vreo operație pe staging, producție, cPanel, cron ori `civic.env`; nu autorizează corectura de licență și nu decide verificările din §34.9; nu închide punctul „verificarea notelor de licență”, care rămâne deschis, cu blocajul din §34.8; nu bifează criteriul E4.11 din planul v2.4; nu activează G6-1 (c); nu decide DEC-3b, DEC9-4 sau propunerea din §25.3; nu modifică planul v2.4, planul r3.2 sau §31. Riscul de memorie al `backup:db` (§31.6) rămâne deschis. Lansarea publică nu este aprobată.
+
+---
+
+## 35. Instalarea `2fc8403` pe staging: încheiată la 03.11.2026, confirmată la 04.11.2026; abaterea V2 (versiunea Node a găzduirii); constatări (03–04.11.2026)
+
+**Sursa:** propunerea de instalare (`PROPUNERE_INSTALARE_2fc8403_STAGING.md`, nepăstrată în repository; numerotarea V0–V8, I-0…I-8, P1–P9 îi aparține) și verificările de mai jos, fiecare cu natura dovezii ei:
+- **verificat de Claude**: numai prin citire, pe o clonă temporară a depozitului;
+- **captură**: verificat de proprietar, cu captura ecranului citită de Claude;
+- **confirmare**: verificat de proprietar și confirmat în scris, fără captură.
+
+Orele nu sunt consemnate, cu excepția momentelor UTC care fac parte din numele copiilor de backup și a orelor programate ale sarcinilor cron.
+
+### 35.1 Decizia D-3 și completările ei (02.11.2026)
+
+**Decizia proprietarului** (02.11.2026): **D-3 = A**. Instalarea planificată la 03.11.2026, în prima parte a zilei, cu 2–3 ore rezervate; verificarea P7–P9 obligatorie la 04.11.2026, dimineața; amânarea, dacă oricare dintre V0–V8 nu corespunde. Stabilirea datei nu a autorizat nicio comandă pe server.
+
+Completările adoptate de proprietar odată cu D-3:
+1. instalarea este „încheiată” după P1–P6 și „confirmată” numai după P7–P9;
+2. ambele amprente (`civic-2fc8403.zip`, `civic-85d3c45.zip`) se verifică pe calculatorul proprietarului, cu `Get-FileHash`, în ziua instalării;
+3. V0 se reface în ziua instalării, numai prin citire;
+4. V8 (verificarea DEC-16 a zilei) trebuie făcută și conformă înaintea începerii.
+
+Organizarea aprobărilor (decisă de proprietar): întâi verificările V0–V8; apoi, separat, aprobarea sau refuzul instalării.
+
+### 35.2 Verificările înaintea instalării (03.11.2026)
+
+| # | Verificarea | Rezultatul | Natura dovezii |
+|---|---|---|---|
+| V0 | depozitul | `origin/faza-5-backend` = `436013c`; `2fc8403` în istoric; între `2fc8403` și `436013c` s-a modificat numai documentația (codul identic cu pachetul); `origin/main` = `d9bc2c9f53cec27dafc846889b0457eea8495d20`; registrul: SHA-256 `7133d17e…7b7d`. CI-ul `2fc8403`: rularea 41299023089 (§34.6) | verificat de Claude (aprobat de proprietar) |
+| V6 | amprentele pe calculator | `civic-85d3c45.zip`: `7b61820cfa59dfc0f67144e5b06cd373eb82ebf924c4aec5ab34987bec4d3890`; `civic-2fc8403.zip`: `2445980914a93a2feae6a9093ef4115558ddb988da9be9e0e4517c79ca7a6738`: **identice** cu cele consemnate | captură (`Get-FileHash`) |
+| V1 | `health` | `{"status":"ok","version":"0.0.0+85d3c45"}` | captură |
+| V2 | Setup Node.js App | `civic-test-app`: **started (v24.22.2)**, mod `production`. **Abatere**: §35.3 | captură |
+| V3 | sarcinile cron | 4 linii, aceleași (în altă ordine de afișare) | confirmare |
+| V4 | `backup.log` | ultima copie: `civic-backup-20261103T011702263Z`, fără eroare; rotația: șters `civic-backup-20261026T011702152Z` | confirmare (textul jurnalului transmis) |
+| V5 | `stderr.log` (`civic-test-app`) | 2,62 KB, modificat la 12.10.2026; conține numai cele 7 rânduri ale probei intenționate R12 (jurnalul staging-ului, intervenția 32). Referință pentru I-7b | captură |
+| V7 | momentul | dimineața, în afara intervalului 03:00–06:30 | — |
+| V8 | DEC-16 a zilei | `backup.log` (V4), `health` (V1) și coada de e-mail: `registry_notification` / `sent` / 1; `citizen_status_update` / `sent` / 1; `citizen_login_code` / `sent` / 7; 0 `failed`, 0 `sending`, 0 `queued`. Totalul (9) corespunde rândurilor `email_outbox` din copia de noapte. **Referința PC1** | captură |
+
+### 35.3 Abaterea V2: versiunea Node a găzduirii
+
+| | Valoarea |
+|---|---|
+| consemnată (CI, jobul „producție”; probele artefactului, §34.4) | Node **24.21.0** |
+| constatată pe găzduire la 03.11.2026 | Node **24.22.2** |
+
+- Schimbarea versiunii **nu a fost făcută de proiect**; data ei nu este cunoscută.
+- **Informația proprietarului** (03.11.2026), din experiența cu furnizorul: ClausWeb **actualizează Node fără anunț**.
+- **Decizia proprietarului** (03.11.2026, varianta B): abaterea se acceptă **numai pentru staging**; verificările V3–V8 continuă; aprobarea instalării include acceptarea abaterii. Aprobarea instalării a fost dată de proprietar („Aprob”) ca răspuns la cererea care includea explicit acceptarea abaterii V2.
+- **Consecința:** `2fc8403` rulează pe staging pe o versiune Node pe care nu a fost testat în CI și nici în probele artefactului. Jobul CI „producție” nu mai reproduce găzduirea.
+
+**Măsuri propuse, NEADOPTATE** (de decis separat, înaintea oricărei discuții despre producție):
+
+| # | Măsura propusă |
+|---|---|
+| a | jobul CI „producție” trece de la versiunea exactă la ultima versiune Node 24, iar versiunea exactă a găzduirii se consemnează la fiecare instalare |
+| b | V2 rămâne obligatorie la fiecare instalare, cu versiunea Node consemnată |
+| c | versiunea Node se adaugă în evidența DEC-16 (o citire în „Setup Node.js App”); completare a DEC-16, decizia proprietarului |
+| d | se verifică, o singură dată și numai prin citire, dacă selectorul din cPanel permite fixarea unei versiuni exacte |
+
+### 35.4 Instalarea (03.11.2026)
+
+**Aprobarea:** proprietarul, 03.11.2026, după verificările din §35.2 (vezi §35.3 pentru acceptarea abaterii V2).
+
+| Pas | Ce s-a făcut | Rezultatul | Natura dovezii |
+|---|---|---|---|
+| I-0 (PC1) | panoul „Fluxul către Primărie” (fără salvare) și interogarea cozii | „staging: numai adresele din listă”; destinatarul de test; coada identică cu referința din V8 | confirmare; captură (coada) |
+| I-1 | `health` | `0.0.0+85d3c45`, `ok` | confirmare |
+| I-2 | „Run JS script” → `civic-backup-db` | **copia de revenire `civic-backup-20261103T072800019Z`**; `stderr` gol; rotația: șters `civic-backup-20261027T011702277Z`. `audit_log`: 52 (51 la copia de noapte; autentificarea proprietarului în panou) | captură |
+| I-2b (PC2) | coada și panoul | identice cu referința | confirmare |
+| I-3 | STOP APP | `stopped` | confirmare |
+| I-4 | urcarea `civic-2fc8403.zip` (din fișierul verificat la V6), extragerea în `civic-test-app`, ștergerea arhivei | `RELEASE.txt`: `commit: 2fc8403`, fără „modificari necomise”; niciun subdosar `civic-2fc8403`; arhiva absentă. Proprietarul a executat cele trei operații ale pasului într-o singură secvență; conținutul a fost verificat înaintea pornirii | captură (`RELEASE.txt`); confirmare |
+| I-5 | migrații | **nu** (nicio migrație nouă) | — |
+| I-6 | `civic.env` | **nemodificat** (data fișierului: 13.10.2026, neschimbată) | captură (listarea din 04.11.2026) |
+| I-7 | START APP | `started (v24.22.2)`; `health`: `{"status":"ok","version":"0.0.0+2fc8403"}` | captură; confirmare |
+| I-7b | `stderr.log` | **neschimbat** față de V5 (2,62 KB, 12.10.2026): fără erori de pornire, fără `NECONFORMITATE (E4.11)` / `AVERTISMENT (E4.11)` | captură |
+| I-8 (PC3) | coada și panoul (servit de codul nou) | identice cu referința | confirmare |
+
+Nicio oprire, nicio revenire. Niciun e-mail trimis pe durata instalării (PC1–PC4).
+
+### 35.5 Criteriile P1–P9
+
+| # | Criteriul | Rezultatul | Data | Natura dovezii |
+|---|---|---|---|---|
+| P1 | `health` | `{"status":"ok","version":"0.0.0+2fc8403"}` | 03.11.2026 | captură |
+| P2 | `RELEASE.txt` și amprenta pachetului | `commit: 2fc8403`; amprenta verificată la V6 | 03.11.2026 | captură |
+| P3 | `stderr.log` | neschimbat (I-7b) | 03.11.2026 | captură |
+| P4 | `noindex`, `robots.txt`, ruta de diagnostic (manualul 7D, 5.2–5.5), cu `curl` de pe calculatorul proprietarului | pagina principală: `200`, `x-robots-tag: noindex, nofollow`; `favicon.svg`: `200`, `image/svg+xml`, același antet; `api/v1/health`: `200`, același antet, `Content-Length: 41`; `robots.txt`: `User-agent: *` / `Disallow: /`; `api/v1/diag/client-ip`: `{"error":{"code":"NOT_FOUND",…}}`. Fișierele statice au `last-modified: Mon, 02 Nov 2026 09:09:18 GMT` (momentul construirii pachetului). O primă încercare cu un nume de fișier greșit (`404`, cu același antet) nu este considerată verificarea fișierului static | 03.11.2026 | captură (antetele); confirmare (`robots.txt`, ruta de diagnostic) |
+| P5 | sarcinile cron | 4 linii, neschimbate față de V3 | 03.11.2026 | confirmare |
+| P6 | PC4 | coada identică cu referința; „numai adresele din listă”; destinatarul de test | 03.11.2026 | captură (coada); confirmare (panoul) |
+| D-1 | probele pe telefon (§34.2) | `health`: `{"status":"ok","version":"0.0.0+2fc8403"}`; panoul Admin se încarcă (servit de codul nou); secțiunea „Fluxul către Primărie”: „staging: numai adresele din listă” (`allowlist`), destinatarul de test, fluxul pornit; **fără salvare** | 03.11.2026 | captură |
+| P7 | prima copie de noapte pe `2fc8403` | `backup.log`: `civic-backup-20261104T011702418Z`, fără eroare și fără `NECONFORMITATE`; copia conține `db.jsonl.gz`, `manifest.json`, `markers.json`, `photos`, **niciun fișier `.age`** (copie în clar, format neschimbat) | 04.11.2026 | captură |
+| P8 | `purge.log` | modificat la 04.11.2026, la ora rulării programate (03:47); fără erori. Rândurile fișierului nu au dată; dovada rulării este data modificării | 04.11.2026 | captură |
+| P9 | DEC-16 a zilei | `backup.log` (P7); `health` `0.0.0+2fc8403`, `ok`; coada identică cu referința (0 `failed`, 0 `sending`, 0 `queued`) | 04.11.2026 | captură |
+
+**Instalarea `2fc8403` pe staging este încheiată (03.11.2026) și confirmată (04.11.2026).** Copiile de pe staging rămân în clar (fără `BACKUP_AGE_RECIPIENT`); revenirea la `85d3c45` rămâne compatibilă cu ele (de reevaluat la momentul unei reveniri).
+
+### 35.6 Constatări
+
+| # | Constatarea | Dovada |
+|---|---|---|
+| 1 | **Fusul orar al cron-ului** (punct marcat anterior ca neverificat): sarcinile cron urmează **ora României**, conform dovezilor disponibile înainte și după trecerea la ora de iarnă. Comportamentul chiar în intervalul orar repetat din 25.10.2026 nu este dovedit separat. Sarcina `backup:db` este programată la **minutul 17, ora 3** (V3). Copia din 25.10.2026, înaintea trecerii la ora de iarnă (UTC+3), poartă momentul `20261025T0017…Z` (00:17 UTC = 03:17, ora României); copiile de după trecere (UTC+2) poartă `T0117…Z` (de exemplu `20261103T011702263Z`, `20261104T011702418Z`; 01:17 UTC = 03:17, ora României). Ora UTC a rulării s-a schimbat odată cu ora legală, deci programarea nu este o diferență fixă față de UTC | programarea: V3 (confirmare); momentele: `backup.log` (V4, P7; captură din 04.11.2026) |
+| 2 | **Rotația copiilor**: copiile mai vechi de 7 zile sunt șterse de `backup:db` (la 03:17), **nu** de `purge:retention` (03:47). În `server/src/db/backup.ts` (identic la `2fc8403` și `436013c`): momentul `now`, stabilit la începutul copiei (r. 295), dă numele copiei noi (r. 298) și este transmis rotației (r. 341); limita este `now − 7 zile` (r. 462); se șterg numai copiile cu momentul **strict mai mic** decât limita (r. 466). `rotateBackups` nu este apelată în altă parte în `server/src`. **`purge:retention` este separată de rotație:** comanda apelează `purgeRetention` (`server/src/cli.ts`, r. 196–200; `server/src/maintenance.ts`, r. 53–131), care nu face nicio referire la `BACKUP_DIR` sau la copiile `civic-backup-*`; singurele ei operații pe fișiere privesc `STORAGE_DIR` (fișierele temporare din `STORAGE_DIR/tmp`, `purgeTmpFiles`, r. 241, și fotografiile sesizărilor expirate, `deleteReportsHard` din `server/src/db/reportDeletion.ts`). Pe staging, `backups` și `storage` sunt dosare distincte în `civic-test-data` (listarea din P8); valorile din `civic.env` nu au fost citite. La 04.11.2026: limita = `20261028T011702418Z`; cea mai veche copie, `civic-backup-20261028T011702629Z`, este cu 0,211 s mai nouă, deci a fost păstrată, iar `backup.log` nu are rândul „șterse”. Comportament corect, conform codului | citirea codului (Claude); listarea `backups` (captură); `backup.log` (captură) |
+| 3 | `outbox-cron.log` și `surveys-cron.log` modificate la 04.11.2026: sarcinile de 2 și 5 minute rulează pe `2fc8403` | listarea `civic-test-data` (captură) |
+| 4 | **Staging-ul are 5 fotografii** (`report_photos`: 5; „fotografii: 5” în copii). Relevant pentru proba E4.11 pe staging: criptarea fotografiilor, neprobată pe artefact (§34.5, 3a), poate fi probată acolo | `backup.log` |
+| 5 | **Manualul 7D (`FAZA_7D_MANUAL_INSTALARE_OPERARE_CIORNA.md`, §5, rândurile 316–319) conține, în comenzile `curl`, utilizatorul real al protecției Basic-auth**, contrar regulii „utilizatorul Basic-auth niciodată în repository”. Constatarea privește un text existent, nu această instalare. Corectura (înlocuirea cu un marcaj) este o modificare separată, cu aprobare distinctă; utilizatorul nu este reprodus în această secțiune | citirea manualului (Claude); comanda folosită la P4 |
+
+### 35.7 Ce NU înseamnă această consemnare
+
+Nu autorizează proba E4.11 pe staging, adăugarea `BACKUP_AGE_RECIPIENT`, repetiția V3, vreo restaurare sau vreo operație pe staging, producție, cPanel, cron ori `civic.env`; nu adoptă succesiunea celor șase etape din §34.1; nu adoptă măsurile din §35.3; nu corectează manualul 7D; nu bifează criteriul E4.11 din planul v2.4; nu ridică blocajul pentru producție din §34.8 (licența `age-encryption`); nu activează G6-1 (c); nu decide DEC-3b, DEC9-4 sau propunerea din §25.3. Riscul de memorie al `backup:db` (§31.6) rămâne deschis. Lansarea publică nu este aprobată.
