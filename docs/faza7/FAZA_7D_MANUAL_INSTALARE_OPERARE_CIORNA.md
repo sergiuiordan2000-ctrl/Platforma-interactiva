@@ -68,7 +68,7 @@ Orice operație din tabelul de mai jos se execută numai după aprobarea explici
 | fotografiile | `/home2/<cont>/civic-test-data/storage` (`STORAGE_DIR`) | [V] jurnal, intervenția 5 |
 | backup-urile și marcajele | `/home2/<cont>/civic-test-data/backups` (`BACKUP_DIR`) | [V] jurnal, intervenția 5 |
 | document root-ul subdomeniului | `/test.urbisactiv.ro`, separat de `/public_html` | [V] jurnal, intervenția 1 |
-| restricția de acces | Directory Privacy pe folderul `test.urbisactiv.ro`, utilizatorul `civic` | [V] jurnal, intervențiile 7 și 18 |
+| restricția de acces | Directory Privacy pe folderul `test.urbisactiv.ro`, utilizatorul `<utilizator>` (numele real nu se consemnează în repository) | [V] jurnal, intervențiile 7 și 18 |
 | redirecționarea `http` → `https` | regulă în `test.urbisactiv.ro/.htaccess`, cu `301`, deasupra secțiunilor cPanel (funcția cPanel „Force HTTPS Redirect” nu este disponibilă) | [V] jurnal, intervențiile 39–40, observația 3 |
 | baza de date | `<cont>_civic_test`, utilizatorul `<cont>_civic`, ALL PRIVILEGES numai pe această bază | [V] jurnal, intervenția 2 |
 
@@ -313,10 +313,10 @@ Verificările din §5 încep numai după PC3 și se încheie cu PC4 (§4.0.1). T
 | # | Verificarea | Cum | Rezultatul așteptat | Marcaj și sursă |
 |---|---|---|---|---|
 | 5.1 | versiunea instalată | `health` | `0.0.0+<sha>`; CI verde pentru același SHA | [E3]; planul v2.4, E3.1 |
-| 5.2 | `noindex` pe pagina rădăcină, pe un fișier static și pe API | de pe calculatorul proprietarului: `curl -sI -u civic https://test.urbisactiv.ro/`, apoi `…/favicon.svg` și `…/api/v1/health` (parola cerută de `curl`, neafișată) | fiecare răspuns conține `X-Robots-Tag: noindex, nofollow` | forma comenzii: [V] jurnal, intervenția 71; rezultatul: [E3]; planul v2.4, E3.2 și E3.6 |
-| 5.3 | `robots.txt` | `curl -s -u civic https://test.urbisactiv.ro/robots.txt` | exact `User-agent: *` și `Disallow: /` | [E3]; aceeași verificare există în CI (pasul „Artefactul”, P5) |
+| 5.2 | `noindex` pe pagina rădăcină, pe un fișier static și pe API | de pe calculatorul proprietarului: `curl -sI -u <utilizator> https://test.urbisactiv.ro/`, apoi `…/favicon.svg` și `…/api/v1/health` (parola cerută de `curl`, neafișată) | fiecare răspuns conține `X-Robots-Tag: noindex, nofollow` | forma comenzii: [V] jurnal, intervenția 71; rezultatul: [E3]; planul v2.4, E3.2 și E3.6 |
+| 5.3 | `robots.txt` | `curl -s -u <utilizator> https://test.urbisactiv.ro/robots.txt` | exact `User-agent: *` și `Disallow: /` | [E3]; aceeași verificare există în CI (pasul „Artefactul”, P5) |
 | 5.4 | LiteSpeed nu ocolește antetul aplicației | rezultatul 5.2 pentru fișierul static (`/favicon.svg`) | antetul prezent și pe fișierul static | [E3]; planul v2.4, E3.2 |
-| 5.5 | ruta de diagnostic nu mai răspunde | `curl -s -u civic https://test.urbisactiv.ro/api/v1/diag/client-ip` | eroare `NOT_FOUND` (răspuns 404) | [V] testul DG-1; pe staging: [E3]; planul v2.4, E3.7 |
+| 5.5 | ruta de diagnostic nu mai răspunde | `curl -s -u <utilizator> https://test.urbisactiv.ro/api/v1/diag/client-ip` | eroare `NOT_FOUND` (răspuns 404) | [V] testul DG-1; pe staging: [E3]; planul v2.4, E3.7 |
 | 5.6 | cele 4 sarcini cron există | cPanel → Cron Jobs (numai citire) | §6 | [E3]; planul v2.4, E3.3 |
 | 5.7 | prima rulare `purge:retention` după instalare | `purge.log`, citit după prima rulare de noapte | ieșirea comenzii, fără erori | [E3]; planul v2.4, E3.4 |
 | 5.8 | o copie reușită după instalare | `backup.log` | `backup:db: civic-backup-…` | [E3]; planul v2.4, E3.5 |
