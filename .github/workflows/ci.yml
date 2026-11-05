@@ -205,10 +205,11 @@ jobs:
           # ca pe staging: setările din fișierul numit de CIVIC_ENV_FILE (decizia tehnică 5.1-A)
           CIVIC_ENV_FILE="$RUNNER_TEMP/civic.env" node server/dist/app.js migrate:status
           # V3: comenzile țintei sunt în artefact și citesc `restore-target.env` de lângă fișierul de setări activ;
-          # fără o copie decriptată în BACKUP_DIR, `status` raportează ținta (fără parolă) și iese cu 1; nimic scris
+          # fără o copie decriptată în BACKUP_DIR, `status` raportează ținta (fără parolă) și iese cu 1; nimic scris.
+          # Directorul țintă stă în afara directorului cu fișierul de setări (protecția din restoreTarget.ts îl refuză acolo).
           mkdir -p "$RUNNER_TEMP/v3/backups"
           { cat "$RUNNER_TEMP/civic.env"; echo "BACKUP_DIR=$RUNNER_TEMP/v3/backups"; } > "$RUNNER_TEMP/v3/civic.env"
-          printf 'DATABASE_URL=%s\nSTORAGE_DIR=%s\n' "$CIVIC_TEST_TARGET_DATABASE_URL" "$RUNNER_TEMP/v3/storage" > "$RUNNER_TEMP/v3/restore-target.env"
+          printf 'DATABASE_URL=%s\nSTORAGE_DIR=%s\n' "$CIVIC_TEST_TARGET_DATABASE_URL" "$RUNNER_TEMP/v3-storage" > "$RUNNER_TEMP/v3/restore-target.env"
           chmod 600 "$RUNNER_TEMP/v3/civic.env" "$RUNNER_TEMP/v3/restore-target.env"
           set +e
           v3out="$(CIVIC_ENV_FILE="$RUNNER_TEMP/v3/civic.env" node server/dist/app.js restore-target:status 2>&1)"
@@ -219,7 +220,7 @@ jobs:
           echo "$v3out" | grep -q 'parola nu se afișează'
           echo "$v3out" | grep -q 'nu există nicio copie decriptată'
           if echo "$v3out" | grep -q 'ci_target_only'; then echo "ieșirea conține parola țintei"; exit 1; fi
-          test ! -e "$RUNNER_TEMP/v3/storage"
+          test ! -e "$RUNNER_TEMP/v3-storage"
           CIVIC_ENV_FILE="$RUNNER_TEMP/civic.env" node server/dist/app.js > "$RUNNER_TEMP/server.log" 2>&1 &
           SERVER_PID=$!
           for i in $(seq 1 30); do curl -sf http://127.0.0.1:3900/api/v1/health && break; sleep 1; done
