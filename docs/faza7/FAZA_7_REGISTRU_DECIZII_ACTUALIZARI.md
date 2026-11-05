@@ -1482,3 +1482,114 @@ Nicio oprire, nicio revenire. Niciun e-mail trimis pe durata instalării (PC1–
 ### 35.7 Ce NU înseamnă această consemnare
 
 Nu autorizează proba E4.11 pe staging, adăugarea `BACKUP_AGE_RECIPIENT`, repetiția V3, vreo restaurare sau vreo operație pe staging, producție, cPanel, cron ori `civic.env`; nu adoptă succesiunea celor șase etape din §34.1; nu adoptă măsurile din §35.3; nu corectează manualul 7D; nu bifează criteriul E4.11 din planul v2.4; nu ridică blocajul pentru producție din §34.8 (licența `age-encryption`); nu activează G6-1 (c); nu decide DEC-3b, DEC9-4 sau propunerea din §25.3. Riscul de memorie al `backup:db` (§31.6) rămâne deschis. Lansarea publică nu este aprobată.
+
+---
+
+## 36. Etapa 3 (E4.11 pe staging): încheiată la 04.11.2026, confirmată la 05.11.2026; cheia de staging; succesiunea condiționată; CI aliniat la găzduire; publicări și constatări (04–05.11.2026)
+
+**Sursa:** deciziile proprietarului din 04–05.11.2026, din conversația de lucru, și verificările de mai jos, cu natura dovezii: **verificat de Claude** (numai citire: depozitul, codul, CI prin `gh`); **captură** (verificat de proprietar, captura citită de Claude); **confirmare** (verificat de proprietar, confirmat în scris). Recomandările lui Claude și ale auditorului nu sunt aprobări. Orele nu sunt consemnate, cu excepția momentelor UTC din numele copiilor și a orelor programate ale sarcinilor cron.
+
+### 36.1 Publicări în depozit și CI
+
+| Commitul | Conținutul | Publicarea | CI |
+|---|---|---|---|
+| `436013c` | registrul §34 (02.11.2026) | push de pe calculatorul proprietarului, din bundle (varianta B) | rularea #176, ID **41505801052** (ID-ul lipsea din §34–§35): 7/7 succes |
+| `70ded7d` | registrul §35 | idem (bundle cu un singur commit, amprenta verificată pe calculator) | #177, ID 41787662770: 7/7 succes (citit de Claude prin `gh`) |
+| `7ce1126` | manualul 7D: utilizatorul Basic-auth înlocuit cu `<utilizator>` (rândurile 71, 316, 317, 319); §36.3 | push din sesiune | #178, ID 41791511882: 7/7 succes |
+| `1524891` | CI: jobul de producție (DEC-8 c1) fixat pe Node 24.22.2; §36.7 | push din sesiune | #179, ID 41884838317: 7/7 succes |
+
+**Dreptul de push din sesiune:** proprietarul a aprobat la 04.11.2026 atașarea depozitului cu drept de scriere în sesiunea de lucru (până atunci: numai citire, push prin bundle de pe calculator). Claude a precizat, iar proprietarul nu a contestat, că **regula aprobării separate a fiecărui push rămâne** (aplicarea, commitul și push-ul, fiecare cu aprobare); s-a aplicat astfel la `7ce1126` și `1524891`. Protecția depozitului este de acum procedurală, nu tehnică.
+
+`origin/main` = `d9bc2c9f53cec27dafc846889b0457eea8495d20`, neschimbat (verificat de Claude la fiecare publicare).
+
+### 36.2 Numele depozitului
+
+- La push, GitHub afișează „This repository moved”: numele oficial este **`Platforma-interactiva`** (cu P mare); documentele și comenzile folosesc `platforma-interactiva`. Ambele adrese duc la același depozit (aceleași SHA-uri, verificat de Claude).
+- Jurnalul de securitate al contului (filtrul `action:repo.rename`): **nicio redenumire** (captură, 02.11.2026); pagina Collaborators: **0 colaboratori** (captură). Concluzia verificărilor efectuate: diferență de majusculă în adresă, fără indicii de redenumire neautorizată. Verificarea GitHub Apps și Deploy keys rămâne deschisă.
+- **Neverificate:** „GitHub Apps” și „Deploy keys” ale depozitului (pagina Collaborators arată numai persoanele). Actualizarea numelui în documente: pas separat, neurgent.
+
+### 36.3 Utilizatorul Basic-auth în depozit (continuarea §35.6, punctul 5)
+
+- **Corectat:** manualul 7D (`7ce1126`), cele patru rânduri; manualul nu mai conține utilizatorul.
+- **Decizia proprietarului** (04.11.2026, varianta A): **numai manualul** se corectează. Celelalte apariții rămân neatinse, ca evidențe istorice: `docs/faza5/STAGING_URBISACTIV_JURNAL.md` (rândurile 35, 47, 67, 101), `docs/faza5/FAZA_5_1_STAGING_JURNAL.md` (rândul 85), `docs/faza6/FAZA_6_REAUDIT_SECURITATE.md` (109, 111), `PROJECT_HANDOFF_CURRENT.md` (257). Utilizatorul bazei de date de test din CI și din ghidul local este altceva și nu face obiectul constatării.
+- **Expunere cunoscută, necorectată:** depozitul este public; numele de utilizator rămâne și în istoricul git (care nu se rescrie). Protecția staging-ului este parola, care nu apare în depozit. Singura măsură care reduce riscul (schimbarea utilizatorului în cPanel) se decide separat, odată cu G6-1 (c).
+
+### 36.4 Succesiunea condiționată a etapelor rămase (adoptată de proprietar la 04.11.2026)
+
+Înlocuiește succesiunea propusă din §34.1 (neadoptată acolo). Recomandată de Claude și de auditor; adoptată de proprietar, cu completările (a) și (b).
+
+| # | Etapa | Condiția |
+|---|---|---|
+| 1 | pregătirea: gestionarea cheii, generarea și verificarea identității | înaintea oricărei modificări pe găzduire. **Îndeplinită** (§36.5) |
+| — | măsura Node „a” | activitate separată, cu rezultatul ei. **Reformulată și îndeplinită** (§36.7) |
+| 2 | etapa 3: E4.11 pe staging | **încheiată și confirmată** (§36.6) |
+| 3 | decizia despre V3 | dacă V3 e complet pregătită, se face înaintea opririi; altfel staging-ul nu rămâne pornit în așteptarea ei |
+| 4 | etapa 6: oprirea staging-ului (G6-1 c); **(a)** decizia despre copiile în clar rămase pe găzduire | după etapa 3 (și V3, dacă a fost gata) |
+| 5 | etapa 4: V3, dacă a fost amânată; **(b)** metoda de lansare a restaurării stabilită printr-o propunere separată, **fără sarcină cron temporară** | repornire temporară, apoi oprire |
+| 6 | etapa 5: proba E4 în instanța B | numai după rezolvarea blocajelor de producție (§34.8, măsurile Node, instalarea E4, DEC9-4) |
+
+Adoptarea stabilește ordinea de lucru; nu autorizează nicio operație.
+
+### 36.5 Identitatea de staging (04.11.2026)
+
+| Element | Valoarea |
+|---|---|
+| decizia K-1 | **A:** identitate **separată, numai pentru staging** (date de test), generată cu procedura din planul r3.2, §4.2; identitatea de producție va fi alta |
+| decizia K-2 | **A** (schimbată de proprietar de la B, după discuția despre proporționalitate): suporturile **nu** sunt criptate cu BitLocker. **Abatere aprobată față de planul r3.2, §4.2**, limitată la identitatea de staging; pentru identitatea de producție regula din plan rămâne neschimbată |
+| generarea | pe calculatorul proprietarului, cu programul oficial `age` **v1.3.2**, direct pe suport, criptată imediat cu fraza-parolă (procedura din planul r3.2, §4.2); cheia privată nu a fost afișată și nu a fost scrisă în clar |
+| cheia publică | `age1vxd7kcvylhz7jm8tzwc50msedq0xggz92np289ydcrpkdn25wq9qpr0ggz` (suma de control verificată de Claude) |
+| copiile identității | **două copii, pe suporturi separate fizic**; identice (amprentele comparate); **ambele verificate prin decriptare** cu fraza (cheia publică rezultată = cea de mai sus) |
+| fraza-parolă | păstrată în **două locuri separate**, un manager de parole și o copie pe hârtie, separat de suporturi (planul r3.2, §4.1) |
+| fișa de utilizare | document al proprietarului, în afara repository-ului, fără secrete: elementele și locul lor, verificarea, testul trimestrial, pierderile, reinstalarea programelor, verificarea și decriptarea unei copii (completată după etapa 3) |
+
+**Propunere, neadoptată:** înaintea producției, o revizie de proporționalitate a procedurii de chei (planul r3.2, §4) și a DEC-23, cu decizii explicite despre ce se păstrează și ce se simplifică.
+
+### 36.6 Etapa 3: proba E4.11 pe staging
+
+**Propunerea:** `PROPUNERE_ETAPA3_E411_STAGING.md`, **r2** (SHA-256 `043c2833d61adde411befd729fc26cb4599c9dc9ef7265ac49bad81cdfd9cd98`; în afara repository-ului), revizuită de auditor (r1 → r2: PR-1 cu situația reală a BitLocker, dosarul de lucru nesincronizat, arhiva descărcată, aprobarea în două momente).
+
+**Aprobarea, în două momente (proprietarul, 04.11.2026):**
+1. documentul r2; **D-E0 = B** (proba nu așteaptă măsura Node „a”); **D-E1 = A** (repornire imediată); **D-E2 = A** (copia la cerere + copia de noapte); **D-E3 = A** (Node 24 portabil, conform P5); **acceptarea explicită a consecințelor din §7 al propunerii, inclusiv A5** (`85d3c45` nu poate restaura copiile criptate; copiile criptate depind de identitatea de staging; după 7 nopți rămân numai copii criptate);
+2. execuția, separat, în aceeași zi.
+
+**Execuția (04.11.2026) și confirmarea (05.11.2026):**
+
+| Pas / criteriu | Rezultatul | Natura dovezii |
+|---|---|---|
+| E-0 | `health` `0.0.0+2fc8403`, `ok`; `started (v24.22.2)`; cele 4 linii cron neschimbate, **toate cu `CIVIC_ENV_FILE=…/civic-test-data/civic.env`**; `stderr.log` 2,62 KB, 12.10.2026. E-0d (`backup.log`) și E-0f (DEC-16) acceptate pe baza verificărilor din dimineața aceleiași zile (§35.5, P7, P9), fără rulare intermediară | captură; confirmare |
+| E-1 | `civic.env` citit: niciun rând `BACKUP_AGE_RECIPIENT` | confirmare (fără captură) |
+| E-2 | un rând adăugat la finalul `civic.env`: `BACKUP_AGE_RECIPIENT=<cheia publică de staging>`; niciun alt rând modificat | confirmare |
+| E-3 / P-E1 | RESTART; `started (v24.22.2)`; `health` `0.0.0+2fc8403`, `ok` | captură; confirmare |
+| E-4 / P-E2 | `stderr.log` neschimbat (2,62 KB, 12.10.2026) | captură |
+| E-5 / P-E3 | „Run JS script” → `civic-backup-db`: **`civic-backup-20261104T174116344Z`**, „fotografii: 5; **criptată (age)**”; rotația: șterse `civic-backup-20261028T011702629Z` și `civic-backup-20261028T062014021Z`. în **ieșirea afișată de „Run JS script”** (rubrica stderr a ferestrei; **nu** în fișierul `stderr.log`) a apărut un rând **„npm notice”**, emis de `npm` (prin care cPanel rulează scriptul), nu de aplicație (textul nu există în codul aplicației, verificat de Claude); textul complet nu a fost citit. Fișierul `stderr.log` nu a fost recitit după E-5 | captură |
+| E-6 / P-E4 | `binding.json.age`, `db.jsonl.gz.age`, `manifest.json`, `markers.json`, `photos` cu **5 fișiere `.age`**; niciun fișier de date în clar | captură |
+| E-7 | arhiva copiei creată în `civic-test-data` (nu în `backups`), descărcată, **ștearsă de pe găzduire** | captură; confirmare |
+| L-1 | dosarul de lucru `D:\urbis-proba` (disc intern, nesincronizat, ales de proprietar); Node portabil **v24.22.2** (aceeași versiune ca găzduirea); aplicația extrasă din `civic-2fc8403.zip` | captură |
+| L-2 | amprenta arhivei: `2e2f2e13923d61a4c15f6d453f906e873280f0154ff4d95be2fd52776d5b67ff` | confirmare |
+| L-3 | 9 fișiere; fotografiile la `photos/photos/<cheie>.webp.age` (structura proiectată: cheia de stocare începe cu `photos/`, `backup.ts` r. 413; acceptată de `backupCrypto.ts` r. 60) | captură; citirea codului (Claude) |
+| L-4 / P-E5 | `backup:verify`: „sesizări 11; fotografii în manifest: 5”; „fișiere criptate decriptate integral: 6 (din care fotografii: 5)”; „copia este întreagă și consecventă”; **cod 0** | captură |
+| L-5 / P-E6 | `backup:decrypt`: `civic-restore-20261104T175918043Z` cu `DECRYPTED-COPY.json`, `db.jsonl.gz`, `manifest.json`, `markers.json` și 5 fotografii; **cod 0** | captură |
+| L-6 / P-E6 | frază greșită: „Fraza-parolă este greșită sau fișierul de identitate este deteriorat.”; **cod 1** | captură |
+| L-7 | copia decriptată și copia dezarhivată șterse imediat; după P-E8, dosarul de lucru șters integral. Pe suporturile identității **nu s-a scris nimic** (identitatea a fost numai citită; toate fișierele de lucru au stat în dosarul de lucru); **identitatea de staging se păstrează**. Golirea clipboard-ului și returnarea suportului la locul lui: cerute la L-7, **neconfirmate explicit în scris** | captură; confirmare |
+| **P-E7** | copia de noapte **`civic-backup-20261105T011702381Z`** (03:17): „fotografii: 5; **criptată (age)**”; structura: numai `.age` + metadate. **Dovada directă că sarcina cron preia cheia din `civic.env`** (precondiția PR-2) | captură |
+| **P-E8** | `purge.log` modificat la 05.11.2026, la ora programată (03:47), fără erori; DEC-16 a zilei: `health` `ok`, coada identică cu referința (1 / 1 / 7, `sent`; 0 `failed`, `sending`, `queued`) | captură |
+
+**Etapa 3 este încheiată (04.11.2026) și confirmată (05.11.2026).** `backup.log` arată trecerea în trei nopți: `20261103T0117…` (versiunea veche, fără mențiune), `20261104T0117…` („NECRIPTATĂ: BACKUP_AGE_RECIPIENT lipsește …”), `20261105T0117…` („criptată (age)”).
+
+**Efecte asupra punctelor deschise:**
+- §34.5, **3a** (criptarea fotografiilor neprobată pe artefact): **probată pe găzduire** (P-E4, P-E5, P-E6);
+- §34.5, **3b** (motivul eșecului la controlul negativ neafișat): pe găzduire, motivul este afișat (L-6);
+- §34.5, **3.3** (verificarea refăcută a analizei statice): neschimbat, deschis;
+- **copiile în clar** de pe staging (29.10–04.11.2026) dispar prin rotație; ultima (`civic-backup-20261104T011702418Z`) în noaptea de 10/11.11.2026. Completarea (a) din §36.4 se decide la oprirea staging-ului;
+- criteriul E4.11 din planul v2.4 **rămâne nebifat** (dovezile cerute privesc producția).
+
+### 36.7 CI aliniat la găzduire: măsura „a” reformulată
+
+- **Corectura propunerii din §35.3 (măsura a):** trecerea jobului de producție pe „ultimul Node 24” ar fi dublat joburile existente „Node 24” (care folosesc deja versiunea curentă a runner-ului; în rularea #178: 24.22.1 / 24.22.2) și ar fi eliminat rostul jobului DEC-8 (c1), fixat pe versiunile **exacte** de producție. Problema reală: versiunea fixată rămăsese în urmă față de găzduire.
+- **Verificarea găzduirii (04.11.2026):** Node **24.22.2** (V2, E-0b); MariaDB **11.4.13** (`11.4.13-MariaDB-cll-lve`, phpMyAdmin; captură), neschimbat față de 07.10.2026.
+- **Decizia proprietarului** (04.11.2026, varianta A): DEC-8 (c1) **păstrată**; versiunea Node fixată actualizată la **24.22.2** (`1524891`; diff revizuit de auditor). În CI #179, jobul de producție rulează pe `v24.22.2` și `11.4.13` și își trece verificarea explicită a versiunilor (citit de Claude din jurnalul rulării). **Abaterea V2 (§35.3) este rezolvată în CI**: codul `2fc8403` este testat pe versiunea Node a staging-ului.
+- La o actualizare viitoare a furnizorului, fixarea se actualizează prin același tip de commit, după constatarea la V2. Măsurile **b, c, d** din §35.3 rămân **propuse, neadoptate**.
+
+### 36.8 Ce NU înseamnă această consemnare
+
+Nu autorizează repetiția V3, oprirea staging-ului, ștergerea copiilor în clar, schimbarea utilizatorului Basic-auth sau vreo operație pe staging, producție, cPanel, cron ori `civic.env`; nu generează și nu stabilește identitatea de producție; nu adoptă revizia de proporționalitate din §36.5 și nici măsurile b–d din §35.3; nu ridică blocajul pentru producție din §34.8 (licența `age-encryption`); nu bifează criteriul E4.11 din planul v2.4; nu activează G6-1 (c); nu decide DEC-3b, DEC9-4, DEC-20 pentru datele E7 sau propunerea din §25.3; nu modifică planul v2.4, planul r3.2 sau DEC-23. Riscul de memorie al `backup:db` (§31.6) rămâne deschis. Lansarea publică nu este aprobată.
