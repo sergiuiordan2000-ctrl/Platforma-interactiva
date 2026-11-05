@@ -9,6 +9,9 @@
 // Faza 6, A1: markers:rebuild-counter [--at-least N]: refacerea EXPLICITĂ a marcajului contorului TM pierdut.
 // E4.11 (registrul §24): backup:verify și backup:decrypt rulează pe calculatorul proprietarului, fără civic.env și
 // fără bază de date (`runOfflineCli`); identitatea age, criptată cu fraza-parolă, nu ajunge niciodată pe găzduire.
+// V3 (propunerea r4, aprobată la 05.11.2026): restore-target:status | restore-target:migrate |
+// restore-target:restore --check|--confirm — restaurarea de probă pe o bază și un director de test, cu ținta din
+// `restore-target.env` (lângă fișierul de setări activ), pornită din „Run JS script”, fără sarcină cron temporară.
 
 import { basename, dirname, resolve } from 'node:path';
 import type { Config } from './config.ts';
@@ -22,10 +25,18 @@ import { decryptCopy, readIdentityFile, verifyEncryptedCopy, type CopyVerificati
 import { HOST_RESTORE_COMMAND, formatHostRecovery, recoverAfterHostRestore } from './db/hostRestore.ts';
 import { initBackupMarkers, rebuildReportCounterWatermark } from './db/reportCounter.ts';
 import { createDb } from './db/client.ts';
-import { migrate, schemaStatus } from './db/migrations.ts';
+import { MIGRATIONS_TABLE, migrate, schemaStatus } from './db/migrations.ts';
 import { checkNoDemo } from './db/noDemo.ts';
 import { SeedRefusedError, assertDemoAllowed, seedConfig, seedDemo } from './db/seeds.ts';
-import { MIGRATIONS_DIR, SEEDS_DIR } from './paths.ts';
+import { APP_ROOT, MIGRATIONS_DIR, SEEDS_DIR } from './paths.ts';
+import {
+  RESTORE_TARGET_MIGRATE_COMMAND,
+  RESTORE_TARGET_RESTORE_COMMAND,
+  RESTORE_TARGET_STATUS_COMMAND,
+  checkRestoreTarget,
+  findSingleRestoreCopy,
+  readRestoreTarget,
+} from './db/restoreTarget.ts';
 import type { AppContext } from './context.ts';
 import { purgePow, purgeRetention } from './maintenance.ts';
 import { processDue } from './reports/outbox.ts';
@@ -58,6 +69,9 @@ export const CLI_COMMANDS = [
   REBUILD_COUNTER_COMMAND,
   RECREATE_ACCOUNT_MARKERS_COMMAND,
   HOST_RESTORE_COMMAND,
+  RESTORE_TARGET_STATUS_COMMAND,
+  RESTORE_TARGET_MIGRATE_COMMAND,
+  RESTORE_TARGET_RESTORE_COMMAND,
 ] as const;
 
 export type CliCommand = (typeof CLI_COMMANDS)[number];
@@ -76,6 +90,9 @@ export async function runCli(
   args: string[] = [],
 ): Promise<number> {
   if (command === 'backup:db' || command === 'restore:db') return runBackupCommand(command, config, out, args);
+  if (command === RESTORE_TARGET_STATUS_COMMAND || command === RESTORE_TARGET_MIGRATE_COMMAND || command === RESTORE_TARGET_RESTORE_COMMAND) {
+    return runRestoreTargetCommand(command, config, out, args);
+  }
   if (command === 'bootstrap-admin') return runBootstrap(config, out, args);
   if (command === RECREATE_ACCOUNT_MARKERS_COMMAND) {
     // R18: refacere explicită, numai fișiere (fără bază); numai numere în ieșire
@@ -354,6 +371,164 @@ async function runBackupCommand(
     out.error(err instanceof Error ? err.message : String(err));
     return 1;
   }
+}
+
+type RestoreTargetCommand =
+  | typeof RESTORE_TARGET_STATUS_COMMAND
+  | typeof RESTORE_TARGET_MIGRATE_COMMAND
+  | typeof RESTORE_TARGET_RESTORE_COMMAND;
+
+/**
+ * V3: comenzile pe ținta din `restore-target.env` (propunerea r4, §2). Setările active (`config`) nu se modifică și
+ * `process.env` nu se atinge: ținta ajunge la funcțiile existente numai ca parametru (o copie a obiectului `config`,
+ * cu DATABASE_URL și STORAGE_DIR ale țintei). Orice refuz are loc înaintea primei scrieri.
+ */
+export async function runRestoreTargetCommand(
+  command: RestoreTargetCommand,
+  config: Config,
+  out: Out,
+  args: string[],
+  env: NodeJS.ProcessEnv = process.env,
+  /** numai pentru teste: rulează după verificarea inițială, înaintea reverificării dinaintea primei scrieri */
+  hooks: { beforeRecheck?: () => void | Promise<void> } = {},
+): Promise<number> {
+  const mode = args.includes('--check') ? '--check' : args.includes('--confirm') ? '--confirm' : null;
+  const known = command === RESTORE_TARGET_RESTORE_COMMAND ? ['--check', '--confirm'] : [];
+  const unknown = args.filter((a) => !known.includes(a));
+  if (unknown.length > 0 || (command === RESTORE_TARGET_RESTORE_COMMAND && (mode === null || args.length !== 1))) {
+    out.error(`Utilizare: ${RESTORE_TARGET_STATUS_COMMAND} | ${RESTORE_TARGET_MIGRATE_COMMAND} | ${RESTORE_TARGET_RESTORE_COMMAND} --check|--confirm (fără alte argumente)`);
+    return 2;
+  }
+  if (!config.backupDir) {
+    out.error(`${command}: BACKUP_DIR nu este configurat.`);
+    return 1;
+  }
+  const backupDir = config.backupDir;
+  const active = { databaseUrl: config.databaseUrl, storageDir: config.storageDir, backupDir, appRoot: APP_ROOT };
+  let target;
+  let checked;
+  try {
+    target = readRestoreTarget(env[ENV_FILE_VAR]);
+    checked = checkRestoreTarget(target, active);
+  } catch (err) {
+    out.error(`${command}: REFUZ, nimic scris. ${err instanceof Error ? err.message : String(err)}`);
+    return 1;
+  }
+  const t = checked.target;
+  out.log(`${command}: ținta din ${target.file}`);
+  out.log(`  baza: ${t.database} (utilizator ${t.user}, gazda ${t.host}:${t.port}; parola nu se afișează)`);
+  out.log(`  STORAGE_DIR: ${checked.storageReal ?? target.storageDir}`);
+  if (checked.problems.length > 0) {
+    for (const p of checked.problems) out.error(`  REFUZ: ${p}`);
+    out.error(`${command}: REFUZ, nimic scris.`);
+    return 1;
+  }
+
+  // baza țintă, numai citire: numele confirmat de server și tabelele cu rânduri
+  const probe = createDb(target.databaseUrl, { connectionLimit: 1 });
+  let nonEmpty: string[];
+  let tables: number;
+  try {
+    const conn = await probe.pool.getConnection();
+    try {
+      await conn.query('SET SESSION TRANSACTION READ ONLY');
+      const [dbRows] = await conn.query('SELECT DATABASE() AS db');
+      const actual = (dbRows as Array<{ db: string | null }>)[0]?.db ?? null;
+      if (actual !== t.database) {
+        out.error(`  REFUZ: serverul raportează altă bază curentă decât cea declarată în fișierul țintei.`);
+        out.error(`${command}: REFUZ, nimic scris.`);
+        return 1;
+      }
+      const [tRows] = await conn.query(
+        "SELECT TABLE_NAME AS t FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_TYPE = 'BASE TABLE' ORDER BY TABLE_NAME",
+      );
+      const names = (tRows as Array<{ t: string }>).map((r) => r.t);
+      tables = names.length;
+      nonEmpty = [];
+      for (const name of names) {
+        if (name === MIGRATIONS_TABLE) continue;
+        const [c] = await conn.query(`SELECT COUNT(*) AS n FROM \`${name.replace(/`/g, '``')}\``);
+        if (Number((c as Array<{ n: number }>)[0]!.n) > 0) nonEmpty.push(name);
+      }
+    } finally {
+      conn.release();
+    }
+  } catch (err) {
+    out.error(`${command}: baza țintă nu este accesibilă: ${err instanceof Error ? err.message : String(err)}`);
+    return 1;
+  } finally {
+    await probe.close();
+  }
+  out.log(`  baza țintă confirmată de server: ${tables} tabele; cu rânduri (în afara ${MIGRATIONS_TABLE}): ${nonEmpty.length === 0 ? 'niciuna' : nonEmpty.join(', ')}`);
+
+  // Reverificarea imediat înaintea primei scrieri (propunerea r4, §2.4, punctul 3), pentru `migrate` și pentru
+  // restaurare: fișierul țintei se recitește și se revalidează, iar baza (DATABASE_URL, comparat integral) și
+  // directorul (calea reală) trebuie să fie EXACT cele verificate mai sus; orice diferență = refuz, nimic scris.
+  const initial = { databaseUrl: target.databaseUrl, storageReal: checked.storageReal };
+  const recheck = async (): Promise<string | null> => {
+    await hooks.beforeRecheck?.();
+    try {
+      const again = readRestoreTarget(env[ENV_FILE_VAR]);
+      const res = checkRestoreTarget(again, active);
+      if (res.problems.length > 0) return `ținta nu mai trece verificarea (${res.problems.join(' ')})`;
+      if (again.databaseUrl !== initial.databaseUrl) return 'DATABASE_URL din fișierul țintei s-a schimbat după verificarea inițială';
+      if (res.storageReal !== initial.storageReal) return 'STORAGE_DIR din fișierul țintei s-a schimbat după verificarea inițială';
+      return null;
+    } catch (err) {
+      return err instanceof Error ? err.message : String(err);
+    }
+  };
+
+  if (command === RESTORE_TARGET_STATUS_COMMAND) {
+    let problems = 0;
+    try {
+      out.log(`  copia sursă: ${basename(findSingleRestoreCopy(backupDir))}`);
+    } catch (err) {
+      out.error(`  copia sursă: ${err instanceof Error ? err.message : String(err)}`);
+      problems++;
+    }
+    out.log(`${command}: numai citire, nimic scris. ${problems === 0 ? 'Ținta și copia sunt identificate.' : 'Copia sursă nu este pregătită.'}`);
+    return problems === 0 ? 0 : 1;
+  }
+
+  if (command === RESTORE_TARGET_MIGRATE_COMMAND) {
+    if (nonEmpty.length > 0) {
+      out.error(`${command}: REFUZ, nimic scris: baza țintă are deja date (${nonEmpty.join(', ')}); folosiți o bază de test nouă.`);
+      return 1;
+    }
+    const changed = await recheck();
+    if (changed) {
+      out.error(`${command}: REFUZ, nimic scris: ${changed}; rulați din nou restore-target:status.`);
+      return 1;
+    }
+    const handle = createDb(initial.databaseUrl, { connectionLimit: 3 }); // migrate() folosește două conexiuni
+    try {
+      const res = await migrate(handle.pool, MIGRATIONS_DIR, (m) => out.log(m));
+      out.log(`${command}: schema bazei țintă la versiunea ${res.version}`);
+      return 0;
+    } catch (err) {
+      out.error(`${command}: ${err instanceof Error ? err.message : String(err)}`);
+      return 1;
+    } finally {
+      await handle.close();
+    }
+  }
+
+  // restore-target:restore --check | --confirm
+  let source: string;
+  try {
+    source = findSingleRestoreCopy(backupDir);
+  } catch (err) {
+    out.error(`${command}: REFUZ, nimic scris. ${err instanceof Error ? err.message : String(err)}`);
+    return 1;
+  }
+  const changed = await recheck();
+  if (changed) {
+    out.error(`${command}: REFUZ, nimic scris: ${changed}; rulați din nou restore-target:status.`);
+    return 1;
+  }
+  out.log(`  copia sursă: ${basename(source)}`);
+  return runBackupCommand('restore:db', { ...config, databaseUrl: initial.databaseUrl, storageDir: target.storageDir }, out, [source, mode!]);
 }
 
 function argValue(args: string[], name: string): string | undefined {

@@ -592,7 +592,7 @@ export type RestoreInspection = {
 };
 
 /** Calea reală (legăturile simbolice rezolvate), și pentru un director care nu există încă. */
-function realPath(p: string): string {
+export function realPath(p: string): string {
   let current = resolve(p);
   const rest: string[] = [];
   while (!existsSync(current)) {

@@ -70,6 +70,8 @@ jobs:
           --health-retries=30
     env:
       CIVIC_TEST_DATABASE_URL: mysql://civic:ci_civic_only@127.0.0.1:3306/civic_test
+      # V3: a doua bază, cu alt utilizator, ținta testelor `restore-target:*` (creată mai jos, pasul „DB țintă pentru V3”)
+      CIVIC_TEST_TARGET_DATABASE_URL: mysql://civic_tgt:ci_target_only@127.0.0.1:3306/civic_test_target
     steps:
       - uses: actions/checkout@v5
 
@@ -165,6 +167,12 @@ jobs:
       - name: Teste API
         run: npm run test:api -w server
 
+      # V3 (propunerea r4, 05.11.2026): ținta restaurării de probă este o bază DISTINCTĂ, cu utilizatorul ei, cu drepturi
+      # numai pe ea (ca baza de test de pe găzduire); fără ea, testul de integrare V3 eșuează în CI (nu se omite).
+      - name: DB țintă pentru V3
+        run: |
+          mysql -h 127.0.0.1 -uroot -pci_root_only -e "CREATE DATABASE civic_test_target CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci; CREATE USER 'civic_tgt'@'%' IDENTIFIED BY 'ci_target_only'; GRANT ALL ON civic_test_target.* TO 'civic_tgt'@'%';"
+
       - name: Teste de integrare (${{ matrix.db }})
         run: npm run test:integration -w server
 
@@ -196,6 +204,22 @@ jobs:
           node --env-file="$RUNNER_TEMP/civic.env" server/dist/app.js seed:demo
           # ca pe staging: setările din fișierul numit de CIVIC_ENV_FILE (decizia tehnică 5.1-A)
           CIVIC_ENV_FILE="$RUNNER_TEMP/civic.env" node server/dist/app.js migrate:status
+          # V3: comenzile țintei sunt în artefact și citesc `restore-target.env` de lângă fișierul de setări activ;
+          # fără o copie decriptată în BACKUP_DIR, `status` raportează ținta (fără parolă) și iese cu 1; nimic scris
+          mkdir -p "$RUNNER_TEMP/v3/backups"
+          { cat "$RUNNER_TEMP/civic.env"; echo "BACKUP_DIR=$RUNNER_TEMP/v3/backups"; } > "$RUNNER_TEMP/v3/civic.env"
+          printf 'DATABASE_URL=%s\nSTORAGE_DIR=%s\n' "$CIVIC_TEST_TARGET_DATABASE_URL" "$RUNNER_TEMP/v3/storage" > "$RUNNER_TEMP/v3/restore-target.env"
+          chmod 600 "$RUNNER_TEMP/v3/civic.env" "$RUNNER_TEMP/v3/restore-target.env"
+          set +e
+          v3out="$(CIVIC_ENV_FILE="$RUNNER_TEMP/v3/civic.env" node server/dist/app.js restore-target:status 2>&1)"
+          v3rc=$?
+          set -e
+          echo "$v3out"
+          test "$v3rc" = 1
+          echo "$v3out" | grep -q 'parola nu se afișează'
+          echo "$v3out" | grep -q 'nu există nicio copie decriptată'
+          if echo "$v3out" | grep -q 'ci_target_only'; then echo "ieșirea conține parola țintei"; exit 1; fi
+          test ! -e "$RUNNER_TEMP/v3/storage"
           CIVIC_ENV_FILE="$RUNNER_TEMP/civic.env" node server/dist/app.js > "$RUNNER_TEMP/server.log" 2>&1 &
           SERVER_PID=$!
           for i in $(seq 1 30); do curl -sf http://127.0.0.1:3900/api/v1/health && break; sleep 1; done

@@ -9,7 +9,8 @@ Rulare (din rădăcina repository-ului, după `npm run build` și `npm run build
     python3 server/scripts/package-release.py --bootstrap-email <adresă> [--bootstrap-name "Nume"]
 
 Scripturile npm din package.json (5.4: civic-seed-demo, civic-show-latest-code, civic-outbox-process,
-civic-purge-retention, civic-report-pow-*, civic-rotate-keys; din 09.10.2026 și civic-migrate) se rulează din
+civic-purge-retention, civic-report-pow-*, civic-rotate-keys; din 09.10.2026 și civic-migrate; din V3, 05.11.2026,
+civic-restore-target-status, civic-restore-target-migrate, civic-restore-check, civic-restore-confirm) se rulează din
 cPanel → Node.js → „Run JS script”.
 Cu --bootstrap-email, package.json din pachet primește și scriptul `civic-bootstrap-admin`, rulat din
 cPanel → Node.js → „Run JS script” (care nu acceptă argumente). Parola temporară apare numai în
@@ -84,6 +85,13 @@ def main() -> int:
             # (FAZA_5_4_ROTIRE_TOTP_PLAN.md, pasul B).
             'civic-backup-db': f'{app} backup:db',
             'civic-rotate-totp-key-check': f'{app} rotate:totp-key --check',
+            # V3 (propunerea r4, aprobată la 05.11.2026): restaurarea de probă pe o bază și un director de TEST, cu ținta
+            # din `restore-target.env` (lângă fișierul de setări activ, creat de proprietar, drepturi 600). Fără argumente,
+            # fără secrete aici; `status` numai citește, `check` nu scrie nimic, `confirm` refuză o țintă cu date.
+            'civic-restore-target-status': f'{app} restore-target:status',
+            'civic-restore-target-migrate': f'{app} restore-target:migrate',
+            'civic-restore-check': f'{app} restore-target:restore --check',
+            'civic-restore-confirm': f'{app} restore-target:restore --confirm',
         }
         if a.bootstrap_email:
             cmd = ['node', 'server/dist/app.js', 'bootstrap-admin', '--email', a.bootstrap_email, '--name', a.bootstrap_name or 'Administrator']
