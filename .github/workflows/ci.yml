@@ -161,6 +161,27 @@ jobs:
       - name: Build artefact backend
         run: npm run build -w server
 
+      # Notele de licență (propunerea „corectura notelor de licență” r2, 06.11.2026): ambele construcții le generează
+      # din graful real al modulelor și eșuează la un pachet fără licență acceptată; aici, controlul conținutului.
+      - name: Notele de licență ale codului terț (frontend și server)
+        run: |
+          for f in dist/THIRD_PARTY_LICENSES.txt server/dist/THIRD_PARTY_LICENSES.txt; do
+            test -s "$f"
+            n=$(sed -n 's/^Pachete terțe incluse: \([0-9]*\)$/\1/p' "$f")
+            s=$(grep -c '^Licența declarată: ' "$f")
+            echo "$f: $n pachete, $s secțiuni"
+            test "$n" -gt 0
+            test "$n" = "$s"
+          done
+          # frontendul: exact pachetele din inventarul propunerii (r2, §1.2); o schimbare de dependențe cere actualizarea listei
+          fe=$(sed -n '/^Cuprins:$/,/^$/p' dist/THIRD_PARTY_LICENSES.txt | sed -n 's/^  \(.*\)@[^@ ]*  (.*)$/\1/p' | sort | tr '\n' ' ')
+          echo "frontend: $fe"
+          test "$fe" = "altcha-lib dijkstrajs leaflet lucide-react qrcode react react-dom scheduler zod "
+          grep -q '^  age-encryption@' server/dist/THIRD_PARTY_LICENSES.txt
+          grep -q '^  abstract-logging@2.0.1  (MIT)' server/dist/THIRD_PARTY_LICENSES.txt
+          grep -q '^  drizzle-orm@0.45.3  (Apache-2.0)' server/dist/THIRD_PARTY_LICENSES.txt
+          grep -q 'Copyright © 2026 James Sumners' server/dist/THIRD_PARTY_LICENSES.txt
+
       - name: Teste unitare
         run: npm run test:unit -w server
 
