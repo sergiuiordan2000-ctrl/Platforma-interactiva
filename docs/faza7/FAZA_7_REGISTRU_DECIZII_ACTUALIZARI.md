@@ -1593,3 +1593,94 @@ Adoptarea stabilește ordinea de lucru; nu autorizează nicio operație.
 ### 36.8 Ce NU înseamnă această consemnare
 
 Nu autorizează repetiția V3, oprirea staging-ului, ștergerea copiilor în clar, schimbarea utilizatorului Basic-auth sau vreo operație pe staging, producție, cPanel, cron ori `civic.env`; nu generează și nu stabilește identitatea de producție; nu adoptă revizia de proporționalitate din §36.5 și nici măsurile b–d din §35.3; nu ridică blocajul pentru producție din §34.8 (licența `age-encryption`); nu bifează criteriul E4.11 din planul v2.4; nu activează G6-1 (c); nu decide DEC-3b, DEC9-4, DEC-20 pentru datele E7 sau propunerea din §25.3; nu modifică planul v2.4, planul r3.2 sau DEC-23. Riscul de memorie al `backup:db` (§31.6) rămâne deschis. Lansarea publică nu este aprobată.
+
+## 37. Oprirea staging-ului (G6-1 c): încheiată la 06.11.2026; V3: metoda, codul și procedura aprobate; evidența DEC-16 creată; publicări și constatări (05–06.11.2026)
+
+### 37.1 Publicări în depozit și CI
+
+| Commit | Conținut | Diff aprobat (SHA-256) | CI |
+|---|---|---|---|
+| `36d830371337ec7dea00b30589ceefb196687b27` | jurnalul staging-ului: intervențiile 149–157, observația 23 (textul liniilor cron, inventarul copiilor), pasul O-1 | `e7aa0078ab421a3d781605d0ad0cb0acde5cfd683be41555aad7410944ce0d7a` | 41991060324: verde, 7/7 |
+| `71cd90a50a962e4b45e677e5b76dfe71a44c5ee2` | V3: comenzile `restore-target:*`, protecțiile, scripturile din pachet, testele, CI cu baza țintă, `FAZA_5_1` §6.6, manualul 7D | `4ec96d827c61e61528766b4e7615446c434b2b6e0229e217a1a828a61ab44b78` | 42006083313: **roșu** numai la pasul „Artefactul” (vezi §37.7, punctul 2); testele unitare, API și de integrare verzi în toate joburile, inclusiv MariaDB 11.4.13 |
+| `a31977b50980c7ef24b7b0569d76a47f25d95dc3` | corectura verificării V3 din pasul „Artefactul” (`ci.yml`) | `4e06fd012aecd5b8e755aa1f837ac387281ae226b5b2a2f68f8610e3b13066ae` | 42008296744: verde, 7/7, inclusiv jobul fixat pe Node 24.22.2 + MariaDB 11.4.13 |
+
+Aprobările proprietarului au fost date separat pentru aplicare, commit și push, cu limitele din fiecare cerere (o singură bază, fișierele din diff, fără force push, fără operații pe staging). Commiturile poartă identitatea „Claude”, fără linii de atribuire.
+
+### 37.2 Propunerea de oprire: deciziile proprietarului (05.11.2026)
+
+Propunerea a trecut prin revizii r1–r6 (auditorul: ordinea cron / oprire, inventarul și criteriul de ștergere, coada, cererile GET, consecința restaurării, verificarea tuturor celor 4 sarcini, succesiunea pe două zile, terminarea rulărilor zilnice, formularea confirmării indirecte, limita copiei finale).
+
+**Aprobarea proprietarului**, 05.11.2026 ~08:47, formulată de el: „Aprob documentul r6. D-O1=A, D-O2=A, D-O3=A, D-O4=A. Accept explicit consecința din §2.” Documentul r6: SHA-256 `5bf0f0b5c6f88d8c5ad839a42389766aed787499415eb93dd499cbf47ec1fbe7` (în afara depozitului).
+
+| Decizia | Alegerea |
+|---|---|
+| D-O1 | staging-ul se oprește acum; V3 se pregătește separat, cu repornire temporară |
+| D-O2 | copiile în clar se șterg manual, după criteriul din r6 §3. **Consecința acceptată explicit:** până la V3 nu există pe găzduire o restaurare demonstrată cu codul actual; ștergerea elimină singurele copii de pe găzduire care nu cer decriptare și care provin din versiuni mai vechi, iar nici pentru acestea restaurarea efectivă cu codul actual nu era demonstrată |
+| D-O3 | copia finală criptată în ziua 2, imediat înaintea STOP APP; ea surprinde starea de la executarea ei, nu un instantaneu exact al STOP APP |
+| D-O4 | dacă cPanel nu arată procesele, terminarea `purge:retention` se confirmă **indirect**, cu limita declarată |
+
+O recomandare a auditorului (Aristotel) sau a lui Claude nu este o decizie a proprietarului; textele auditorului transmise în conversație nu au fost tratate ca aprobări (o confirmare a fost cerută explicit la O-1, 05.11.2026 ~09:58).
+
+### 37.3 Execuția (proprietarul, pas cu pas; jurnalul staging-ului, intervențiile 150–166)
+
+| Pas | Data / ora | Rezultatul |
+|---|---|---|
+| O-0 | 05.11, ~08:48–09:54 | conform: `health`, aplicația, textul cron, duratele (sub un minut, la rezoluția cPanel), coada (0 / 0 / 0), inventarul (10 copii: 2 criptate, 8 în clar); cPanel fără vedere a proceselor |
+| O-1 | 05.11 | jurnalul publicat (`36d8303`), CI verde |
+| O-3 | 05.11, 10:20:45–10:23:18 | cele 4 linii șterse în ordinea din r6; „No Cron Jobs” |
+| O-3b | 05.11, ~10:32 | sarcinile frecvente oprite (ultimele rulări 10:20); reperul consemnat |
+| O-3c | 06.11, ~08:02–08:03 | nicio rulare la 03:17 / 03:47, niciun `.tmp-`; D-O4 = A aplicată |
+| O-3d | 06.11, ~08:04–08:06 | conform; DEC-16 a zilei conformă |
+| O-2 | 06.11, ~08:08 | `civic-backup-20261106T060825012Z`, criptată; rotația a șters 2 copii în clar |
+| O-4 | 06.11, ~08:09 | `stopped` |
+| O-5 | 06.11, ~08:13–08:23 | 6 copii în clar verificate și șterse fără coș; 0 excluse; rămân 3 copii criptate și marcajele |
+| O-6 | 06.11, ~08:25–08:34 | aplicația nu răspunde; evaluarea §33.3 la §37.4 |
+| O-7 | 06.11, ~08:38 | rândul R2 în evidența DEC-16 (§37.5) |
+
+**Oprirea este încheiată (06.11.2026).** Confirmarea (P-O8) urmează la prima verificare săptămânală R2, **13.11.2026**: starea `stopped`, „No Cron Jobs”, `backup.log` fără intrări noi.
+
+**Copiile în clar de pe găzduire nu mai există** (completarea (a) din §36.4 este rezolvată prin D-O2 = A). Pe găzduire rămân numai copiile criptate `civic-backup-20261104T174116344Z`, `…20261105T011702381Z`, `…20261106T060825012Z`, care pot fi decriptate numai cu identitatea de staging (§36.5).
+
+### 37.4 Evaluarea din §33.3 (O-6)
+
+- docroot-ul subdomeniului nu conține fișiere ale aplicației (`.well-known/`, `cgi-bin/`, `.htaccess`, `.htaccess.bak-20261008`, `.user.ini`, `php.ini`);
+- **fără parolă:** HEAD și GET pe `/` și pe `/api/v1/health` → `401`, `text/html` (3959 B): Basic-auth rămâne activ cu aplicația oprită;
+- **cu parolă:** aceleași cereri → `404`, `text/html` (3843 B), pagina serverului; **aplicația nu răspunde**;
+- la STOP APP, cPanel rescrie `.htaccess` din docroot (data 8:09 AM, același minut); conținutul nu a fost deschis. La următoarea repornire trebuie verificat dacă cPanel rescrie din nou `.htaccess`; comportamentul la pornire nu a fost încă verificat;
+- constatare separată: cPanel trecut de la 138.0.19 la 138.0.21 în noaptea 05/06.11.2026, fără anunț (ca la Node, §35).
+
+Consecința pentru R2 (§33): verificarea săptămânală (1) se face prin citirea stării în Setup Node.js App, cum s-a decis la 02.11.2026; cererile HTTP rămân în afara verificării săptămânale (nu sunt necesare, iar §29.2 cere confirmarea furnizorului pentru ele).
+
+### 37.5 Evidența DEC-16 (D16-a): lipsa constatată și creată la 06.11.2026
+
+- **Constatare:** fișierul Excel decis la 31.10.2026 (D16-a, §26; manualul 7D §6.3) **nu fusese creat**. Între 31.10 și 06.11.2026, verificările DEC-16 sunt consemnate numai în jurnalul staging-ului și în acest registru. Claude nu a verificat existența fișierului înaintea propunerii O-7; lipsa a fost semnalată de proprietar.
+- **Decizia proprietarului** (06.11.2026, varianta A): fișierul se creează acum (pregătit de Claude, păstrat de proprietar pe calculator, în afara depozitului), cu: o notă de creare care consemnează lipsa, **fără reconstituirea verificărilor anterioare** (D16-b); DEC-16 din 06.11.2026 08:06 (conformă, făcută și consemnată în aceeași zi); rândul R2 de oprire (intervenția 163; textul cron păstrat; ultima DEC-16 completă: 06.11.2026 08:06); foaia „Legenda” cu regulile și regimul R2.
+
+### 37.6 V3: metoda, codul și procedura (05.11.2026)
+
+- **Propunerea „metoda de lansare a restaurării pe găzduire, fără sarcină cron temporară”**, r1–r4 (auditorul: izolarea configurației, identitatea bazei, căile reale, expunerea web, R19, a doua rulare `--confirm`, marcajul de ștergere, verificările individuale). **Aprobată de proprietar** (05.11.2026 ~10:50): r4, SHA-256 `7a4fc0380ad7486771f8341f01f9c9629b0b2a618d8ecde15bfcb3d96e15c3fd`; **D-V3-1 = A** (comenzile din „Run JS script”, ținta din `restore-target.env` lângă fișierul de setări activ); **D-V3-2 = A** (singura copie `civic-restore-*` din `BACKUP_DIR`); **D-V3-3 = A** (fără repunerea liniilor cron în ziua V3; abatere de la regula R2 de repornire, limitată la acea zi); **D-V3-4 = A** (`host-restore:recover --check` exclus); **D-V3-5 = A** (R19 prin fluxul registraturii oprit și mesajul `on_hold`). Aprobarea privește numai metoda.
+- **Codul și testele:** `71cd90a` + `a31977b` (§37.1). Testat local de Claude pe MySQL 8.0 (442 de teste de integrare) și în CI pe toate cele 7 joburi.
+- **Procedura detaliată a zilei V3**, r1–r5 (auditorul: dovada completă a V3-6 prin `CHECKSUM TABLE … EXTENDED` și amprente SHA-256, recuperarea pe faze, revenirea curată la `2fc8403`, instalarea prin înlocuire curată, structura directoarelor, `-Force`). **Aprobată de proprietar** (05.11.2026 ~12:51): r5, SHA-256 `463aa216ae71bb1c65d4ef0f43ca4c89e5234d4c70f1eaf8b3f2b5ffaa164696` (în afara depozitului). Aprobarea privește numai documentul.
+- **Rămân, fiecare cu aprobarea lui:** construirea pachetului din `a31977b` (cu amprenta și lista exactă a celor 22 de intrări); execuția zilei V3 (după încheierea opririi; condițiile de pornire din procedură).
+
+### 37.7 Constatări și corecturi
+
+1. **Premisa greșită din propunerea V3 r1 (Claude):** lipsa liniei `outbox:process` nu ține un mesaj în coadă; aplicația îl procesează imediat (`kickOutbox`, `outbox.ts` 343–356). Semnalată de auditor (O5), corectată în r2 prin D-V3-5.
+2. **Eroarea din CI (Claude):** verificarea V3 adăugată în pasul „Artefactul” punea directorul țintă în interiorul directorului cu fișierul de setări, iar protecția nouă (adăugată la cererea auditorului în diff-ul r2) l-a refuzat corect. Simularea locală a pasului nu fusese refăcută după r2. Corectată în `a31977b`.
+3. **Inexactitatea din propunerea V3 r4, §6 (Claude):** plasa de 24 de ore pentru copiile decriptate rulează și la pornirea aplicației (`main.ts` 67–88), nu numai la `backup:db`. Corectată în procedura r1.
+4. **Evidența DEC-16:** §37.5.
+5. **Observații ale auditorului neconfirmate de fapte:** (a) la O-1, formularea „aprobată de proprietar” a fost contestată ca neexprimată; aprobarea exista (05.11.2026 ~08:47), iar auditorul și-a retras observația; (b) la propunerea V3 r2, ordinea „copie, apoi ștergerea lui A” a fost considerată contradictorie; ordinea este intenționată (marcajul durabil de ștergere, demonstrat la M4), iar r3 a explicat mecanismul.
+6. **Comparația pachetelor (Claude, local, numai pentru verificare):** pachetele construite din `2fc8403` și `a31977b` au aceeași listă de 22 de intrări; diferă `server/dist/app.js`, `package.json`, `RELEASE.txt`. Pachetele nu au fost transmise.
+
+### 37.8 Efecte asupra punctelor deschise
+
+- **G6-1 (c):** oprirea făcută; confirmarea la 13.11.2026 (P-O8).
+- **§36.4, completarea (a):** rezolvată (copiile în clar șterse).
+- **§36.4, completarea (b) — V3:** metoda și procedura aprobate; urmează pachetul și execuția.
+- **Utilizatorul Basic-auth** (§36.3): neschimbat; decizie separată, deschisă.
+- **Licența** (§34): blochează în continuare producția.
+- **Măsurile Node b–d** (§35.3), **revizia de proporționalitate a cheilor**, **3.3**, **DEC-3b**, **DEC9-4**, **DEC-20 E7**: neschimbate, deschise.
+
+### 37.9 Ce NU înseamnă această consemnare
+
+Nu autorizează construirea sau instalarea unui pachet, repornirea staging-ului, ziua V3, repunerea liniilor cron, crearea `restore-target.env`, schimbarea utilizatorului Basic-auth sau vreo operație pe staging, producție, cPanel ori `civic.env`. Lansarea publică nu este aprobată.
