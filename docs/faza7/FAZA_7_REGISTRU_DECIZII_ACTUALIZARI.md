@@ -1684,3 +1684,63 @@ Consecința pentru R2 (§33): verificarea săptămânală (1) se face prin citir
 ### 37.9 Ce NU înseamnă această consemnare
 
 Nu autorizează construirea sau instalarea unui pachet, repornirea staging-ului, ziua V3, repunerea liniilor cron, crearea `restore-target.env`, schimbarea utilizatorului Basic-auth sau vreo operație pe staging, producție, cPanel ori `civic.env`. Lansarea publică nu este aprobată.
+
+## 38. Corectura notelor de licență (blocajul §34.8): implementată; pachetul V3 corectat; procedura V3 r6 aprobată (06–07.11.2026)
+
+### 38.1 Publicări în depozit și CI
+
+| Commit | Conținut | Diff aprobat (SHA-256) | CI |
+|---|---|---|---|
+| `639a463901e7460b47494cc40d3a29d184804e85` | generatorul `scripts/third-party-licenses.mjs`; `THIRD_PARTY_LICENSES.txt` pentru server (`server/build.mjs`) și frontend (`vite.config.ts`); `licenses/extra/` (2 texte); teste; CI | `6282d01e035a7f7874ecfbe717dce6126ede77ca393ca42cd208d81fe63f69b6` | 42282386250: verde, 7/7 |
+| `4198e8d3983a0095a50ecea901876d7c89db7529` | CI: textele din `licenses/extra` verificate în artefact (amprenta sursei = amprenta din fișierul generat) | `2911651acdf733269b27f0fafffa84e420b4286cbd3b978d67feadf03234c233` | 42347429571: verde, 7/7 |
+
+Aplicare, commit și push aprobate de proprietar pentru fiecare, cu limitele obișnuite.
+
+### 38.2 Propunerea și deciziile proprietarului
+
+**Inventarul** (Claude, 06.11.2026, din graful real al construcției): serverul include **90** de pachete terțe (MIT 77, ISC 4, BSD-3-Clause 5, Apache-2.0 2, BlueOak-1.0.0 1, MIT-0 1); vechiul `app.js.LEGAL.txt` acoperea numai 18 dintre ele. Frontendul include **9** pachete (`react`, `react-dom`, `scheduler`, `leaflet` BSD-2-Clause, `lucide-react` ISC, `qrcode`, `dijkstrajs`, `altcha-lib`, `zod`) și **nu avea nicio notă de licență**. Problema era deci mai largă decât nota `age-encryption` (§31.6, §34.9).
+
+**Propunerea** „corectura notelor de licență”, r1–r2 (auditorul: identificarea pe nume și versiune, respingerea licențelor ambigue, `NOTICE`, surse oficiale legate de versiune), r2: SHA-256 `9aea1c4269d73513075dcff9b7a4d162fb854d7367a9ccd0e3fe3912f686a84b` (în afara depozitului).
+
+**Deciziile proprietarului** (06.11.2026, ~21:28): **D-L1 = A** (server și frontend); **D-L2 = A** (corectura înaintea V3; V3 pe pachetul corectat); **D-L3 = B**, condiționat: textul MIT al `abstract-logging` se preia de pe pagina indicată de autor în `Readme.md`, după verificarea în browser, cu sursa, data, autorul și declarația MIT a versiunii 2.0.1 consemnate, fără a pretinde că pagina este legată de versiune; fără excepție permanentă în CI; textele tuturor pachetelor păstrate integral, cu atribuirea. (Mesajul nu purta eticheta „Aristotel” și a fost tratat ca decizia proprietarului, care a executat apoi el însuși preluarea textului.)
+
+**Sursele textelor din `licenses/extra`:**
+- `drizzle-orm@0.45.3`: `LICENSE` de la eticheta oficială `0.45.3` (commit `15454dbe49d827c6081f3d0231e2e7985e517295`), preluat ca atare (SHA-256 `c71d239d…0ab4`); niciun `NOTICE` la acea etichetă;
+- `abstract-logging@2.0.1`: nici pachetul, nici depozitul la eticheta `v2.0.1` (commit `80dfaef9…d406`) nu conțin un fișier de licență; textul a fost **preluat de proprietar** la 06.11.2026, 21:30, din pagina indicată de autor (captură), și transcris exact de Claude (SHA-256 `d087f22d…2177`). **Limita consemnată:** pagina este dinamică (afișează anul curent, 2026) și nu este legată de versiune.
+
+**Excepție de la regula „în depozit niciodată adrese de e-mail” (decizia proprietarului, 06.11.2026, ~21:31, varianta A):** regula privește datele persoanelor din proiect; **notele de copyright publicate de autori terți în textele lor de licență** se păstrează **neschimbate**, inclusiv adresa autorului, fiindcă licența cere includerea lor ca atare. Excepția se limitează strict la textele de licență ale terților din `licenses/extra/` și la fișierele generate `THIRD_PARTY_LICENSES.txt`.
+
+### 38.3 Ce garantează implementarea
+
+- `THIRD_PARTY_LICENSES.txt` pentru server (90 de pachete) și frontend (9), generate la fiecare construcție din modulele efectiv incluse, cu textul **integral și neschimbat** al fișierelor `LICENSE*` / `LICENCE*` / `COPYING*` / `NOTICE*` ale fiecărui pachet, identificat pe **nume și versiune**; ieșire deterministă;
+- construcția **eșuează** la un pachet fără text de licență sau cu o licență declarată lipsă, ambiguă, nesuportată ori în afara listei acceptate (MIT, MIT-0, ISC, BSD-2-Clause, BSD-3-Clause, Apache-2.0, BlueOak-1.0.0); o licență nouă cere decizie;
+- CI: numărul de pachete = numărul secțiunilor; **lista exactă** a celor 9 pachete din frontend; prezența `age-encryption`, `abstract-logging`, `drizzle-orm`; amprentele celor două texte din `licenses/extra` **egale în sursă, în teste și în artefact**.
+
+**Ce NU garantează:** nu este o evaluare juridică a conformității. **Blocajul pentru producție din §34.8 rămâne activ** până la o decizie separată a proprietarului (§34.9: probele de repetat pe artefactul corectat).
+
+### 38.4 Pachetul V3 corectat
+
+- **`civic-4198e8d.zip`**, construit de Claude la 07.11.2026 (aprobat de proprietar) dintr-o copie curată a commitului `4198e8d`: SHA-256 `8d89f83ae329d28d4ca59e1f5429df0297d5f035f779494227840decaee67ac7`, **1.506.842 B**, **24 de intrări** (numai fișiere), fiecare cu dimensiunea și SHA-256 în `INVENTAR_civic-4198e8d.txt` (la proprietar, care a verificat arhiva, inventarul și integritatea ZIP). `RELEASE.txt`: `commit: 4198e8d`, fără modificări necomise.
+- Față de `civic-a31977b.zip`: +2 intrări (`dist/THIRD_PARTY_LICENSES.txt`, `server/dist/THIRD_PARTY_LICENSES.txt`); diferă `RELEASE.txt`, `package.json` (`"version"`) și `server/dist/app.js` (versiunea inclusă); celelalte 19 intrări identice.
+- Avertismentele construcției (ambele anterioare corecturii, frontend): `__dirname` în `vite.config.ts` 34, nesuportat de un mod viitor de încărcare a configurației Vite; un fișier JS peste 500 kB după minificare (924 kB). Mesajul scriptului de împachetare („22 fișiere”) numără numai fișierele copiate din dosare, nu și `package.json` și `RELEASE.txt`; arhiva are 24 de intrări.
+- **`civic-a31977b.zip`** (construit la 06.11.2026, SHA-256 `7fb32ccddc211e93184bab06c2a05248244e5af09a0e65a1cf208ae1083091f4`) este **exclus din flux** (D-L2 = A); nu a fost instalat nicăieri.
+
+### 38.5 Procedura V3 r6
+
+Revizuită de auditor (r6, apoi r6 revizuită: recuperarea la C-1 începe cu verificarea arhivei; ordinea C-9 aliniată la §4.1; stadiul aprobărilor) și **aprobată de proprietar ca document** (07.11.2026, ~08:54): SHA-256 `da4237c81364d5a4ec6c121fb7b742c51b4b21951a9f91cfad729e150034f88d` (în afara depozitului). Pachetul V3: `civic-4198e8d.zip`; `civic-2fc8403.zip` numai variantă de revenire. **Execuția nu este autorizată**; rămâne condiționată de verificarea săptămânală R2 din 13.11.2026 și de o autorizare separată.
+
+### 38.6 Constatări și corecturi (Claude)
+
+1. În diff-ul r1 al corecturii, generatorul tăia spațiile de la sfârșitul textelor de licență (contrar principiului aprobat), iar titlul transcris al textului `abstract-logging` nu reproducea majusculele din captură. Semnalate de auditor; corectate în r2, cu teste (textul integral regăsit în ieșire; amprenta transcrierii).
+2. La verificarea pachetului corectat: toate cele 88 de fișiere de licență și `NOTICE` din pachetele serverului apar caracter cu caracter în fișierul generat.
+
+### 38.7 Următorii pași (fiecare cu aprobarea lui)
+
+- **13.11.2026:** verificarea săptămânală R2 (P-O8), numai prin citire; un memento a fost programat în conversație, la cererea proprietarului;
+- **propunerea pentru §34.9:** ce probe se repetă pe artefactul corectat înaintea ridicării blocajului din §34.8;
+- **ziua V3**, după 13.11.2026, cu autorizare separată;
+- deschise, neschimbate: utilizatorul Basic-auth (§36.3), măsurile Node b–d, revizia de proporționalitate a cheilor, 3.3, DEC-3b, DEC9-4, DEC-20 E7.
+
+### 38.8 Ce NU înseamnă această consemnare
+
+Nu ridică blocajul din §34.8; nu autorizează instalarea vreunui pachet, repornirea staging-ului, ziua V3 sau vreo operație pe staging, producție, cPanel ori `civic.env`. Lansarea publică nu este aprobată.
