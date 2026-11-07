@@ -181,6 +181,27 @@ jobs:
           grep -q '^  abstract-logging@2.0.1  (MIT)' server/dist/THIRD_PARTY_LICENSES.txt
           grep -q '^  drizzle-orm@0.45.3  (Apache-2.0)' server/dist/THIRD_PARTY_LICENSES.txt
           grep -q 'Copyright © 2026 James Sumners' server/dist/THIRD_PARTY_LICENSES.txt
+          # lanțul de verificare pentru textele din licenses/extra: textul de sub „-----” apare IDENTIC în fișierul generat,
+          # iar amprenta lui este cea din testele unitare (sursa) — aceeași valoare în sursă și în artefact
+          node -e '
+            const fs = require("fs"), crypto = require("crypto");
+            const out = fs.readFileSync("server/dist/THIRD_PARTY_LICENSES.txt", "utf8");
+            const expected = {
+              "abstract-logging@2.0.1.txt": "d087f22d7a15db3a6355c8644f7eabe0bd582a1af28d6bf885540ee5bee62177",
+              "drizzle-orm@0.45.3.txt": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+            };
+            for (const [f, sha] of Object.entries(expected)) {
+              const raw = fs.readFileSync("licenses/extra/" + f, "utf8");
+              const text = raw.slice(raw.indexOf("\n-----\n") + 7);
+              const h = crypto.createHash("sha256").update(text).digest("hex");
+              if (h !== sha) throw new Error(f + ": amprenta sursei " + h + " != " + sha);
+              const i = out.indexOf(text);
+              if (i < 0) throw new Error(f + ": textul nu apare identic în server/dist/THIRD_PARTY_LICENSES.txt");
+              const inArtefact = crypto.createHash("sha256").update(out.slice(i, i + text.length)).digest("hex");
+              if (inArtefact !== sha) throw new Error(f + ": amprenta din artefact " + inArtefact + " != " + sha);
+              console.log(f + ": sursă = artefact = " + sha);
+            }
+          '
 
       - name: Teste unitare
         run: npm run test:unit -w server
