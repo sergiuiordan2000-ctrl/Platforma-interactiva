@@ -1744,3 +1744,74 @@ Revizuită de auditor (r6, apoi r6 revizuită: recuperarea la C-1 începe cu ver
 ### 38.8 Ce NU înseamnă această consemnare
 
 Nu ridică blocajul din §34.8; nu autorizează instalarea vreunui pachet, repornirea staging-ului, ziua V3 sau vreo operație pe staging, producție, cPanel ori `civic.env`. Lansarea publică nu este aprobată.
+
+---
+
+## 39. §34.9 — probele pe artefactul corectat `civic-4198e8d`: deciziile D-349-1…D-349-4; D-349-1 și D-349-2 executate și conforme; blocajul §34.8 rămâne activ (07.11.2026)
+
+**Sursa:** propunerea „§34.9: probele de repetat pe artefactul corectat” (`PROPUNERE_34.9_PROBE_ARTEFACT_CORECTAT.md`, nepăstrată în repository; numerotarea D-349-1…D-349-4 și a probelor 1–7 îi aparține), r1–r4, și rapoartele de mai jos. Natura dovezilor: **executat de Claude**, în spațiul lui de lucru, cu scripturile și jurnalele transmise proprietarului (amprentele mai jos); **verificat de auditor** pe aceleași fișiere.
+
+### 39.1 Propunerea și deciziile
+
+- Propunerea r1–r4, revizuită de auditor. Prin revizii s-au adăugat: protocolul complet al comparației arhivelor, cu raport redactat; criteriile verificabile pentru 4e (refuz corect, nu eroare accidentală), pentru fotografii (corespondența originale ↔ recuperate) și pentru proba 7 (fără modificări persistente în zona monitorizată); izolarea bazei locale, cu valorile secrete redactate în jurnal; retragerea oricărei afirmații despre rețea; consemnarea criteriilor de cron ca **neefectuate** pe `4198e8d`. **r4** (SHA-256 `d62c14653d6978abeef39c9df2aab7850969a7bfe38b3a3076ad75faa98c3381`) a fost aprobată tehnic de auditor.
+- **Deciziile proprietarului** (07.11.2026, ~09:39: recomandările lui Claude și ale auditorului, adoptate de proprietar, care a cerut să se procedeze conform acestora): r4 aprobată ca document de referință pentru §34.9; **D-349-1 = A** (comparația arhivelor reale); **D-349-2 = A** (probele locale 1–7, cu criteriile din r4); **D-349-3 = A′, condiționat**: ziua V3 servește ca instalare pe staging a `4198e8d`, plus verificarea P4 printr-o revizie r7 a procedurii V3, numai dacă r7 este revizuită și aprobată înaintea zilei V3; altfel **A** (P4 consemnat ca neprobat pe artefactul nou); **D-349-4 = A**.
+- **D-349-4 = A:** blocajul din §34.8 se ridică **numai printr-o decizie scrisă separată a proprietarului**, după: D-349-1 și D-349-2 conforme; ziua V3 încheiată conform pentru criteriile acoperite (cele neacoperite consemnate ca deschise); CI verde pe `4198e8d` (rularea 42347429571, îndeplinit); revizia auditorului. Blocajul **nu** se ridică automat după CI, după probele locale sau după ziua V3. Ridicarea privește numai artefactul cu SHA-256 `8d89f83a…7ac7` și **nu aprobă producția sau lansarea publică**.
+- Aprobările de execuție au fost date separat: **D-349-1** (07.11.2026, ~09:42), **D-349-2** (07.11.2026, ~09:48).
+
+### 39.2 D-349-1 — comparația arhivelor: conformă
+
+Pe calculatorul proprietarului (`Get-FileHash`, captură), `civic-2fc8403.zip` = `2445980914a93a2feae6a9093ef4115558ddb988da9be9e0e4517c79ca7a6738`, aceeași amprentă ca la §35.2 (V6). Arhiva a fost apoi transmisă lui Claude, care a reverificat amprenta.
+
+| Pasul | Rezultatul |
+|---|---|
+| amprentele, înainte de extragere | ambele conforme (`2445…6738`, `8d89…7ac7`) |
+| siguranța intrărilor | nicio cale absolută, `..`, legătură simbolică sau intrare de director |
+| clasificarea | **19 identice**, **3 diferite** (`RELEASE.txt`, `package.json`, `server/dist/app.js`), **0 lipsă**, **2 suplimentare** (cele două `THIRD_PARTY_LICENSES.txt`), exact rezultatul stabilit înaintea comparației |
+| diferențele | `RELEASE.txt`: commitul; `package.json`: versiunea și cele 4 scripturi V3; nicio adresă de e-mail în niciuna dintre arhive. Frontendul (`dist/assets`, `index.html`), migrațiile, seed-urile și `server/data` sunt identice byte cu byte |
+| `app.js` (completarea r2) | analiza sintactică (`acorn`, Node 24.22.2, lista reală `builtinModules`): în ambele artefacte, 41 de apeluri reale `require(<literal>)`, toate module Node încorporate; **0 pachete externe**; 0 către `age-encryption`, `@noble`, `@scure`; listele identice. Două cazuri dinamice, examinate prin citirea codului: `require` opțional al `cardinal` (`mysql2`, în `try … catch`, cu rezervă) și `createRequire` din `pino` (folosit numai cu un `transport` de jurnalizare, absent din configurația aplicației) |
+
+**Corectura raportului:** prima clasificare a modulelor din `app.js` (expresie regulată, listă manuală de module încorporate) era incorectă: număra și textele din șiruri. Semnalată de auditor, a fost **retrasă** și înlocuită de completarea r2. Raportul și scriptul inițial au fost păstrate neschimbate. **Limitele:** analiza statică nu exclude orice mecanism de încărcare dinamică; egalitatea listelor nu dovedește că V3 nu a introdus alte probleme. **Verdictul auditorului:** conform, închis tehnic.
+
+Fișierele (la proprietar): `RAPORT_D-349-1.txt` `b95596ede6ce633bed44ad494d6f586ee1088c56d010acb17315d3d62ab3472c`; `compara.py` `763d3226112ed915467b0d2859baa79b2a76fc2c842b910a75f7eea62b3a880e`; `ADDENDUM_D-349-1_r2.md` `97561283e449fa365207805e444ccd8ca0d7d46d5a43bfca242b549ae0a47d64`; `module_appjs.mjs` `12a4996031fe665c040875f789e4f725c07cbbddb9c4090f03ae25c9d6b271f1`; `RAPORT_D-349-1_modulele_appjs.txt` `a4c0a307a911954a3f6731c7c7a004edeeb248440d5150c8f1f7b3b132a57828`.
+
+### 39.3 D-349-2 — probele fără `node_modules` pe `civic-4198e8d.zip`: conforme
+
+**Mediul:** Node **v24.22.2** (binar izolat); MySQL **8.0.46**, numai pe `127.0.0.1`; aplicația rulată cu mediu gol (fără `NODE_PATH`); niciun `node_modules` în aplicație, în strămoșii ei sau în dosarele globale; setările probei numai cu valori de test, generate local și afișate în jurnal cu parola și cheile redactate; nicio credențială a găzduirii în spațiul de lucru (celelalte fișiere `civic.env` găsite sunt resturi ale testelor locale, cu baze locale). Cheile de test, fraza-parolă, copia decriptată, setările, baza și utilizatorii de test au fost șterse la final.
+
+Rezultatele rulării valabile (rularea 3): **15 verificări, 15 conforme**.
+
+| Proba | Rezultatul |
+|---|---|
+| 1. analiza statică | `app.js` `7c416410…4a10`: 0 pachete externe; 0 către `age-encryption` / `@noble` / `@scure`; aceeași listă ca la `2fc8403`. **Jurnalul este păstrat** (pentru `4198e8d`, limita din precizarea 3.3 nu se mai aplică) |
+| 2. pornirea și `health` | portul liber înainte; procesul probei (verificat după PID) a răspuns `{"status":"ok","version":"0.0.0+4198e8d"}`; 0 mesaje E4.11; stderr fără erori |
+| 3. `backup:db` fără cheie | cod 0, „NECRIPTATĂ”; 0 fișiere `.age`; manifest fără `encryption` |
+| 4a. cu cheie | cod 0, „criptată (age)”; numai `binding.json.age`, `db.jsonl.gz.age`, `manifest.json`, `markers.json` și fotografiile `.age`; 0 fișiere de date în clar; `age-x25519` |
+| 4b. `restore:db --check` | pe o țintă goală (bază nouă migrată, `STORAGE_DIR` gol): cod 1, restaurarea refuzată cu **un singur motiv**: „copie criptată” |
+| 4c. `backup:verify` | cod 0; 3 fișiere criptate decriptate integral (din care 2 fotografii) |
+| 4d. `backup:decrypt` | cod 0; `civic-restore-…` cu `DECRYPTED-COPY.json` |
+| 4e. fraza greșită | cod 1; **exact** „Fraza-parolă este greșită sau fișierul de identitate este deteriorat.”, nicio altă eroare; același fișier de identitate (amprentă neschimbată), acceptat cu fraza corectă la 4c / 4d. Pentru `4198e8d`, limita 3b (motivul eșecului) nu se mai aplică |
+| 5. `APP_ENV=production` fără cheie | cod 1; motivul: `BACKUP_AGE_RECIPIENT` obligatorie în producție |
+| 6. fotografiile (precizarea 3a) | două imagini de test generate, atașate direct în baza de test; în copia criptată numai `.age`, 0 în clar; amprentele fișierelor `.age` = cele din `binding` (decriptat independent, cu o unealtă din afara artefactului); fotografiile recuperate identice (SHA-256, dimensiune) cu originalele și cu `report_photos.sha256`. **Criptarea fotografiilor este probată local pe artefact**; pe găzduire, la ziua V3 (C-3) |
+| 7. `restore-target:status` fără `restore-target.env` | cod 1, „REFUZ, nimic scris…”; starea bazei (32 de tabele, `CHECKSUM TABLE … EXTENDED`, rânduri) și inventarul celor 29 de fișiere monitorizate, identice înainte / după |
+
+**Rulările 1 și 2 (consemnate integral):** rularea 1 a avut 3 rezultate neconforme, din **erori ale scriptului** (căile fotografiilor: cheia de stocare conține deja `photos/`, deci în copie calea este `photos/photos/<…>.age`; citirea manifestului; clasificarea fișierelor `civic.env` străine). Rularea 2 a raportat 15 / 15, dar **proba 2 a fost un fals pozitiv**: serverul pornit în rularea 1 rămăsese activ, cel nou a eșuat cu `EADDRINUSE`, iar `health` a răspuns serverul vechi; verificarea nu controla portul, PID-ul și erorile. Ambele au fost corectate în scriptul rulării 3. Serverul rămas asculta numai local, cu date de test.
+
+**Constatare (fără impact asupra rezultatului):** la `restore:db --check` pe o copie criptată, raportul afișează „manifestul nu a putut fi citit”, deși `manifest.json` există, în clar, fiindcă verificarea se oprește la refuz înaintea citirii manifestului (`server/src/db/backup.ts`, r. 680–694, 1016). Refuzul este corect; formularea poate induce în eroare. Se tratează separat, numai cu aprobarea proprietarului.
+
+**Limitele (neschimbate):** rezultat local (MySQL 8.0, Linux, fără Passenger / cPanel): **nu este o validare pe MariaDB, Passenger sau CloudLinux**; fotografiile au intrat direct în baza de test, nu prin încărcarea din aplicație; proba 7 acoperă numai baza și directoarele monitorizate; izolarea se întemeiază pe configurație și pe lipsa credențialelor reale, nu pe un test al rețelei; criteriile de cron (P5, P7, P8, P-E7, P-E8) rămân **neefectuate** pe `4198e8d`. **Verdictul auditorului:** conform, închis tehnic; valorile secrete sunt redactate în jurnal.
+
+Fișierele (la proprietar): `RAPORT_D-349-2.md` `29edc8152c8abf4a2c6df74aeedd9260971cc6d7a92c099a723d8cd3f522fc2d`; `jurnal_run3.log` `ac2131eb70ccb43351e179219acca7228da9cd3649b66e65e59e069305ff4d6a`; `proba_D-349-2.sh` (rularea 3) `c7913d701da9d4819987b5b060186826d1438dff86740d829a420eaafce81a2b`; arhiva cu toate rulările, scripturile și jurnalele `D-349-2_probe.zip` `c77bf7e34dd71f1a11fc8d30868ec37a71801bc29e2fc0d69a2c642a9a309331`.
+
+### 39.4 Starea după această consemnare
+
+| Punctul | Starea |
+|---|---|
+| D-349-1 | conform, închis |
+| D-349-2 | conform, închis |
+| D-349-3 | deschis: ziua V3 (după 13.11.2026, cu autorizare separată); r7 (P4) numai cu decizie și aprobare separate; până atunci procedura V3 rămâne r6 |
+| D-349-4 | deschis: blocajul din §34.8 **rămâne activ** |
+| criteriile de cron pe `4198e8d` | neefectuate; înaintea producției, la prima instalare cu sarcini cron (decizie separată, G6-1 c / DEC-16) |
+
+### 39.5 Ce NU înseamnă această consemnare
+
+Nu ridică blocajul din §34.8; nu autorizează ziua V3, redactarea r7, instalarea vreunui pachet, repornirea staging-ului sau vreo operație pe staging, producție, cPanel, cron ori `civic.env`; nu bifează criteriul E4.11 din planul v2.4; nu activează G6-1 (c); nu decide DEC-3b, DEC9-4, DEC-16 sau DEC-20. Lansarea publică nu este aprobată.
