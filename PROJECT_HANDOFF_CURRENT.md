@@ -254,7 +254,7 @@ Deciziile proprietarului din Faza 5 sunt rezumate în `PROJECT_RULES_AND_DECISIO
 
 **Staging-ul nou, `test.urbisactiv.ro`** (ClausWeb, Node 24.21.0, MariaDB 11.4.13), jurnal `docs/faza5/STAGING_URBISACTIV_JURNAL.md` (intervențiile 1–28):
 - rulează **`08f4dc3`** (intervenția 26; `health` relatat de proprietar), cu **schema la versiunea 2** (migrația 0002, intervenția 24) și cu cheile Google în `civic.env` (intervenția 23). Ultimul backup dinaintea migrării: `civic-backup-20261009T171424982Z`. Întoarcerea la un cod mai vechi de `f9dfd37` nu este posibilă pe aceeași bază (codul vechi nu pornește cu schema 2); oprirea Google se face scoțând cele două chei din `civic.env` și repornind;
-- lacăt Directory Privacy (utilizatorul `civic`; parola schimbată la 08.10.2026); ferestrele de parolă repetate sunt eliminate;
+- lacăt Directory Privacy (utilizatorul `<utilizator>`; parola schimbată la 08.10.2026); ferestrele de parolă repetate sunt eliminate;
 - **două conturi `super_admin`** (al doilea din 08.10.2026, intervenția 20);
 - e-mail: Brevo, `EMAIL_MODE=allowlist`; DKIM / DMARC configurate; cron `outbox:process`;
 - cron: `backup:db`, `surveys:close-expired`, `purge:retention`, `outbox:process`;

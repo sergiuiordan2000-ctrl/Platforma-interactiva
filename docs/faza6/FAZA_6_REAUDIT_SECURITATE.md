@@ -106,9 +106,9 @@ Fără adresa reală a vizitatorului (`FAZA_6_TRUST_PROXY.md`), protecția nu se
 
 ### S7 — Antetele de securitate (staging, `cb4cc45`, 13.10.2026; reverificat la `f6d5f2d`, 14.10.2026)
 
-**Reverificare (14.10.2026, AI-5):** `curl -sI -u civic https://test.urbisactiv.ro/` pe `f6d5f2d` arată aceleași antete și aceleași valori ca în tabelul de mai jos (jurnalul staging-ului, intervenția 71). Diferențele de cod dintre `cb4cc45` și `f6d5f2d` nu ating antetele (`git diff`); proba o confirmă direct.
+**Reverificare (14.10.2026, AI-5):** `curl -sI -u <utilizator> https://test.urbisactiv.ro/` pe `f6d5f2d` arată aceleași antete și aceleași valori ca în tabelul de mai jos (jurnalul staging-ului, intervenția 71). Diferențele de cod dintre `cb4cc45` și `f6d5f2d` nu ating antetele (`git diff`); proba o confirmă direct.
 
-Dovada: `curl -sI -u civic https://test.urbisactiv.ro/` și `curl -D - … /api/v1/public/surveys`, de pe calculatorul proprietarului (capturi; parola cerută de `curl`, neafișată; valoarea cookie-ului acoperită).
+Dovada: `curl -sI -u <utilizator> https://test.urbisactiv.ro/` și `curl -D - … /api/v1/public/surveys`, de pe calculatorul proprietarului (capturi; parola cerută de `curl`, neafișată; valoarea cookie-ului acoperită).
 
 | Antet | Valoarea reală | Rezultat |
 |---|---|---|
