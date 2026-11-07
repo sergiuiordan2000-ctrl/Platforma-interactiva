@@ -1815,3 +1815,19 @@ Fișierele (la proprietar): `RAPORT_D-349-2.md` `29edc8152c8abf4a2c6df74aeedd926
 ### 39.5 Ce NU înseamnă această consemnare
 
 Nu ridică blocajul din §34.8; nu autorizează ziua V3, redactarea r7, instalarea vreunui pachet, repornirea staging-ului sau vreo operație pe staging, producție, cPanel, cron ori `civic.env`; nu bifează criteriul E4.11 din planul v2.4; nu activează G6-1 (c); nu decide DEC-3b, DEC9-4, DEC-16 sau DEC-20. Lansarea publică nu este aprobată.
+
+---
+
+## 40. Procedura V3 r7 (etapa C-9b, verificarea P4 pe `4198e8d`) aprobată ca document; înlocuiește r6 (07.11.2026)
+
+**Sursa:** decizia D-349-3 = A′ (§39.1). Procedura `PROCEDURA_V3_STAGING.md` r7 (în afara depozitului), redactată de Claude pornind de la r6 aprobată (SHA-256 `da4237c8…f88d`, §38.5). Revizia auditorului a avut trei treceri: r7; r7 revizuită (codul de ieșire al fiecărei comenzi `curl.exe` se consemnează; oprirea se aplică oricărei abateri: cod HTTP, antet, conținut, cod de ieșire); forma finală (un cod de ieșire nenul înseamnă „cererea nu s-a încheiat cu succes”, nu neapărat „niciun răspuns”). Verificarea finală a auditorului: conform.
+
+**Decizia proprietarului** (07.11.2026, ~12:30, adoptând recomandarea auditorului): **r7 aprobată exclusiv ca document**, SHA-256 `bf61e7f8b375ecd1ea0b09bc61b68a04c37b564e0d21df0b89875446ff8a0c59`. **Înlocuiește r6** ca procedură aprobată pentru ziua V3.
+
+**Ce adaugă r7 față de r6** (restul neschimbat; criteriile V3-1 … V3-8 și succesiunea etapelor păstrate):
+- **C-9b [CITIRE]**, după C-9a, înaintea C-10, imediat și fără pauză: verificarea P4 pe `4198e8d` (manualul 7D, 5.2–5.5), de pe calculatorul proprietarului, cu `curl.exe` din PowerShell. Sunt cinci cereri HEAD / GET (`/`, `/favicon.svg`, `/api/v1/health`, `robots.txt`, `/api/v1/diag/client-ip`) pentru trei verificări (`noindex`, inclusiv pe fișierul static; `robots.txt`; ruta de diagnostic). Fiecare comandă e urmată de `$LASTEXITCODE`, cu cod așteptat `0`. Utilizatorul lacătului apare în procedură numai ca `<utilizator>`, iar parola e cerută de `curl.exe` și neafișată. Dovada: captura pentru (1)–(3); confirmare scrisă pentru (4)–(5).
+- **Regula de oprire:** orice abatere (cod HTTP, antet, conținut, cod de ieșire) se consemnează ca „P4 neconform pe `4198e8d`” (comanda reușită, răspuns diferit) sau ca „P4 neverificat pe `4198e8d`” (cod de ieșire nenul). Nu se repetă cererile, nu se face depanare pe aplicația pornită și se trece imediat la C-10.
+- **P4 se evaluează separat de V3-1 … V3-8:** un P4 neconform nu schimbă rezultatul V3, dar intră în evaluarea pentru ridicarea blocajului din §34.8 (D-349-4).
+- Riscurile (durata în care aplicația e pornită; C-9b vine după C-8a, deci nu afectează condiția de liniște) și recuperarea la o întrerupere în C-9b: nu se reia nimic, P4 e consemnat „neverificat” și se trece la C-10.
+
+**Ce NU înseamnă această aprobare:** nu autorizează execuția zilei V3 sau a etapei C-9b, repornirea staging-ului ori vreo operație pe staging, cPanel, cron, `civic.env` sau producție. Execuția rămâne condiționată de verificarea săptămânală R2 din 13.11.2026 și de o autorizare separată. Staging-ul rămâne oprit. Blocajul din §34.8 rămâne activ. Lansarea publică nu este aprobată.
