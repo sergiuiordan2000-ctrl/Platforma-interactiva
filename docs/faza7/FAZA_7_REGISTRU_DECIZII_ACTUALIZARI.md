@@ -1831,3 +1831,39 @@ Nu ridică blocajul din §34.8; nu autorizează ziua V3, redactarea r7, instalar
 - Riscurile (durata în care aplicația e pornită; C-9b vine după C-8a, deci nu afectează condiția de liniște) și recuperarea la o întrerupere în C-9b: nu se reia nimic, P4 e consemnat „neverificat” și se trece la C-10.
 
 **Ce NU înseamnă această aprobare:** nu autorizează execuția zilei V3 sau a etapei C-9b, repornirea staging-ului ori vreo operație pe staging, cPanel, cron, `civic.env` sau producție. Execuția rămâne condiționată de verificarea săptămânală R2 din 13.11.2026 și de o autorizare separată. Staging-ul rămâne oprit. Blocajul din §34.8 rămâne activ. Lansarea publică nu este aprobată.
+
+---
+
+## 41. Utilizatorul lacătului de staging: deciziile D-BA1, D-BA2, D-BA3 (07.11.2026)
+
+Consemnat la 07.11.2026. Secțiune nouă; secțiunile anterioare nu se modifică.
+
+### 41.1 Context
+Utilizatorul lacătului HTTP (autentificarea de bază din fața staging-ului)
+apărea în clar în fișiere din depozit. Depozitul este public. În registru și
+în documentație utilizatorul se scrie `<utilizator>`.
+
+### 41.2 D-BA1 = A — înlocuirea în fișierele curente (executat)
+- Executat în commitul `1d387c6` pe `faza-5-backend`; CI raportat verde (7/7),
+  rularea `42387584458`.
+- 8 apariții în 4 fișiere au fost înlocuite cu `<utilizator>`.
+- Alte apariții ale aceluiași șir, în contexte fără legătură cu lacătul,
+  nu au fost incluse în D-BA1 și nu sunt identificate în prezenta secțiune.
+
+### 41.3 D-BA2 = A — istoricul nu se rescrie
+- Istoricul git nu se rescrie (fără `filter-repo`, fără `--force`).
+- Consecință acceptată: valoarea veche rămâne în commiturile anterioare
+  lui `1d387c6`. Riscul asociat utilizării vechilor credențiale se tratează
+  prin D-BA3, nu prin rescrierea istoricului.
+
+### 41.4 D-BA3 = A, condiționat — credențiale noi pe găzduire
+- Pe găzduire se setează un utilizator nou și o parolă nouă pentru lacăt.
+- Condiție de timp: numai după ziua V3.
+- Se face printr-o procedură separată, aprobată separat, care include
+  copia `.htaccess` înainte de modificare și comparația după modificare.
+- Noile valori nu intră în depozit.
+
+### 41.5 Ce nu schimbă §41
+- Blocajul de producție §34.8 rămâne activ; lansarea publică nu este aprobată.
+- Staging-ul rămâne oprit și neatins până la verificarea R2 din 13.11.2026.
+- Procedura V3 r7 (§40) nu se modifică; execuția ei rămâne neautorizată.
