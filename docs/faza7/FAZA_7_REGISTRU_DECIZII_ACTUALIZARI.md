@@ -1968,3 +1968,26 @@ Proba a rulat codul de la `d33fe9b`, nu pachetul `civic-4198e8d.zip`. Între `41
 ### 43.5 Ce NU înseamnă această consemnare
 
 Nu modifică procedura r7 și nu autorizează ziua V3, D-BA3, repornirea staging-ului sau vreo operație pe staging, producție ori cPanel; nu ridică blocajul din §34.8. Lansarea publică nu este aprobată.
+
+---
+
+## 44. Procedura V3 r8.1 aprobată ca document; înlocuiește r7 (13.11.2026)
+
+**Sursa:** procedura `PROCEDURA_V3_STAGING_r8.1.md` (în afara depozitului), redactată de Claude pornind de la r7 aprobată (SHA-256 `bf61e7f8…0c59`, §40), cu raportul modificărilor și diferența față de r7. Revizia auditorului: r8 (fără obiecții; recomandarea verificării Node la C-0), apoi r8.1 (fără obiecții).
+
+**Decizia proprietarului** (13.11.2026): **r8.1 aprobată exclusiv ca document**, SHA-256 `3f17afafe585a8e0005e298264e4f05f81ad1852a22c4887963d27b115267e30` (37.479 B). **Înlocuiește r7** ca procedură aprobată pentru ziua V3.
+
+**Ce schimbă r8.1 față de r7** (5 rânduri din 205; niciun rând adăugat sau șters; pașii C-0a … C-10, criteriile V3-1 … V3-8 și recuperarea din §4.1 neschimbate):
+
+| Pasul | r7 | r8.1 |
+|---|---|---|
+| **C-0** | `stopped` | `stopped (v24.22.3)`: versiunea afișată lângă stare, citită fără click; orice altă versiune = **oprire înaintea C-1**, deci înaintea oricărei modificări pe găzduire (recomandarea auditorului, decizia proprietarului) |
+| **C-1b** | `started (v24.22.2)` | `started (v24.22.3)` (§42.2, §43) |
+| „Baza” | CI pe `4198e8d` | se adaugă proba CI pe Node 24.22.3 și CI-ul de la `23e12c6`, cu limita lor (§43) |
+| „Starea documentului”, „Stadiul” | r7 | trimiterile la r8.1; până la aprobare rămânea r7 |
+
+Neschimbat intenționat: Node-ul portabil v24.22.2 de pe calculator (folosit numai local, la C-4a; §42.3).
+
+**Ramura de probă `ci-node-24.22.3`** (`f915992`, §43.1): ștergerea ei a fost aprobată de proprietar (13.11.2026), după confirmarea că `ci.yml` de pe `faza-5-backend` este identic cu cel din probă (același obiect git). Ștergerea nu a putut fi făcută din sesiunea de lucru (proxy-ul refuză ștergerea ramurilor); **ramura a fost ștearsă de proprietar din interfața GitHub** (13.11.2026, ~10:16), iar Claude a verificat apoi în depozit (`git ls-remote`) că ea nu mai există și că celelalte ramuri au rămas neschimbate (`faza-5-backend` = `23e12c6`, `main` = `d9bc2c9f`, `recovery-etapa-5-0e2cc20` = `0d328a67`).
+
+**Ce NU înseamnă această aprobare:** nu autorizează ziua V3, etapa C-9b, D-BA3, repornirea staging-ului sau vreo operație pe staging, cPanel, cron, în fișierul de setări al aplicației ori în producție. Execuția zilei V3 cere o autorizare separată. Staging-ul rămâne oprit, în regimul R2. Blocajul din §34.8 rămâne activ. Lansarea publică nu este aprobată.
