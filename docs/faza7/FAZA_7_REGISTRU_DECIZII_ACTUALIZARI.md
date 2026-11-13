@@ -1867,3 +1867,66 @@ apărea în clar în fișiere din depozit. Depozitul este public. În registru �
 - Blocajul de producție §34.8 rămâne activ; lansarea publică nu este aprobată.
 - Staging-ul rămâne oprit și neatins până la verificarea R2 din 13.11.2026.
 - Procedura V3 r7 (§40) nu se modifică; execuția ei rămâne neautorizată.
+
+---
+
+## 42. Verificarea săptămânală R2 (P-O8): oprirea confirmată; pregătirea calculatorului pentru ziua V3; nota internă și procedura D-BA3 aprobate ca documente; Node v24.22.3 pe găzduire (07–13.11.2026)
+
+**Sursa:** verificarea făcută de proprietar la 13.11.2026, numai prin citire, cu capturi analizate de Claude (jurnalul staging-ului, intervenția 167); pregătirea calculatorului făcută de proprietar la 07.11.2026, cu comenzile date de Claude și rezultatele transmise prin capturi; documentele din 42.4, revizuite de auditor și aprobate de proprietar. Natura dovezilor: **constatate de proprietar**, analizate de Claude; nu sunt verificări independente ale auditorului.
+
+### 42.1 Verificarea săptămânală R2 (13.11.2026, ~08:44–08:48)
+
+| Verificarea (§33.1) | Rezultatul | Dovada |
+|---|---|---|
+| (1) Setup Node.js App | `stopped (v24.22.3)`; niciun click pe comenzile aplicației | captură |
+| (2) Cron Jobs | „No Cron Jobs” | captură |
+| (3) `backup.log` | fără intrări noi: 18,39 KB, ultima modificare 05.11.2026 03:17; ultima intrare `civic-backup-20261105T011702381Z` („criptată (age)”) și rotația ei; identic cu reperul O-3b (jurnalul, intervenția 159) | capturi |
+
+- **Rezultatul: oprire confirmată. P-O8 este îndeplinit**; oprirea G6-1 (c) din 06.11.2026 (§37.3) este confirmată.
+- Evidența DEC-16 (D16-a, fișierul Excel al proprietarului, în afara depozitului): rândul 5, tipul „R2 — verificare săptămânală”, rezultatul „suspendată: staging oprit (G6-1 c)”, conform legendei fișierului; „oprire confirmată” în observații.
+- Verificarea **nu este o verificare DEC-16** (§33.1).
+- **Corectură (Claude):** reperul pentru `backup.log` comunicat proprietarului la începutul verificării (06.11.2026, ~08:08, copia manuală O-2) era greșit. Copia O-2 (`civic-backup-20261106T060825012Z`), rulată din „Run JS script”, nu se scrie în `backup.log`; reperul corect este cel din O-3b. Rezultatul verificării nu este afectat.
+
+### 42.2 Constatare: versiunea Node afișată pe găzduire este v24.22.3
+
+- La oprire (O-4, 06.11.2026) cPanel afișa `stopped (v24.22.2)`; la 13.11.2026 afișează `stopped (v24.22.3)`. Schimbarea s-a produs în perioada de oprire, **fără nicio acțiune a proprietarului**.
+- Pentru R2: fără efect; verificarea (1) privește starea de oprire, care este conformă.
+- Pentru ziua V3: procedura r7 (§40), pasul C-1b, cere `started (v24.22.2)`; cu v24.22.3 pasul s-ar opri („altă stare / versiune”). CI rulează pe Node 24.22.2, iar Node-ul portabil de pe calculator este v24.22.2 (42.3).
+- **Punct deschis:** o decizie a proprietarului despre versiunea Node, înaintea autorizării zilei V3.
+
+### 42.3 Pregătirea calculatorului pentru ziua V3 (07.11.2026; procedura r7, condițiile de pornire 2 și 3)
+
+| Element | Rezultatul | Dovada |
+|---|---|---|
+| dosarul de lucru `D:\urbis-proba` | creat; gol (0 elemente) | confirmare |
+| uneltele | în dosarul separat `D:\urbis-unelte` (decizia proprietarului, 07.11.2026), pentru ca `D:\urbis-proba` să rămână gol, cum cere condiția 3 | confirmare |
+| `civic-4198e8d.zip` | 1.506.842 B; SHA-256 `8d89f83ae329d28d4ca59e1f5429df0297d5f035f779494227840decaee67ac7` | captură |
+| `civic-2fc8403.zip` (revenirea) | 1.479.760 B; SHA-256 `2445980914a93a2feae6a9093ef4115558ddb988da9be9e0e4517c79ca7a6738` | captură |
+| Node portabil v24.22.2 | arhiva oficială Windows x64 descărcată de pe nodejs.org; SHA-256 `ca1bff5d8ead13c9f2ea404a176db46bd430704d5b5113734049fa365e7799e2`, identic cu `SHASUMS256.txt` publicat (semnătura listei nu a fost verificată); `node --version` = `v24.22.2` | captură; confirmare |
+| aplicația extrasă din `civic-4198e8d.zip` | pachetul extras conține 24 de fișiere; `RELEASE.txt` indică `commit: 4198e8d` și nu conține mențiunea „modificari necomise” (marcajul pe care `package-release.py` îl scrie la construcția dintr-o copie cu modificări; aceeași verificare ca la C-1 din r7). Nu este o verificare a unei copii de lucru Git | captură |
+| comenzile C-9b | fișier text pe calculator, cu cele cinci comenzi identice cu r7; substituentul utilizatorului înlocuit local de proprietar (decizia proprietarului, 07.11.2026); parola nu este în fișier; fișierul se șterge după D-BA3 | confirmare |
+| identitatea de staging și fraza-parolă (§36.5) | prezente: suportul și fraza în managerul de parole | **confirmate de proprietar**, fără verificare de către Claude |
+
+### 42.4 Documente aprobate de proprietar, în afara depozitului (07.11.2026)
+
+| Documentul | SHA-256 | Ce conține; deciziile |
+|---|---|---|
+| `NOTA_INTERNA_SECURITATE_UTILIZATOR_LACAT_r2.md` | `42a9bca00bcfe02772995339cf0fc607d18a8eb2ff4fec9b7df60768a9ac9e7f` | constatări de securitate privind lacătul staging-ului și cerințele pentru D-BA3; **acces restricționat**, nu se publică |
+| `PROCEDURA_D-BA3_LACAT_STAGING_r1.7.md` | `c744d193e6d683a1f8d9db80c50918aa972d70d31de647bdec1713eb80481fb7` | procedura D-BA3 (§41.4), revizuită de auditor (r1 → r1.7); **D-BA3-a = A** (fișierul de parole al lacătului nu se copiază; revenirea prin recrearea utilizatorului vechi, acceptată ca alternativă la cerința din nota internă); **D-BA3-b = A** (după ziua V3, cu aplicația oprită). Aprobată exclusiv ca document |
+
+Amprentele au fost verificate de proprietar pe calculatorul lui (`Get-FileHash`).
+
+### 42.5 Starea după această consemnare
+
+| Punctul | Starea |
+|---|---|
+| G6-1 (c), oprirea staging-ului | confirmată (P-O8, 13.11.2026); regimul R2 continuă |
+| condițiile de pornire ale zilei V3 (r7) | 1–3 îndeplinite la nivelul opririi și al pregătirii calculatorului; 4 (sesiunea) de stabilit de proprietar. Versiunea Node de pe găzduire (42.2) rămâne punct deschis |
+| versiunea Node pe găzduire (42.2) | deschis: decizie înaintea autorizării zilei V3 |
+| ziua V3 | neautorizată; cere autorizare separată |
+| D-BA3 | procedura aprobată ca document; execuția după ziua V3, cu autorizare separată |
+| blocajul §34.8 | **activ** |
+
+### 42.6 Ce NU înseamnă această consemnare
+
+Nu autorizează ziua V3, etapa C-9b, execuția D-BA3, repornirea staging-ului sau vreo operație pe staging, producție, cPanel, cron ori în fișierul de setări al aplicației; nu ridică blocajul din §34.8; nu modifică procedura r7. Lansarea publică nu este aprobată.
