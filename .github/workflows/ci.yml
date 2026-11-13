@@ -1,7 +1,7 @@
 # CI — Turnu Măgurele Civic (Faza 5.1, pasul 5.1.7)
 # Matricea G5 / B10 §2: Node 20 + 24 × MySQL 8.0 + 8.4.
 # În plus, din 07.10.2026 (amendamentul la G2): Node 24 × MariaDB 11.4, baza de date a găzduirii de producție.
-# DEC-8 (c1): un job fixat pe versiunile exacte de producție (Node 24.22.2, MariaDB 11.4.13; cPanel, 04.11.2026; Node actualizat de furnizor de la 24.21.0, constatat la 03.11.2026).
+# DEC-8 (c1): un job fixat pe versiunile exacte de producție (Node 24.22.3, MariaDB 11.4.13; Node 24.22.3 afișat de cPanel la 13.11.2026, actualizat de furnizor de la 24.22.2; anterior de la 24.21.0, constatat la 03.11.2026).
 # La o schimbare de versiune pe server, valorile node / image / expect_* de mai jos se actualizează împreună.
 # Etape: lint (tsc) → build (frontend + artefactul backend) → unitare → API → integrare DB → artefact → E2E.
 # Orice eșec blochează integrarea (B-2).
@@ -47,11 +47,11 @@ jobs:
             image: 'mariadb:11.4'
             health: 'mariadb-admin ping -h 127.0.0.1 -uroot -pci_root_only'
           # DEC-8 (c1): versiunile exacte de producție; jobul verifică explicit că rulează pe ele
-          - node: '24.22.2'
+          - node: '24.22.3'
             db: 'MariaDB 11.4.13, producție'
             image: 'mariadb:11.4.13'
             health: 'mariadb-admin ping -h 127.0.0.1 -uroot -pci_root_only'
-            expect_node: '24.22.2'
+            expect_node: '24.22.3'
             expect_db: '11.4.13'
     services:
       mysql:

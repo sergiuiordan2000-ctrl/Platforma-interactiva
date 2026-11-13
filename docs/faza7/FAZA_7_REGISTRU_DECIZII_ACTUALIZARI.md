@@ -1930,3 +1930,41 @@ Amprentele au fost verificate de proprietar pe calculatorul lui (`Get-FileHash`)
 ### 42.6 Ce NU înseamnă această consemnare
 
 Nu autorizează ziua V3, etapa C-9b, execuția D-BA3, repornirea staging-ului sau vreo operație pe staging, producție, cPanel, cron ori în fișierul de setări al aplicației; nu ridică blocajul din §34.8; nu modifică procedura r7. Lansarea publică nu este aprobată.
+
+---
+
+## 43. Node v24.22.3 pe găzduire: proba CI pe o ramură separată, conformă; jobul de producție (DEC-8 c1) actualizat (13.11.2026)
+
+**Sursa:** constatarea din §42.2; diff-ul `CI_NODE_24.22.3.diff` (SHA-256 `0348e5486763a9d0317db393c2581b0708a4f41878fc2d04ad32cde782a8ec72`, în afara depozitului), revizuit de auditor fără obiecții. **Deciziile proprietarului** (13.11.2026): varianta C (întâi proba CI pe Node 24.22.3); apoi aprobarea, într-o singură cerere, a commitului și a push-ului pe o ramură de probă și a rulării manuale a CI-ului pe ea; apoi aprobarea pregătirii acestui diff. Natura dovezilor din 43.1: **verificate de Claude** (`gh`, jurnalul jobului), nu independent de auditor.
+
+### 43.1 Proba pe ramura separată
+
+| Element | Rezultatul |
+|---|---|
+| ramura de probă | `ci-node-24.22.3`, commitul `f915992` = `d33fe9b` + diff-ul de mai sus (numai `.github/workflows/ci.yml`, 3 rânduri) |
+| push | numai ramura de probă, fără `--force`; `faza-5-backend` (`d33fe9b`) și `main` (`d9bc2c9f`) neatinse |
+| rularea CI | `43385271898`, pornită manual (`workflow_dispatch`): **succes, 7/7** |
+| jobul de producție | `backend (Node 24.22.3, MariaDB 11.4.13, producție)`; jurnalul: `Node v24.22.3; baza de date 11.4.13-MariaDB-ubu2404` (verificarea explicită a versiunilor) |
+
+### 43.2 Valabilitatea pentru pachetul V3
+
+Proba a rulat codul de la `d33fe9b`, nu pachetul `civic-4198e8d.zip`. Între `4198e8d` și `d33fe9b` s-au schimbat numai documente (`docs/` și `PROJECT_HANDOFF_CURRENT.md`; `git diff --name-only 4198e8d d33fe9b`); codul aplicației, testele și CI-ul sunt identice. Rezultatul probei se aplică, prin urmare, și codului din pachetul V3. Nu este o probă a pachetului însuși pe găzduire.
+
+### 43.3 Actualizarea pe `faza-5-backend` (acest commit)
+
+- `.github/workflows/ci.yml`: aceleași trei rânduri ca în proba din 43.1 (comentariul DEC-8, `node`, `expect_node`: `24.22.2` → `24.22.3`); `ci.yml` rezultat este identic cu cel din `f915992`. MariaDB 11.4.13 neschimbat.
+- Temeiul: regula scrisă în `ci.yml` („La o schimbare de versiune pe server, valorile node / image / expect_* de mai jos se actualizează împreună”, DEC-8 c1) și precedentul din 03–04.11.2026 (commitul `1524891`, §36.7: `24.21.0` → `24.22.2`).
+
+### 43.4 Ce rămâne deschis
+
+| Punctul | Starea |
+|---|---|
+| procedura V3 (§40), C-1b: `started (v24.22.2)` | o revizie r8 a procedurii, numai pentru versiunea Node; document separat, cu revizia auditorului și aprobarea proprietarului |
+| versiunea MariaDB pe găzduire | neconfirmată după 04.11.2026; se poate citi în phpMyAdmin („Server version”), de exemplu la C-1c, unde phpMyAdmin se folosește oricum |
+| ramura de probă `ci-node-24.22.3` | se șterge după acest commit, cu aprobare separată |
+| ziua V3 | neautorizată |
+| blocajul §34.8 | **activ** |
+
+### 43.5 Ce NU înseamnă această consemnare
+
+Nu modifică procedura r7 și nu autorizează ziua V3, D-BA3, repornirea staging-ului sau vreo operație pe staging, producție ori cPanel; nu ridică blocajul din §34.8. Lansarea publică nu este aprobată.
