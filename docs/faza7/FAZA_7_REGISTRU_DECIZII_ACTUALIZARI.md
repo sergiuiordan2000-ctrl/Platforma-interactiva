@@ -1991,3 +1991,120 @@ Neschimbat intenționat: Node-ul portabil v24.22.2 de pe calculator (folosit num
 **Ramura de probă `ci-node-24.22.3`** (`f915992`, §43.1): ștergerea ei a fost aprobată de proprietar (13.11.2026), după confirmarea că `ci.yml` de pe `faza-5-backend` este identic cu cel din probă (același obiect git). Ștergerea nu a putut fi făcută din sesiunea de lucru (proxy-ul refuză ștergerea ramurilor); **ramura a fost ștearsă de proprietar din interfața GitHub** (13.11.2026, ~10:16), iar Claude a verificat apoi în depozit (`git ls-remote`) că ea nu mai există și că celelalte ramuri au rămas neschimbate (`faza-5-backend` = `23e12c6`, `main` = `d9bc2c9f`, `recovery-etapa-5-0e2cc20` = `0d328a67`).
 
 **Ce NU înseamnă această aprobare:** nu autorizează ziua V3, etapa C-9b, D-BA3, repornirea staging-ului sau vreo operație pe staging, cPanel, cron, în fișierul de setări al aplicației ori în producție. Execuția zilei V3 cere o autorizare separată. Staging-ul rămâne oprit, în regimul R2. Blocajul din §34.8 rămâne activ. Lansarea publică nu este aprobată.
+
+---
+
+## 45. Ziua V3 pe staging: repetiția M4 + R19 pe `4198e8d`, executată după procedura r8.1; V3-1 … V3-8 conforme; P4 conform pe `4198e8d`; staging oprit din nou (13.11.2026)
+
+**Sursa:** execuția făcută de proprietar la 13.11.2026, câte un pas, cu ghidajul lui Claude și capturile analizate de Claude; procedura aprobată **r8.1** (§44, SHA-256 `3f17afaf…5e30`). **Autorizarea proprietarului:** 13.11.2026, 18:31, pentru o sesiune de seară. Natura dovezilor: **constatate de proprietar**, analizate de Claude; nu sunt verificări independente ale auditorului.
+
+### 45.1 Rezultatul pe scurt
+
+| Criteriul (procedura r8.1, §3) | Pașii | Rezultatul |
+|---|---|---|
+| V3-1 (ținta separată, confirmată prin citire; copia direct în `backups`) | C-4b, C-5, C-5a, C-6 | **conform** |
+| V3-2 (verificarea permisă) | C-7a | **conform**: „PERMISĂ” |
+| V3-3 (restaurarea; A absentă) | C-7b, C-8 | **conform** |
+| V3-4 (mesajul lui B reținut la restaurare) | C-2b, C-7b, C-8 | **conform** |
+| V3-5 (a doua rulare refuzată, fără efect) | C-7c, C-8b | **conform**, pe baza rezultatului C-7c („REFUZ, nimic scris”), cu limita probatorie declarată la 45.4, punctul 8 |
+| V3-6 (starea activă neschimbată) | C-3e = C-8a | **conform**: 32/32 sume identice; amprente și structură identice |
+| V3-7 (curățenia; fără cron) | C-0, C-9 | **conform** |
+| V3-8 (nimic rămas din țintă) | C-7b, C-9 | **conform** |
+| P4 pe `4198e8d` (nu e criteriu V3; D-349-3 = A′) | C-9b | **conform**, 5/5 |
+
+**Staging-ul a fost oprit din nou la 21:28 (`stopped (v24.22.3)`); regimul R2 (§33) este reluat.**
+
+### 45.2 Desfășurarea (rezultatele pe pași)
+
+| Pas | Rezultatul |
+|---|---|
+| C-0 | `stopped (v24.22.3)`; „No Cron Jobs”; `backups` = inventarul de după O-5 (jurnalul, intervenția 164); `civic-test-data` neschimbat; `civic-test-app`: `dist`, `public`, `server`, `tmp`, `package.json`, `RELEASE.txt`, `stderr.log` (2,62 KB, 12.10.2026) |
+| C-0a | `RELEASE.txt`: `commit: 2fc8403`; `server` conține numai `data`, `dist`, `migrations`, `seeds` |
+| C-1 | arhiva `civic-4198e8d.zip`: SHA-256 verificat pe calculator, **înaintea urcării** (`8D89F83A…`, egal cu §42.3); pe găzduire, File Manager a afișat numai **1,44 MB**, nu dimensiunea exactă (45.4, punctul 2); cele 4 intrări ale pachetului șterse, arhiva extrasă, `RELEASE.txt`: `commit: 4198e8d`, arhiva ștearsă |
+| C-1′ | cele 24 de intrări corespund `INVENTAR_civic-4198e8d.txt` **ca nume și dimensiuni**; amprentele SHA-256 ale fișierelor extrase **nu** au fost verificate pe găzduire; intrările care nu aparțin pachetului, neschimbate |
+| C-1a | `civic.env`: 04.11.2026, 7:37 PM, neschimbat |
+| C-1b | `started (v24.22.3)`; `health`: `{"status":"ok","version":"0.0.0+4198e8d"}`; `stderr.log` neschimbat |
+| C-1c | fluxul către Primărie era **pornit** (modul staging, numai adresele din listă; destinatarul = proprietarul); coada = referința (1 / 1 / 7 `sent`; 0 `queued`, `sending`, `failed`). DEC-16 a zilei: conformă (evidența DEC-16, D16-a) |
+| C-2 | fluxul debifat și salvat; panoul arată fluxul oprit |
+| C-2a | A = **TM-018** (cu fotografie, fără transmitere); B = **TM-019** (cu fotografie, cu transmitere) |
+| C-2b | exact un rând `registry_notification` / `on_hold` / **TM-019** |
+| C-3 | `civic-backup-20261113T171353190Z` (19:13:53), „criptată (age)”. Rotația a șters cele 3 copii criptate anterioare (45.4, punctul 6). În `stderr`: un `npm notice` (precedentul §36.6) |
+| C-3a | ID-ul lui A: `01M7AY2TY7JN2AXD0WMCWVFNSB` |
+| C-3b, C-3c | A ștearsă definitiv; marcajul `backups/deletions/<ID-ul lui A>.json` prezent |
+| C-3d | C = **TM-020** (fără fotografie, fără transmitere). Condiția de liniște: de la ~19:24 |
+| C-3e | sumele de control ale celor **32** de tabele (~19:34; 45.4, punctele 3 și 4); `storage/photos`: 6 fișiere `.webp`, `storage/tmp` gol; arhiva stării: 13 fișiere, 6 dosare (`amprente.csv`, `dosare.csv` pe calculator) |
+| C-4 | arhiva copiei descărcată (SHA-256 `BC745CC4…CFC5`; 11 fișiere) și ștearsă de pe găzduire |
+| C-4a | `backup:verify`: copia întreagă și consecventă (13 sesizări, 7 fotografii), cod 0; `backup:decrypt`: `civic-restore-20261113T180538706Z` (11 fișiere), cod 0 (Node portabil v24.22.2, §42.3) |
+| C-4b | copia decriptată urcată în `backups` și extrasă; arhiva ștearsă; permisiunile corectate (45.4, punctul 5) |
+| C-5 | baza `<cont>_civic_v3`; utilizatorul `<cont>_v3` (parolă din 24 de litere și cifre, în managerul de parole, intrare temporară); ALL PRIVILEGES numai pe `<cont>_civic_v3`. Server: MariaDB 11.4.13 (afișat în cPanel) |
+| C-5a | `restore-target.env`: 125 B, permisiuni 0600, în `/home2/<cont>/civic-test-data` (în afara docroot-ului) |
+| C-6 | ținta identificată: `<cont>_civic_v3`, `<cont>_v3`, `localhost:3306`, `STORAGE_DIR: /home2/<cont>/v3-storage`, 0 tabele; copia sursă `civic-restore-20261113T180538706Z` |
+| C-7 | schema bazei țintă la versiunea 2 |
+| C-7a | „PERMISĂ” |
+| C-7b | restaurarea încheiată: fotografii 6; șterse conform listei 1 (A); mesaje reținute 1 (TM-019, R19); contorul TM restaurat: 20; copia decriptată ștearsă |
+| C-7c | „REFUZ, nimic scris”; cod de ieșire 1 |
+| C-8 | baza de test: 12 sesizări (TM-019 prezentă; TM-018 și TM-020 absente); mesajul lui B `failed`, motivul R19; contorul 20; rânduri: `reports` 12, `report_photos` 6, `email_outbox` 10 (= valorile de la C-3 minus A, 45.4 punctul 7); `v3-storage`: 6 fotografii, fără cea a lui A |
+| C-8a | sumele celor 32 de tabele **identice** cu C-3e (32/32); `Compare-Object` pe amprente și pe structură: niciun rând (identice); niciun `civic-restore-*` în `backups`; coada activă: TM-019 tot `on_hold`. Condiția de liniște încheiată |
+| C-8b | baza de test: 12 / 6 / 10 / contorul 20, identice cu C-8 |
+| C-9 | în ordinea din §4.1, regula 3: (a) niciun `civic-restore-*` și nicio arhivă în `backups`; (b) `restore-target.env` șters fără coș (`civic.env` neschimbat: 1,37 KB, 04.11.2026, 7:37 PM); (c) utilizatorul `<cont>_v3` șters (rămâne numai utilizatorul activ); (d) baza `<cont>_civic_v3` ștearsă (rămâne numai baza activă, cu utilizatorul ei); (e) `/home2/<cont>/v3-storage` șters fără coș. `.trash`: fără elementele V3 (45.4, punctul 10); `tmp`: numai sesiunile phpMyAdmin și statisticile găzduirii; „No Cron Jobs” |
+| C-9a | panoul fluxului, fără salvare: fluxul **oprit** |
+| C-9b | 45.3 |
+| C-10 | **STOP APP**, ~21:28: `stopped (v24.22.3)` (confirmat de proprietar). **`health` după oprire nu a fost cerut la C-10** (omisiunea ghidajului). **Verificare suplimentară, 14.11.2026, 08:23** (D-1 = A, aprobată de proprietar): `curl.exe -sI -u <utilizator> …/api/v1/health` → **`HTTP/1.1 404 Not Found`**, `text/html` (pagina serverului; aplicația nu răspunde), `Date: Sat, 14 Nov 2026 06:23:08 GMT`; cod de ieșire **0** (captură). Rezultat identic ca natură cu O-6 (jurnalul, intervenția 165). Este o verificare făcută a doua zi, **nu** dovada că pasul C-10 a fost executat complet în seara de 13.11.2026; o cerere HTTP nu poate reporni aplicația oprită (§32.1) |
+
+### 45.3 Verificarea P4 pe `4198e8d` (C-9b, ~21:20–21:27)
+
+De pe calculatorul proprietarului, `curl.exe -u <utilizator>`, parola cerută interactiv la fiecare comandă:
+
+| Cererea | Rezultatul | Cod de ieșire |
+|---|---|---|
+| (1) HEAD `/` | `200`; `x-robots-tag: noindex, nofollow`; `text/html`; `last-modified: Sat, 07 Nov 2026 06:47:30 GMT` | 0 |
+| (2) HEAD `/favicon.svg` | `200`; `content-type: image/svg+xml`; `x-robots-tag: noindex, nofollow`; același `last-modified` | 0 |
+| (3) HEAD `/api/v1/health` | `200`; `application/json`; `content-length: 41`; `x-robots-tag: noindex, nofollow`; `cache-control: no-store` | 0 |
+| (4) GET `/robots.txt` | exact `User-agent: *` și `Disallow: /` | 0 |
+| (5) GET `/api/v1/diag/client-ip` | `{"error":{"code":"NOT_FOUND","message":"Resursa nu există."}}` | 0 |
+
+- **P4 conform pe `4198e8d`**, 5/5 (capturi pentru toate cele cinci).
+- Prima încercare a cererii (1) **nu a ajuns la `curl.exe`**: PowerShell a refuzat linia (eroare de sintaxă, substituentul lăsat între `< >`). Nicio cerere nu a plecat, deci nu e un rezultat P4 și nici o repetare a unei cereri; linia corectată a fost rulată o singură dată.
+- Constatare: răspunsurile `200` conțin și antetul `WWW-Authenticate: Basic realm="Staging Urbis Activ"`. Nu afectează P4; se notează ca fapt (lacătul este activ).
+- Potrivit procedurii (§3), rezultatul P4 intră în evaluarea pentru ridicarea blocajului din §34.8 (D-349-4); această consemnare nu face evaluarea.
+
+### 45.4 Abateri și constatări
+
+1. **Sesiunea de seară** (18:31–21:35), nu „ziua”, cum cere condiția de pornire 4. Acceptată de proprietar la autorizare. Cron-ul era oprit, deci nu exista legătură cu 03:17 / 03:47.
+2. **Dimensiunea arhivei (C-1):** File Manager afișează 1,44 MB, nu numărul exact de octeți (1.506.842 B). Decizia proprietarului (A): continuarea cu dimensiunea rotunjită. **Limita (precizare la cererea auditorului):** amprenta SHA-256 verificată pe calculator dovedește integritatea arhivei **dinaintea urcării**, nu și a celei urcate; după extragere au fost verificate numele și dimensiunile celor 24 de intrări (C-1′), nu amprentele lor. Nimic nu indică o instalare greșită (versiunea din `health`, `RELEASE.txt`, lista și dimensiunile corespund), dar verificarea arhivei de la C-1 **nu este complet conformă** cu procedura.
+3. **§2.1, interogarea care generează instrucțiunea `CHECKSUM TABLE`:** în phpMyAdmin, `SET SESSION group_concat_max_len` nu a avut efect pentru interogarea următoare (textul `q` trunchiat, avertismentul #1260); în plus, contextul `DATABASE()` a fost `NULL`. Înlocuire: instrucțiunea **explicită** `CHECKSUM TABLE … EXTENDED` cu cele 32 de tabele (lista citită din `information_schema`, cu numele bazei scris explicit), aceeași la C-3e și C-8a; la C-8a, cu numele calificate cu baza. Rezultatul nu e afectat. **Defect de procedură**, de corectat într-o revizie viitoare a procedurii, dacă va mai fi folosită.
+4. **Exportul sumelor (§2.1, „Export → CSV”):** la prima încercare a fost exportată, din meniul general, **întreaga bază activă** ca CSV (date de test în clar pe calculator); fișierul a fost șters de proprietar. Sumele au fost păstrate apoi prin copiere (fișierul `sume.txt` din `stare-inainte` și `stare-dupa`) și transcrise de Claude din capturi; comparația a fost făcută pe transcrieri, 32/32.
+5. **Permisiunile copiei decriptate (C-4b):** după extragere, File Manager a arătat 0777 pentru dosare și 0666 pentru fișiere. Corectate de proprietar la 0700 / 0600 (decizia A), înaintea C-6. `backups` se află în `civic-test-data`, în afara docroot-ului; copia a fost ștearsă de restaurare la C-7b.
+6. **Rotația la C-3:** copia nouă a declanșat rotația (copiile mai vechi de 7 zile, `rotateBackups`), care a șters cele trei copii criptate anterioare: `civic-backup-20261104T174116344Z`, `civic-backup-20261105T011702381Z`, `civic-backup-20261106T060825012Z`. Comportament conform codului, neprevăzut în procedură. Decizia proprietarului (A): continuarea. **Consecința:** pe staging există acum o singură copie, `civic-backup-20261113T171353190Z`.
+7. **Numărul de rânduri la C-3:** captura ieșirii nu a cuprins partea din mijloc. Compensare: numărătoarea prin SQL pe baza activă, după C-3 și înaintea C-3b: `reports` 13, `report_photos` 7, `email_outbox` 10, `audit_log` 55. Valorile din baza de test (C-8) corespund (minus A).
+8. **Ordinea C-7c / C-8:** C-8 a fost rulat după C-7c, nu între C-7b și C-7c. Consecința pentru V3-5: C-8 și C-8b sunt ambele ulterioare C-7c, deci C-8b nu compară „înainte” și „după” a doua rulare. Dovada lui V3-5 se sprijină pe ieșirea C-7c („REFUZ, nimic scris”, cod 1) și pe faptul că starea constatată la C-8 este exact starea așteptată după C-7b (valorile din punctul 7, minus A; contorul 20). **Limită declarată.**
+9. **Sumele egale cu 0:** patru tabele au suma 0 la ambele instantanee (`citizen_blocks`, `citizen_login_codes`, `report_assignees`, `report_responses`), adică sunt tabele goale; nicio sumă `NULL`. Criteriul din §2.1 („nicio sumă nu poate fi `NULL`”) este îndeplinit; formularea „toate nenule” de la C-8a (și „sumele de control nenule” din istoricul reviziilor, r3) a fost citită în sensul §2.1 (nenul = nu `NULL`). **Interpretarea a fost acceptată de auditor ca regulă operațională, cu rezervă:** cele 32 de rezultate au fost prezente la ambele instantanee, fără niciun `NULL`, și identice 32/32. Formularea ambiguă a procedurii se corectează înaintea unei eventuale refolosiri.
+10. **Ștergerea de la C-1 dusă în coș:** cele 4 intrări ale pachetului vechi `2fc8403` (`dist`, `server`, `package.json`, `RELEASE.txt`) au fost șterse la C-1 fără „Skip the trash” și se află în `.trash` (cu `.trash_restore`, 18:44). Nu conțin secrete; procedura nu cerea ștergerea fără coș la C-1. `.trash` mai conține elemente anterioare zilei V3, între care `civic-backup-20261104T174116344Z.zip` (din 04.11.2026). Golirea coșului: decizie separată.
+11. **Fișierul cu comenzile C-9b** (pe calculator, cu utilizatorul lacătului) a fost șters la curățenia din 13.11.2026, nu „după D-BA3”, cum prevedea §42.3. La D-BA3, comenzile se refac din procedură.
+12. **Constatări fără efect asupra rezultatului:** cPanel **138.0.24**; versiunea MariaDB pe găzduire **11.4.13** (punctul deschis din §43.4 se închide); textul de lângă bifa fluxului („oprit = mesajele așteaptă și pleacă automat la pornire”) confirmă că mesajul `on_hold` al lui TM-019 pleacă la prima repornire a fluxului (45.5).
+13. **Credențialele lacătului (constatare, 14.11.2026):** utilizatorul și parola lacătului de staging **nu sunt păstrate** în managerul de parole al proprietarului (acesta conține numai fraza-parolă a identității de staging). La D-BA3, credențialele noi se păstrează de la început într-o intrare separată a managerului de parole; observația se transmite procedurii D-BA3 (§42.4), fără a o modifica prin această consemnare.
+
+### 45.5 Curățenia pe calculator (13.11.2026, 21:30–21:35)
+
+- șterse definitiv (PowerShell `Remove-Item`, fără coș; `Test-Path` = `False`): `D:\urbis-proba\civic-restore-20261113T180538706Z` și arhiva lui, dosarul `copie`, arhiva `civic-backup-20261113T171353190Z.zip`, fișierul cu comenzile C-9b;
+- clipboardul golit; istoricul clipboardului Windows: dezactivat;
+- intrarea temporară cu parola utilizatorului `<cont>_v3` ștearsă definitiv din managerul de parole;
+- păstrate: identitatea de staging (pe suport, cu fraza-parolă în managerul de parole) și dosarele `stare-inainte`, `stare-dupa` (sume de control, amprente, liste de dosare; fără date personale), care se șterg după intrarea acestei consemnări în depozit.
+
+### 45.6 Starea după această consemnare
+
+| Punctul | Starea |
+|---|---|
+| ziua V3 | **încheiată**; V3-1 … V3-8 consemnate ca conforme, cu limitele probatorii de la 45.4, punctele 8 și 9. Verificarea arhivei la C-1 a rămas incompletă (45.4, punctul 2), fără indicii constatate privind o instalare greșită. `health` după oprire verificat suplimentar la 14.11.2026 |
+| P4 pe `4198e8d` | conform; evaluarea pentru §34.8 nefăcută |
+| staging | oprit (`stopped (v24.22.3)`), „No Cron Jobs”, lacătul activ; regimul R2; pachetul instalat: `4198e8d` |
+| fluxul către Primărie | oprit; **TM-019 `on_hold` în baza activă**: decizie înaintea oricărei reporniri a fluxului |
+| copiile de pe staging | una singură: `civic-backup-20261113T171353190Z` (45.4, punctul 6) |
+| `.trash` din cPanel | conține intrările pachetului vechi și elemente anterioare (45.4, punctul 10): decizie separată |
+| D-BA3 | procedura aprobată ca document (§42.4); execuția cere autorizare separată; observația din 45.4, punctul 13 |
+| procedura V3 | defectul de la §2.1 (45.4, punctul 3), de corectat numai dacă procedura va mai fi folosită |
+| blocajul §34.8 | **activ** |
+
+### 45.7 Ce NU înseamnă această consemnare
+
+Nu autorizează D-BA3, repornirea staging-ului, repornirea fluxului, golirea coșului, vreo operație pe staging, producție, cPanel, cron ori în fișierul de setări al aplicației; nu ridică blocajul din §34.8 și nu face evaluarea P4 pentru el. Lansarea publică nu este aprobată.
