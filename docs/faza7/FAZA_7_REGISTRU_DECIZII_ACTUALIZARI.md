@@ -2162,3 +2162,57 @@ Nu autorizează D-BA3, repornirea staging-ului, repornirea fluxului, golirea co�
 ### 46.6 Ce NU înseamnă această consemnare
 
 Nu pornește fluxul pe staging sau în producție; nu modifică DEC-25; nu autorizează modificări de cod, E4, instalarea producției sau vreo operație pe staging, cPanel ori în fișierele de setări; nu ridică blocajul §34.8; nu închide poarta GDPR. Lansarea publică nu este aprobată.
+
+---
+
+## 47. Blocajul §34.8 ridicat pentru artefactul `civic-4198e8d.zip` (D-348-1 = A); G-3, condițiile de prelucrare la ClausWeb și Brevo: suficient pentru intrarea în E4 (14.11.2026)
+
+**Sursa:** documentul `DECIZII_34.8_G3_r3.md` (în afara depozitului, SHA-256 `5bf2d7168bdb5030ab0d168e599447ea27958c2d70f7148faea84802a6b34f1d`), redactat de Claude; cercetarea documentelor publice ale furnizorilor, făcută de auditor; revizia auditorului la r2 (favorabilă în fond, o corectură la §7.3, inclusă în r3). **Deciziile proprietarului** (14.11.2026): **G-3 = A** (~09:30); **D-348-1 = A** și **D-348-2 = A** (~09:39). Consemnarea este grupată, după regula reviziilor pentru documente cu risc mic (adoptată la 14.11.2026, §46).
+
+### 47.1 Regula de ridicare (D-349-4 = A, §39.1) și verificarea ei
+
+| # | Condiția | Dovada | Starea |
+|---|---|---|---|
+| 0 | problema de licență corectată (motivul §34.8) | §38: generatorul notelor de licență, `THIRD_PARTY_LICENSES.txt` pentru server și frontend; commiturile `639a463` (CI 42282386250, 7/7) și `4198e8d` (CI 42347429571, 7/7) | îndeplinită |
+| 1a | D-349-1, comparația arhivelor | §39.2; verdictul auditorului: conform, închis tehnic | îndeplinită |
+| 1b | D-349-2, probele fără `node_modules` | §39.3: 15 / 15 (rularea 3); verdictul auditorului: conform, închis tehnic | îndeplinită, cu limitele de acolo (local, MySQL 8.0, fără Passenger) |
+| 2 | ziua V3 pe `4198e8d` | §45: V3-1 … V3-8 consemnate ca conforme, cu limitele probatorii de la §45.4 (punctele 8, 9); P4 conform 5/5 | îndeplinită pentru criteriile acoperite; neacoperitele la 47.2 |
+| 3 | CI verde pe `4198e8d` | rularea 42347429571, 7/7; codul aplicației identic la `23e12c6`, `9b54744`, `cfa46ac` (numai documente și `ci.yml`), CI 7/7 inclusiv pe Node 24.22.3 + MariaDB 11.4.13 (rulările 43387835065, 43567107078, 43569570973) | îndeplinită |
+| 4 | revizia auditorului | revizia la r2 (14.11.2026), favorabilă variantei A | îndeplinită |
+
+### 47.2 Ce nu este acoperit pe `4198e8d` (rămâne deschis, legat de E4)
+
+| Punctul | Unde se închide |
+|---|---|
+| criteriile de cron (P5, P7, P8 din §35; P-E7, P-E8 din §36; §39.4) | E4, la prima instalare cu sarcini cron |
+| integritatea arhivei urcate pe găzduire (§45.4, punctul 2) | E4: procedura de producție definește verificarea arhivei urcate, nu numai a celei de pe calculator |
+| validarea pe MariaDB / Passenger a probelor D-349-2 | parțial acoperită de ziua V3 (MariaDB 11.4.13, Node 24.22.3); restul la E4 |
+| restaurarea pe găzduirea de producție | E4 (instanța de tip B, DEC-20; perimetrul după DEC9-4) |
+| formularea `restore:db --check` pe o copie criptată (§39.3; cosmetică) | primul lot de cod, cu aprobarea proprietarului (ca §46.4) |
+
+Niciunul nu privește problema de licență.
+
+### 47.3 D-348-1 = A: decizia
+
+- **Interdicția din §34.8 nu mai privește artefactul `civic-4198e8d.zip`, SHA-256 `8d89f83ae329d28d4ca59e1f5429df0297d5f035f779494227840decaee67ac7`.** Artefactul poate fi folosit ca pachet candidat pentru E4, după autorizarea separată a E4.
+- Pentru `civic-2fc8403.zip` și pentru orice alt artefact cu problema de licență necorectată, interdicția **rămâne**. Orice alt artefact (de exemplu după un lot de cod) cere din nou dovezile corespunzătoare, decise separat (§34.9).
+- Varianta B (menținerea până la închiderea 47.2) a fost respinsă ca circulară: punctele din 47.2 se pot proba numai în E4.
+
+### 47.4 G-3 = A: condițiile de prelucrare la găzduire și la e-mail
+
+| | ClausWeb | Brevo |
+|---|---|---|
+| acord de prelucrare (art. 28 GDPR) | publicat („Acord de Prelucrare a Datelor – ClausWeb”, versiunea 1.0, 16.03.2026); declarat parte din contractul de găzduire; acoperă shared hosting, cPanel și backup | inclus în termenii Brevo (secțiunea „Data Processing Agreement”) |
+| locul datelor | centre de date declarate în UE (București, Germania); centrul folosit efectiv: neconfirmat | declarat în UE |
+| subcontractori | Anexa 4: numai la cerere; nesolicitată | de verificat în DPA-ul actual; neverificat |
+| retenție | Anexa 5: numai la cerere; nesolicitată | jurnalele tranzacționale: 1 lună; previzualizările: niciodată stocate |
+
+- **Contul Brevo** (constatare, 14.11.2026, ~09:34–09:35, captura proprietarului după salvare și reîncărcare): „Email retention rules”: **All senders**, jurnalele șterse după **1 lună** (minimul permis); **„Never store previews”**. Setarea exista deja (confirmarea proprietarului; data configurării inițiale necunoscută). Previzualizările anterioare, eventuale, nu au fost șterse manual.
+- **Decizia:** G-3 este suficient clarificat **pentru îndeplinirea condiției de intrare în etapa E4**, pe baza celor două DPA-uri și a datelor declarate în UE, cu acceptarea explicită a riscurilor reziduale de mai jos. **Nu reprezintă concluzia juridică finală** privind conformitatea GDPR, care rămâne rezervată porții E6 (G-1…G-10, DEC-12).
+- **Risc rezidual acceptat de proprietar:** anexele 4 și 5 ale DPA-ului ClausWeb, centrul de date efectiv și locul copiilor furnizorului rămân nesolicitate; subcontractorii și mecanismele de transfer din DPA-ul Brevo rămân neverificate. Se pot cere sau verifica la E6.
+- Cele două DPA-uri se salvează de proprietar, cu data accesării, într-un dosar „G-3” pe calculator, în afara depozitului (de confirmat de proprietar; nefăcut la data consemnării).
+- Precizare (auditorul): GDPR nu impune în toate cazurile stocarea în UE; transferurile în afara SEE sunt posibile cu condițiile capitolului V.
+
+### 47.5 Ce NU înseamnă această consemnare
+
+Nu autorizează E4, instalarea producției sau vreo operație pe staging, producție, cPanel, cron ori în fișierele de setări; nu pornește fluxul de e-mail; nu închide punctele din 47.2 și nici poarta GDPR; nu aprobă alt artefact decât `8d89f83a…7ac7`; nu derogă de la condițiile de intrare în E4 (T-N5, DEC-23, DEC-21 / DEC-22, procedura de producție). Producția și lansarea publică nu sunt aprobate (D-349-4).
