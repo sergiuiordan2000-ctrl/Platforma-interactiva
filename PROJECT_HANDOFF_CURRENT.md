@@ -100,7 +100,7 @@ DEC-5 se închide numai printr-o consemnare separată în registru, după confir
 - reverificarea `npm audit` înaintea E4 (DEC-3b);
 - O-E3-2 și O-E3-3: decizii de produs (jurnalul, observațiile 20.2 și 22).
 
-**A17-1** (trimiterea reală către Primărie condiționată de confirmarea ei scrisă; `PROJECT_RULES_AND_DECISIONS.md`, rândul 273) **rămâne în vigoare**. Această secțiune nu modifică A17-1 sau DEC-25.
+**A17-1** (trimiterea reală către Primărie condiționată de confirmarea ei scrisă) **a fost anulată** de proprietar la 14.11.2026: nu se cere niciun acord Primăriei (registrul Fazei 7, §46; `PROJECT_RULES_AND_DECISIONS.md` §11.10, „Actualizare 14.11.2026”). **DEC-25 rămâne neschimbată:** fluxul către Primărie rămâne oprit în producție până la poarta GDPR (E6) și la autorizarea separată a proprietarului.
 
 ### 0C.7 Reguli de lucru (în vigoare)
 

@@ -2108,3 +2108,57 @@ De pe calculatorul proprietarului, `curl.exe -u <utilizator>`, parola cerută in
 ### 45.7 Ce NU înseamnă această consemnare
 
 Nu autorizează D-BA3, repornirea staging-ului, repornirea fluxului, golirea coșului, vreo operație pe staging, producție, cPanel, cron ori în fișierul de setări al aplicației; nu ridică blocajul din §34.8 și nu face evaluarea P4 pentru el. Lansarea publică nu este aprobată.
+
+---
+
+## 46. E-mailurile către Primărie fără acordul ei: decizia proprietarului (14.11.2026); A17-1 anulată; câmpul `agreementReference`: varianta C
+
+**Sursa:** decizia formulată de proprietar la 14.11.2026, ~08:53, cu cererea expresă de a fi consemnată; documentul `E2_EMAIL_PRIMARIE_FARA_ACORD_r2.md` (în afara depozitului, SHA-256 `06c4d606e66d845d0607dcea0bf3855dff565fa97d2e2ebc403971361ff6ae41`), redactat de Claude, revizuit de auditor (r1 cu o precizare, inclusă în r2). **Deciziile proprietarului** (14.11.2026, ~09:00): **D-E2-1 = A**, **D-E2-2 = C**, **D-E2-3 = A**, **D-E2-4 = A**. Ordinea de lucru din `DRUM_MINIM_LANSARE_r1.md` §6 a fost adoptată de proprietar în aceeași zi (E2 înaintea E4), împreună cu regula auditorului pentru reviziile documentelor cu risc mic.
+
+### 46.1 Decizia
+
+> **Nu se cere niciun acord Primăriei pentru ca platforma să-i trimită e-mailuri.**
+
+- Decizie **permanentă**, până la o decizie contrară a proprietarului. Continuă principiul de produs din 26.10.2026: funcția de bază a platformei nu depinde de participarea Primăriei.
+- **Nu stabilește momentul pornirii:** trimiterea reală rămâne condiționată de 46.3 și de o autorizare separată a proprietarului.
+
+### 46.2 Ce înlocuiește
+
+| Sursa | Prevederea | Efectul |
+|---|---|---|
+| `PROJECT_RULES_AND_DECISIONS.md` §11.10, **A17-1** (27.09.2026) | trimiterea reală condiționată de confirmarea scrisă a Primăriei | **anulată** |
+| același, **A17-8** | modul de participare „se stabilește odată cu acordul” | modul se stabilește de `super_admin`; fără acord: „primește doar e-mailuri” (`email_only`) sau „nu este implicată” (`none`) |
+| planul v2.4, **E6** | acordul scris al Primăriei, cu referința în `agreementReference` | condiția **cade**; E6 păstrează GDPR (G-1…G-10) și D10. Planul rămâne neschimbat; starea în vigoare este cea de aici (ca la §16) |
+| planul v2.4, **E7** | elementul nevalidat 3: calea `live`, „inclusiv verificarea `agreementReference`” | rămâne element nevalidat al căii `live`; cerința tehnică de completare a câmpului cu o valoare nevidă se păstrează în codul actual și se tratează conform variantei C din 46.4. Nu se pretinde existența unui acord |
+| planul v2.4, **E9** | modul `live` „numai cu `agreementReference`” | cade; `live` rămâne condiționat de E9 și de autorizarea separată |
+
+### 46.3 Ce rămâne în vigoare
+
+- **A17-5**, cu actualizarea din Faza 4: datele de contact ale cetățeanului ajung la Primărie **numai la cererea cetățeanului** (acordul cetățeanului este distinct de acordul Primăriei);
+- **A17-2** (destinatarul numai de la `super_admin`, cu audit), **A17-4** (comutatorul separat), **A17-6** (mențiunea platformei independente și a numărului `TM-XXX` neoficial; `server/src/reports/outbox.ts`, r. 80–81), **A17-7**, **A17-9**; limita de 3 transmiteri / cont / 24 h;
+- **DEC-25 = (a)**: fluxul către Primărie **oprit în producție până la E6** (poarta GDPR);
+- regula proprietarului din 26.10.2026: **nicio trimitere reală fără autorizare separată**; adresele oficiale le introduce proprietarul.
+
+### 46.4 Câmpul `agreementReference`: varianta C
+
+- **Codul nu se modifică acum.** La `9b54744` (codul aplicației identic cu `4198e8d`), pornirea fluxului în `live` cere o referință nevidă (`server/src/routes/adminReports.ts`, r. 484, 495–496; `server/src/reports/outbox.ts`, r. 115); panoul o numește „Referința acordului scris al Primăriei (obligatorie în producție)” (`src/components/admin/reports/RegistrySettingsPanel.tsx`, r. 125).
+- **La pornirea fluxului în producție, câmpul se completează cu textul aprobat** (D-E2-3 = A):
+  > `Fără acord: decizia proprietarului din 14.11.2026 (registrul §46)`
+
+  Textul **nu pretinde existența unui acord**. Eticheta rămâne inexactă până la corectură; este vizibilă numai în panoul `super_admin`.
+- **Corectura etichetei și a cerinței** se face la **primul lot de cod** care va fi necesar oricum. Dacă până la E9 nu apare niciun lot de cod, proprietarul decide explicit dacă acceptă în continuare eticheta inexactă sau autorizează corectarea codului. **Această reevaluare nu blochează automat lansarea.**
+- Motivul alegerii: un artefact nou numai pentru etichetă ar reporni probele cerute pentru ridicarea blocajului §34.8 (§39, D-349-4: ridicarea privește numai artefactul `8d89f83a…7ac7`) și o instalare pe staging (estimare: 4–6 sesiuni), fără beneficiu pentru siguranța datelor.
+
+### 46.5 Puncte de verificat (nu sunt condiții noi ale deciziei)
+
+| # | Punctul | Unde se tratează |
+|---|---|---|
+| R1 | statutul de petiție al mesajului (OG 27/2002; prevederea despre petițiile fără datele de identificare ale petiționarului, de verificat în textul în vigoare; un eventual act nou privind petițiile); aplicația nu promite înregistrarea ca petiție și nici răspunsul în 30 de zile | G-1 / G-10 (E6) |
+| R2 | filtrele antispam ale Primăriei și reputația domeniului de e-mail | primele săptămâni după pornire: urmărirea eșecurilor (A17-9) |
+| R3 | o cerere a Primăriei de oprire a mesajelor | comutatorul fluxului (A17-4); decizia proprietarului |
+| R4 | rolurile GDPR fără acord (Primăria, destinatar independent, la cererea persoanei vizate) și informarea cetățeanului | G-2, G-4 (E6) |
+| R5 | textele din aplicație nu sugerează că Primăria înregistrează sau soluționează sesizarea | E5 / E6 |
+
+### 46.6 Ce NU înseamnă această consemnare
+
+Nu pornește fluxul pe staging sau în producție; nu modifică DEC-25; nu autorizează modificări de cod, E4, instalarea producției sau vreo operație pe staging, cPanel ori în fișierele de setări; nu ridică blocajul §34.8; nu închide poarta GDPR. Lansarea publică nu este aprobată.
