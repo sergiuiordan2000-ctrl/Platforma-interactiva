@@ -2252,3 +2252,34 @@ Procedura **nu a fost probată** (D-TN5-2 = A): aprobarea privește documentul, 
 ### 48.5 Ce NU înseamnă această consemnare
 
 Nu autorizează executarea procedurii, interogări SQL, activarea 2FA pe cPanel, E4 sau vreo operație pe staging, producție ori cPanel. Producția și lansarea publică nu sunt aprobate.
+
+---
+
+## 49. B4: punctele tehnice deschise înaintea producției, decise (D-B4-1…6); 2FA activat pe contul cPanel (14.11.2026)
+
+**Sursa:** documentul `B4_PUNCTE_TEHNICE_r1.md` (în afara depozitului, SHA-256 `0e6c098c132252a0487516e243bb78b346c3101316878ff1645667144bd51458`), redactat de Claude; recomandarea auditorului: B A A B A A (diferită numai la D-B4-4). **Deciziile proprietarului** (14.11.2026, ~10:33): **D-B4-1 = B**, **D-B4-2 = A**, **D-B4-3 = A**, **D-B4-4 = A**, **D-B4-5 = A**, **D-B4-6 = A**. Principiul aplicat: proporționalitate cu o aplicație civică mică; nicio muncă nouă fără motiv concret.
+
+### 49.1 Deciziile
+
+| # | Punctul (sursa) | Decizia |
+|---|---|---|
+| D-B4-1 | DEC9-4, proba de restaurare în E4 (§28.3, §29.4) | **B: fără probă M4 + R19 separată în producție.** Temeiul: ziua V3 (§45) a rulat în același cont de găzduire (G6-1 c), cu același pachet `4198e8d`, MariaDB 11.4.13 și Node 24.22.3. **Obligatoriu în schimb:** verificarea primei copii criptate de producție pe calculatorul proprietarului (`backup:verify` cu identitatea de producție), la prima copie externă (DEC-23). **Gol acceptat explicit de proprietar** (§29.4): o restaurare efectivă cu configurația și datele reale ale producției (`civic.env`, marcajele reale din `BACKUP_DIR`, fotografiile reale) nu este demonstrată. Criteriile E4 15–22 se consemnează, la E4, cu trimitere aici |
+| D-B4-2 | DEC9-3, `host-restore:recover --check` (§28.3) | **A: exclus din E4**: comportamentul concurent nu a fost validat. Comanda rămâne disponibilă pentru un incident real |
+| D-B4-3 | măsurile Node a–d (§35.3) | **A:** a: nu (CI păstrează versiunea exactă, actualizată la fiecare schimbare, ca la §43); **b: da** (versiunea Node citită și consemnată la fiecare instalare); c: nu (fără versiunea Node în evidența DEC-16); d: nu |
+| D-B4-4 | proporționalitatea cheilor (§36.5) | **A: regimul identității de staging (K-2 = A, fără BitLocker) se extinde la identitatea de producție.** Abatere aprobată de la planul r3.2 §4.2. Se păstrează: identitate separată de cea de staging (K-1); fraza-parolă numai în managerul de parole; **două copii pe suporturi separate, în locuri diferite**; suporturile pot fi stick-uri USB sau carduri de memorie, de marcă, cu verificarea amprentei la copiere; verificarea la fiecare copie externă (DEC-23). Recomandarea auditorului (B, BitLocker) a fost consemnată și nu a fost adoptată. DEC-23 (D23-1…7) rămâne neschimbată |
+| D-B4-5 | memoria `backup:db` (§31.6) | **A: risc acceptat**, cu pragul de reevaluare: baza de producție **peste 100 MB** (cPanel → Manage My Databases), urmărit la verificările periodice ale producției, fără evidență nouă. Peste prag: reevaluare (citirea cu cursor ar fi o modificare de cod, decisă atunci) |
+| D-B4-6 | consemnarea | **A:** această secțiune |
+
+### 49.2 Puncte consemnate fără decizie nouă
+
+- **DEC-3b** (§3, §16.2): reverificarea `npm audit` înaintea E4 devine un pas al procedurii de producție (B5), rulat de Claude pe SHA-ul candidat, cu rezultatul consemnat.
+- **Precizarea 3.3** (§34.5): închisă pentru `4198e8d`; jurnalul analizei statice este păstrat (§39.3, proba 1).
+
+### 49.3 2FA pe contul cPanel
+
+- **Activat de proprietar la 14.11.2026, ~10:24** (captura proprietarului: „Two-factor authentication is configured for your account”), după decizia lui din aceeași zi (~10:13). Aplicația de autentificare: cea folosită deja de proprietar. Cheia de configurare: păstrată de proprietar în managerul de parole, într-o intrare separată, ca rezervă; recuperarea accesului, altfel, prin suportul furnizorului.
+- **Efect:** condiția de execuție a procedurii T-N5 (§48.2, 4.2; manualul 7D §9.1) **este îndeplinită** de la această dată. Constatarea din §48.3 („not configured”, ~10:04) rămâne valabilă ca istoric.
+
+### 49.4 Ce NU înseamnă această consemnare
+
+Nu autorizează E4, generarea identității de producție, D-BA3, pornirea staging-ului sau vreo operație pe staging, producție ori cPanel. Salvarea celor două DPA-uri (§47.4) nu este încă confirmată de proprietar și nu se consemnează aici. Producția și lansarea publică nu sunt aprobate.
