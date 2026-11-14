@@ -458,12 +458,12 @@ Criptarea copiilor și copia în afara contului de găzduire privesc producția 
 | aplicația nu pornește după instalare | §4.8; revenirea numai în condițiile din §4.9 | [V]; [A] |
 | configurație e-mail greșită | aplicația continuă în `simulated`; se observă în panoul Admin (§8.2); corectarea `civic.env` și repornirea sunt [EFECT], cu aprobare separată | [V]; [A] |
 | fereastra de parolă repetată (401 + `WWW-Authenticate` adăugat de LiteSpeed) | cauza și reparația: `AMENDAMENT_ME_OPTIONAL.md`; jurnal, observația 2 | [V] |
-| pierderea accesului la ultimul `super_admin` (T-N5) | §9.1 (ciornă, neprobată; aprobarea procedurii este condiție de intrare în E4) | [A] |
+| pierderea accesului la ultimul `super_admin` (T-N5) | §9.1 (aprobată ca document la 14.11.2026, registrul §48; neprobată) | [A] |
 
 
-### 9.1 Recuperarea ultimului `super_admin` (T-N5) — ciornă, neprobată
+### 9.1 Recuperarea ultimului `super_admin` (T-N5) — aprobată ca document (14.11.2026), neprobată
 
-> **CIORNĂ, neprobată.** Metoda O2 a fost aleasă de proprietar la 28.10.2026, iar DEC-22 = (a): două conturi `super_admin`, ale proprietarului, pe dispozitive diferite (`FAZA_7_REGISTRU_DECIZII_ACTUALIZARI.md` §16). Procedura de mai jos trebuie **aprobată** înaintea E4 (planul v2.4, T-N5, rândul 463). Executarea ei este o operație [EFECT], cu decizia separată a proprietarului în momentul incidentului. O probă pe staging este, de asemenea, o decizie separată. [A]
+> **Aprobată ca document, neprobată** (decizia proprietarului din 14.11.2026, D-TN5-1 = A și D-TN5-2 = A: fără probă dedicată; `FAZA_7_REGISTRU_DECIZII_ACTUALIZARI.md` §48). Metoda O2 a fost aleasă de proprietar la 28.10.2026, iar DEC-22 = (a): două conturi `super_admin`, ale proprietarului, pe dispozitive diferite (registrul §16). Executarea procedurii este o operație [EFECT], cu decizia separată a proprietarului în momentul incidentului. O probă pe staging ar fi o decizie separată. [A]
 
 **Când se folosește:** numai dacă **ambele** conturi `super_admin` și-au pierdut dispozitivul TOTP **și** codurile de recuperare. Dacă funcționează cel puțin un cont, celălalt se recuperează **din aplicație** (Admin → Conturi → resetarea TOTP a celuilalt cont), cu audit complet. [V] `server/src/routes/adminAccounts.ts` 140–157 [A]
 
@@ -485,23 +485,24 @@ La următoarea autentificare cu parola, aplicația impune înrolarea unui TOTP n
 - operația **nu lasă audit în aplicație**; se consemnează manual;
 - o greșeală în `WHERE` poate atinge alt cont;
 - accesul la phpMyAdmin înseamnă acces la tot contul de găzduire;
-- datele din baza de date sunt în UTC, de aceea interogările folosesc `UTC_TIMESTAMP(3)`.
+- datele din baza de date sunt în UTC, de aceea interogările folosesc `UTC_TIMESTAMP(3)`;
+- procedura **nu acoperă pierderea parolei**. Dacă un cont funcționează, parola celuilalt se resetează din aplicație (Admin → Conturi, parolă temporară, cu audit; `server/src/routes/adminAccounts.ts` 121). Dacă ambele parole **și** ambele TOTP sunt pierdute, nu există procedură aprobată: orice soluție este o decizie nouă, scrisă înaintea execuției.
 
 [A]
 
-**Condițiile de intrare:** proprietarul are acces la cPanel și cunoaște parola contului `super_admin` vizat; aplicația rulează; decizia de execuție este luată și notată. [A]
+**Condițiile de intrare:** proprietarul are acces la cPanel, **cu autentificarea în doi pași (2FA) activă pe contul cPanel** (condiție obligatorie pentru execuție: fără ea, oricine are parola cPanel poate reseta TOTP-ul unui `super_admin`); cunoaște parola contului `super_admin` vizat; aplicația rulează; decizia de execuție este luată și notată. [A]
 
 | Pas | Tip | Ce face proprietarul | Ce trebuie să vadă | Criteriul de oprire |
 |---|---|---|---|---|
 | R.1 | [EFECT] | „Run JS script” → `civic-backup-db` (copia dinaintea intervenției) | `backup:db: civic-backup-…`, fără eroare | eroare: **oprire** |
 | R.2 | [CITIRE] | phpMyAdmin → baza aplicației → SQL: `SELECT u.id, u.display_name, u.status, u.totp_enabled_at IS NOT NULL AS totp_activ, (SELECT COUNT(*) FROM admin_recovery_codes c WHERE c.user_id = u.id AND c.used_at IS NULL) AS coduri_nefolosite FROM admin_users u WHERE u.role = 'super_admin'` | conturile `super_admin`; se notează `id`-ul exact al contului care se recuperează | contul vizat nu apare, nu este `active` sau `id`-ul nu este sigur: **oprire** |
-| R.3 | [EFECT] | SQL, cu `<ID>` înlocuit exact: `UPDATE admin_users SET totp_secret_enc = NULL, totp_enabled_at = NULL, totp_last_step = NULL, updated_at = UTC_TIMESTAMP(3) WHERE id = '<ID>' AND role = 'super_admin'` | `1 row affected` | alt număr de rânduri: **oprire**; nu se continuă |
+| R.3 | [EFECT] | SQL, cu `<ID>` înlocuit exact: `UPDATE admin_users SET totp_secret_enc = NULL, totp_enabled_at = NULL, totp_last_step = NULL, updated_at = UTC_TIMESTAMP(3) WHERE id = '<ID>' AND role = 'super_admin' AND status = 'active'` | `1 row affected` | alt număr de rânduri: **oprire**; nu se continuă |
 | R.4 | [EFECT] | SQL: `DELETE FROM admin_recovery_codes WHERE user_id = '<ID>'` | numărul codurilor șterse (poate fi 0) | eroare: **oprire** |
 | R.5 | [EFECT] | SQL: `UPDATE sessions SET revoked_at = UTC_TIMESTAMP(3), revoke_reason = 'mfa_reset' WHERE user_id = '<ID>' AND revoked_at IS NULL` | numărul sesiunilor revocate (poate fi 0) | eroare: **oprire** |
 | R.6 | [CITIRE] | interogarea de la R.2, repetată | pentru `<ID>`: `totp_activ` = 0, `coduri_nefolosite` = 0; celelalte conturi neschimbate | altă stare: **oprire** și decizie |
-| R.7 | [EFECT] | autentificarea în Admin cu parola contului; înrolarea impusă: codul QR scanat pe un dispozitiv nou; cele 10 coduri de recuperare noi, scrise pe hârtie și păstrate separat de dispozitive | autentificarea reușește după înrolare | înrolarea eșuează: **oprire**; contul rămâne fără TOTP până la decizie |
+| R.7 | [EFECT] | autentificarea în Admin cu parola contului; înrolarea impusă: codul QR scanat pe un dispozitiv nou; cele 10 coduri de recuperare noi, scrise pe hârtie și păstrate separat de dispozitive | autentificarea reușește după înrolare; dacă apare „Contul este blocat temporar”, se așteaptă 15 minute (nu se modifică `failed_login_count` / `locked_until` prin SQL) | înrolarea eșuează: **oprire**; contul rămâne fără TOTP până la decizie |
 | R.8 | [EFECT] | din contul recuperat, Admin → Conturi: resetarea TOTP a **celuilalt** `super_admin` (cu audit), urmată de înrolarea lui pe al doilea dispozitiv | ambele conturi au din nou TOTP | — |
-| R.9 | — | consemnarea manuală, în jurnalul de operare din afara repository-ului și în jurnalul mediului: data, ora, motivul, pașii, rezultatele (fără `id`-uri complete, adrese, coduri sau secrete) | — | — |
+| R.9 | — | consemnarea manuală, în jurnalul de operare din afara repository-ului, în jurnalul mediului **și într-o secțiune nouă a registrului Fazei 7** (operația nu lasă audit în aplicație): data, ora, motivul, pașii, rezultatele (fără `id`-uri complete, adrese, coduri sau secrete) | — | — |
 
 **Interogările** se rulează **una câte una**. Rezultatul fiecăreia se citește înaintea următoarei. Nu se lipesc toate deodată. [A]
 
@@ -518,7 +519,7 @@ La următoarea autentificare cu parola, aplicația impune înrolarea unui TOTP n
 7. Dacă antetul `X-Robots-Tag` ajunge și pe fișierele statice servite pe domeniul real (§5.4). [E3]
 8. Comportamentul `nodemailer` 10.1.4 cu Brevo real (§8.3). [E3] [A]
 9. Parola lacătului și conținutul `EMAIL_ALLOWLIST`: confirmate de proprietar la 27.10.2026 (§4.0.1), ca observații la acea dată. Liniile cron: citite din captura cPanel din 27.10.2026. Folosirea sau nu a suspendării pentru `5d8c52a`: propunerea din §4.0.1, în așteptarea aprobării. [A]
-10. Procedura de recuperare a ultimului `super_admin` (T-N5): ciornă în §9.1, neprobată, de aprobat înaintea E4. Monitorizarea (DEC-16): decisă, §6.3. [A]
+10. Procedura de recuperare a ultimului `super_admin` (T-N5): §9.1, aprobată ca document la 14.11.2026 (registrul §48), neprobată; condiția de execuție: 2FA activ pe contul cPanel. Monitorizarea (DEC-16): decisă, §6.3. [A]
 11. Toate valorile de producție (§10.2 din planul v2.4): se completează după E4. [A]
 
 ---

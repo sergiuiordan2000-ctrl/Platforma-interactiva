@@ -2216,3 +2216,39 @@ Niciunul nu privește problema de licență.
 ### 47.5 Ce NU înseamnă această consemnare
 
 Nu autorizează E4, instalarea producției sau vreo operație pe staging, producție, cPanel, cron ori în fișierele de setări; nu pornește fluxul de e-mail; nu închide punctele din 47.2 și nici poarta GDPR; nu aprobă alt artefact decât `8d89f83a…7ac7`; nu derogă de la condițiile de intrare în E4 (T-N5, DEC-23, DEC-21 / DEC-22, procedura de producție). Producția și lansarea publică nu sunt aprobate (D-349-4).
+
+---
+
+## 48. T-N5: procedura de recuperare a ultimului `super_admin` aprobată ca document, neprobată; 2FA pe cPanel, condiție de execuție, neconfigurat la 14.11.2026 (14.11.2026)
+
+**Sursa:** documentul `PROCEDURA_T-N5_r1.md` (în afara depozitului, SHA-256 `c1af6fdbf16d362ae35d19f82ba08d0ebb83e55ee0c5e45f12e00a8d22f33a14`), redactat de Claude: verificarea ciornei din manualul 7D, §9.1, față de cod și modificările 4.1–4.5; revizia auditorului (favorabilă, fără probă dedicată; 2FA pe cPanel ca condiție obligatorie de execuție). **Deciziile proprietarului** (14.11.2026, ~10:04): **D-TN5-1 = A**, **D-TN5-2 = A**, **D-TN5-3 = A**, **D-TN5-4 = A**. Condiția de intrare în E4 din planul v2.4 („procedura de recuperare a ultimului `super_admin` scrisă și aprobată”, T-N5) este îndeplinită.
+
+### 48.1 Verificarea față de cod (`cfa46ac`; codul aplicației identic cu `4198e8d`)
+
+Pașii SQL R.3–R.5 reproduc exact resetarea TOTP din aplicație (`server/src/routes/adminAccounts.ts` 140–157): golirea `totp_secret_enc`, `totp_enabled_at`, `totp_last_step`; ștergerea `admin_recovery_codes` ale contului; revocarea sesiunilor (`server/src/auth/sessions.ts` 120–130). Confirmate și: refuzul `SELF_CHANGE` (r. 144), refuzul `bootstrap-admin` cât există un `super_admin` activ (`server/src/accounts.ts` 28–60), înrolarea impusă (`server/src/routes/auth.ts` 90–92), UTC (`server/src/db/client.ts` 24) și numele coloanelor (`server/migrations/0001_initial_schema.sql`). Diferența rămasă: operația nu lasă audit în aplicație.
+
+### 48.2 Modificările aduse §9.1 (în acest commit)
+
+| # | Modificarea |
+|---|---|
+| 4.1 | R.3: `WHERE id = '<ID>' AND role = 'super_admin' AND status = 'active'` |
+| 4.2 | condițiile de intrare: **2FA activ pe contul cPanel**, condiție **obligatorie pentru execuție** |
+| 4.3 | R.7: la „Contul este blocat temporar”, se așteaptă 15 minute; `failed_login_count` / `locked_until` nu se modifică prin SQL |
+| 4.4 | limita nouă: procedura nu acoperă pierderea parolei; cu ambele parole și ambele TOTP pierdute nu există procedură aprobată (decizie nouă, scrisă înaintea execuției) |
+| 4.5 | R.9: consemnarea și într-o secțiune nouă a registrului |
+
+Marcajul §9.1: „aprobată ca document (14.11.2026), neprobată”; manualul rămâne ciornă până la E5.
+
+### 48.3 2FA pe contul cPanel (D-TN5-3, constatare)
+
+- **Constatare (14.11.2026, ~10:04, captura proprietarului, numai citire):** cPanel → Two-Factor Authentication: „**Two-factor authentication is not configured for your account.**”
+- **Consecința:** condiția de execuție a T-N5 (48.2, 4.2) **nu este îndeplinită** la data consemnării. Aprobarea documentului nu înseamnă că ea este îndeplinită.
+- Activarea 2FA pe cPanel este o **decizie separată** a proprietarului, înaintea E4. Ea protejează întregul cont de găzduire (staging și viitoarea producție), nu numai T-N5.
+
+### 48.4 Limitele
+
+Procedura **nu a fost probată** (D-TN5-2 = A): aprobarea privește documentul, nu dovada executării. Rămân limitele din §9.1: fără audit în aplicație; riscul unui `<ID>` greșit (redus de oprirea la R.3 și de verificarea R.6); accesul la phpMyAdmin înseamnă acces la toată găzduirea.
+
+### 48.5 Ce NU înseamnă această consemnare
+
+Nu autorizează executarea procedurii, interogări SQL, activarea 2FA pe cPanel, E4 sau vreo operație pe staging, producție ori cPanel. Producția și lansarea publică nu sunt aprobate.
