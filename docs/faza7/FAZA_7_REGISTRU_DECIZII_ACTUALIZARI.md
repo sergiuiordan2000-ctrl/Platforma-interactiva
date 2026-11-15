@@ -2283,3 +2283,38 @@ Nu autorizează executarea procedurii, interogări SQL, activarea 2FA pe cPanel,
 ### 49.4 Ce NU înseamnă această consemnare
 
 Nu autorizează E4, generarea identității de producție, D-BA3, pornirea staging-ului sau vreo operație pe staging, producție ori cPanel. Salvarea celor două DPA-uri (§47.4) nu este încă confirmată de proprietar și nu se consemnează aici. Producția și lansarea publică nu sunt aprobate.
+
+---
+
+## 50. B2: identitatea `age` de producție generată; ambele copii verificate (15.11.2026); precizare la §49 privind fraza-parolă
+
+**Sursa:** procedura `PROCEDURA_B2_CHEIE_PRODUCTIE_r2.md` (în afara depozitului, SHA-256 `83cce0fbda3d39047db081467a5b2e55e103f8cca63480e555c2d5950f692bb5`), redactată de Claude; revizia auditorului la r1 (metoda acceptată; corectura golirii clipboardului, inclusă în r2, cu o comandă compatibilă cu Windows PowerShell 5.1). **Aprobarea proprietarului:** 15.11.2026, ~08:32 (procedura r2 și execuția). Execuția: proprietarul, pe calculatorul lui, câte un pas, cu ghidajul lui Claude și capturile analizate de Claude. Temeiul: E4.11; K-1 (§36.5); **D-B4-4 = A** (§49).
+
+### 50.1 Rezultatul
+
+| Element | Valoarea |
+|---|---|
+| programul | `age` **v1.3.2** (versiunea folosită la staging, §36.5), instalat pe calculatorul proprietarului prin `winget` (pachetul oficial `FiloSottile.age`), confirmat de proprietar |
+| generarea | 15.11.2026, ~09:12: `cmd /c "age-keygen \| age -p -o <PROD-1>:\identitate-productie.age"`; cheia privată scrisă direct pe suport, criptată imediat cu fraza-parolă; neafișată și nescrisă în clar; fără frază generată automat de `age` |
+| **cheia publică de producție** | `age1cqg3hk4dwkpy0r6260ywplkj94lyfkqjdlwk0pn3rytqpcqwaf0stxp0vu` (suma de control bech32 verificată de Claude); diferită de cheia de staging (§36.5) |
+| fișierul de identitate (SHA-256) | `FD9F56E32AF480991D580B291E4C4A3143C21FEB41BA5A2109444C5DB039F648` |
+| copiile | **două**, pe două stick-uri USB dedicate, etichetate PROD-1 și PROD-2; amprentele SHA-256 **identice** (`Get-FileHash`) |
+| verificarea | **ambele copii verificate prin decriptare** cu fraza (`age -d … \| age-keygen -y`): cheia publică rezultată = cea de mai sus (capturile proprietarului, ~09:14 și ~09:16) |
+| fraza-parolă | nouă, diferită de cea de staging; generată în managerul de parole (tipul „passphrase”, cel puțin 6 cuvinte); păstrată în **două locuri**: managerul de parole (intrare separată, cu cheia publică în note) și o **copie pe hârtie**, separat de suporturi |
+| curățenia | clipboardul golit; suporturile scoase din calculator, de păstrat în locuri diferite; identitatea de staging neschimbată, pe suporturile ei |
+
+Nu se consemnează literele suporturilor, locurile fizice de păstrare și fraza.
+
+### 50.2 Precizare la §49 (D-B4-4)
+
+Formularea din §49.1, D-B4-4, „fraza-parolă numai în managerul de parole”, este **inexactă** (redactarea lui Claude). Intenția, aplicată la 50.1, este regimul de la staging (§36.5): fraza-parolă în **managerul de parole și pe hârtie**, separat de suporturi, și în niciun alt loc digital. Motivul: fără copia pe hârtie, pierderea accesului la managerul de parole ar face inutilizabile toate copiile criptate ale producției. Celelalte elemente ale D-B4-4 rămân neschimbate.
+
+### 50.3 Ce rămâne
+
+- **Cheia publică nu este încă pusă în setările producției.** Se pune la E4, prin procedura de instalare a producției (B5).
+- Verificarea primei copii criptate de producție cu această identitate (D-B4-1, §49) se face la prima copie externă (DEC-23).
+- Salvarea celor două DPA-uri (§47.4): încă neconfirmată de proprietar.
+
+### 50.4 Ce NU înseamnă această consemnare
+
+Nu autorizează E4, instalarea producției, D-BA3 sau vreo operație pe staging, producție ori cPanel. Producția și lansarea publică nu sunt aprobate.
