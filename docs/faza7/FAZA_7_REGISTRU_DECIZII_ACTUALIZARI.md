@@ -2362,3 +2362,39 @@ Nu autorizează E4, instalarea producției, D-BA3 sau vreo operație pe staging,
 ### 51.5 Ce NU înseamnă această consemnare
 
 Nu autorizează pornirea staging-ului, ștergerea `.htaccess.bak-20261008`, modificări ale `.htaccess` sau vreo altă operație pe staging, producție ori cPanel. Producția și lansarea publică nu sunt aprobate.
+
+---
+
+## 52. B5: procedura de instalare a producției (E4) aprobată ca document, r5; deciziile D-B5-1…7 (16.11.2026)
+
+**Sursa:** `PROCEDURA_E4_PRODUCTIE_r5.md` (în afara depozitului, SHA-256 `8d4c400d48de9731dc2c187e7e89c6dfbf4c187ba9c22bb029147e2f7344e5ae`), redactată de Claude pornind de la instalarea staging-ului, ziua V3 și D-BA3; patru runde de revizie a auditorului (r1 → r5; observațiile și modificările în §10–§13 ale documentului). **Aprobarea proprietarului:** 16.11.2026, ~11:23: procedura r5 și deciziile din §9. **E4 nu este autorizată** prin această aprobare.
+
+### 52.1 Ce stabilește procedura
+
+- **Artefactul:** numai `civic-4198e8d.zip`, SHA-256 `8d89f83ae329d28d4ca59e1f5429df0297d5f035f779494227840decaee67ac7` (§47.3); commitul `4198e8d` pe `faza-5-backend` (DEC-24 = a).
+- **Structura (G6-1 c):** aplicația nouă `civic-app` pe `urbisactiv.ro`, datele în `civic-data` (în afara docroot-ului), baza `<cont>_civic_prod` cu utilizatorul `<cont>_prod`, separate de staging; Node 24.22.3 (citit la instalare, D-B4-3 b); `BACKUP_AGE_RECIPIENT` = cheia publică din §50.
+- **Ordinea:** ziua 1, P-1…P-20 (baza, dosarele și `civic.env`; **lacătul înaintea pornirii**, DEC-21; aplicația creată și oprită; arhiva urcată și **amprenta SHA-256 calculată pe găzduire** înaintea extragerii; migrarea, `seed:config`, `check:no-demo`; pornirea; P4 pe domeniul real; cei doi `super_admin` cu TOTP, DEC-22; fluxul oprit, DEC-25; Google; cele 4 sarcini cron; prima copie criptată și verificarea ei pe calculator cu identitatea de producție, D-B4-1, DEC-23); ziua 2, P-21…P-22 (copia nopții; prima înregistrare DEC-16 de producție).
+- **Comenzile lipsă din artefact** (`sha256sum`, `seed:config`, `check:no-demo`, `bootstrap-admin`) prin sarcini cron temporare, de o singură rulare, ca la instalarea staging-ului (intervenția 6); fără pachet nou (care ar cere din nou dovezile §34.9).
+- **Precizare de interpretare (auditorul, la aprobare):** la P-8, comparația se face asupra celor **64 de caractere hexazecimale** ale digestului SHA-256, nu asupra întregului rând afișat (care conține și numele fișierului).
+
+### 52.2 Deciziile proprietarului (§9 al procedurii)
+
+| # | Decizia |
+|---|---|
+| D-B5-1 | **A:** `EMAIL_MODE=allowlist`, cu adresa de test a proprietarului; fluxul către Primărie oprit (DEC-25) |
+| D-B5-2 | **A:** cheie SMTP Brevo nouă, numai pentru producție |
+| D-B5-3 | **A:** client Google OAuth nou, cu adresa de întoarcere `https://urbisactiv.ro/api/v1/citizen/auth/google/callback`; proba la P-17b |
+| D-B5-4 | confirmat: al doilea dispozitiv fizic pentru TOTP există |
+| D-B5-5 | confirmat: două adrese distincte, sub controlul proprietarului, pentru cele două conturi `super_admin` (nu se consemnează); administratorii nu primesc e-mailuri și nu intră în `EMAIL_ALLOWLIST` |
+| D-B5-6 | **A:** sarcini cron temporare pentru comenzile lipsă din artefact |
+| D-B5-7 | **A:** instalarea în două zile |
+
+### 52.3 Ce urmează
+
+1. **Autorizarea E4**, separată: ziua aleasă de proprietar, cu SHA-ul exact al artefactului.
+2. Pregătirile fără efect pe găzduire, înaintea zilei 1 (§3 al procedurii): clientul Google nou, cheia SMTP nouă, `civic.env` de producție cu secrete noi; `npm audit` pe `4198e8d` (DEC-3b).
+3. După E4: jurnalul de producție (fișier nou), secțiunea de registru, `FAZA_7E_RAPORT.md`, checkpointul 7E.
+
+### 52.4 Ce NU înseamnă această consemnare
+
+Nu autorizează E4, instalarea producției sau vreo operație pe staging, producție, cPanel, cron ori în fișierele de setări; nu ridică lacătul și nu pornește indexarea sau fluxul către Primărie. Producția și lansarea publică nu sunt aprobate.
