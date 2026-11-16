@@ -2318,3 +2318,47 @@ Formularea din §49.1, D-B4-4, „fraza-parolă numai în managerul de parole”
 ### 50.4 Ce NU înseamnă această consemnare
 
 Nu autorizează E4, instalarea producției, D-BA3 sau vreo operație pe staging, producție ori cPanel. Producția și lansarea publică nu sunt aprobate.
+
+---
+
+## 51. D-BA3 executat: utilizator și parolă noi pentru lacătul staging-ului (16.11.2026)
+
+**Sursa:** procedura aprobată `PROCEDURA_D-BA3_LACAT_STAGING_r1.7.md` (în afara depozitului, SHA-256 `c744d193e6d683a1f8d9db80c50918aa972d70d31de647bdec1713eb80481fb7`; §41.4, §42.4), cu trei adaptări (51.2). **Autorizarea execuției:** proprietarul, 16.11.2026, ~09:47. Execuția: proprietarul, câte un pas, cu ghidajul lui Claude și capturile analizate de Claude; aplicația oprită (regimul R2), fără sarcini cron (D-BA3-b = A). Această secțiune **nu conține** utilizatori sau parole (`<vechi>`, `<nou>`).
+
+### 51.1 Rezultatul pe pași
+
+| Pas | Rezultatul |
+|---|---|
+| D-0a (adaptare) | `<vechi>` și parola veche puse **temporar** într-o intrare separată a managerului de parole (pentru revenirea din §5 a procedurii) |
+| D-0 | intrare nouă în managerul de parole: `<nou>` generat (16 caractere, litere mici și cifre), parolă generată (cel puțin 24 de caractere, litere și cifre, fără simboluri) |
+| D-1 | fără autentificare: `401`; cod de ieșire `0` (~09:55) |
+| D-2 | `<vechi>`: `404` (aplicația oprită); cod `0` (~09:58) |
+| D-3 | `.htaccess` descărcat pe calculator (`htaccess-inainte.txt`); în File Manager: **1,42 KB, 13.11.2026, 9:28 PM**; Directory Privacy: în listă **numai** `<vechi>` |
+| D-4 | `<nou>` creat în Directory Privacy (~10:08); lista: `<vechi>` și `<nou>`; bifa și numele zonei neatinse |
+| D-5 | `<nou>`: `404`; cod `0` (~10:10) |
+| D-6 | `<vechi>` șters (numele citit înaintea ștergerii); lista: **numai** `<nou>` (~10:13) |
+| D-7 | (a) fără autentificare: `401`/`0`; (b) `<vechi>`: `401`/`0`; (c) `<nou>`: `404`/`0` (~10:16) |
+| D-8 | `.htaccess` descărcat din nou (`htaccess-dupa.txt`): SHA-256 identic (`502FB5F305A9CC67E6363776E4E0AF0F16E5529DDD7CB084C1605787C01E0C34`); `Compare-Object` fără niciun rând |
+| D-9 | intrarea temporară cu `<vechi>` ștearsă definitiv din managerul de parole; credențialele pentru `test.urbisactiv.ro` șterse din browser (sau inexistente); clipboardul golit (~10:20). Intrarea `<nou>` rămâne singurul loc al credențialelor |
+
+### 51.2 Adaptările față de r1.7 (autorizate odată cu execuția)
+
+1. **D-0a, nou:** procedura presupunea credențialele vechi în managerul de parole (condiția de pornire 3; revenirea din §5). Ele **nu erau** acolo (constatare din 14.11.2026, §45.4, punctul 13); au fost puse temporar, înaintea oricărei modificări, și șterse la D-9.
+2. **D-9:** fișierul `C-9b_comenzi.txt` fusese deja șters la 13.11.2026 (§45.4, punctul 11); nu mai era nimic de șters.
+3. **D-9, clipboardul:** golit cu `cmd /c "type nul | clip"` (ca la §50); istoricul clipboardului Windows este dezactivat pe calculatorul proprietarului (§45.5).
+
+### 51.3 Abateri și constatări
+
+- **Abatere minoră:** la D-5, `<nou>` a apărut în conversația de lucru, pe rândul afișat de `curl.exe` („Enter host password for user …”), deși linia comenzii fusese acoperită. Parola nu a fost expusă. **Decizia proprietarului (A):** fără înlocuirea utilizatorului; riscul este acceptat (parola de cel puțin 24 de caractere rămâne secretă; conversația nu intră în depozit).
+- **Constatare:** data lui `.htaccess` (13.11.2026, 9:28 PM) coincide cu STOP APP din ziua V3 (C-10, ~21:28): oprirea aplicației din cPanel rescrie `.htaccess` (secțiunea aplicației Node). Conținutul de la 16.11 a rămas neschimbat pe durata D-BA3 (D-8).
+- **Constatare, punct de decis:** în folderul public al subdomeniului există **`.htaccess.bak-20261008`** (1,75 KB, 08.10.2026), o copie veche a `.htaccess`. Serverul web refuză, de regulă, fișierele care încep cu `.ht`; accesibilitatea lui nu a fost verificată. Ștergerea lui este o decizie separată (în afara D-BA3).
+- **Prima autentificare cu 2FA pe cPanel** după activare (§49.3): codul a fost cerut și acceptat.
+
+### 51.4 Ce urmează
+
+- Pentru verificările viitoare ale staging-ului (R2, P4) se folosește `<nou>`, cu parola din managerul de parole.
+- Copiile `htaccess-inainte.txt` și `htaccess-dupa.txt` rămân pe calculatorul proprietarului (`D:\urbis-unelte\d-ba3\`); nu conțin parole.
+
+### 51.5 Ce NU înseamnă această consemnare
+
+Nu autorizează pornirea staging-ului, ștergerea `.htaccess.bak-20261008`, modificări ale `.htaccess` sau vreo altă operație pe staging, producție ori cPanel. Producția și lansarea publică nu sunt aprobate.
