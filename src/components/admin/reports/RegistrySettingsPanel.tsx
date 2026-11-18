@@ -5,7 +5,7 @@
 
 /**
  * Fluxul către Primărie (B2 §6.5, N3-5, A17-1, A17-8, 2.13): destinatarul tehnic, comutatorul,
- * modul de participare al Primăriei și referința acordului scris. Numai `notifications.recipient.manage`
+ * modul de participare al Primăriei și o notă internă opțională (fostul câmp „referința acordului scris”, registrul §46). Numai `notifications.recipient.manage`
  * (super_admin). Orice schimbare se auditează; la pornirea fluxului, mesajele „în așteptare” pleacă automat.
  */
 
@@ -122,12 +122,12 @@ export const RegistrySettingsPanel: React.FC<{ onSuccess: (m: string) => void }>
               </select>
             </label>
             <label className="block space-y-1">
-              <span className="font-bold text-slate-700">Referința acordului scris al Primăriei (obligatorie în producție)</span>
+              <span className="font-bold text-slate-700">Notă internă despre flux (opțional)</span>
               <input
                 type="text"
                 value={form.agreementReference ?? ''}
                 onChange={(e) => setForm({ ...form, agreementReference: e.target.value })}
-                placeholder="ex. nr. / data adresei de acord"
+                placeholder="ex. decizia sau data pornirii fluxului"
                 className="w-full p-2.5 border border-slate-200 rounded-xl"
               />
             </label>

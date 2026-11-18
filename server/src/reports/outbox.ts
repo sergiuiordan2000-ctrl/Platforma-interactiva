@@ -109,11 +109,12 @@ export function statusTemplate(
 
 // ——— punerea în coadă ———
 
-/** Fluxul către Primărie poate pleca acum? (A17-1, A17-4, E-5). Altfel rândul stă `on_hold` (2.13). */
-export function registryReady(ctx: AppContext, s: RegistrySettings): boolean {
-  if (!s.flowEnabled || !s.recipientEmail) return false;
-  if (ctx.config.email.mode === 'live' && !s.agreementReference) return false;
-  return true;
+/**
+ * Fluxul către Primărie poate pleca acum? (A17-4, E-5). Altfel rândul stă `on_hold` (2.13).
+ * Fără condiția acordului scris (A17-1, anulată de registrul §46; lotul PWA, D-PWA-2).
+ */
+export function registryReady(_ctx: AppContext, s: RegistrySettings): boolean {
+  return s.flowEnabled && !!s.recipientEmail;
 }
 
 /** Rândul `registry_notification` (pct. 7): numai la cererea cetățeanului; în tranzacția depunerii. */

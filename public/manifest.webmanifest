@@ -1,0 +1,18 @@
+{
+  "name": "Urbis Activ - Turnu Măgurele",
+  "short_name": "Urbis Activ",
+  "description": "Platformă civică independentă pentru municipiul Turnu Măgurele: sesizări pe hartă, comunicate, numere utile, ghidul Primăriei și sondaje.",
+  "lang": "ro",
+  "dir": "ltr",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F8FAFC",
+  "theme_color": "#1D4ED8",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

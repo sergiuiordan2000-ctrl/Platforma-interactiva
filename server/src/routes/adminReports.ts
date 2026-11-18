@@ -470,7 +470,9 @@ export function registerAdminReportRoutes(api: FastifyInstance, ctx: AppContext)
     return reply.code(204).send();
   });
 
-  // ——— setările fluxului către Primărie (B2 §6.5, N3-5, A17-1, 2.13) ———
+  // ——— setările fluxului către Primărie (B2 §6.5, N3-5, 2.13) ———
+  // `agreementReference` este o notă internă opțională: cerința unui acord scris al Primăriei (A17-1) a fost
+  // anulată prin decizia proprietarului din 14.11.2026 (registrul §46); corectura codului: lotul PWA (D-PWA-2).
 
   api.get('/admin/settings/registry', { preHandler: registryPerm }, async (_request, reply) => {
     reply.header('Cache-Control', 'no-store');
@@ -491,9 +493,6 @@ export function registerAdminReportRoutes(api: FastifyInstance, ctx: AppContext)
     if (body.flowEnabled) {
       if (!body.recipientEmail) {
         return reply.code(422).send(apiError('VALIDATION', 'Pentru pornirea fluxului este necesar destinatarul.', { fields: { recipientEmail: 'obligatoriu' } }));
-      }
-      if (mode === 'live' && !body.agreementReference) {
-        return reply.code(422).send(apiError('VALIDATION', 'În producție, fluxul pornește numai cu acordul scris al Primăriei.', { fields: { agreementReference: 'obligatoriu' } }));
       }
       if (mode === 'allowlist' && !ctx.config.email.allowlist.includes(body.recipientEmail)) {
         return reply.code(422).send(apiError('VALIDATION', 'Pe staging, destinatarul trebuie să fie în lista de adrese permise a serverului.', { fields: { recipientEmail: 'în afara listei' } }));

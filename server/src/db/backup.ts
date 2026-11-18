@@ -552,6 +552,8 @@ export type RestoreInspection = {
     reportCounter: number | null;
     /** E4.11: sursa este o copie decriptată `civic-restore-<UTC>` (se șterge după o restaurare executată) */
     decryptedCopy: boolean;
+    /** §39.3 (lotul PWA): sursa este o copie criptată (age); manifestul nu se mai citește, restaurarea e refuzată */
+    encrypted: boolean;
   };
   /** ținta: fără utilizator și fără parolă */
   database: { host: string; port: string; name: string; reachable: boolean; schemaOk: boolean; nonEmptyTables: string[] };
@@ -979,7 +981,7 @@ export async function inspectRestore(opts: RestoreOptions): Promise<RestoreInspe
   }
 
   return {
-    source: { path: sourcePath, manifest, reportCounter: backupCounter, decryptedCopy },
+    source: { path: sourcePath, manifest, reportCounter: backupCounter, decryptedCopy, encrypted: !!encryptedReason },
     database,
     storage: { path: storagePathReal, exists: storageExists, files: storageFiles },
     backupDir: { path: backupPath, exists: backupDirExists },
@@ -1013,7 +1015,9 @@ export function formatRestoreInspection(i: RestoreInspection): string[] {
     `copia sursă: ${i.source.path}${i.source.decryptedCopy ? ' (copie decriptată „civic-restore”, nu o copie obișnuită: se șterge după o restaurare executată)' : ''}`,
     m
       ? `  creată la ${m.createdAt}; schema ${m.schemaVersion}; sesizări ${m.counts.reports ?? 0}; fotografii ${m.photos}; contorul TM din copie: ${i.source.reportCounter ?? 'necunoscut'}`
-      : '  manifestul nu a putut fi citit',
+      : i.source.encrypted
+        ? '  copie criptată (age): manifestul nu a fost citit, fiindcă o copie criptată nu se restaurează direct (vezi motivul refuzului)'
+        : '  manifestul nu a putut fi citit',
     `baza de date țintă: ${i.database.name} pe ${i.database.host}:${i.database.port}`,
     !i.database.reachable
       ? '  inaccesibilă'

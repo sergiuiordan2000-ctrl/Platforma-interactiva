@@ -59,10 +59,13 @@ export const QuickDialCard: React.FC<QuickDialCardProps> = ({ contact }) => {
             )}
           </div>
 
-          <div className="flex items-center gap-1 text-[11px] font-semibold text-slate-600 bg-slate-50 px-2 py-0.5 rounded-lg border border-slate-100">
-            <Clock className="w-3 h-3 text-slate-400 shrink-0" />
-            <span className="truncate max-w-[170px]">{contact.availability}</span>
-          </div>
+          {/* rândul 13 (lotul PWA): fără program introdus, cardul nu afișează ceasul */}
+          {contact.availability.trim() !== '' && (
+            <div className="flex items-center gap-1 text-[11px] font-semibold text-slate-600 bg-slate-50 px-2 py-0.5 rounded-lg border border-slate-100">
+              <Clock className="w-3 h-3 text-slate-400 shrink-0" />
+              <span className="truncate max-w-[170px]">{contact.availability}</span>
+            </div>
+          )}
         </div>
 
         {/* Nume Contact */}

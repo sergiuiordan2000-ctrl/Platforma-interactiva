@@ -56,7 +56,7 @@ export const AdminQuickDialManager: React.FC<AdminQuickDialManagerProps> = ({ on
     categoryId: categories[0]?.id || 'urgente',
     categoryName: categories[0]?.name || 'Urgențe & Siguranță',
     shortDescription: '',
-    availability: '24/7 (Non-stop)',
+    availability: '', // rândul 13: fără program precompletat
     address: '',
     isEmergency: false,
     isDemo: true,
@@ -93,7 +93,7 @@ export const AdminQuickDialManager: React.FC<AdminQuickDialManagerProps> = ({ on
       categoryId: categories[0]?.id || 'urgente',
       categoryName: categories[0]?.name || 'Urgențe & Siguranță',
       shortDescription: '',
-      availability: '24/7 (Non-stop)',
+      availability: '',
       address: '',
       isEmergency: false,
       isDemo: true,
@@ -168,7 +168,7 @@ export const AdminQuickDialManager: React.FC<AdminQuickDialManagerProps> = ({ on
         categoryId: formState.categoryId,
         categoryName: formState.categoryName,
         shortDescription: formState.shortDescription,
-        availability: formState.availability.trim() || '24/7 (Non-stop)',
+        availability: formState.availability.trim(),
         address: formState.address,
         isEmergency: formState.isEmergency,
         isActive: true,
@@ -182,7 +182,7 @@ export const AdminQuickDialManager: React.FC<AdminQuickDialManagerProps> = ({ on
         categoryId: formState.categoryId,
         categoryName: formState.categoryName,
         shortDescription: formState.shortDescription,
-        availability: formState.availability.trim() || '24/7 (Non-stop)',
+        availability: formState.availability.trim(),
         address: formState.address,
         isEmergency: formState.isEmergency,
       }), `Contactul „${formState.name}” a fost actualizat cu succes!`);
@@ -332,7 +332,7 @@ export const AdminQuickDialManager: React.FC<AdminQuickDialManagerProps> = ({ on
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-700">Program / Disponibilitate</label>
+              <label className="text-xs font-bold text-slate-700">Program / Disponibilitate (opțional — gol: cardul nu afișează programul)</label>
               <input
                 type="text"
                 value={formState.availability}

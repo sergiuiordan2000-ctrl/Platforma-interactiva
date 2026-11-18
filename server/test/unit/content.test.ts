@@ -65,6 +65,9 @@ describe('schemele conținutului public (5.3.1)', () => {
     const c = { categoryId: ID, name: 'Poliția Locală', phone: '0247 000 000', formattedPhone: '0247 000 000', availability: '24/7' };
     assert.ok(quickDialContactCreateRequest.safeParse(c).success);
     assert.equal(quickDialContactCreateRequest.safeParse({ ...c, phone: '' }).success, false);
+    // rândul 13 (lotul PWA): programul poate fi gol; lungimea rămâne limitată
+    assert.ok(quickDialContactCreateRequest.safeParse({ ...c, availability: '' }).success);
+    assert.equal(quickDialContactCreateRequest.safeParse({ ...c, availability: 'x'.repeat(101) }).success, false);
     assert.equal(orderRequest.safeParse({ ids: [] }).success, false);
     assert.ok(orderRequest.safeParse({ ids: [ID] }).success);
   });

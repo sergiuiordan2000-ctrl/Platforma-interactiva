@@ -200,8 +200,10 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
           // fișierele din assets/ au hash în nume
           reply.header('Cache-Control', 'public, max-age=31536000, immutable');
         } else {
+          // inclusiv sw.js și manifest.webmanifest (lotul PWA): browserul verifică mereu versiunea nouă
           reply.header('Cache-Control', 'no-cache');
         }
+        if (filePath.endsWith('.webmanifest')) reply.header('Content-Type', 'application/manifest+json; charset=utf-8');
       },
     });
   }

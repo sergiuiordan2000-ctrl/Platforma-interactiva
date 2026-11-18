@@ -20,7 +20,7 @@ import { migrate } from '../../src/db/migrations.ts';
 import { seedConfig } from '../../src/db/seeds.ts';
 import { purgeRetention } from '../../src/maintenance.ts';
 import { MIGRATIONS_DIR, SEEDS_DIR } from '../../src/paths.ts';
-import { processDue, type MailMessage } from '../../src/reports/outbox.ts';
+import { processDue, registryReady, type MailMessage } from '../../src/reports/outbox.ts';
 import { REPORT_POW_KEY, setSetting } from '../../src/settings.ts';
 import { loadUatBoundary } from '../../src/uat.ts';
 import { Client, Clock, makeApp } from '../helpers/apiClient.ts';
@@ -537,21 +537,29 @@ describe('fluxul către Primărie și coada (B6, 2.1, 2.13, 2.14, pct. 7)', () =
     }
   });
 
-  it('7B.3 (E5-2): în `live`, pornirea fluxului fără acordul scris → 422, cu textul aprobat (fără „(A17-1)”); câmpul neschimbat', async () => {
+  it('lotul PWA (D-PWA-2, registrul §46): în `live`, fluxul pornește și fără notă (`agreementReference` opțional); rândul nu mai stă `on_hold` din lipsa ei', async () => {
     const cfg = ctx.config.email;
     const saved = cfg.mode;
+    const prev = (await superAdmin.get(`${V1}/admin/settings/registry`)).json();
+    // fluxul pornit întâi în modul testelor: în `live` nu se mai eliberează rânduri `on_hold` (fără efecte asupra testelor următoare)
+    await registry(true);
     (cfg as { mode: string }).mode = 'live';
     try {
       const res = await superAdmin.send('PUT', `${V1}/admin/settings/registry`, {
         recipientEmail: 'registratura-test@exemplu.test', flowEnabled: true, primariaMode: 'platform', agreementReference: null,
       });
-      assert.equal(res.statusCode, 422);
-      const err = res.json().error;
-      assert.equal(err.code, 'VALIDATION');
-      assert.equal(err.message, 'În producție, fluxul pornește numai cu acordul scris al Primăriei.');
-      assert.deepEqual(err.fields, { agreementReference: 'obligatoriu' });
+      assert.equal(res.statusCode, 200, res.body);
+      const s = res.json();
+      assert.equal(s.flowEnabled, true);
+      assert.equal(s.agreementReference, null);
+      assert.equal(s.releasedFromHold, 0);
+      assert.equal(registryReady(ctx, { ...s, agreementReference: null }), true);
     } finally {
       (cfg as { mode: string }).mode = saved;
+      const restore = await superAdmin.send('PUT', `${V1}/admin/settings/registry`, {
+        recipientEmail: prev.recipientEmail, flowEnabled: prev.flowEnabled, primariaMode: prev.primariaMode, agreementReference: prev.agreementReference,
+      });
+      assert.equal(restore.statusCode, 200, restore.body);
     }
   });
 

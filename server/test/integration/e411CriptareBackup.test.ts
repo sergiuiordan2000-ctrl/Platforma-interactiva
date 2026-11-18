@@ -390,6 +390,11 @@ describe('E4.11 §7.3: copia decriptată civic-restore-<UTC> și ciclul complet'
   it('o copie criptată nedecriptată → refuz explicit, fără nicio scriere', async () => {
     const i = await inspectRestore({ ...opts(backupDir), storageDir: join(freshDir('stenc'), 'x'), source: encrypted });
     assert.match(i.problems.join('\n'), /copie criptată.*backup:decrypt/);
+    // §39.3 (lotul PWA): raportul nu mai spune „manifestul nu a putut fi citit” pentru o copie criptată
+    assert.equal(i.source.encrypted, true);
+    const report = formatRestoreInspection(i).join('\n');
+    assert.doesNotMatch(report, /manifestul nu a putut fi citit/);
+    assert.match(report, /copie criptată \(age\): manifestul nu a fost citit/);
     await assert.rejects(restoreBackup({ ...opts(backupDir), storageDir: join(freshDir('stenc2'), 'x'), source: encrypted }), RestoreRefusedError);
     assert.ok(existsSync(join(encrypted, ENCRYPTED_DB_FILE)));
     assert.equal(await n('SELECT COUNT(*) AS n FROM reports'), 3, 'nimic scris în bază');

@@ -303,7 +303,8 @@ const contactFields = {
   phone: phone.min(1),
   formattedPhone: text(40),
   shortDescription: optText(300),
-  availability: text(100),
+  // rândul 13 (lotul PWA): programul poate lipsi — gol rămâne gol (înainte: obligatoriu, precompletat „24/7 (Non-stop)”)
+  availability: z.string().trim().max(100),
   isEmergency: z.boolean().optional(),
   address: optText(300),
   isActive: z.boolean().optional(),
