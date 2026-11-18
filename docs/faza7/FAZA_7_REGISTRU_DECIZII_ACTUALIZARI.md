@@ -2398,3 +2398,78 @@ Nu autorizează pornirea staging-ului, ștergerea `.htaccess.bak-20261008`, modi
 ### 52.4 Ce NU înseamnă această consemnare
 
 Nu autorizează E4, instalarea producției sau vreo operație pe staging, producție, cPanel, cron ori în fișierele de setări; nu ridică lacătul și nu pornește indexarea sau fluxul către Primărie. Producția și lansarea publică nu sunt aprobate.
+
+## 53. E4 executată: producția instalată pe `urbisactiv.ro`, sub lacăt (16–18.11.2026); obiectivul aplicației Android și editorul în Google Play
+
+**Sursa:** jurnalul nou al producției, `docs/faza7/PRODUCTIE_URBISACTIV_JURNAL.md` (rândurile 1–45), după procedura E4 r5 (§52). **Autorizarea E4:** proprietarul, 16.11.2026, 20:13, în scris: „Autorizez E4 diseară, SHA `4198e8d`, pachetul `8d89f83a…7ac7`”.
+
+### 53.1 Rezultatul
+
+**Criteriile aplicabile instalării E4 (1–14) sunt îndeplinite. Criteriile 15–22 (restaurarea de probă) sunt exceptate prin decizia D-B4-1 = B (§49):** fără probă separată în producție; golul a fost acceptat explicit de proprietar ca risc rezidual, iar în schimb verificarea primei copii externe cu identitatea de producție a fost obligatorie și **a reușit** (DEC-23, criteriul 13). Numerotarea criteriilor: procedura r5, §6.
+
+| # | Criteriul E4 (planul v2.4; procedura r5, §6) | Dovada (jurnalul de producție, dacă nu se indică altfel) | Starea |
+|---|---|---|---|
+| — | artefactul aprobat, verificat pe calculator și pe găzduire | rândurile 2, 16, 17: amprenta `8d89f83a…7ac7`; cele 24 de fișiere identice cu inventarul | îndeplinit |
+| 1 | `health` cu SHA-ul | rândurile 21, 33, 43: `0.0.0+4198e8d` | îndeplinit |
+| 2 | CI verde | CI 7/7 pe `4198e8d`, rularea 42347429571, inclusiv jobul de producție Node 24.22.3 + MariaDB 11.4.13 (§43, §47.1); CI 7/7 pe fiecare commit ulterior, până la `a6f01bf` (43840056022), toate fără modificări ale codului aplicației | îndeplinit |
+| 3 | `APP_ENV=production` | rândul 3: primul rând din `civic.env` de producție (verificat pe calculator înaintea urcării); rândurile 21, 33: aplicația pornește, deci configurația a trecut validarea, care în producție cere și `BACKUP_AGE_RECIPIENT`, `BACKUP_DIR` și `https` | îndeplinit |
+| 4 | `noindex` / `robots.txt` pe domeniul real | rândul 22 | îndeplinit |
+| 5 | lacătul înaintea pornirii, `401` fără credențiale | rândurile 12, 13, 22 | îndeplinit |
+| 6 | niciun e-mail către Primărie sau terți | `EMAIL_MODE=allowlist` numai cu adresele proprietarului (D-B5-1, D-E4-2); fluxul oprit (rândul 30); coada goală (rândul 44) | îndeplinit |
+| 7 | `check:no-demo` | rândul 18 | îndeplinit |
+| 8 | TOTP, două conturi `super_admin` pe dispozitive diferite | rândurile 25–29 | îndeplinit |
+| 9 | domeniul, TLS, `http` → `https`, secrete noi, primul `super_admin` | rândurile 5, 13, 20 (`301` spre `https`); rândul 3 (secrete generate pe calculator, cheie SMTP și client Google noi); rândurile 25–28; Google: rândurile 31–34, cu clientul în „Testing” (53.2, D-E4-0) | îndeplinit |
+| 10 | cele 4 sarcini cron | rândul 35; prima noapte: rândurile 41–42 | îndeplinit |
+| 11 | `BACKUP_DIR` (și `STORAGE_DIR`) în afara docroot-ului; criptarea | rândul 11: `/home2/<cont>/civic-data/storage` și `/home2/<cont>/civic-data/backups`, 0700, în afara `/public_html`; rândul 3: căile verificate în `civic.env`; rândul 36: „criptată (age)” | îndeplinit |
+| 12 | copie `civic-backup` | rândurile 36, 41–42 | îndeplinit |
+| 13 | DEC-23 (prima copie externă) | rândurile 37–40: `backup:verify` cu identitatea de producție, cod 0 | îndeplinit |
+| 14 | DEC-16 | rândurile 43–45 | îndeplinit |
+| 15–22 | restaurarea de probă | **exceptate:** D-B4-1 = B (§49); risc rezidual acceptat de proprietar; compensat de criteriul 13 | exceptate |
+
+Staging-ul a rămas oprit și fără sarcini cron pe toată durata (rândurile 8, 20).
+
+### 53.2 Deciziile proprietarului din timpul E4
+
+| # | Data | Decizia |
+|---|---|---|
+| D-E4-0 | 16.11, 20:12 | **A:** E4 continuă cu clientul Google în „Testing”; adresa de probă a proprietarului la „Test users” înaintea P-17b; Branding și „Publish app” după pornirea site-ului public (linkurile cerute de Google trebuie să funcționeze) |
+| — | 16.11, 20:14 | oprirea fixă de la 22:30 ridicată; limita rămasă: fără lucru în fereastra 03:00–06:30 |
+| D-E4-1 | 16.11, 20:48 | **A:** conținutul implicit al găzduirii din `public_html` (`index.php`, `favicon.ico`, `images/`, `styles/`) **mutat** în `/home2/<cont>/public_html-vechi-20261116`, nu șters; directivele PHP ale cPanel, `.well-known` și `cgi-bin` rămân |
+| — | 16.11, 21:57 | **B:** pauză după P-13; conturile de administrator a doua zi |
+| D-E4-2 | 17.11, 08:13 | **A:** adresa Google de probă a proprietarului adăugată în `EMAIL_ALLOWLIST`, lângă adresa de test existentă. Motivul: în modul `allowlist`, autentificarea Google acceptă numai adresele din listă (`server/src/routes/citizenGoogle.ts` 155). **Corectură:** în seara de 16.11, Claude afirmase că proba Google nu depinde de listă; afirmația era greșită și a fost corectată înaintea probei |
+| `npm audit` | 16.11, 12:17 | **A:** pe `4198e8d` (16.11, 09:42 UTC): 3 vulnerabilități moderate, 0 mari, toate din `@fastify/static` 10.1.5 → `glob` / `minimatch`; neexploatabile în configurația noastră (`glob` se apelează numai cu `wildcard: false`, iar `server/src/app.ts` 194–197 folosește `wildcard: true`). Risc acceptat; actualizarea la primul lot de cod, împreună cu eticheta `agreementReference` (DEC-3b) |
+
+### 53.3 Abaterile de la procedura r5
+
+| # | Abaterea | Motivul / efectul |
+|---|---|---|
+| A0 | ziua 1 a început seara (20:13), nu „în timpul zilei” (condiția 8) | decizia proprietarului; fereastra 03:00–06:30 respectată; pauză la 21:57 (53.2) |
+| A1 | secretele generate cu generatorul criptografic din Windows (PowerShell), scrise direct în `civic.env`, nu cu Node portabil și copiere | aceeași formă (32 de octeți, 64 de caractere hex); nicio valoare prin clipboard sau conversație (rândul 3) |
+| A2 | sarcinile cron temporare (P-8, P-9, P-10, P-14) programate `* * * * *`, șterse după prima apariție a fișierului, nu „la minutul următor” | fără dependență de fusul orar al serverului; comenzile sunt idempotente, iar P-14 are protecția din A5 |
+| A3 | la P-9, comparația cu inventarul prin SHA-256 pe fiecare fișier, nu prin nume și dimensiune | verificare mai strictă (rândul 17) |
+| A4 | la P-10, `migrate` prin sarcina cron temporară, nu prin „Run JS script” (indisponibil cu aplicația oprită); sarcina a rulat de cel puțin două ori | `migrate` fără migrații de aplicat doar citește; `seed:config` folosește `ON DUPLICATE KEY UPDATE` (fără duplicate) (rândul 18) |
+| A5 | la P-14, comanda începe cu `test ! -e …/bootstrap.log` | o a doua rulare nu poate suprascrie jurnalul cu parola temporară (rândul 25) |
+| A6 | la P-15, ordinea ecranelor: TOTP și codurile înaintea parolei noi | ordinea impusă de aplicație; rezultatul e același |
+| A7 | P-17b a cerut D-E4-2 și o repornire a aplicației | rândurile 31–33 |
+
+### 53.4 Obiectivul aplicației Android; editorul în Google Play (17.11.2026)
+
+**Decizia proprietarului (17.11.2026, 09:23), consemnată la cererea lui:** „OBLIGATORIU vom face aplicația” — aplicația trebuie să se poată instala pe telefon, inclusiv din Google Play. Proprietarul precizează că intenția fusese exprimată în conversații anterioare, fără să fi fost consemnată.
+
+**Autorizarea (formularea acceptată de proprietar, 17.11.2026):** *Proprietarul autorizează distribuirea publică a aplicației Android (Google Play, editor AC-DC CONCEPT S.R.L.) construite din site-ul de producție, după lansarea publică. APK-ul de test vechi (`f6809f3`) rămâne nedistribuit.* Regula din `PROJECT_RULES_AND_DECISIONS.md` („APK-ul de test… conține credențialele din bundle și nu se distribuie”) rămâne valabilă pentru acel fișier; aplicația nouă nu conține secrete (deschide `https://urbisactiv.ro`).
+
+**Editorul:** contul Google Play de tip **organizație**, pe AC-DC CONCEPT S.R.L. (decizia proprietarului, 17.11.2026, 09:07); fără testul închis de 14 zile cu 12 testeri, cerut conturilor personale noi. **Numărul D-U-N-S:** căutarea pe instrumentul american nu se aplică firmelor din România; cererea gratuită trimisă de proprietar la 17.11.2026 prin formularul ICAP CRIF (partenerul Dun & Bradstreet pentru România), cu datele de la ONRC.
+
+**Ordinea:** (1) lansarea publică; (2) lotul PWA (aplicația instalabilă din browser; manifest, pictograme, funcționare minimă offline, `assetlinks.json`; decizia D7, deschisă din Faza 6, se închide prin acest lot); (3) pachetul Android (Trusted Web Activity) și fișa Google Play, după primirea numărului D-U-N-S. Pachetul se semnează cu o cheie de încărcare, cu „Play App Signing”. Fiecare pas cu cod urmează regulile obișnuite (CI, artefact, autorizare).
+
+### 53.5 Ce urmează
+
+1. Evidența DEC-16 de producție, zilnic (operatorul: proprietarul), până la o decizie explicită de trecere la verificarea săptămânală.
+2. Planul lansării publice: lacătul scos, `EMAIL_MODE`, Branding și publicarea clientului Google, indexarea; fluxul către Primărie rămâne oprit (DEC-25).
+3. Lotul de cod următor: PWA (53.4), `@fastify/static` (53.2), eticheta `agreementReference`, `restore:db --check`.
+4. Punctele deschise: O4 și O5 din jurnalul de producție; pe staging, `.htaccess.bak-20261008`, TM-019 `on_hold` și golirea coșului; verificarea săptămânală R2 a staging-ului (20.11.2026).
+5. Raportul și checkpointul 7E: `docs/faza7/FAZA_7E_RAPORT.md`.
+
+### 53.6 Ce NU înseamnă această consemnare
+
+Nu aprobă lansarea publică, nu ridică lacătul, nu trece e-mailul în alt mod, nu pornește indexarea sau fluxul către Primărie și nu autorizează nicio operație nouă pe găzduire. Autorizarea din 53.4 privește distribuirea aplicației Android **după** lansarea publică; construirea ei cere loturile de cod de mai sus.

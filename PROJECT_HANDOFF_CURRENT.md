@@ -1,10 +1,10 @@
 # PROJECT_HANDOFF_CURRENT.md — Turnu Măgurele Civic
 
 **Stare documentată:** finalul Etapei 6.5 (26 septembrie 2026), actualizată după **Etapa 6.6** (comisă și publicată: `83b77ad`), după **auditul general** și pentru **remedierea P0 post-audit** (vezi B, G.5 și I), după checkpoint-ul Fazei 0 (`f6809f3`), după Fazele 1–2, după deciziile Fazei 3 (`PROJECT_RULES_AND_DECISIONS.md` §11) și după **Faza 4** (designul backend-ului, checkpoint aprobat de proprietar la 28.09.2026; `PROJECT_RULES_AND_DECISIONS.md` §12, `docs/faza4/`)
-**Actualizare 30.10.2026:** starea curentă este în **Secțiunea 0C**, care este punctul de pornire și prevalează, în caz de contradicție, față de 0B, 0A și 0, păstrate ca istoric. **Actualizare 19.10.2026:** starea Etapei 7 (7A) este în **Secțiunea 0B**, care are prioritate față de 0A și 0. **Actualizare 12.10.2026:** starea Fazei 6 este în **Secțiunea 0A**, care are prioritate față de Secțiunea 0. **Actualizare 10.10.2026:** starea curentă (Faza 5 închisă la 10.10.2026; aplicația cu server) este în **Secțiunea 0**; ea are prioritate față de secțiunile de stare mai vechi.
+**Actualizare 18.11.2026:** starea curentă este în **Secțiunea 0D**, care prevalează față de 0C. **Actualizare 30.10.2026:** starea curentă era în **Secțiunea 0C**, care este punctul de pornire și prevalează, în caz de contradicție, față de 0B, 0A și 0, păstrate ca istoric. **Actualizare 19.10.2026:** starea Etapei 7 (7A) este în **Secțiunea 0B**, care are prioritate față de 0A și 0. **Actualizare 12.10.2026:** starea Fazei 6 este în **Secțiunea 0A**, care are prioritate față de Secțiunea 0. **Actualizare 10.10.2026:** starea curentă (Faza 5 închisă la 10.10.2026; aplicația cu server) este în **Secțiunea 0**; ea are prioritate față de secțiunile de stare mai vechi.
 **Scop:** documentul principal de preluare pentru un chat nou. Înlocuiește, pentru starea curentă, secțiunile de stare din `PROJECT_HANDOFF.md`. Acela a fost scris la finalul Etapei 5 și este acum depășit la Git, securitate și pasul următor.
 
-> **Regula de pornire pentru noul chat (actualizată la 30.10.2026):** citește întâi **Secțiunea 0C** (starea curentă). Apoi citește:
+> **Regula de pornire pentru noul chat (actualizată la 18.11.2026):** citește întâi **Secțiunea 0D** (starea curentă), apoi 0C. Apoi citește:
 > - `PROJECT_RULES_AND_DECISIONS.md`;
 > - planul `docs/faza7/FAZA_7_PLAN_ACTIUNE_MVP_v2.4.md`;
 > - registrele deciziilor: `docs/faza7/FAZA_7_E0_REGISTRU_DECIZII.md` și `docs/faza7/FAZA_7_REGISTRU_DECIZII_ACTUALIZARI.md` (în al doilea, secțiunile cele mai recente);
@@ -13,6 +13,18 @@
 > Secțiunile 0B, 0A și 0 sunt istorice; în caz de contradicție, **0C prevalează**. Apoi **verifică starea Git reală** (`git fetch origin`; `git rev-parse HEAD origin/faza-5-backend`); secțiunile 0.1 și B.4 sunt istorice. Nu presupune nimic din memorie. **Codul și istoricul Git sunt sursa de adevăr.** Dacă documentul și codul se contrazic, codul are dreptate, iar contradicția se raportează.
 >
 > *Regula anterioară, păstrată ca istoric:* „citește acest document (întâi **Secțiunea 0**), apoi `PROJECT_RULES_AND_DECISIONS.md`, `docs/faza4/FAZA_4_REGISTRU_DECIZII.md`, `ETAPA_6_STATUS_FINAL.md` și documentele din `docs/faza5/` indicate în 0.3. Apoi **verifică starea Git real** (Secțiunea 0.1; B.4 este istorică și indică un branch vechi). Nu presupune nimic din memorie. **Codul și istoricul Git sunt sursa de adevăr.** Dacă documentul și codul se contrazic, codul are dreptate, iar contradicția se raportează.”
+
+---
+
+## 0D. E4 EXECUTATĂ: PRODUCȚIA INSTALATĂ SUB LACĂT; OBIECTIVUL ANDROID (actualizat la 18.11.2026)
+
+> **Este punctul de pornire curent și prevalează față de 0C, 0B, 0A și 0**, care rămân ca istoric. Detaliile: registrul `docs/faza7/FAZA_7_REGISTRU_DECIZII_ACTUALIZARI.md` §53 și jurnalul `docs/faza7/PRODUCTIE_URBISACTIV_JURNAL.md`. Verifică starea Git reală; nu presupune nimic din memorie.
+
+- **Producția** rulează pe `https://urbisactiv.ro`, `4198e8d`, **sub lacăt** (Basic Auth), cu `EMAIL_MODE=allowlist` (numai adresele proprietarului), fluxul către Primărie oprit, clientul Google în „Testing”, 2 × `super_admin` cu TOTP, copii zilnice criptate (03:17). Staging-ul e oprit (R2).
+- **E4:** criteriile aplicabile instalării (1–14) îndeplinite; criteriile 15–22 (restaurarea de probă) exceptate prin D-B4-1 = B, cu riscul rezidual acceptat de proprietar și prima copie externă verificată cu succes (DEC-23).
+- **Lansarea publică nu este aprobată.** Checkpointul 7E: propus, neacordat (`docs/faza7/FAZA_7E_RAPORT.md`).
+- **Obiectivul obligatoriu al proprietarului (17.11.2026): aplicația Android în Google Play.** Editorul: AC-DC CONCEPT S.R.L., cont de organizație; numărul D-U-N-S cerut la 17.11.2026 (ICAP CRIF). Ordinea: lansarea publică → lotul PWA → pachetul Android (Trusted Web Activity) și fișa Google Play (registrul §53.4). Distribuirea aplicației Android e autorizată după lansarea publică; APK-ul de test vechi (`f6809f3`) rămâne nedistribuit.
+- **Ritmul cerut de proprietar:** rigoare proporționată cu o aplicație civică mică; fără măsuri sau runde de revizie noi fără un motiv concret; pași mici, câte unul, cu limbaj simplu; proprietarul are un „manual de buzunar” (în afara depozitului) pentru operațiile de zi cu zi.
 
 ---
 
