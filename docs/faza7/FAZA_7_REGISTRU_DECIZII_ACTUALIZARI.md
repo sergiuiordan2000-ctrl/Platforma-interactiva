@@ -2473,3 +2473,126 @@ Staging-ul a rămas oprit și fără sarcini cron pe toată durata (rândurile 8
 ### 53.6 Ce NU înseamnă această consemnare
 
 Nu aprobă lansarea publică, nu ridică lacătul, nu trece e-mailul în alt mod, nu pornește indexarea sau fluxul către Primărie și nu autorizează nicio operație nouă pe găzduire. Autorizarea din 53.4 privește distribuirea aplicației Android **după** lansarea publică; construirea ei cere loturile de cod de mai sus.
+
+## 54. Pregătirea lansării publice (planul r2, paginile, adresa de contact, Branding, D-U-N-S) și lotul PWA (codul `e563551`, proba pe staging V-1…V-9) (18–19.11.2026)
+
+**Sursele (în afara depozitului, la proprietar):**
+
+| Documentul | SHA-256 |
+|---|---|
+| planul lansării publice, r2 | `9318ac6e0b4694de0a41393c126711cdd1ffca98191da3ed4eeabc070f17a989` |
+| informarea privind datele personale (`confidentialitate.html`), textul final | `3afbbefbfd6c4543cb6210ed51232e5a191e6d0e08abc7b6cb4999e91b88a079` |
+| pagina de ștergere a contului (`stergere-cont.html`), textul final | `b4b222509f9a0a18ec1a3d4feef4cd3e7919864915c3e7f891203166a9018aad` |
+| propunerea lotului PWA, r2 | `8ab8e767a15c6dd5447fcef13f596a2883dd5a7b7ed66ff25477e812f01df041` |
+| raportul probei pe staging V-1…V-9 | `9fbcb8fd5853d9a28f12251abcf555d08bb114548c6022134f3acb99bcc78450` |
+
+### 54.1 Planul lansării publice (r2): închis; deciziile proprietarului (18.11.2026)
+
+Planul a avut o singură rundă de revizie a auditorului (r1 → r2). **Decizia proprietarului: A, închiderea planului la r2.** Observațiile ulterioare ale auditorului (sesizările unui cont șters și lista din art. 13 GDPR) au devenit lista de verificare a celor două pagini (54.2), nu o revizie r3. Deciziile, toate conform recomandării din plan (§7):
+
+| # | Decizia | Alegerea |
+|---|---|---|
+| D-L0-1 | operatorul de date | **AC-DC CONCEPT S.R.L.** (proprietarul acționează în numele firmei, care plătește găzduirea, Brevo și contul Google Play) |
+| D-L0-2 | unde stau cele două pagini | **A**: fișiere statice în `public_html`, publice odată cu ridicarea lacătului |
+| D-L0-3 | conținutul minim de lansare | Numere utile, câteva servicii din Ghid, un comunicat |
+| D-L0-4 | adresa de contact pentru date | o adresă pe domeniul `urbisactiv.ro`, citită de proprietar (54.3) |
+| D-L1-1 | ziua lansării | nefixată; o zi lucrătoare, dimineața, după încheierea pregătirii |
+| D-L1-2 | utilizatorul lacătului după lansare | păstrat în managerul de parole, pentru o repunere rapidă |
+| D-L2-1 | `EMAIL_MODE=live` | în ziua lansării |
+| D-L2-2 | limita zilnică Brevo | se verifică înaintea zilei lansării (deschis) |
+| D-L3-1 | numele public | „Urbis Activ - Turnu Măgurele”; „Urbis Activ” ca nume scurt |
+| D-L3-2 | sigla | **sigla A** („Turnul pe hartă”: reper albastru #1D4ED8, turn alb cu creneluri, fereastră portocalie #F97316), propusă de Claude, aleasă de proprietar |
+| D-L3-3 | sigla pe ecranul Google | **A**: fără siglă la început |
+| D-L4-1 | lotul PWA față de ziua lansării | după; instalarea în producție după lansare |
+| D-L5-1 | momentul indexării | **A**: la câteva zile după lansare |
+| D-L5-2 | Google Search Console | opțional; se decide la indexare |
+
+### 54.2 Cele două pagini publice: textele finale
+
+- Redactate de Claude pe baza codului (duratele de păstrare din `server/src/maintenance.ts`, ștergerea contului din `deleteCitizenAccountRows`), revizuite de auditor și aprobate de proprietar ca text. **Operatorul:** AC-DC CONCEPT S.R.L. (CUI 51766631, sediul în Turnu Măgurele).
+- Singurul câmp necompletat: data publicării, care se completează în ziua lansării.
+- **Nu sunt publicate.** Urcarea lor în `public_html` cere o autorizare separată, în ziua lansării (D-L0-2 = A). Claude nu este jurist; textele au fost verificate de proprietar.
+
+### 54.3 Adresa de contact pe domeniu (18.11.2026)
+
+Adresa a fost creată de proprietar în cPanel. Mesajele se redirecționează către adresa firmei; redirecționarea către o adresă Gmail a fost refuzată de găzduire. Proba de primire a reușit. Adresa apare pe cele două pagini publice; după regula depozitului, aici nu se trece.
+
+### 54.4 Branding în Google Cloud (18.11.2026)
+
+Proprietarul a completat și a salvat numele „Urbis Activ - Turnu Măgurele”, pagina principală, adresa informării privind datele și domeniul autorizat `urbisactiv.ro`, fără siglă (D-L3-3 = A). **Clientul rămâne în „Testing”.** „Publish app” e activ, dar **nu se apasă până în ziua lansării**, după ridicarea lacătului (planul r2, §6).
+
+### 54.5 Numărul D-U-N-S (18.11.2026)
+
+ICAP CRIF a răspuns cererii din 17.11.2026 (§53.4) cu două variante. **Decizia proprietarului: varianta gratuită.** Termenul anunțat de ICAP: 30 de zile lucrătoare, deci în jurul datei de 5–6 ianuarie 2027 (estimare din termenul anunțat, nu o dată confirmată). Răspunsul către ICAP: de trimis de proprietar. Contul Google Play de organizație și pachetul Android așteaptă numărul.
+
+### 54.6 Lotul PWA: decizii, cod, CI, artefact
+
+**Deciziile proprietarului asupra propunerii (18.11.2026):** D-PWA-1 = **A** (`favicon.svg` înlocuit cu sigla A); D-PWA-2 = **A** (`agreementReference` devine notă internă opțională, conform §46.4); D-PWA-3 = **B** (proba completă pe staging, inclusiv actualizarea și revenirea; motivul proprietarului: un service worker poate rămâne activ în browsere și după revenirea codului serverului; Claude recomandase A); D-PWA-4 = **A** („Urbis Activ” sub pictogramă, „Urbis Activ - Turnu Măgurele” în rest). Proprietarul a stabilit și trei cerințe pentru service worker (propunerea r2, §3 și §5.3). Auditorul a revizuit favorabil r2, cu două condiții de implementare: cache-ul creat explicit la instalare, iar retragerea cu `skipWaiting()`, ștergerea numai a cache-urilor proprii, dezînregistrare și reîncărcarea filelor.
+
+**Rândul 13, adăugat la lot (18.11.2026, cu acordul proprietarului și al auditorului):** programul din Numerele utile. **Vechiul comportament:** câmpul „Program / Disponibilitate” era obligatoriu, venea precompletat cu `24/7 (Non-stop)` și primea automat această valoare la salvare când era gol; cardul public afișa mereu ceasul. **Noul comportament:** câmpul gol rămâne gol, iar cardul nu afișează ceasul. Fără migrare a bazei; contactele existente își păstrează textul.
+
+**Codul:** commitul `e5635511950c166daff8a42707d9f038d27d8801` pe `faza-5-backend`, peste `fc8c5eb`, cu identitatea „Claude” și fără linii de atribuire. Diff-ul aprobat avea SHA-256 `1caca69b5b2b67d93b950cb859075a4ebd3469be6b631f9773efd4dc59f079eb` (29 de fișiere), cu `git apply --check` și `git diff --check` conforme. Revizia auditorului a fost favorabilă, iar commitul și push-ul au fost aprobate separat de proprietar (18.11.2026). Conținutul diff-ului:
+- manifestul, pictogramele, `offline.html` și `sw.js` (un singur cache, `urbis-offline-v1`, numai cu `/offline.html`; numai navigările din afara `/api`; răspunsurile nu se salvează);
+- `deploy/sw-retragere.js`;
+- înregistrarea service worker-ului numai în producție;
+- antetele serverului;
+- `@fastify/static` actualizat de la 10.1.5 la 10.1.11 (`npm audit --omit=dev`: 0 vulnerabilități; pachet nou `@isaacs/nonrecursive-glob-match` 1.1.0, licență BlueOak-1.0.0);
+- D-PWA-2;
+- formularea `restore:db --check` pentru copiile criptate (§39.3);
+- rândul 13;
+- testele: 10 pentru service worker, 6 API, plus unit și integrare.
+
+**CI:** rularea 44379900150, **7/7 verde**, inclusiv jobul de producție (Node 24.22.3, MariaDB 11.4.13) și suita E2E. Cele trei teste E4.11 care picaseră local (le lipseau vectorii CCTV și `rage`) au trecut în CI.
+
+**Artefactul:** `civic-e563551.zip`, construit de Claude dintr-o copie curată a commitului. Are 1.548.405 B, **33 de intrări** și SHA-256 `d25152d539d3d007d3bba94999b29ce6e52246738ce13088db7258ea1b6d69da`. `RELEASE.txt` arată `commit: e563551`, fără modificări necomise. Inventarul are SHA-256 `a8698db8ffad335bb63ba672bab599ed32fabe73351aea5ef380a6fbbb105a34`. Amprenta a fost verificată independent de auditor (arhiva și inventarul) și de proprietar, pe calculator. **Corectură:** raportul lui Claude declarase întâi 31 de intrări, preluând numărul din mesajul scriptului de împachetare, care nu numără `package.json` și `RELEASE.txt`; tot acolo, diferența față de `civic-4198e8d.zip` apăruse ca 7 fișiere, în loc de 9. Ambele cifre au fost corectate în aceeași seară, la sesizarea auditorului.
+
+### 54.7 Proba pe staging V-1…V-9 (19.11.2026, ~08:37–10:40): conformă
+
+Probele au fost autorizate pe rând de proprietar. Execuția: proprietarul, pas cu pas, cu ghidajul lui Claude și capturile analizate de Claude; auditorul a revizuit pe parcurs. **Producția nu a fost atinsă.**
+
+| Proba | Rezultatul |
+|---|---|
+| V-1 | **Revenirea pregătită:** arhiva `civic-4198e8d.zip` pe calculator, cu `8D89F83A…67AC7`. **Copia bazei:** `civic-backup-20261119T064744358Z`, făcută cu codul vechi, criptată, 5 fotografii. **Instalarea:** `RELEASE.txt` arată `e563551`; `health` raportează `0.0.0+e563551`. **P4:** 5/5 |
+| V-2 | **Cu lacătul activ, instalarea e refuzată** („Această aplicație nu se poate instala”): Chrome cere manifestul fără parolă și primește `401`; cu parolă, `200`, `application/manifest+json`. Lacătul staging-ului a fost ridicat temporar, cu autorizarea explicită a proprietarului (54.8). **După ridicare:** dialogul arată „Urbis Activ - Turnu Măgurele” și sigla A, iar pe ecran apare „Urbis Activ”. Aplicația se deschide pe tot ecranul, fără bara Chrome |
+| V-3 | **Memoria:** numai `urbis-offline-v1 ["/offline.html"]`, înainte și după autentificare, o sesizare de probă cu fotografie (TM-021) și hartă. **Cererile `/api/`:** servite de server, niciuna prin service worker. **Rândul 13:** formularul pornește gol și nu pune `24/7` la salvare; cardul public apare fără ceas |
+| V-4 | **Fără internet:** cu modul Avion apare pagina „Sunteți offline”, cu sigla A și numărul 112. **Revenirea conexiunii:** aplicația merge normal |
+| V-5 | **Autentificarea în aplicația instalată:** codul pe e-mail și „Intră cu Google” reușesc; după Google, aplicația revine fără bara Chrome |
+| V-6 | **Fișierul:** `sw.js` versiunea 2 (diferă un singur rând, `urbis-offline-v2`; SHA-256 `0c6cb9f0931575dc439d704f9afde856d755fba79ce69dffb8c9689fd75cdd1a`), verificat pe calculator înainte de urcare. **Preluarea:** versiunea nouă a așteptat cât timp era deschisă o filă veche, apoi s-a activat. **Memoria:** `v1` a fost ștearsă și a rămas numai `urbis-offline-v2`. Pe telefon, memoria nu se poate citi; s-a verificat funcțional |
+| V-7 | **Retragerea**, peste codul vechi `4198e8d` reinstalat (`health` `0.0.0+4198e8d`), cu `deploy/sw-retragere.js` (SHA-256 `3df7acb835e980291bcb043c0a82d0c93cd30ddd5001961a1d3f4f37794a3cb7`) ca `dist/sw.js`. **Pe calculator:** niciun service worker și nicio memorie a aplicației; o singură reîncărcare. **Aplicația veche** merge normal. **Pe telefon:** aplicația instalată se deschide, iar fără internet apare ecranul Chrome, nu pagina aplicației |
+| V-8 | **Reinstalarea** `civic-e563551.zip`: `health` raportează `e563551`, iar `sw.js` e originalul. **Calculatorul și telefonul** revin la starea din V-2 |
+| V-9 | **Lacătul** pus la loc: fără parolă `401`, cu parolă `200`. **Datele de test** șterse (TM-021, contactul „[TEST PWA] fără program”). **Staging-ul** oprit; cron-ul are numai cele 4 linii ale producției |
+
+### 54.8 Abateri, constatări și regula pentru producție
+
+1. **Lacătul staging-ului a fost ridicat între 9:15 și 10:35** (autorizarea explicită a proprietarului: numai pentru V-2…V-8, cu repunerea și verificarea `401` după V-8). În acest interval, staging-ul, cu date de test, a fost accesibil oricui cunoaște adresa; `noindex` și `robots.txt` nu protejează accesul (precizarea auditorului). **Producția nu are această problemă:** acolo, aplicația se instalează după lansare, cu lacătul ridicat.
+2. **Greșeala de propunere a lui Claude la V-7.** Succesiunea, în ordine:
+   - Claude a propus retragerea peste codul nou `e563551`, iar proprietarul a aprobat-o;
+   - fișierul de retragere a fost urcat ca `dist/sw.js` (10:12);
+   - **înainte ca aplicația să fie deschisă în vreun browser** și înainte de orice probă a retragerii, Claude a constatat că s-ar fi produs o buclă de reîncărcări, pentru că codul `e563551` reînregistrează `sw.js` la fiecare încărcare;
+   - operațiunea a fost oprită, iar proprietarul a ales revenirea completă, conform planului r2;
+   - **proba V-7 propriu-zisă** s-a făcut apoi peste codul `4198e8d` reinstalat (54.7) și a reușit.
+
+   **Regula obligatorie pentru procedura de producție:** `deploy/sw-retragere.js` se folosește **numai împreună cu codul anterior lotului PWA, versiunea `4198e8d`**, care nu înregistrează niciun service worker, și **niciodată peste versiunea `e563551`** sau peste alt cod care înregistrează un service worker.
+3. **Utilizatorul lacătului de staging** a apărut într-o captură trimisă în conversație: `curl` îl afișează la cererea parolei, iar Claude afirmase greșit că nu apare. Captura nu a intrat în depozit și nu se retransmite. Capturile următoare au fost decupate. Credențialele nu au fost schimbate (măsură considerată disproporționată).
+4. **Constatări în afara lotului**, pentru un lot viitor, cu prioritizare:
+   - iconița veche din antetul aplicației (nu sigla A);
+   - iconița de ceas goală în lista din administrare, la un contact fără program;
+   - o legătură „Reîncearcă” pe pagina offline (aplicația instalată nu are buton de reîncărcare);
+   - mesajul CSP despre `eval` dintr-o bibliotecă (protecția funcționează corect).
+5. **Pachetele de pe staging:** `4198e8d` a fost reinstalat temporar la V-7 și înlocuit la V-8; fișierele vechi au mers în coș la V-1, iar cele de la V-7 și V-8 au fost șterse fără coș (arhivele verificate sunt pe calculatorul proprietarului). Baza nu s-a schimbat, pentru că lotul nu are migrații.
+
+### 54.9 Starea după această consemnare
+
+| Punctul | Starea |
+|---|---|
+| producția | neschimbată: `4198e8d`, sub lacăt, `EMAIL_MODE=allowlist`, clientul Google în „Testing” |
+| staging | oprit, cu lacătul activ, fără sarcini cron; pachetul instalat: **`e563551`**; copiile: `civic-backup-20261119T064744358Z` și `civic-backup-20261113T171353190Z` |
+| lotul PWA | **închis tehnic** (V-1…V-9 conforme); instalarea în producție după lansarea publică, cu procedura ei (regula de la 54.8.2) și autorizare separată |
+| artefactul pentru producție | `civic-e563551.zip` (`d25152d5…69da`), păstrat pe calculatorul proprietarului |
+| lansarea publică | **neaprobată**; rămân: conținutul din Admin (proprietarul), limita Brevo, DPA-urile în dosarul G-3, data publicării pe pagini, autorizarea zilei lansării |
+| decizia D7 (Faza 6, PWA) | închisă prin acest lot, pentru partea de cod; `assetlinks.json` rămâne pentru pachetul Android |
+| Google Play | după D-U-N-S: contul de organizație, pachetul Android (Trusted Web Activity), fișa |
+
+### 54.10 Ce NU înseamnă această consemnare
+
+Nu aprobă lansarea publică și nu autorizează instalarea lotului PWA în producție, publicarea celor două pagini, „Publish app”, `EMAIL_MODE=live`, indexarea sau pornirea fluxului către Primărie. Nu acordă checkpointul 7E.
