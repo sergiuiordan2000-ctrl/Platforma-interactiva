@@ -6,7 +6,6 @@
 import React, { useState } from 'react';
 import { 
   Megaphone, 
-  Info, 
   Layers, 
   ArrowUpDown
 } from 'lucide-react';
@@ -104,14 +103,6 @@ export const AnnouncementsView: React.FC<AnnouncementsViewProps> = ({
           <p className="text-xs sm:text-sm text-slate-500 mt-1 max-w-2xl">
             Flux unificat de informare publică pentru Turnu Măgurele: notificări de avarii, anunțuri de utilitate publică, știri locale și evenimente culturale.
           </p>
-        </div>
-
-        {/* Ecuson de informare demo */}
-        <div className="flex items-center gap-2 shrink-0">
-          <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300 flex items-center gap-1.5">
-            <Info className="w-3.5 h-3.5 text-amber-700" />
-            <span>Date demonstrative (DEMO)</span>
-          </span>
         </div>
       </div>
 

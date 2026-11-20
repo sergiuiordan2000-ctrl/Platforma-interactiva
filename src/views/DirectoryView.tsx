@@ -72,14 +72,6 @@ export const DirectoryView: React.FC<DirectoryViewProps> = ({
             Informații administrative detaliate și acces direct la numere utile locale cu apelare dintr-un singur click.
           </p>
         </div>
-
-        {/* Ecuson de informare DEMO */}
-        <div className="flex items-center gap-2 shrink-0">
-          <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300 flex items-center gap-1.5">
-            <Info className="w-3.5 h-3.5 text-amber-700" />
-            <span>Date demonstrative (DEMO)</span>
-          </span>
-        </div>
       </div>
 
       {/* 2. Comutator Principal între Ghid Primărie și Quick Dial */}
@@ -188,15 +180,15 @@ export const DirectoryView: React.FC<DirectoryViewProps> = ({
         </div>
       )}
 
-      {/* 4. Notă Metodologică privind Etapa 2B */}
+      {/* 4. Notă despre sursa informațiilor */}
       <div className="mt-8 bg-slate-50 border border-slate-200 rounded-2xl p-5 flex flex-col sm:flex-row items-start justify-between gap-4 text-xs text-slate-600">
         <div className="space-y-1">
           <div className="font-bold text-slate-900 flex items-center gap-1.5">
             <Info className="w-4 h-4 text-cyan-600" />
-            <span>Status Modul: Ghidul Primăriei & Quick Dial sunt ACTIVE</span>
+            <span>Despre aceste informații</span>
           </div>
           <p className="leading-relaxed">
-            Informațiile instituționale ale Primăriei și sistemul de apelare rapidă pe categorii sunt complet funcționale. Administrarea dinamică din zona de Admin este de asemenea implementată și funcțională.
+            Informațiile sunt preluate din surse publice ale Primăriei Municipiului Turnu Măgurele și pot conține mici neconcordanțe. Înainte de deplasare, verifică programul la numărul de telefon afișat.
           </p>
         </div>
 

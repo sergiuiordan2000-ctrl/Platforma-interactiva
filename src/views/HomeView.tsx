@@ -103,9 +103,11 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onOpenAnnounceme
               <span className="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-wider bg-rose-100 text-rose-800 border border-rose-200">
                 Alertă Activă
               </span>
-              <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-200 text-amber-900 border border-amber-300">
-                DEMO • Utilități
-              </span>
+              {urgentAlert.isDemo && (
+                <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-200 text-amber-900 border border-amber-300">
+                  DEMO • Utilități
+                </span>
+              )}
               <span className="text-xs text-amber-900 font-medium">
                 {formatDateRo(urgentAlert.publishedAt)}
               </span>
@@ -151,9 +153,11 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onOpenAnnounceme
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-700 border border-slate-200">
                   {latestAnnouncement.category}
                 </span>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-amber-100 text-amber-900 border border-amber-300">
-                  DEMO
-                </span>
+                {latestAnnouncement.isDemo && (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-amber-100 text-amber-900 border border-amber-300">
+                    DEMO
+                  </span>
+                )}
                 <span className="text-xs text-slate-400 font-medium">
                   {formatDateRo(latestAnnouncement.publishedAt)}
                 </span>
@@ -233,7 +237,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onOpenAnnounceme
                   Sesizări Cetățenești
                 </h3>
                 <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                  Semnalează probleme urbane. Formular complet cu foto optimizate (max 1920px), GPS, cod TM-XXX, alegere publicare și confirmare.
+                  Semnalează o problemă din cartier, cu fotografie și locul pe hartă. Primești un cod cu care o poți urmări.
                 </p>
               </div>
             </div>
@@ -334,7 +338,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onOpenAnnounceme
           >
             <div className="absolute top-2 right-2">
               <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-cyan-700 text-white">
-                Activ (2A / 2B)
+                Activ
               </span>
             </div>
 
@@ -361,15 +365,15 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate, onOpenAnnounceme
         </div>
       </section>
 
-      {/* 5. Notă privind Etapa Curentă de Dezvoltare (Transparență Metodologică) */}
+      {/* 5. Notă de informare pentru cetățeni */}
       <section className="bg-slate-100 border border-slate-200 rounded-xl p-4 sm:p-5 flex items-start gap-3.5 text-xs text-slate-600">
         <Info className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
         <div className="space-y-1">
            <p className="font-semibold text-slate-900">
-            Versiune de test
+            Bine de știut
           </p>
           <p className="leading-relaxed">
-            Comunicatele, Ghidul Primăriei, Apelul rapid, sesizările și sondajele funcționează pe server. Sesizările se depun dintr-un cont confirmat prin e-mail și apar imediat pe hartă, fără moderare; contul și adresa de e-mail a autorului nu sunt afișate public. Sondajele sunt consultări orientative, fără cont.
+            Sesizările se depun dintr-un cont confirmat prin e-mail și apar imediat pe hartă, fără moderare; contul și adresa de e-mail a autorului nu sunt afișate public. La cererea ta, sesizarea poate fi transmisă prin e-mail Primăriei. Sondajele sunt consultări orientative, fără cont.
           </p>
         </div>
       </section>
