@@ -83,3 +83,24 @@
 - **O3.** Dosarele `public/` (gol) și `tmp/` din `civic-app` sunt create de cPanel la crearea aplicației; nu fac parte din pachet și nu sunt servite.
 - **O4.** Conținutul implicit al găzduirii e în `/home2/<cont>/public_html-vechi-20261116` (în afara docroot-ului); ștergerea, de decis.
 - **O5.** În `civic-data` au rămas, ca dovezi, `zip.sha256`, `inventar-gazduire.txt` și `cli.log` (fără secrete); ștergerea, de decis.
+
+## 7. Lansarea publică (20.11.2026) și instalarea `e0a3b74` (23.11.2026)
+
+Lansarea din 20.11.2026 e consemnată în registrul Fazei 7, §55; orele nenotate pe loc nu se reconstituie. Instalarea din 23.11.2026 urmează procedura PWA r1.1 cu amendamentul A1 (registrul §56.3).
+
+| # | Data, ora | Pas | Verificarea / dovada | Rezultat |
+|---|---|---|---|---|
+| 46 | 20.11.2026 | **Lansarea (rezumat; detaliile în registrul §55):** paginile publicate; `EMAIL_MODE=live`; lacătul ridicat **la 10:07**; clientul Google „In production”; fluxul către Primărie pornit (câmpul de referință cu o notă internă, cerut de `4198e8d`) | `health` conform; autentificarea pe site-ul public (proprietarul); soft bounce AbuseBL la adresa firmei, livrare reușită la Gmail (§55.6) | **OK** |
+| 47 | 20.11.2026 (copia de la 03:17) | **L-8b / DEC-16** copia din noaptea zilei lansării, verificată în ziua lansării | `civic-backup-20261120T011702645Z`, „criptată (age)” | **OK** |
+| 48 | 23.11.2026 09:45–09:46 | **P-1** amprentele, pe calculator | `civic-e0a3b74.zip` `C5DE6A8D…204E`; `civic-4198e8d.zip` `8D89F83A…AC7`; fișierul de retragere (retrimis, extras din `sw-retragere.zip`) `3DF7ACB8…3CB7` (capturi) | **OK** |
+| 49 | 09:48 | **P-2** „Run JS script” → `civic-backup-db` | `civic-backup-20261123T074805238Z`, „criptată (age)”, „fotografii: 0”; între altele `surveys`: 2, `survey_submissions`: 63, `email_outbox`: 3; în `stderr` numai anunțul npm despre o versiune nouă (capturi) | **OK** |
+| 50 | 09:49 | **P-3** Stop | `stopped` (confirmat de proprietar) | **OK** |
+| 51 | 09:50–09:51 | **P-4, P-5** urcarea arhivei; ștergerea `dist`, `server`, `package.json`, `RELEASE.txt` (cu coș) | confirmat de proprietar | **OK** |
+| 52 | 09:51–09:53 | **P-6, P-6a, P-6b** extragerea; structura; `RELEASE.txt`; arhiva ștearsă | `civic-app`: `dist`, `server`, `package.json` 1,35 KB, `RELEASE.txt` 65 bytes, fără dosar în plus; `dist`: `index.html` 1,33 KB, `manifest.webmanifest` 750 bytes, `sw.js` 2,43 KB, `offline.html`, `favicon.svg`, `icons`, `assets`; `server/dist/app.js` 5,19 MB; `commit: e0a3b74` (capturi) | **OK** |
+| 53 | 09:54 | **P-7, P-8** Start; `health` | `{"status":"ok","version":"0.0.0+e0a3b74"}` (captură) | **OK** |
+| 54 | 09:56 | **V-P1 … V-P4** `curl.exe` | `/`: `200`, `text/html`, 1362; manifestul: `200`, `application/manifest+json`, `cache-control: no-cache`, 750; `const OFFLINE_CACHE = 'urbis-offline-v1';`; `client-ip`: `NOT_FOUND`; `robots.txt`: `Disallow: /`, neschimbat (captură) | **OK** |
+| 55 | 09:59 | **V-P8** și textele, în Chrome pe calculator | `sw: https://urbisactiv.ro/sw.js`, `urbis-offline-v1 ["/offline.html"]`; Acasă cu „Bine de știut”, fără DEMO la comunicatul real, insignele „Activ”; Ghidul fără ecusonul DEMO, cu „Despre aceste informații” (capturi). Consola: o eroare, neanalizată (registrul §56.5) | **OK** |
+| 56 | 10:00–10:02 | **V-P9** `civic-data` | `outbox-cron.log` și `surveys-cron.log` la 10:00; `outbox:process: {"sent":0,…,"skipped":0}`; `surveys:close-expired: 0 sondaje închise` (capturi) | **OK** |
+| 57 | 10:04–10:05 | **V-P5** instalarea pe telefon | iconița „Urbis Activ” cu sigla A; aplicația fără bara Chrome (capturi) | **OK** |
+| 58 | ~10:08 | **V-P6** codul pe e-mail și Google, în aplicația instalată | reușite (confirmat de proprietar, fără capturi) | **OK** |
+| 59 | 10:09 | **V-P7** modul Avion | „Sunteți offline”; după revenire, normal (confirmat de proprietar) | **OK** |

@@ -2596,3 +2596,139 @@ Probele au fost autorizate pe rând de proprietar. Execuția: proprietarul, pas 
 ### 54.10 Ce NU înseamnă această consemnare
 
 Nu aprobă lansarea publică și nu autorizează instalarea lotului PWA în producție, publicarea celor două pagini, „Publish app”, `EMAIL_MODE=live`, indexarea sau pornirea fluxului către Primărie. Nu acordă checkpointul 7E.
+
+## 55. Lansarea publică a `urbisactiv.ro` (20.11.2026): lacătul ridicat la 10:07, `EMAIL_MODE=live`, fluxul către Primărie pornit; conținutul de lansare, paginile r2, Brevo și AbuseBL
+
+**Sursele (în afara depozitului, la proprietar):**
+
+| Documentul | SHA-256 |
+|---|---|
+| informarea privind datele personale (`confidentialitate.html`), versiunea publicată | `45e1c83cea4c4ea8f7cf7440d5167812c9f680cf4c6a6e1932032aff81d5b557` |
+| pagina de ștergere a contului (`stergere-cont.html`), versiunea publicată | `7275360a3175be41a851153c63a0eafdb8606763a657ec063d680476cca4297b` |
+| corectura celor două pagini (transmiterea către Primărie), diff r2 | `abbf14b450b2046c7a6c3bec7eda25bbf8a6ac292567651f3dfa979a2e40916c` |
+
+Execuția: proprietarul, pas cu pas, cu ghidajul lui Claude și capturile analizate de Claude; auditorul a revizuit pe parcurs textele (comunicatul, paginile). Orele care nu au fost notate pe loc nu se reconstituie aici; singura oră consemnată este cea a ridicării lacătului.
+
+### 55.1 Verificarea R2 a staging-ului (20.11.2026, dimineața)
+
+Verificarea săptămânală R2, numai citire, făcută la începutul zilei, înaintea lansării: staging-ul oprit, cu lacătul activ, fără sarcini cron (confirmat de proprietar). Jurnalul staging-ului, intervenția 171.
+
+### 55.2 Deciziile zilei
+
+| # | Decizia | Alegerea |
+|---|---|---|
+| D-L2-2 | limita zilnică Brevo (deschisă la §54.1) | **A**: planul gratuit (300 de e-mailuri pe zi), cu urmărire zilnică; la un volum constant de ~200 pe zi se trece la planul plătit |
+| D-L-DPA-1 | anexa de prelucrare a datelor (CDPA) Google Cloud | **B**: neacceptată în ziua lansării; acceptarea rămâne de făcut „oricând” în proiectul clientului Google. Documentele Brevo și condițiile găzduirii au fost salvate de proprietar în dosarul G-3 |
+| D-L-COM-1 | tonul comunicatului de lansare | **B**; textul aprobat de auditor, cu adăugirile proprietarului: transmiterea sesizărilor către Primărie și mențiunea că pot exista mici greșeli |
+| D-L-PAG-1 | paginile publice față de transmiterea către Primărie | **A** (auditorul, aprobat de proprietar): nu se lansează cu paginile vechi; corectura r2 (punctul lipsă semnalat de auditor), apoi publicarea |
+| D-L-PRIM-1 | fluxul către Primărie | **pornit în ziua lansării** (decizia proprietarului, care a corectat presupunerea lui Claude că fluxul rămâne oprit). Nu se cere acordul Primăriei (§46). Destinatarul: adresa oficială publicată de Primărie (nu se trece aici); modul „Primăria primește numai e-mailuri” |
+
+### 55.3 Conținutul de lansare (Admin, proprietarul)
+
+- **Ghidul Primăriei:** refăcut după organigrama Primăriei (document public din 18.06.2025, la proprietar), pe două niveluri, cu denumirile din organigramă; SPCLEP, cu legătura către `starecivila.mai.gov.ro`; legătura de plată Ghișeul.ro. Proprietarul a cerut explicit ca Ghidul să urmeze organigrama.
+- **Numerele utile:** completate în Admin (fără poliție locală, care nu există în municipiu).
+- **Comunicatul de lansare:** „Urbis Activ, o platformă civică pentru Turnu Măgurele”, publicat de proprietar.
+
+### 55.4 Lansarea (L-1 … L-8, planul r2 §6)
+
+| Punctul | Rezultatul |
+|---|---|
+| cele două pagini | urcate în `public_html` (versiunile din tabelul surselor) |
+| `EMAIL_MODE=live` | setat în `civic.env`, apoi repornire; `health` conform. Prima cerere de cod către adresa firmei nu a ajuns (55.6); proba cu o adresă Gmail a reușit imediat |
+| lacătul de producție | **ridicat la 10:07** (Directory Privacy pe `public_html`). Utilizatorul rămâne definit în cPanel și în managerul de parole al proprietarului, pentru o repunere rapidă (D-L1-2) |
+| clientul Google | „Publish app”: starea **„In production”**. Constatare: clientul „Urbis Activ productie” se află în proiectul Google Cloud „Default Gemini Project” (creat automat de Google); se lasă așa |
+| autentificarea publică | proprietarul s-a autentificat pe site-ul public |
+| fluxul către Primărie | salvat pornit, cu destinatarul. Prima salvare a fost refuzată: codul `4198e8d` cere `agreementReference` nevid în `live`; câmpul a primit o notă internă onestă (nu un număr de acord). Codul `e563551` și următoarele nu mai cer câmpul (D-PWA-2) |
+| L-8b, DEC-16 a zilei | conformă (copia din noaptea zilei lansării, 03:17): `civic-backup-20261120T011702645Z`, „criptată (age)” |
+
+**Ce primește Primăria:** numai la cererea cetățeanului (cel mult 3 cereri în 24 de ore), un e-mail cu descrierea, locul, coordonatele, fotografiile și adresa de e-mail a contului. Nicio sesizare de test cu transmitere nu se face în producție.
+
+### 55.5 Brevo
+
+Plan gratuit, 300 de e-mailuri pe zi (D-L2-2 = A). Urmărirea zilnică în panoul Brevo (trimise, „Delivered”, „Soft bounce”).
+
+### 55.6 Constatarea AbuseBL (20.11.2026)
+
+Codul de autentificare trimis la adresa firmei a primit „soft bounce”: adresa IP comună folosită de Brevo pentru planul gratuit apare în lista `rbl.abusebl.org`, consultată de serverul de e-mail al destinatarului. Nu e o eroare a aplicației; la Gmail livrarea a reușit. **Riscul:** serverul de e-mail al Primăriei e pe propriul domeniu, deci prima transmitere reală poate fi respinsă la fel. **De verificat** în Brevo la prima transmitere reală („Delivered” sau „Soft bounce”). Remedii posibile, toate după lansare, la decizia proprietarului: cererea personală către Primărie de a pune Brevo pe lista albă; semnalarea către Brevo; pe termen lung, un IP dedicat.
+
+### 55.7 Starea după lansare (20.11.2026)
+
+| Punctul | Starea |
+|---|---|
+| producția | **publică**, `4198e8d`, `EMAIL_MODE=live`, clientul Google „In production”, fluxul către Primărie pornit |
+| lotul PWA | neinstalat (instalat la 23.11.2026, §56) |
+| `robots.txt` | `Disallow: /`, neschimbat; indexarea la câteva zile după lansare (D-L5-1 = A), cu decizie separată |
+| staging | neschimbat (55.1) |
+
+### 55.8 Ce NU înseamnă această consemnare
+
+Nu deschide indexarea și nu acordă checkpointul 7E. Nu decide remediile AbuseBL și nici acceptarea CDPA.
+
+## 56. Curățarea textelor de test (`e0a3b74`) și instalarea lotului PWA în producție, pachetul combinat `civic-e0a3b74.zip` (20–23.11.2026)
+
+**Sursele (în afara depozitului, la proprietar):**
+
+| Documentul | SHA-256 |
+|---|---|
+| diff-ul curățării textelor, r1 | `42779b4b82d8f3998442a52cf1c0b62fbad67320dfb1f234945c962eee1c331d` |
+| nota curățării textelor, r1 | `1f694c2bf68633bc3101f6d92fdeae2c86761e36c8136074f24d17db93d26ead` |
+| arhiva `civic-e0a3b74.zip` (1.548.278 B, 33 de intrări) | `c5de6a8d0c8281a49dc6ad979b1626b6186b2ccc88764d1e3a54f8e02083204e` |
+| inventarul arhivei | `3d001d2d03430b1b5c7bb3f72fc50f658374f3a627c43a9ba8bdf1839e07c6d5` |
+
+### 56.1 Constatarea și deciziile (20.11.2026)
+
+După lansare, proprietarul a observat pe Acasă caseta „Versiune de test”. Claude a găsit în codul `4198e8d` texte fixe din faza de test, independente de baza de date: caseta „Versiune de test”; eticheta „DEMO” afișată **mereu** la ultimul comunicat și la alerta urgentă (comunicatul real avea `is_demo = false`); ecusonul „Date demonstrative (DEMO)” pe Comunicate și în Ghid (deși datele Ghidului sunt reale); „Activ (2A / 2B)”; jargon tehnic în cardul Sesizări; caseta „Status Modul…” din Ghid. Etichetele DEMO condiționate de `isDemo` erau corecte și au rămas.
+
+- **D-T-1 = A:** un lot mic peste `e563551`, instalat împreună cu lotul PWA, într-o singură intervenție (în locul a două instalări).
+- **D-T-2 = B:** fără intervenție în producție în ziua lansării; instalarea la o dată ulterioară (recomandarea lui Claude, aleasă de proprietar).
+
+### 56.2 Codul și CI
+
+Commitul `e0a3b74` pe `faza-5-backend`, peste `5f6d7b3`, cu identitatea „Claude” și fără linii de atribuire; 4 fișiere (`HomeView.tsx`, `AnnouncementsView.tsx`, `DirectoryView.tsx`, testul `tests/ui/test_7b3_etichete.py`), fără fișiere noi. Textele noi: „Bine de știut” (cu transmiterea către Primărie), „Despre aceste informații” în Ghid (sursa publică a datelor, posibile mici neconcordanțe, verificarea programului la telefon). Local: `tsc` 0 erori, `vite build` reușit, `git diff --check` și `git apply --check` conforme. Revizia auditorului: favorabilă; commitul și push-ul aprobate de proprietar (20.11.2026). **CI:** rularea 44705321045, 7/7 verde; suita E2E **286/286 PASS**, testul modificat 14/14.
+
+### 56.3 Pachetul combinat (23.11.2026)
+
+Construit de Claude dintr-o copie curată la `e0a3b74` (`npm ci`, build frontend și server, `package-release.py`). Față de `civic-e563551.zip` (probat pe staging, §54.7): aceeași structură (33 de intrări); `dist/sw.js`, `dist/manifest.webmanifest` și `dist/offline.html` identice octet cu octet; `server/dist/app.js` identic în afara șirului de versiune; `dist/index.html` și `package.json` diferă numai prin numele bundle-ului, respectiv versiune. Bundle-ul nu mai conține textele de test; „max 1920px” rămâne intenționat în textul de ajutor din formularul de sesizare. **Verificarea auditorului:** SHA-256 al arhivei confirmat, 33/33 de fișiere conforme cu inventarul, fără fișiere de configurare secretă; limita declarată de auditor: fără comparație binară proprie cu `civic-e563551.zip`. Pachetul a fost acceptat pentru instalare; proprietarul a aprobat.
+
+**Amendamentul A1 la procedura `PROCEDURA_PWA_PRODUCTIE_r1_1`:** `civic-e0a3b74.zip` în locul `civic-e563551.zip`; valorile de referință neschimbate (verificate pe noul pachet); la verificarea vizuală se adaugă textele curățate; revenirea neschimbată (regula de la §54.8.2). Față de r1.1 s-a schimbat un context: fluxul către Primărie era pornit (r1.1 presupunea fluxul oprit); comportamentul transmiterii rămâne același.
+
+### 56.4 Instalarea în producție (23.11.2026, 09:45–10:09)
+
+Executată de proprietar, pas cu pas; detaliile pe rânduri în `docs/faza7/PRODUCTIE_URBISACTIV_JURNAL.md` §7. Pornirea cu codul nou: **09:54**.
+
+| Pasul | Rezultatul |
+|---|---|
+| P-1 | amprentele `civic-e0a3b74.zip`, `civic-4198e8d.zip` și ale fișierului de retragere conforme; fișierul de retragere a fost retrimis (lipsea din dosarul proprietarului) și verificat |
+| P-2 | `civic-backup-20261123T074805238Z`, „criptată (age)”; în `stderr` numai anunțul npm despre o versiune nouă (informativ) |
+| P-3 … P-6b | oprire; urcare; ștergerea celor 4 intrări (cu coș); extragere; structura conformă; `RELEASE.txt` `commit: e0a3b74`; arhiva ștearsă |
+| P-7, P-8 | pornire la 09:54; `health` `{"status":"ok","version":"0.0.0+e0a3b74"}` |
+| V-P1 … V-P4 | `200`, `text/html`, 1362 B; manifestul `200`, `application/manifest+json`, `no-cache`, 750 B; `urbis-offline-v1`; `client-ip` `NOT_FOUND`; `robots.txt` neschimbat |
+| V-P8 + textele | `sw: https://urbisactiv.ro/sw.js`, `urbis-offline-v1 ["/offline.html"]`; „Bine de știut”, fără DEMO la comunicatul real, insignele „Activ”, Ghidul fără ecusonul DEMO |
+| V-P9 | ambele jurnale cron la 10:00, câte un rând fără erori (`outbox:process` cu toate valorile 0; `surveys:close-expired: 0 sondaje închise`) |
+| V-P5 | aplicația instalată pe telefon: iconița „Urbis Activ” cu sigla A, deschisă fără bara Chrome |
+| V-P6 | codul pe e-mail și Google, în aplicația instalată: reușite (**confirmat de proprietar, fără capturi**) |
+| V-P7 | „Sunteți offline” fără internet; după revenire, normal (confirmat de proprietar) |
+
+**Rezultatul:** reușită, fără revenire. Baza nu a fost modificată (fără migrații între `4198e8d` și `e0a3b74`); copia de dinainte include 2 sondaje cu 63 de răspunsuri, păstrate.
+
+### 56.5 Constatări (pentru un lot viitor sau pentru Admin)
+
+1. „Program de Lucru & Ghișee” din Ghid e gol: lipsesc datele (de completat din Admin de proprietar).
+2. Banda din Ghid („…dispeceratul de apă sau poliția locală?”) e scrisă în cod și pomenește poliția locală, care nu există în municipiu.
+3. Consola Chrome arată o eroare pe Acasă, neanalizată la instalare; probabil mesajul CSP `eval` cunoscut (§54.8.4). Nu e criteriu de reușită.
+4. Rămân din §54.8.4: sigla A în antet, ceasul gol din lista de administrare, „Reîncearcă” pe `offline.html`.
+5. Depozitul GitHub anunță o adresă nouă (`sergiuiordan2000-ctrl/Platforma-interactiva`); redirecționarea funcționează.
+
+### 56.6 Starea după această consemnare
+
+| Punctul | Starea |
+|---|---|
+| producția | publică, **`e0a3b74`** (lotul PWA și curățarea textelor), `EMAIL_MODE=live`, fluxul către Primărie pornit, Google „In production” |
+| aplicația instalabilă (PWA) | activă în producție; decizia D7 închisă și pentru instalare |
+| revenirea | `civic-4198e8d.zip` și fișierul de retragere pe calculatorul proprietarului (regula de la §54.8.2) |
+| staging | oprit, lacăt activ, fără cron; pachetul instalat `e563551` |
+| deschise | prima transmitere reală către Primărie (Brevo); indexarea (D-L5-1); CDPA; AbuseBL; lotul de corecturi mărunte; Google Play după D-U-N-S |
+
+### 56.7 Ce NU înseamnă această consemnare
+
+Nu deschide indexarea, nu acordă checkpointul 7E și nu autorizează pachetul Android sau `assetlinks.json`.

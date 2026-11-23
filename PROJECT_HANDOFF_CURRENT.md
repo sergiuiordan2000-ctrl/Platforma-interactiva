@@ -1,10 +1,10 @@
 # PROJECT_HANDOFF_CURRENT.md — Turnu Măgurele Civic
 
 **Stare documentată:** finalul Etapei 6.5 (26 septembrie 2026), actualizată după **Etapa 6.6** (comisă și publicată: `83b77ad`), după **auditul general** și pentru **remedierea P0 post-audit** (vezi B, G.5 și I), după checkpoint-ul Fazei 0 (`f6809f3`), după Fazele 1–2, după deciziile Fazei 3 (`PROJECT_RULES_AND_DECISIONS.md` §11) și după **Faza 4** (designul backend-ului, checkpoint aprobat de proprietar la 28.09.2026; `PROJECT_RULES_AND_DECISIONS.md` §12, `docs/faza4/`)
-**Actualizare 19.11.2026:** starea curentă este în **Secțiunea 0E**, care prevalează față de 0D. **Actualizare 18.11.2026:** starea curentă era în **Secțiunea 0D**, care prevala față de 0C. **Actualizare 30.10.2026:** starea curentă era în **Secțiunea 0C**, care este punctul de pornire și prevalează, în caz de contradicție, față de 0B, 0A și 0, păstrate ca istoric. **Actualizare 19.10.2026:** starea Etapei 7 (7A) este în **Secțiunea 0B**, care are prioritate față de 0A și 0. **Actualizare 12.10.2026:** starea Fazei 6 este în **Secțiunea 0A**, care are prioritate față de Secțiunea 0. **Actualizare 10.10.2026:** starea curentă (Faza 5 închisă la 10.10.2026; aplicația cu server) este în **Secțiunea 0**; ea are prioritate față de secțiunile de stare mai vechi.
+**Actualizare 23.11.2026:** starea curentă este în **Secțiunea 0F**, care prevalează față de 0E. **Actualizare 19.11.2026:** starea curentă era în **Secțiunea 0E**, care prevala față de 0D. **Actualizare 18.11.2026:** starea curentă era în **Secțiunea 0D**, care prevala față de 0C. **Actualizare 30.10.2026:** starea curentă era în **Secțiunea 0C**, care este punctul de pornire și prevalează, în caz de contradicție, față de 0B, 0A și 0, păstrate ca istoric. **Actualizare 19.10.2026:** starea Etapei 7 (7A) este în **Secțiunea 0B**, care are prioritate față de 0A și 0. **Actualizare 12.10.2026:** starea Fazei 6 este în **Secțiunea 0A**, care are prioritate față de Secțiunea 0. **Actualizare 10.10.2026:** starea curentă (Faza 5 închisă la 10.10.2026; aplicația cu server) este în **Secțiunea 0**; ea are prioritate față de secțiunile de stare mai vechi.
 **Scop:** documentul principal de preluare pentru un chat nou. Înlocuiește, pentru starea curentă, secțiunile de stare din `PROJECT_HANDOFF.md`. Acela a fost scris la finalul Etapei 5 și este acum depășit la Git, securitate și pasul următor.
 
-> **Regula de pornire pentru noul chat (actualizată la 19.11.2026):** citește întâi **Secțiunea 0E** (starea curentă), apoi 0D și 0C. Apoi citește:
+> **Regula de pornire pentru noul chat (actualizată la 23.11.2026):** citește întâi **Secțiunea 0F** (starea curentă), apoi 0E, 0D și 0C. Apoi citește:
 > - `PROJECT_RULES_AND_DECISIONS.md`;
 > - planul `docs/faza7/FAZA_7_PLAN_ACTIUNE_MVP_v2.4.md`;
 > - registrele deciziilor: `docs/faza7/FAZA_7_E0_REGISTRU_DECIZII.md` și `docs/faza7/FAZA_7_REGISTRU_DECIZII_ACTUALIZARI.md` (în al doilea, secțiunile cele mai recente);
@@ -16,9 +16,22 @@
 
 ---
 
+## 0F. PRODUCȚIA PUBLICĂ, CU APLICAȚIA INSTALABILĂ (actualizat la 23.11.2026)
+
+> **Este punctul de pornire curent și prevalează față de 0E și secțiunile mai vechi**, care rămân ca istoric. Detaliile: registrul `docs/faza7/FAZA_7_REGISTRU_DECIZII_ACTUALIZARI.md` §55 (lansarea) și §56 (instalarea), jurnalul `docs/faza7/PRODUCTIE_URBISACTIV_JURNAL.md` §7. Verifică starea Git reală; nu presupune nimic din memorie.
+
+- **Producția** e **publică din 20.11.2026, 10:07**, pe `https://urbisactiv.ro`, cu codul **`e0a3b74`** (lotul PWA și curățarea textelor de test, instalat la 23.11.2026), `EMAIL_MODE=live` (Brevo, plan gratuit), clientul Google „In production”, fluxul către Primărie **pornit** (fără acordul Primăriei, §46). **Nu se fac sesizări de test cu transmitere în producție.**
+- **Revenirea** la `4198e8d`: arhiva și fișierul de retragere sunt la proprietar. **Regulă obligatorie:** `deploy/sw-retragere.js` numai împreună cu `4198e8d`, niciodată peste cod care înregistrează un service worker (§54.8.2).
+- **Staging-ul:** oprit, lacăt activ, fără cron (R2; ultima verificare: intervenția 171).
+- **Deschise:** prima transmitere reală către Primărie (de verificat în Brevo: „Delivered” sau „Soft bounce”; riscul AbuseBL, §55.6); indexarea (D-L5-1, `robots.txt` încă `Disallow: /`); acceptarea CDPA Google; lotul de corecturi mărunte (§56.5); programul ghișeelor în Ghid (Admin).
+- **Google Play:** după D-U-N-S (ICAP, varianta gratuită); apoi contul de organizație, pachetul Android (Trusted Web Activity), `assetlinks.json`, fișa.
+- **Ritmul** rămâne cel din 0D.
+
+---
+
 ## 0E. LOTUL PWA ÎNCHIS TEHNIC; PREGĂTIREA LANSĂRII (actualizat la 19.11.2026)
 
-> **Este punctul de pornire curent și prevalează față de 0D și secțiunile mai vechi**, care rămân ca istoric. Detaliile: registrul `docs/faza7/FAZA_7_REGISTRU_DECIZII_ACTUALIZARI.md` §54. Verifică starea Git reală; nu presupune nimic din memorie.
+> *Înlocuită de 0F pentru starea curentă (23.11.2026).* **Era punctul de pornire și prevala față de 0D și secțiunile mai vechi**, care rămân ca istoric. Detaliile: registrul `docs/faza7/FAZA_7_REGISTRU_DECIZII_ACTUALIZARI.md` §54. Verifică starea Git reală; nu presupune nimic din memorie.
 
 - **Producția** e neschimbată față de 0D: `4198e8d`, sub lacăt, `EMAIL_MODE=allowlist`, clientul Google în „Testing” (Branding completat, „Publish app” neapăsat).
 - **Lotul PWA**: codul `e563551` pe `faza-5-backend` (CI 7/7), artefactul `civic-e563551.zip` (`d25152d5…69da`, 33 de intrări), proba pe staging V-1…V-9 conformă (19.11.2026). **Se instalează în producție numai după lansarea publică**, cu autorizare separată. **Regulă obligatorie:** `deploy/sw-retragere.js` se folosește numai împreună cu codul anterior lotului PWA, `4198e8d`, niciodată peste `e563551` sau alt cod care înregistrează un service worker (§54.8.2).
