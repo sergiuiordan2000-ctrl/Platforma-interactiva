@@ -9,6 +9,25 @@ from harness import *
 import time
 import urllib.request
 
+
+def tel_digits(phone):
+    """Ca `telDigits` din src/services/emergencyBar.ts: numai cifrele, cu „+” la început dacă există."""
+    t = (phone or '').strip()
+    return ('+' if t.startswith('+') else '') + re.sub(r'\D', '', t)
+
+
+def emergency_bar_expected(contacts, maximum=3):
+    """Aceleași reguli ca `selectEmergencyBarContacts`: marcate „Urgență”, active, după `order`, fără 112, fără dubluri, cel mult 3."""
+    seen, out = {'112'}, []
+    for c in sorted((c for c in contacts if c.get('isEmergency') and c.get('isActive') is not False), key=lambda c: c.get('order') or 0):
+        d = tel_digits(c.get('phone'))
+        if d in ('', '+') or d in seen:
+            continue
+        seen.add(d); out.append(c)
+        if len(out) >= maximum:
+            break
+    return out
+
 res = Results('5.3 CONTINUT PUBLIC DIN API (E2E, server real)')
 _last_totp = {'step': 0}
 STORAGE_KEYS_5_3 = ['turnu_civic_announcements', 'turnu_civic_city_hall_directory',
@@ -88,6 +107,13 @@ with backend_server(5599) as BACKEND, sync_playwright() as pw:
     search = page.locator('input[type="text"]').first
     search.fill(first['name']); page.wait_for_timeout(200)
     res.check('Q-2 Apel rapid: căutarea locală găsește contactul', page.get_by_text(first['name']).count() >= 1, '')
+    # banda de urgență (24.11.2026): 112 fix + contactele marcate „Urgență” (cel mult 3, fără 112); fără numerele din prototip
+    tel = [h for h in page.eval_on_selector_all('a[href^="tel:"]', 'els => els.map(e => e.getAttribute("href"))')]
+    urg = emergency_bar_expected(quick['contacts'])
+    res.check('Q-3 Apel rapid: banda de urgență vine din Admin, fără numerele fixe din prototip',
+              'tel:112' in tel and all(f"tel:{tel_digits(x['phone'])}" in tel for x in urg)
+              and not any(n in tel for n in ('tel:0247416450', 'tel:0247416350', 'tel:0247416990')) and 'Poliția Locală' not in body,
+              json.dumps(tel[:8]))
 
     # 5. Nicio cheie `localStorage` pentru domeniile 5.3
     keys = page.evaluate('Object.keys(localStorage)')

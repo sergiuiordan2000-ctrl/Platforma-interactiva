@@ -9,11 +9,10 @@ import {
   ShieldAlert, 
   X,
   Phone,
-  HeartPulse,
-  Droplets,
   AlertCircle
 } from 'lucide-react';
 import { filterContacts, quickDialService } from '../../services/quickDialService';
+import { selectEmergencyBarContacts, telDigits } from '../../services/emergencyBar';
 import { ErrorBlock, LoadingBlock } from '../common/LoadState';
 import { useAsync } from '../../hooks/useAsync';
 import { QuickDialCard } from './QuickDialCard';
@@ -31,6 +30,8 @@ export const QuickDialView: React.FC = () => {
     () => filterContacts(data.data?.contacts ?? [], activeCategory, searchQuery),
     [data.data, activeCategory, searchQuery],
   );
+  // banda de urgență: 112 fix + contactele marcate „Urgență” în Admin (24.11.2026; înainte: numere fixe din prototip)
+  const emergencyContacts = useMemo(() => selectEmergencyBarContacts(data.data?.contacts ?? []), [data.data]);
 
   if (data.loading && !data.data) return <LoadingBlock label="Se încarcă numerele utile…" />;
   if (data.error && !data.data) return <ErrorBlock message={data.error} onRetry={data.reload} />;
@@ -73,47 +74,22 @@ export const QuickDialView: React.FC = () => {
             </div>
           </a>
 
-          {/* Poliția Locală */}
-          <a
-            href="tel:0247416450"
-            className="flex items-center justify-between p-3 rounded-xl bg-white/15 hover:bg-white/25 border border-white/20 text-white transition-all shadow-sm active:scale-95 select-none"
-          >
-            <div>
-              <div className="text-[11px] font-bold text-red-100 uppercase">Poliția Locală</div>
-              <div className="text-sm font-black tracking-tight">0247 416 450</div>
-            </div>
-            <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center shrink-0">
-              <Phone className="w-4 h-4 text-white fill-white" />
-            </div>
-          </a>
-
-          {/* Spital / Urgențe */}
-          <a
-            href="tel:0247416350"
-            className="flex items-center justify-between p-3 rounded-xl bg-white/15 hover:bg-white/25 border border-white/20 text-white transition-all shadow-sm active:scale-95 select-none"
-          >
-            <div>
-              <div className="text-[11px] font-bold text-red-100 uppercase">Spital Municipal</div>
-              <div className="text-sm font-black tracking-tight">0247 416 350</div>
-            </div>
-            <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center shrink-0">
-              <HeartPulse className="w-4 h-4 text-white" />
-            </div>
-          </a>
-
-          {/* Avarii Apă */}
-          <a
-            href="tel:0247416990"
-            className="flex items-center justify-between p-3 rounded-xl bg-white/15 hover:bg-white/25 border border-white/20 text-white transition-all shadow-sm active:scale-95 select-none"
-          >
-            <div>
-              <div className="text-[11px] font-bold text-red-100 uppercase">Avarii Apă-Canal</div>
-              <div className="text-sm font-black tracking-tight">0247 416 990</div>
-            </div>
-            <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center shrink-0">
-              <Droplets className="w-4 h-4 text-white" />
-            </div>
-          </a>
+          {/* contactele marcate „Urgență” în Admin (cel mult 3, fără 112) */}
+          {emergencyContacts.map((c) => (
+            <a
+              key={c.id}
+              href={`tel:${telDigits(c.phone)}`}
+              className="flex items-center justify-between gap-2 p-3 rounded-xl bg-white/15 hover:bg-white/25 border border-white/20 text-white transition-all shadow-sm active:scale-95 select-none"
+            >
+              <div className="min-w-0">
+                <div className="text-[11px] font-bold text-red-100 uppercase truncate">{c.name}</div>
+                <div className="text-sm font-black tracking-tight">{c.formattedPhone || c.phone}</div>
+              </div>
+              <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center shrink-0">
+                <Phone className="w-4 h-4 text-white fill-white" />
+              </div>
+            </a>
+          ))}
 
         </div>
       </div>

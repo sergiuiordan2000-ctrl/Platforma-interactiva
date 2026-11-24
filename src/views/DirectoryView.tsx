@@ -114,7 +114,7 @@ export const DirectoryView: React.FC<DirectoryViewProps> = ({
           <div className="bg-cyan-50/70 border border-cyan-200 rounded-xl p-3 sm:p-4 flex items-center justify-between gap-3 text-xs">
             <div className="flex items-center gap-2 text-cyan-900 font-semibold">
               <PhoneForwarded className="w-4 h-4 text-cyan-700 shrink-0" />
-              <span>Cauți un număr de urgență, dispeceratul de apă sau poliția locală?</span>
+              <span>Cauți un număr de urgență sau un dispecerat de avarii?</span>
             </div>
             <button
               onClick={() => setActiveMode('quickdial')}
