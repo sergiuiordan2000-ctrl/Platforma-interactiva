@@ -2732,3 +2732,69 @@ Executată de proprietar, pas cu pas; detaliile pe rânduri în `docs/faza7/PROD
 ### 56.7 Ce NU înseamnă această consemnare
 
 Nu deschide indexarea, nu acordă checkpointul 7E și nu autorizează pachetul Android sau `assetlinks.json`.
+
+## 57. Căderea serverului găzduirii (23.11.2026); banda de urgență din Apelul rapid (`c41982b`, `89a0ff4`) și instalarea `89a0ff4` în producție (24.11.2026)
+
+**Sursele (în afara depozitului, la proprietar):**
+
+| Documentul | SHA-256 |
+|---|---|
+| diff-ul benzii de urgență, r1 (nerevizuit favorabil, înlocuit de r2) | `cd4fb66c891c7d798d5d1724b83715e10ce4a34aea1bc9e9352e6a5c3c665c1d` |
+| diff-ul benzii de urgență, r2 (comis ca `c41982b`) | `66cec2b90c3a6e587b6ca37b19f188ada2ead0212a08242ad234e32c5fdc733e` |
+| corectura testului Q-3, r3 (comisă ca `89a0ff4`) | `2913844902096a4d7d6c75d6db7f7439f352b5b82927f72ec51cb69be2a8c161` |
+| arhiva `civic-89a0ff4.zip` (1.548.199 B, 33 de intrări) | `5d5dd38e9399d74ffb6644042206a634bdcaf3e5a0db2ed5e496a9172af8a967` |
+| inventarul arhivei | `14d31ec5f0e7abf33c65e9c5270d2c70a6a81bbac990290eb5ac6275d4c78104` |
+
+### 57.1 Căderea serverului găzduirii (23.11.2026, de la ~14:00)
+
+**Începutul: aproximativ 14:00. Verificările noastre: ~14:00–14:13. Ora revenirii: necunoscută. Cauza: necunoscută.** Proprietarul a constatat în jurul orei 14:00 că `urbisactiv.ro` nu se deschide, nici de pe calculator, nici de pe telefon. Constatările, în ordine:
+- `curl.exe` de pe calculator: cod `000` după ~21 s (nicio conexiune; o oprire a aplicației Node ar fi dat un răspuns de eroare, de exemplu `503`);
+- telefonul pe date mobile (altă rețea, altă adresă IP): tot fără răspuns; deci nu era o blocare a adresei IP a proprietarului;
+- cPanel-ul serverului (`server92`) nu răspundea (`ERR_CONNECTION_TIMED_OUT`);
+- check-host.net: „Connection timed out” din toate locațiile verificate, inclusiv București;
+- adresa serverului `urbisactiv.ro`: 85.9.63.16; un alt site al proprietarului, la aceeași firmă de găzduire, dar pe alt server (80.96.7.228), funcționa; site-ul firmei de găzduire nu răspundea nici el.
+
+**Concluzia:** o cădere a serverului (sau a rețelei) găzduirii, nu a aplicației și nici un atac țintit asupra `urbisactiv.ro`. Telefonul suportului nu a răspuns; nu s-a deschis tichet. Serviciul a revenit fără intervenția proprietarului; în dimineața de 24.11.2026 site-ul funcționa. **Ora revenirii și cauza: necunoscute** (furnizorul nu a dat explicații). Nu s-a făcut nicio acțiune în cPanel în timpul incidentului. Starea după revenire, confirmată indirect la 24.11.2026: `health` conform și copia `civic-backup-20261124T085557204Z` completă (P-2 din 57.4).
+
+### 57.2 Constatarea și decizia D-U-1 (24.11.2026)
+
+Proprietarul a observat că banda roșie „Dispecerate de Urgență & Avarii Non-Stop” din Apelul rapid arată date care nu corespund realității și nu se poate modifica din Admin. Cauza: în `QuickDialView.tsx`, pe lângă 112, **trei numere fixe din prototip, neverificate** („Poliția Locală 0247 416 450”, „Spital Municipal 0247 416 350”, „Avarii Apă-Canal 0247 416 990”); în municipiu nu există poliție locală. **Risc de siguranță:** un apel de urgență către un număr greșit. Tratat cu prioritate față de celelalte corecturi.
+
+**D-U-1 = A (proprietarul):** 112 rămâne fix; celelalte butoane vin din contactele marcate „Urgență” în Admin (căsuța existentă `isEmergency`): active, după ordinea din Admin, fără 112, fără numere repetate, cel mult 3; fără contacte marcate, banda arată numai 112. În același lot: banda din Ghid fără „poliția locală”. Fără migrare, fără schimbări pe server sau în Admin.
+
+### 57.3 Codul, reviziile și CI
+
+- **r1 → r2:** auditorul a cerut ca lista așteptată din testul E2E Q-3 să urmeze exact regulile funcției `selectEmergencyBarContacts` (active, fără dubluri). r2 a modificat numai testul (interdiff verificat). Commitul `c41982b`.
+- **CI pe `c41982b`** (rularea 45351915986): 6/6 joburi backend verzi; **E2E 286/287**: a picat Q-3. Cauza: testul colecta toate legăturile `tel:` din pagină, inclusiv cardurile listei, iar datele demonstrative din CI au un contact „Urgență” cu unul dintre numerele vechi. Banda era corectă (jurnalul CI o arăta). Nu s-a pregătit niciun pachet.
+- **r3 (numai testul):** Q-3 citește doar legăturile din bandă și le compară exact, în ordine, cu lista așteptată. La rezerva auditorului privind selectorul (`.last`), Claude l-a verificat pe DOM-ul real (aplicația construită, Chrome local, desktop și mobil): `.last` este containerul benzii, iar legăturile coincid cu lista așteptată. Diff-ul a rămas neschimbat. Commitul `89a0ff4`.
+- **CI pe `89a0ff4`** (rularea 45355301620): **7/7 verde**, E2E **287/287 PASS** (`test_5_3_continut_public.py` 17/17).
+- Toate commiturile: identitatea „Claude”, fără linii de atribuire; fiecare commit și push aprobat separat de proprietar, după revizia auditorului.
+
+### 57.4 Pachetul și instalarea (24.11.2026, 10:54–11:08)
+
+**Pachetul:** construit de Claude dintr-o copie curată la `89a0ff4`. Față de `civic-e0a3b74.zip`: aceeași structură; lotul PWA (`sw.js`, manifestul, `offline.html`, `favicon.svg`) identic octet cu octet; `server/dist/app.js` identic în afara versiunii. Bundle-ul nu mai conține numerele vechi (`0247416990` rămâne o dată, ca exemplu în câmpul de introducere din Admin). **Verificarea auditorului:** SHA-256 confirmat, 33/33 de fișiere conforme cu inventarul; limita declarată: fără comparație binară proprie cu pachetul anterior. Instalarea, aprobată explicit de proprietar.
+
+**Instalarea** (procedura r1.1 + A1; detaliile în jurnalul producției §8):
+
+| Pasul | Rezultatul |
+|---|---|
+| P-1 | amprentele `civic-89a0ff4.zip`, `civic-4198e8d.zip` și ale fișierului de retragere conforme |
+| P-2 | `civic-backup-20261124T085557204Z`, „criptată (age)”, `stderr` gol; rotația a șters de pe găzduire `civic-backup-20261117T063506778Z` (mai veche de 7 zile). Aceasta este copia de pe server; **nu** îndeplinește D23-3 pentru copia externă de pe calculatorul proprietarului (57.5.2) |
+| P-3 … P-6 | oprire; urcare; ștergerea celor 4 intrări (cu coș); extragere; `RELEASE.txt` `commit: 89a0ff4`; arhiva ștearsă |
+| P-7, P-8 | pornire la **11:00**; `health` `0.0.0+89a0ff4` |
+| V-P1 … V-P4 | `200`, `text/html`, 1362; manifestul `200`, `application/manifest+json`, `no-cache`, 750; `urbis-offline-v1`; `client-ip` `NOT_FOUND` |
+| V-P8 + banda | service worker-ul și memoria conforme; banda arată numai 112 (singurul contact marcat „Urgență” în Admin era chiar 112, afișat fix) |
+| V-P9 | ambele jurnale cron, câte un rând fără erori; orele nu apar în capturi (verificate de proprietar după 11:05) |
+
+V-P5…V-P7 (telefonul) au fost omise: lotul PWA este identic octet cu octet cu cel verificat la 23.11.2026. **Rezultatul:** reușită, fără revenire; baza nu a fost modificată.
+
+### 57.5 Deschise după această consemnare
+
+1. **Conținutul benzii** (proprietarul, în Admin): numai 112 sau și alte contacte non-stop, cu numărul verificat la sursă. Recomandarea lui Claude: Poliția și Spitalul nu se marchează „Urgență” (propriile lor descrieri trimit la 112); un furnizor de avarii non-stop se poate marca.
+2. **Copia externă (D23):** copia externă de pe calculatorul proprietarului provine din `civic-backup-20261117T063506778Z`, deci termenul de păstrare (D23-3) expiră la **24.11.2026**: se șterge în această zi. **Acțiune în așteptare** până la confirmarea proprietarului; rotația de pe găzduire (57.4, P-2) privește numai copia de pe server și nu o înlocuiește. Copia săptămânală de luni, 23.11.2026 (D23-2), nu s-a făcut (ziua instalării `e0a3b74` și a căderii serverului). Intervalul fără copie externă validă începe la ștergere și durează până la următoarea copie realizată și verificată (D23-4).
+3. Copia automată din noaptea de 24.11.2026 (03:17) nu a fost verificată separat; P-2 a confirmat funcționarea copiei la 10:55.
+4. Rămân din §56.5–§56.6: eroarea din consolă, sigla A în antet, ceasul gol din Admin, „Reîncearcă” pe `offline.html`, programul ghișeelor, prima transmitere reală către Primărie, indexarea, CDPA, AbuseBL, Google Play după D-U-N-S.
+
+### 57.6 Ce NU înseamnă această consemnare
+
+Nu stabilește cauza căderii din 23.11.2026, nu deschide indexarea și nu acordă checkpointul 7E.

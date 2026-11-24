@@ -104,3 +104,19 @@ Lansarea din 20.11.2026 e consemnată în registrul Fazei 7, §55; orele nenotat
 | 57 | 10:04–10:05 | **V-P5** instalarea pe telefon | iconița „Urbis Activ” cu sigla A; aplicația fără bara Chrome (capturi) | **OK** |
 | 58 | ~10:08 | **V-P6** codul pe e-mail și Google, în aplicația instalată | reușite (confirmat de proprietar, fără capturi) | **OK** |
 | 59 | 10:09 | **V-P7** modul Avion | „Sunteți offline”; după revenire, normal (confirmat de proprietar) | **OK** |
+
+## 8. Căderea serverului (23.11.2026) și instalarea `89a0ff4` (24.11.2026)
+
+Detaliile în registrul Fazei 7, §57.
+
+| # | Data, ora | Pas | Verificarea / dovada | Rezultat |
+|---|---|---|---|---|
+| 60 | 23.11.2026: începutul ~14:00; verificările noastre ~14:00–14:13; ora revenirii necunoscută | **Incident:** site-ul și cPanel-ul (`server92`, 85.9.63.16) nu răspund | `curl.exe` `000` după ~21 s; nici pe date mobile; check-host.net: „Connection timed out” din toate locațiile; un alt server al aceleiași firme funcționa; site-ul firmei de găzduire nu răspundea (capturi). Nicio acțiune în cPanel | **incident al găzduirii** |
+| 61 | 24.11.2026, dimineața (ora revenirii necunoscută) | Revenirea serviciului, fără intervenția proprietarului; fără explicații de la furnizor | site-ul funcțional (proprietarul) | **OK** |
+| 62 | 24.11.2026 10:54 | **P-1** amprentele | `civic-89a0ff4.zip` `5D5DD38E…A967`; `civic-4198e8d.zip` `8D89F83A…AC7`; fișierul de retragere `3DF7ACB8…3CB7` (captură) | **OK** |
+| 63 | 10:55–10:56 | **P-2** `civic-backup-db` | `civic-backup-20261124T085557204Z`, „criptată (age)”, „fotografii: 0”; `citizen_accounts` 6, `survey_submissions` 67; rotația a șters de pe găzduire `civic-backup-20261117T063506778Z` (copia de pe server; **nu** copia externă de pe calculatorul proprietarului, care rămâne de șters, registrul §57.5.2); `stderr` gol (capturi) | **OK** |
+| 64 | 10:57–10:58 | **P-3 … P-5** Stop; urcare; ștergerea `dist`, `server`, `package.json`, `RELEASE.txt` (cu coș) | confirmat de proprietar | **OK** |
+| 65 | 10:59–11:00 | **P-6** extragere; structura; `RELEASE.txt`; arhiva ștearsă | `dist`, `server` 10:59; `package.json` 1,35 KB, `RELEASE.txt` 65 bytes; `commit: 89a0ff4` (capturi) | **OK** |
+| 66 | 11:00–11:01 | **P-7, P-8** Start; `health` | `{"status":"ok","version":"0.0.0+89a0ff4"}` (captură) | **OK** |
+| 67 | 11:01–11:03 | **V-P1 … V-P4**, **V-P8**, banda | `200`, `text/html`, 1362; manifestul `200`, `application/manifest+json`, `no-cache`, 750; `urbis-offline-v1`; `NOT_FOUND`; `sw: https://urbisactiv.ro/sw.js`, `urbis-offline-v1 ["/offline.html"]`; banda numai cu 112 (capturi) | **OK** |
+| 68 | după 11:05 (~11:08) | **V-P9** jurnalele cron | `outbox:process` cu toate valorile 0; `surveys:close-expired: 0 sondaje închise`; orele nu apar în capturi | **OK** |
