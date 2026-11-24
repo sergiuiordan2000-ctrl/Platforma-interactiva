@@ -107,13 +107,17 @@ with backend_server(5599) as BACKEND, sync_playwright() as pw:
     search = page.locator('input[type="text"]').first
     search.fill(first['name']); page.wait_for_timeout(200)
     res.check('Q-2 Apel rapid: căutarea locală găsește contactul', page.get_by_text(first['name']).count() >= 1, '')
-    # banda de urgență (24.11.2026): 112 fix + contactele marcate „Urgență” (cel mult 3, fără 112); fără numerele din prototip
-    tel = [h for h in page.eval_on_selector_all('a[href^="tel:"]', 'els => els.map(e => e.getAttribute("href"))')]
-    urg = emergency_bar_expected(quick['contacts'])
-    res.check('Q-3 Apel rapid: banda de urgență vine din Admin, fără numerele fixe din prototip',
-              'tel:112' in tel and all(f"tel:{tel_digits(x['phone'])}" in tel for x in urg)
-              and not any(n in tel for n in ('tel:0247416450', 'tel:0247416350', 'tel:0247416990')) and 'Poliția Locală' not in body,
-              json.dumps(tel[:8]))
+    # banda de urgență (24.11.2026): 112 fix + contactele marcate „Urgență” (cel mult 3, fără 112), în această ordine.
+    # Numai legăturile din bandă (cel mai interior bloc cu titlul benzii și legătura 112), nu și cardurile din listă;
+    # absența numerelor fixe din prototip în componentă o verifică testul unitar (server/test/api/emergencyBar.test.ts).
+    search.fill(''); page.wait_for_timeout(200)
+    band = (page.locator('div')
+            .filter(has=page.get_by_role('heading', name='Dispecerate de Urgență & Avarii Non-Stop'))
+            .filter(has=page.locator('a[href="tel:112"]')).last)
+    tel = band.locator('a[href^="tel:"]').evaluate_all('els => els.map(e => e.getAttribute("href"))')
+    expected = ['tel:112'] + [f"tel:{tel_digits(x['phone'])}" for x in emergency_bar_expected(quick['contacts'])]
+    res.check('Q-3 Apel rapid: banda de urgență = 112 + contactele marcate „Urgență” din Admin (cel mult 3)',
+              tel == expected, json.dumps({'banda': tel, 'asteptat': expected}))
 
     # 5. Nicio cheie `localStorage` pentru domeniile 5.3
     keys = page.evaluate('Object.keys(localStorage)')
